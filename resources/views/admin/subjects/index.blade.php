@@ -1,0 +1,107 @@
+<x-admin-layout>
+    <x-slot name="title">Subjects & Modules</x-slot>
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1>Subjects & Modules Management</h1>
+            <p>Define subjects, credits, pass marks, and sequential learning modules</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('addSubjectModal')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                New Subject
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Subject Name</th>
+                        <th>Credit</th>
+                        <th>Full / Pass Marks</th>
+                        <th>Modules</th>
+                        <th>Status</th>
+                        <th style="text-align:right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($subjects as $subj)
+                    <tr>
+                        <td><span class="badge badge-secondary no-dot"><strong>{{ $subj->code }}</strong></span></td>
+                        <td class="td-primary">
+                            <a href="{{ route('admin.subjects.show', $subj) }}" style="font-weight:600;color:var(--blue)">{{ $subj->name }}</a>
+                        </td>
+                        <td>{{ $subj->credit }} Credit</td>
+                        <td class="td-muted">{{ $subj->full_marks }} / {{ $subj->pass_marks }}</td>
+                        <td>
+                            <span class="badge badge-scheduled no-dot">{{ $subj->modules_count }} Modules</span>
+                        </td>
+                        <td>
+                            @if($subj->is_active)
+                                <span class="badge badge-active">Active</span>
+                            @else
+                                <span class="badge badge-secondary">Inactive</span>
+                            @endif
+                        </td>
+                        <td style="text-align:right">
+                            <a href="{{ route('admin.subjects.show', $subj) }}" class="btn btn-outline btn-sm">Manage Modules →</a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No subjects found. Click "New Subject" to create one.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create Subject Modal -->
+    <div class="modal-overlay" id="addSubjectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">New Subject</span>
+                <button class="modal-close" onclick="closeModal('addSubjectModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.subjects.store') }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Subject Code <span class="required">*</span></label>
+                            <input type="text" name="code" class="form-control" placeholder="e.g. CSE-101" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Subject Credit <span class="required">*</span></label>
+                            <input type="number" name="credit" class="form-control" value="3" min="1" max="10" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject Name <span class="required">*</span></label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Programming Fundamentals" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Marks <span class="required">*</span></label>
+                            <input type="number" name="full_marks" class="form-control" value="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Pass Marks <span class="required">*</span></label>
+                            <input type="number" name="pass_marks" class="form-control" value="40" required>
+                        </div>
+                    </div>
+                    <label class="form-check">
+                        <input type="checkbox" name="is_active" value="1" checked> Active Subject
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addSubjectModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</x-admin-layout>

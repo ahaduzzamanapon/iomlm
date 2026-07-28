@@ -1,0 +1,62 @@
+<x-student-layout>
+    <x-slot name="title">My Attendance</x-slot>
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1>My Attendance Record</h1>
+            <p>Module-by-module attendance audit and total percentage</p>
+        </div>
+    </div>
+
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);margin-bottom:24px">
+        <div class="stat-card">
+            <div class="stat-icon blue">📊</div>
+            <div class="stat-info">
+                <div class="stat-value">{{ $percentage }}%</div>
+                <div class="stat-label">Overall Attendance</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">✓</div>
+            <div class="stat-info">
+                <div class="stat-value">{{ $present }}</div>
+                <div class="stat-label">Classes Attended</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">📅</div>
+            <div class="stat-info">
+                <div class="stat-value">{{ $total }}</div>
+                <div class="stat-label">Total Conducted Sessions</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject & Module</th>
+                        <th>Class Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($attendances as $att)
+                    <tr>
+                        <td class="td-primary">
+                            <strong>{{ $att->classSession->timeline->subject->name ?? '—' }}</strong><br>
+                            <span class="td-muted">Module: {{ $att->classSession->timeline->module->title ?? '—' }}</span>
+                        </td>
+                        <td class="td-muted">{{ \Carbon\Carbon::parse($att->classSession->timeline->scheduled_date ?? now())->format('d M Y') }}</td>
+                        <td><span class="badge badge-{{ strtolower($att->status) }}">{{ ucfirst(strtolower($att->status)) }}</span></td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="3" style="text-align:center;padding:30px;color:var(--text-muted)">No attendance records logged yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+</x-student-layout>

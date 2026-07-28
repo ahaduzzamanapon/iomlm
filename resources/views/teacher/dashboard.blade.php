@@ -1,0 +1,151 @@
+<x-teacher-layout>
+    <x-slot name="title">Dashboard</x-slot>
+
+    <div class="page-header">
+        <div class="page-header-left">
+            <h1>Good {{ now()->hour < 12 ? 'Morning' : (now()->hour < 17 ? 'Afternoon' : 'Evening') }}, {{ auth()->user()->name ?? 'Teacher' }}!</h1>
+            <p>{{ now()->format('l, d M Y') }} — Here's your teaching overview</p>
+        </div>
+    </div>
+
+    <!-- Teacher Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon teal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ $stats['today_classes'] }}</div>
+                <div class="stat-label">Today's Classes</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ $stats['total_students'] }}</div>
+                <div class="stat-label">My Students</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ $stats['total_subjects'] }}</div>
+                <div class="stat-label">Subjects Assigned</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-value">{{ $stats['pending_results'] }}</div>
+                <div class="stat-label">Results Pending</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- Today's Classes -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Today's Classes</span>
+                <a href="{{ route('teacher.classes.index') }}" class="btn btn-ghost btn-sm">All Classes</a>
+            </div>
+            <div style="padding:0">
+                @forelse($todayClasses as $class)
+                <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--card-border)">
+                    <div style="width:40px;height:40px;background:#ecfdf5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="#10b981"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                    </div>
+                    <div style="flex:1">
+                        <div style="font-size:13px;font-weight:600">{{ $class->timeline->subject->name ?? '—' }}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">Module: {{ $class->timeline->module->title ?? '—' }}</div>
+                    </div>
+                    <div style="text-align:right">
+                        <span class="badge badge-{{ strtolower($class->status) }}">{{ ucfirst(strtolower($class->status)) }}</span>
+                        @if($class->status === 'SCHEDULED')
+                        <div style="margin-top:4px">
+                            <a href="{{ route('teacher.classes.conduct', $class) }}" class="btn btn-success btn-sm">Start</a>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+                @empty
+                <div class="empty-state"><p>No classes scheduled today</p></div>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Upcoming Exams -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Upcoming Exams</span>
+                <a href="{{ route('teacher.exams.index') }}" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Subject</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @forelse($upcomingExams as $exam)
+                        <tr>
+                            <td class="td-primary">{{ $exam->subject->name ?? '—' }}</td>
+                            <td><span class="badge badge-secondary no-dot">{{ ucfirst(strtolower($exam->type)) }}</span></td>
+                            <td class="td-muted">{{ \Carbon\Carbon::parse($exam->exam_date)->format('d M') }}</td>
+                            <td><span class="badge badge-scheduled">Scheduled</span></td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">No upcoming exams</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Attendance Pending -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Attendance Not Marked</span>
+                <span class="badge badge-pending no-dot" style="font-size:11px">Action Required</span>
+            </div>
+            <div style="padding:0">
+                @forelse($attendancePending as $class)
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--card-border)">
+                    <div style="flex:1">
+                        <div style="font-size:13px;font-weight:600">{{ $class->timeline->subject->name ?? '—' }}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">{{ $class->timeline->scheduled_date ?? '—' }}</div>
+                    </div>
+                    <a href="{{ route('teacher.attendance.mark', $class) }}" class="btn btn-outline btn-sm">Mark Now</a>
+                </div>
+                @empty
+                <div class="empty-state"><p>All attendance marked ✓</p></div>
+                @endforelse
+            </div>
+        </div>
+
+        <!-- Results to Submit -->
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">Results to Submit</span>
+                <a href="{{ route('teacher.results.index') }}" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div style="padding:0">
+                @forelse($pendingResults as $exam)
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--card-border)">
+                    <div style="flex:1">
+                        <div style="font-size:13px;font-weight:600">{{ $exam->subject->name ?? '—' }} — {{ $exam->title }}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">{{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }}</div>
+                    </div>
+                    <a href="{{ route('teacher.results.enter', $exam) }}" class="btn btn-primary btn-sm">Enter Marks</a>
+                </div>
+                @empty
+                <div class="empty-state"><p>No pending results</p></div>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+</x-teacher-layout>
