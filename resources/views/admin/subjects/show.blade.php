@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <!-- Modules List -->
+    <!-- Modules List grouped by Category -->
     <div class="card">
         <div class="card-header">
             <span class="card-title">Subject Modules (Sequential Learning Engine)</span>
@@ -30,8 +30,13 @@
                     <div style="display:flex;align-items:center;gap:12px">
                         <div class="module-seq">{{ $mod->sequence_no }}</div>
                         <div>
-                            <div class="module-title">{{ $mod->title }}</div>
-                            <div class="module-sub">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                @if($mod->category)
+                                    <span class="badge badge-secondary no-dot" style="font-size:11px;background:rgba(59,130,246,.1);color:var(--blue)">📁 {{ $mod->category }}</span>
+                                @endif
+                                <span class="module-title">{{ $mod->title }}</span>
+                            </div>
+                            <div class="module-sub" style="margin-top:2px">
                                 {{ $mod->description ?? 'No description' }}
                                 @if($mod->is_locked_until_previous)
                                     · <span style="color:var(--orange)">🔒 Locked until Module {{ $mod->sequence_no - 1 }} completed</span>
@@ -65,6 +70,11 @@
             <form method="POST" action="{{ route('admin.subjects.modules.store', $subject) }}">
                 @csrf
                 <div class="modal-body">
+                    <div class="form-group">
+                        <label>Category / Topic Grouping</label>
+                        <input type="text" name="category" class="form-control" placeholder="e.g. ফিক্বহ, আক্বিদা, তাজবীদ, দাওয়াহ">
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Sequence No. <span class="required">*</span></label>
@@ -72,13 +82,15 @@
                         </div>
                         <div class="form-group">
                             <label>Module Title <span class="required">*</span></label>
-                            <input type="text" name="title" class="form-control" placeholder="e.g. Introduction to Variables" required>
+                            <input type="text" name="title" class="form-control" placeholder="e.g. FQH-1: তাহারাতের পরিচয়" required>
                         </div>
                     </div>
+
                     <div class="form-group">
                         <label>Description</label>
                         <textarea name="description" class="form-control" placeholder="Brief outline of module topics..."></textarea>
                     </div>
+
                     <label class="form-check">
                         <input type="checkbox" name="is_locked_until_previous" value="1" checked> Lock until previous module is COMPLETED
                     </label>

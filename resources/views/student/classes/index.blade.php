@@ -15,7 +15,7 @@
                     <tr>
                         <th>Subject & Module</th>
                         <th>Teacher</th>
-                        <th>Scheduled Date</th>
+                        <th>Scheduled Date & Time</th>
                         <th>Status</th>
                         <th style="text-align:right">Action</th>
                     </tr>
@@ -28,11 +28,28 @@
                             <span class="td-muted">Module: {{ $c->timeline->module->title ?? '—' }}</span>
                         </td>
                         <td>{{ $c->teacher->name ?? 'Faculty' }}</td>
-                        <td class="td-muted">{{ \Carbon\Carbon::parse($c->timeline->scheduled_date)->format('d M Y') }}</td>
-                        <td><span class="badge badge-{{ strtolower($c->status) }}">{{ ucfirst(strtolower($c->status)) }}</span></td>
+                        <td>
+                            @if($c->timeline->scheduled_date)
+                                <strong>{{ \Carbon\Carbon::parse($c->timeline->scheduled_date)->format('d M Y') }}</strong>
+                                @if($c->start_time)
+                                    <br><span style="font-size:11px;color:var(--blue);font-weight:600">🕒 {{ \Carbon\Carbon::parse($c->start_time)->format('h:i A') }}</span>
+                                @endif
+                            @else
+                                <span class="badge badge-upcoming no-dot">Upcoming (Date Pending)</span>
+                            @endif
+                        </td>
+                        <td>
+                            @if($c->timeline->scheduled_date)
+                                <span class="badge badge-{{ strtolower($c->status) }}">{{ ucfirst(strtolower($c->status)) }}</span>
+                            @else
+                                <span class="badge badge-upcoming">Upcoming</span>
+                            @endif
+                        </td>
                         <td style="text-align:right">
-                            @if($c->meeting_link && ($c->status === 'SCHEDULED' || $c->status === 'RUNNING'))
+                            @if($c->timeline->scheduled_date && $c->meeting_link && ($c->status === 'SCHEDULED' || $c->status === 'RUNNING'))
                                 <a href="{{ $c->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">🎥 Join Live Class</a>
+                            @elseif(!$c->timeline->scheduled_date)
+                                <span class="badge badge-upcoming no-dot">Awaiting Date</span>
                             @else
                                 <span class="td-muted">Class Session Ended</span>
                             @endif

@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\Teacher;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ClassController extends Controller
 {
@@ -23,6 +24,46 @@ class ClassController extends Controller
         return view('teacher.classes.index', compact('classes'));
     }
 
+    public function schedule()
+    {
+        $teacher = Teacher::where('email', auth()->user()->email)->first();
+        $teacherId = $teacher?->id;
+
+        $classes = ClassSession::with(['timeline.subject', 'timeline.module', 'timeline.batch'])
+            ->where('teacher_id', $teacherId)
+            ->where('status', 'SCHEDULED')
+            ->latest()
+            ->get();
+
+        return view('teacher.classes.index', compact('classes'));
+    }
+
+    public function calendar()
+    {
+        $teacher = Teacher::where('email', auth()->user()->email)->first();
+        $teacherId = $teacher?->id;
+
+        $classes = ClassSession::with(['timeline.subject', 'timeline.module', 'timeline.batch'])
+            ->where('teacher_id', $teacherId)
+            ->get();
+
+        $events = $classes->map(function($c) {
+            return [
+                'id'             => $c->id,
+                'title'          => ($c->timeline->subject->name ?? 'Class') . ' (Module ' . ($c->timeline->module->sequence_no ?? 1) . ')',
+                'subject_name'   => $c->timeline->subject->name ?? '—',
+                'module_title'   => $c->timeline->module->title ?? '—',
+                'batch_name'     => $c->timeline->batch->name ?? '—',
+                'scheduled_date' => $c->timeline->scheduled_date,
+                'start_time'     => $c->start_time ? \Carbon\Carbon::parse($c->start_time)->format('h:i A') : 'TBA',
+                'meeting_link'   => $c->meeting_link,
+                'status'         => $c->status,
+            ];
+        });
+
+        return view('teacher.calendar.index', compact('events', 'classes'));
+    }
+
     public function conduct(ClassSession $class)
     {
         $class->load(['timeline.subject', 'timeline.module', 'timeline.batch', 'attendances.student']);
@@ -34,6 +75,34 @@ class ClassController extends Controller
             ->get();
 
         return view('teacher.classes.conduct', compact('class', 'batchStudents'));
+    }
+
+    public function updateSchedule(Request $request, ClassSession $class)
+    {
+        $validated = $request->validate([
+            'scheduled_date' => 'required|date',
+            'start_time'     => 'nullable|string',
+            'meeting_link'   => 'nullable|string',
+        ]);
+
+        $class->timeline->update([
+            'scheduled_date' => $validated['scheduled_date'],
+            'status'         => 'SCHEDULED',
+        ]);
+
+        $meetLink = $validated['meeting_link'];
+        if (!$meetLink) {
+            $meetCode = strtolower(Str::random(3) . '-' . Str::random(4) . '-' . Str::random(3));
+            $meetLink = "https://meet.google.com/{$meetCode}";
+        }
+
+        $class->update([
+            'start_time'   => $validated['start_time'] ?? null,
+            'meeting_link' => $meetLink,
+            'status'       => 'SCHEDULED',
+        ]);
+
+        return back()->with('success', 'Class date, start time & meeting link updated successfully!');
     }
 
     public function markComplete(Request $request, ClassSession $class)
@@ -92,7 +161,7 @@ class ClassController extends Controller
                 'reschedule_count'   => $oldTimeline->reschedule_count + 1,
             ]);
 
-            $meetCode = strtolower(\Illuminate\Support\Str::random(3) . '-' . \Illuminate\Support\Str::random(4) . '-' . \Illuminate\Support\Str::random(3));
+            $meetCode = strtolower(Str::random(3) . '-' . Str::random(4) . '-' . Str::random(3));
             ClassSession::create([
                 'timeline_id'  => $newTimeline->id,
                 'teacher_id'   => $class->teacher_id,

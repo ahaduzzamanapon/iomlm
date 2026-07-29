@@ -12,6 +12,7 @@ class SubjectModuleController extends Controller
     public function store(Request $request, Subject $subject)
     {
         $validated = $request->validate([
+            'category'    => 'nullable|string|max:100',
             'title'       => 'required|string|max:250',
             'sequence_no' => 'required|integer|min:1',
             'description' => 'nullable|string',
@@ -19,6 +20,7 @@ class SubjectModuleController extends Controller
 
         SubjectModule::create([
             'subject_id'               => $subject->id,
+            'category'                 => $validated['category'] ?? null,
             'sequence_no'              => $validated['sequence_no'],
             'title'                    => $validated['title'],
             'description'              => $validated['description'] ?? null,
@@ -32,12 +34,14 @@ class SubjectModuleController extends Controller
     public function update(Request $request, SubjectModule $module)
     {
         $validated = $request->validate([
+            'category'    => 'nullable|string|max:100',
             'title'       => 'required|string|max:250',
             'sequence_no' => 'required|integer|min:1',
             'description' => 'nullable|string',
         ]);
 
         $module->update([
+            'category'                 => $validated['category'] ?? null,
             'title'                    => $validated['title'],
             'sequence_no'              => $validated['sequence_no'],
             'description'              => $validated['description'] ?? null,

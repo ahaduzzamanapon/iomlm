@@ -17,9 +17,11 @@ Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function
 
     // Schedule
     Route::get('classes',                     [\App\Http\Controllers\Teacher\ClassController::class, 'index'])->name('classes.index');
+    Route::get('calendar',                    [\App\Http\Controllers\Teacher\ClassController::class, 'calendar'])->name('calendar');
     Route::get('classes/{class}/conduct',     [\App\Http\Controllers\Teacher\ClassController::class, 'conduct'])->name('classes.conduct');
     Route::patch('classes/{class}/complete',  [\App\Http\Controllers\Teacher\ClassController::class, 'markComplete'])->name('classes.complete');
     Route::patch('classes/{class}/cancel',    [\App\Http\Controllers\Teacher\ClassController::class, 'markCancelled'])->name('classes.cancel');
+    Route::post('classes/{class}/schedule',   [\App\Http\Controllers\Teacher\ClassController::class, 'updateSchedule'])->name('classes.schedule.update');
     Route::get('schedule',                    [\App\Http\Controllers\Teacher\ClassController::class, 'schedule'])->name('schedule');
 
     // Subjects

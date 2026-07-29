@@ -43,6 +43,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::resource('batches', \App\Http\Controllers\Admin\BatchController::class);
     Route::post('batches/{batch}/generate-timeline', [\App\Http\Controllers\Admin\BatchController::class, 'generateTimeline'])->name('batches.generate-timeline');
     Route::resource('classes', \App\Http\Controllers\Admin\ClassSessionController::class);
+    Route::post('classes/{class}/schedule', [\App\Http\Controllers\Admin\ClassSessionController::class, 'updateSchedule'])->name('classes.schedule.update');
 
     // ── Exams, Results, Retakes, Promotions ───────────────────────────
     Route::resource('exams',      \App\Http\Controllers\Admin\ExamController::class);

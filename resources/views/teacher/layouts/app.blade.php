@@ -47,6 +47,10 @@
                 @php try { $upcomingClasses = \App\Models\ClassSession::whereHas('timeline', fn($q) => $q->whereIn('batch_id', auth()->user()->teacher?->batches->pluck('id') ?? []))->where('status','SCHEDULED')->count(); } catch(\Exception $e) { $upcomingClasses = 0; } @endphp
                 @if($upcomingClasses > 0)<span class="nav-badge">{{ $upcomingClasses }}</span>@endif
             </a>
+            <a href="{{ route('teacher.calendar') }}" class="nav-item {{ request()->routeIs('teacher.calendar*') ? 'active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                My Calendar
+            </a>
             <a href="{{ route('teacher.schedule') }}" class="nav-item {{ request()->routeIs('teacher.schedule*') ? 'active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 Weekly Schedule

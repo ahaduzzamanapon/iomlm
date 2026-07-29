@@ -53,6 +53,7 @@ return new class extends Migration
         Schema::create('subject_modules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('subject_id')->constrained()->cascadeOnDelete();
+            $table->string('category', 100)->nullable()->comment('Category / Topic Grouping e.g. Fiqh, Aqeedah, Tajweed');
             $table->unsignedSmallInteger('sequence_no');
             $table->string('title', 250);
             $table->text('description')->nullable();
@@ -277,6 +278,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('timeline_id')->constrained()->restrictOnDelete();
             $table->foreignId('teacher_id')->nullable()->constrained()->nullOnDelete();
+            $table->time('start_time')->nullable()->comment('Class scheduled start time e.g. 20:00');
             $table->string('meeting_link', 500)->nullable();
             $table->boolean('teacher_present')->nullable();
             $table->boolean('class_conducted')->nullable();

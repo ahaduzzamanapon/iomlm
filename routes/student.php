@@ -18,8 +18,9 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
     // Timeline
     Route::get('timeline', [\App\Http\Controllers\Student\TimelineController::class, 'index'])->name('timeline');
 
-    // Classes
-    Route::get('classes',          [\App\Http\Controllers\Student\ClassController::class, 'index'])->name('classes.index');
+    // My Classes & Calendar
+    Route::get('classes',      [\App\Http\Controllers\Student\ClassController::class, 'index'])->name('classes.index');
+    Route::get('calendar',     [\App\Http\Controllers\Student\ClassController::class, 'calendar'])->name('calendar');
     Route::get('classes/{class}',  [\App\Http\Controllers\Student\ClassController::class, 'show'])->name('classes.show');
 
     // Subjects
