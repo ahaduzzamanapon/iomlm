@@ -271,8 +271,10 @@
                     <thead>
                         <tr>
                             <th>Fee Head</th>
-                            <th>Quantity (Count)</th>
-                            <th>Amount / Unit</th>
+                            <th>৳/Month</th>
+                            <th>Years</th>
+                            <th>Months/Year</th>
+                            <th>Formula</th>
                             <th>Total</th>
                             <th></th>
                         </tr>
@@ -281,8 +283,12 @@
                         @foreach($pkg->items as $item)
                         <tr>
                             <td><strong>{{ $item->label ?: $item->feeHead->name }}</strong></td>
-                            <td>{{ $item->quantity }}</td>
-                            <td>৳{{ number_format($item->amount_per_unit, 0) }}</td>
+                            <td>৳{{ number_format($item->amount_per_unit, 0) }}/month</td>
+                            <td>{{ $item->duration_years ?? 1 }} yr</td>
+                            <td>{{ $item->quantity }} months</td>
+                            <td style="color:var(--text-muted);font-size:12px">
+                                {{ number_format($item->amount_per_unit,0) }} × {{ $item->duration_years ?? 1 }} × {{ $item->quantity }}
+                            </td>
                             <td><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
                             <td style="text-align:right">
                                 <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
@@ -293,7 +299,7 @@
                         </tr>
                         @endforeach
                         <tr style="background:rgba(59,130,246,.04)">
-                            <td colspan="3" style="text-align:right;font-weight:700">Package Total:</td>
+                            <td colspan="5" style="text-align:right;font-weight:700">Package Total:</td>
                             <td colspan="2"><strong style="color:var(--blue)">৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</strong></td>
                         </tr>
                     </tbody>
@@ -345,7 +351,7 @@
 
     <!-- Add Package Item Modal -->
     <div class="modal-overlay" id="addItemModal">
-        <div class="modal" style="max-width:480px">
+        <div class="modal" style="max-width:500px">
             <div class="modal-header">
                 <span class="modal-title">Add Fee Item to Package</span>
                 <button class="modal-close" onclick="closeModal('addItemModal')">&times;</button>
@@ -353,35 +359,86 @@
             <form method="POST" id="addItemForm">
                 @csrf
                 <div class="modal-body">
+                    {{-- Course duration info badge --}}
+                    <div style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:8px 14px;margin-bottom:14px;font-size:12px;color:var(--text-secondary)">
+                        📐 Course Duration: <strong>{{ $course->duration_value }} {{ ucfirst(strtolower($course->duration_unit)) }}(s)</strong>
+                        &nbsp;→&nbsp; Total months: <strong id="course_total_months">{{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }}</strong>
+                    </div>
+
                     <div class="form-group">
                         <label>Fee Head <span class="required">*</span></label>
-                        <select name="fee_head_id" class="form-control" required>
+                        <select name="fee_head_id" id="fee_head_select" class="form-control" required onchange="onFeeHeadChange(this)">
                             <option value="">-- Select Fee Head --</option>
                             @foreach($feeHeads as $fh)
-                                <option value="{{ $fh->id }}">{{ $fh->name }}</option>
+                                <option value="{{ $fh->id }}" data-slug="{{ $fh->slug }}">{{ $fh->name }}</option>
                             @endforeach
                         </select>
-                        <small style="color:var(--text-muted);font-size:12px">Admission Fee & Retake Fee are excluded (managed separately).</small>
+                        <small style="color:var(--text-muted);font-size:12px">Admission Fee &amp; Retake Fee are excluded (managed separately).</small>
                     </div>
+
                     <div class="form-group">
                         <label>Label <small style="color:var(--text-muted)">(optional override)</small></label>
                         <input type="text" name="label" class="form-control" placeholder="Leave blank to use fee head name">
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Quantity (Count) <span class="required">*</span></label>
-                            <input type="number" name="quantity" id="pkg_qty" class="form-control" min="1" value="1" oninput="calcTotal()" required>
-                            <small style="color:var(--text-muted);font-size:12px">Total count (e.g. 36 classes)</small>
-                        </div>
-                        <div class="form-group">
-                            <label>Amount / Unit (৳) <span class="required">*</span></label>
-                            <input type="number" name="amount_per_unit" id="pkg_amt" class="form-control" min="0" value="0" oninput="calcTotal()" required>
-                            <small style="color:var(--text-muted);font-size:12px">Fee per unit (e.g. 50 Tk/class)</small>
+
+                    {{-- Toggle: Monthly-based vs Fixed --}}
+                    <div style="display:flex;gap:8px;margin-bottom:14px">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:6px 14px;border-radius:20px;border:1px solid var(--blue);background:rgba(59,130,246,.1);color:var(--blue)">
+                            <input type="radio" name="fee_mode" value="monthly" checked onchange="toggleFeeMode('monthly')"> Monthly Fee
+                        </label>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:6px 14px;border-radius:20px;border:1px solid var(--card-border);color:var(--text-secondary)">
+                            <input type="radio" name="fee_mode" value="fixed" onchange="toggleFeeMode('fixed')"> Fixed Amount
+                        </label>
+                    </div>
+
+                    {{-- Monthly Mode --}}
+                    <div id="mode_monthly">
+                        <div style="background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:10px;padding:14px">
+                            <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">
+                                Formula: ৳/month × total months = Total
+                            </div>
+                            <div class="form-row" style="gap:12px">
+                                <div class="form-group" style="flex:1">
+                                    <label>৳ Per Month <span class="required">*</span></label>
+                                    <input type="number" id="pkg_monthly" class="form-control" min="0" value="0" step="0.01" oninput="calcMonthly()">
+                                    <small style="color:var(--text-muted);font-size:11px">e.g. 50</small>
+                                </div>
+                                <div class="form-group" style="flex:1">
+                                    <label>Total Months</label>
+                                    <input type="number" id="pkg_total_months_input" class="form-control" min="1"
+                                        value="{{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }}"
+                                        oninput="calcMonthly()" style="background:rgba(99,102,241,.04)">
+                                    <small style="color:var(--text-muted);font-size:11px">Auto from course. Edit if needed.</small>
+                                </div>
+                            </div>
+                            <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 14px;border-radius:8px;font-size:13px;text-align:center">
+                                <span id="monthly_formula" style="color:var(--text-muted)">0 × {{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }}</span>
+                                &nbsp;=&nbsp;
+                                <strong id="monthly_total" style="color:#166534;font-size:16px">৳0</strong>
+                            </div>
                         </div>
                     </div>
-                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 14px;border-radius:8px;font-size:13px">
-                        Total: <strong id="pkg_total" style="color:#166534;font-size:15px">৳0</strong>
+
+                    {{-- Fixed Mode --}}
+                    <div id="mode_fixed" style="display:none">
+                        <div class="form-row" style="gap:12px">
+                            <div class="form-group" style="flex:1">
+                                <label>Quantity <span class="required">*</span></label>
+                                <input type="number" id="pkg_qty_fixed" class="form-control" min="1" value="1" oninput="calcFixed()">
+                            </div>
+                            <div class="form-group" style="flex:1">
+                                <label>Amount / Unit (৳) <span class="required">*</span></label>
+                                <input type="number" id="pkg_amt_fixed" class="form-control" min="0" value="0" step="0.01" oninput="calcFixed()">
+                            </div>
+                        </div>
+                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:8px 14px;border-radius:8px;font-size:13px;text-align:center">
+                            Total: <strong id="fixed_total" style="color:#166534;font-size:16px">৳0</strong>
+                        </div>
                     </div>
+
+                    {{-- Hidden real inputs submitted to server --}}
+                    <input type="hidden" name="quantity" id="real_quantity" value="{{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }}">
+                    <input type="hidden" name="amount_per_unit" id="real_amount" value="0">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addItemModal')">Cancel</button>
@@ -393,17 +450,59 @@
 
     @push('scripts')
     <script>
+    const COURSE_TOTAL_MONTHS = {{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }};
+
     function openAddItemModal(packageId) {
         document.getElementById('addItemForm').action = '/admin/courses/packages/' + packageId + '/items';
-        document.getElementById('pkg_qty').value = 1;
-        document.getElementById('pkg_amt').value = 0;
-        document.getElementById('pkg_total').textContent = '৳0';
+        document.getElementById('fee_head_select').value = '';
+        document.getElementById('pkg_monthly').value = 0;
+        document.getElementById('pkg_total_months_input').value = COURSE_TOTAL_MONTHS;
+        document.getElementById('pkg_qty_fixed').value = 1;
+        document.getElementById('pkg_amt_fixed').value = 0;
+        // Default: fixed mode until a tuition head is selected
+        setMode('fixed');
         openModal('addItemModal');
     }
-    function calcTotal() {
-        const qty = parseFloat(document.getElementById('pkg_qty').value) || 0;
-        const amt = parseFloat(document.getElementById('pkg_amt').value) || 0;
-        document.getElementById('pkg_total').textContent = '৳' + (qty * amt).toLocaleString('en-BD');
+
+    // Auto-toggle mode based on selected fee head slug
+    function onFeeHeadChange(sel) {
+        const slug = sel.options[sel.selectedIndex]?.dataset?.slug ?? '';
+        // If the fee head slug contains 'tuition' → monthly mode
+        const isTuition = slug.toLowerCase().includes('tuition');
+        setMode(isTuition ? 'monthly' : 'fixed');
+    }
+
+    function setMode(mode) {
+        // Update radio buttons
+        document.querySelector('input[value="monthly"]').checked = mode === 'monthly';
+        document.querySelector('input[value="fixed"]').checked   = mode === 'fixed';
+        toggleFeeMode(mode);
+    }
+
+    function toggleFeeMode(mode) {
+        document.getElementById('mode_monthly').style.display = mode === 'monthly' ? '' : 'none';
+        document.getElementById('mode_fixed').style.display   = mode === 'fixed'   ? '' : 'none';
+        if (mode === 'monthly') calcMonthly();
+        else calcFixed();
+    }
+
+    function calcMonthly() {
+        const monthly = parseFloat(document.getElementById('pkg_monthly').value) || 0;
+        const months  = parseInt(document.getElementById('pkg_total_months_input').value) || COURSE_TOTAL_MONTHS;
+        const total   = monthly * months;
+        document.getElementById('monthly_formula').textContent = monthly + ' × ' + months;
+        document.getElementById('monthly_total').textContent   = '৳' + total.toLocaleString('en-BD');
+        document.getElementById('real_quantity').value = months;
+        document.getElementById('real_amount').value   = monthly;
+    }
+
+    function calcFixed() {
+        const qty   = parseFloat(document.getElementById('pkg_qty_fixed').value)  || 0;
+        const amt   = parseFloat(document.getElementById('pkg_amt_fixed').value)  || 0;
+        const total = qty * amt;
+        document.getElementById('fixed_total').textContent = '৳' + total.toLocaleString('en-BD');
+        document.getElementById('real_quantity').value = qty;
+        document.getElementById('real_amount').value   = amt;
     }
     </script>
     @endpush

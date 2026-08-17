@@ -40,9 +40,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::patch('admissions/{admission}/reject',  [\App\Http\Controllers\Admin\AdmissionController::class, 'reject'])->name('admissions.reject');
 
     // ── Poor Fund & Waiver Applications ──────────────────────────────
-    Route::resource('waiver-applications', \App\Http\Controllers\Admin\WaiverApplicationController::class);
-    Route::patch('waiver-applications/{waiverApplication}/approve', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'approve'])->name('waiver-applications.approve');
-    Route::patch('waiver-applications/{waiverApplication}/reject',  [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'reject'])->name('waiver-applications.reject');
+    Route::get('waiver-applications',                                     [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'index'])->name('waiver-applications.index');
+    Route::get('waiver-applications/{waiverApplication}',                 [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'show'])->name('waiver-applications.show');
+    Route::patch('waiver-applications/{waiverApplication}/approve',       [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'approve'])->name('waiver-applications.approve');
+    Route::patch('waiver-applications/{waiverApplication}/reject',        [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'reject'])->name('waiver-applications.reject');
 
     Route::resource('students', \App\Http\Controllers\Admin\StudentController::class);
     Route::get('students/{student}/grade-sheet', [\App\Http\Controllers\Admin\StudentController::class, 'printGradeSheet'])->name('students.grade-sheet');
@@ -64,7 +65,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     // ── Exams, Results, Retakes, Promotions ───────────────────────────
     Route::resource('exams',      \App\Http\Controllers\Admin\ExamController::class);
-    Route::resource('retakes',    \App\Http\Controllers\Admin\SubjectRetakeController::class);
+    Route::get('retakes',         [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'index'])->name('retakes.index');
+    Route::post('retakes',        [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'store'])->name('retakes.store');
     Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class);
 
     // ── Routine ────────────────────────────────────────────────────────────
@@ -113,10 +115,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // ── Retake Approve ────────────────────────────────────────────
     Route::patch('retakes/{retake}/approve', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'approve'])->name('retakes.approve');
 
-    // ── Public Applications (from /apply form) ────────────────────────
-    Route::get('public-applications',                       [\App\Http\Controllers\Admin\PublicApplicationController::class, 'index'])->name('public-applications.index');
-    Route::get('public-applications/{publicApplication}',   [\App\Http\Controllers\Admin\PublicApplicationController::class, 'show'])->name('public-applications.show');
-    Route::patch('public-applications/{publicApplication}/status', [\App\Http\Controllers\Admin\PublicApplicationController::class, 'updateStatus'])->name('public-applications.status');
+
+    // ── Public Applications (from /apply form) — now handled via AdmissionForm (source=PUBLIC) ──
+    // Admin reviews these from admin/admissions tab=public, no separate controller needed.
 
     // ── App Settings (Blood Groups, Religions, Divisions, Districts) ──
     Route::get('app-settings',                          [\App\Http\Controllers\Admin\AppSettingController::class, 'index'])->name('app-settings.index');

@@ -94,9 +94,13 @@
                             <span class="badge badge-pending">⏳ Pending Review</span>
                         @elseif($app->status === 'APPROVED')
                             @php
-                                $discDisplay = $app->discount_type === 'FIXED'
-                                    ? '৳'.number_format($app->approved_discount_value, 0).' Fixed'
-                                    : ($app->approved_discount_value ?: $app->approved_discount_percent).'%';
+                                $parts = [];
+                                if ($app->approved_admission_fee !== null) $parts[] = 'Adm: ৳'.number_format($app->approved_admission_fee, 0);
+                                if ($app->approved_package_id) $parts[] = 'Pkg: #'.$app->approved_package_id;
+                                if (empty($parts) && $app->approved_discount_value > 0) {
+                                    $parts[] = ($app->discount_type === 'FIXED' ? '৳'.number_format($app->approved_discount_value,0).' Fixed' : $app->approved_discount_value.'%');
+                                }
+                                $discDisplay = implode(' | ', $parts) ?: '—';
                             @endphp
                             <span class="badge badge-active">✓ Approved ({{ $discDisplay }})</span>
                         @else

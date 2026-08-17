@@ -12,7 +12,8 @@ class WaiverApplicationController extends Controller
     public function show()
     {
         $divisions = Division::orderBy('name')->get();
-        return view('public.poor_fund', compact('divisions'));
+        $courses   = \App\Models\Course::where('is_active', true)->orderBy('name')->get();
+        return view('public.poor_fund', compact('divisions', 'courses'));
     }
 
     public function store(Request $request)
@@ -44,6 +45,7 @@ class WaiverApplicationController extends Controller
             'apply_reason_type'              => 'required|in:Admission Fee,Monthly Fee,Both',
             'convenient_admission_fee'       => 'nullable|numeric|min:0',
             'convenient_monthly_fee'         => 'nullable|numeric|min:0',
+            'course_id'                      => 'nullable|exists:courses,id',
         ]);
 
         // Map old apply_reason_type values to new apply_for enum
@@ -83,6 +85,7 @@ class WaiverApplicationController extends Controller
             'apply_for'                      => $applyFor,
             'convenient_admission_fee'       => $validated['convenient_admission_fee'] ?? 0,
             'convenient_monthly_fee'         => $validated['convenient_monthly_fee'] ?? 0,
+            'course_id'                      => $validated['course_id'] ?? null,
             'status'                         => 'PENDING',
             'ip_address'                     => $request->ip(),
         ]);
@@ -139,18 +142,30 @@ class WaiverApplicationController extends Controller
             ], 422);
         }
 
-        $discText = ($app->discount_type === 'FIXED')
-            ? '৳' . number_format($app->approved_discount_value, 0) . ' নির্দিষ্ট ছাড় (Fixed Discount)'
-            : ($app->approved_discount_value > 0 ? $app->approved_discount_value : $app->approved_discount_percent) . '% ছাড় (Percentage Waiver)';
+        // Build approval message based on apply_for type
+        $applyFor = $app->apply_for ?? 'BOTH';
+        $msgParts = [];
+        if (in_array($applyFor, ['ADMISSION_FEE', 'BOTH']) && $app->approved_admission_fee !== null) {
+            $msgParts[] = 'ভর্তি ফি: ৳' . number_format($app->approved_admission_fee, 0);
+        }
+        if (in_array($applyFor, ['TUITION_FEE', 'BOTH']) && $app->approved_package_id) {
+            $pkg = \App\Models\CourseFeePackage::find($app->approved_package_id);
+            $msgParts[] = 'Package: ' . ($pkg?->name ?? 'Selected');
+        }
+        $discText = implode(' | ', $msgParts) ?: 'Waiver Approved';
 
         // APPROVED & NOT USED!
         return response()->json([
             'valid'                     => true,
             'status'                    => 'APPROVED',
+            'apply_for'                 => $applyFor,
             'application_no'            => $app->application_no,
+            'approved_admission_fee'    => $app->approved_admission_fee,
+            'approved_package_id'       => $app->approved_package_id,
+            // Legacy fields (kept for backward compat with apply form)
             'discount_type'             => $app->discount_type ?? 'PERCENTAGE',
-            'approved_discount_value'   => $app->approved_discount_value ?? $app->approved_discount_percent,
-            'approved_discount_percent' => $app->approved_discount_percent,
+            'approved_discount_value'   => $app->approved_discount_value ?? 0,
+            'approved_discount_percent' => $app->approved_discount_percent ?? 0,
             'full_name'                 => $app->full_name,
             'email'                     => $app->email,
             'phone'                     => $app->phone,
@@ -163,7 +178,7 @@ class WaiverApplicationController extends Controller
             'permanent_address'         => $app->permanent_address,
             'occupation'                => $app->occupation,
             'guardian_phone'            => $app->guardian_phone,
-            'message'                   => "✓ অভিনন্দন! আপনার পুওর ফান্ড কোডটি অনুমোদিত (Approved)। আপনার জন্য {$discText} এবং ফর্মের তথ্যগুলো অটো-ফিল করা হয়েছে।",
+            'message'                   => "✓ অভিনন্দন! আপনার পুওর ফান্ড কোডটি অনুমোদিত (Approved)। {$discText} — ফর্মের তথ্যগুলো অটো-ফিল করা হয়েছে।",
         ]);
     }
 }

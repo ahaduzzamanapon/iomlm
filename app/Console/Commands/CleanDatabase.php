@@ -27,7 +27,7 @@ class CleanDatabase extends Command
             'promotion_records', 'enrollments', 'merged_class_groups',
             'class_sessions', 'routine_entries', 'routine_slots',
             'subject_teacher_assignments', 'notices', 'student_documents',
-            'students', 'teachers', 'admission_forms', 'public_applications',
+            'students', 'teachers', 'admission_forms',
             'batches', 'course_subject_maps', 'subject_modules', 'subjects',
             'courses', 'academic_sessions', 'academic_years', 'holiday_calendars',
             'batch_semester_positions', 'timeline',

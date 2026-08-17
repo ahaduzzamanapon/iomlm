@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CourseFeePackage;
 use App\Models\WaiverApplication;
 use Illuminate\Http\Request;
 
@@ -40,34 +41,80 @@ class WaiverApplicationController extends Controller
 
     public function show(WaiverApplication $waiverApplication)
     {
-        $waiverApplication->load(['division', 'reviewer']);
-        return view('admin.waiver_applications.show', compact('waiverApplication'));
+        $waiverApplication->load(['division', 'reviewer', 'course', 'approvedPackage']);
+
+        // Load course fee packages so the approval modal can show them
+        $coursePackages = collect();
+        if ($waiverApplication->course_id) {
+            $coursePackages = CourseFeePackage::with('items.feeHead')
+                ->where('course_id', $waiverApplication->course_id)
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->get();
+        }
+
+        return view('admin.waiver_applications.show', compact('waiverApplication', 'coursePackages'));
     }
 
+    /**
+     * Smart approval — handles 3 waiver types:
+     *  - ADMISSION_FEE  → admin sets the actual admission fee student will pay
+     *  - TUITION_FEE    → admin selects an approved fee package for the student
+     *  - BOTH           → both of the above
+     */
     public function approve(Request $request, WaiverApplication $waiverApplication)
     {
-        $validated = $request->validate([
-            'discount_type'           => 'required|in:PERCENTAGE,FIXED',
-            'approved_discount_value' => 'required|numeric|min:0',
-            'reviewer_notes'            => 'nullable|string',
-        ]);
+        $applyFor = $waiverApplication->apply_for ?? 'BOTH';
 
-        $discType = $validated['discount_type'];
-        $discVal  = $validated['approved_discount_value'];
+        // Build validation rules based on waiver type
+        $rules = [
+            'reviewer_notes' => 'nullable|string|max:1000',
+        ];
 
-        $waiverApplication->update([
-            'status'                    => 'APPROVED',
-            'discount_type'             => $discType,
-            'approved_discount_value'   => $discVal,
-            'approved_discount_percent' => $discType === 'PERCENTAGE' ? $discVal : 0,
-            'reviewer_notes'            => $validated['reviewer_notes'] ?? null,
-            'reviewed_by'               => auth()->id(),
-            'reviewed_at'               => now(),
-        ]);
+        if (in_array($applyFor, ['ADMISSION_FEE', 'BOTH'])) {
+            $rules['approved_admission_fee'] = 'required|numeric|min:0';
+        }
 
-        $displayText = $discType === 'PERCENTAGE' ? "{$discVal}%" : "৳{$discVal} Fixed";
+        if (in_array($applyFor, ['TUITION_FEE', 'BOTH'])) {
+            $rules['approved_package_id'] = 'required|exists:course_fee_packages,id';
+        }
 
-        return back()->with('success', "Waiver Application {$waiverApplication->application_no} APPROVED with {$displayText} waiver!");
+        $validated = $request->validate($rules);
+
+        $updateData = [
+            'status'       => 'APPROVED',
+            'reviewer_notes' => $validated['reviewer_notes'] ?? null,
+            'reviewed_by'  => auth()->id(),
+            'reviewed_at'  => now(),
+            // Keep legacy percent field at 0 (not used in new flow)
+            'approved_discount_percent' => 0,
+            'approved_discount_value'   => 0,
+            'discount_type'             => 'FIXED',
+        ];
+
+        if (in_array($applyFor, ['ADMISSION_FEE', 'BOTH'])) {
+            $updateData['approved_admission_fee'] = (float) $validated['approved_admission_fee'];
+        }
+
+        if (in_array($applyFor, ['TUITION_FEE', 'BOTH'])) {
+            $updateData['approved_package_id'] = $validated['approved_package_id'];
+        }
+
+        $waiverApplication->update($updateData);
+
+        // Build success message
+        $parts = [];
+        if (isset($updateData['approved_admission_fee'])) {
+            $parts[] = "Admission Fee: ৳" . number_format($updateData['approved_admission_fee'], 0);
+        }
+        if (isset($updateData['approved_package_id'])) {
+            $pkg = CourseFeePackage::find($updateData['approved_package_id']);
+            $parts[] = "Package: " . ($pkg?->name ?? 'Selected');
+        }
+
+        $summary = implode(' | ', $parts);
+
+        return back()->with('success', "Waiver Application {$waiverApplication->application_no} APPROVED! — {$summary}");
     }
 
     public function reject(Request $request, WaiverApplication $waiverApplication)

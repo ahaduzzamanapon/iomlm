@@ -111,14 +111,14 @@
                                 <div style="font-size:10px;color:var(--text-muted);margin-top:2px">{{ $pub->application_no }}</div>
                             </td>
                             <td class="td-primary">
-                                <strong>{{ $pub->applicant_name }}</strong>
-                                <div class="td-muted">{{ $pub->phone }}</div>
+                                <strong>{{ $pub->student->name ?? '—' }}</strong>
+                                <div class="td-muted">{{ $pub->student->phone ?? '—' }}</div>
                                 @if($pub->waiver_code)
                                     <span class="badge badge-active no-dot" style="font-size:10px;padding:2px 6px;margin-top:2px">🎁 Waiver: {{ $pub->waiver_code }} ({{ $pub->discount_percent }}%)</span>
                                 @endif
                             </td>
                             <td style="font-size:12px">
-                                {{ $pub->course->name ?? '—' }}
+                                {{ $pub->interestedCourse->name ?? '—' }}
                                 <div class="td-muted">{{ $pub->session->name ?? '—' }}</div>
                             </td>
                             <td class="td-muted">{{ $pub->created_at->format('d M Y') }}</td>
@@ -134,7 +134,7 @@
                                 @endif
                             </td>
                             <td style="text-align:right">
-                                <a href="{{ route('admin.public-applications.show', $pub) }}" class="btn btn-outline btn-sm">View →</a>
+                                <a href="{{ route('admin.admissions.show', $pub) }}" class="btn btn-outline btn-sm">View →</a>
                             </td>
                         </tr>
                         @empty

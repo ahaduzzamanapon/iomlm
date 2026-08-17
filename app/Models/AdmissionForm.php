@@ -12,8 +12,10 @@ class AdmissionForm extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'same_as_present' => 'boolean',
-        'reviewed_at'     => 'datetime',
+        'same_as_present'  => 'boolean',
+        'reviewed_at'      => 'datetime',
+        'discount_percent' => 'float',
+        'discount_amount'  => 'float',
     ];
 
     // ── Relationships ──────────────────────────────────────────────────

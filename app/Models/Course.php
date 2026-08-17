@@ -8,6 +8,10 @@ class Course extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'admission_fee' => 'float',
+    ];
+
     public function semesters()
     {
         return $this->hasMany(Semester::class, 'course_id')->orderBy('sequence_no');

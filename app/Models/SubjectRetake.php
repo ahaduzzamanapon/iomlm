@@ -21,4 +21,9 @@ class SubjectRetake extends Model
     {
         return $this->belongsTo(Subject::class, 'subject_id');
     }
+
+    public function enrollment()
+    {
+        return $this->belongsTo(Enrollment::class, 'enrollment_id');
+    }
 }

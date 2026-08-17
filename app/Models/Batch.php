@@ -10,6 +10,8 @@ class Batch extends Model
 
     protected $casts = [
         'is_admission_open' => 'boolean',
+        'admission_fee'     => 'float',
+        'monthly_fee'       => 'float',
     ];
 
     public function scopeAdmissionOpen($query)

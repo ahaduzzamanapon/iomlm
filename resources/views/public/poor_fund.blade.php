@@ -115,6 +115,19 @@
                 <fieldset class="fieldset-sec">
                     <legend class="legend-title">১. মৌলিক তথ্য (Basic Info)</legend>
 
+                    {{-- Course selection (optional but helps admin show correct packages) --}}
+                    @if(isset($courses) && $courses->count())
+                    <div class="form-group">
+                        <label>আপনি কোন Course এ ভর্তি হতে চান?</label>
+                        <select name="course_id">
+                            <option value="">-- Select Course (Optional) --</option>
+                            @foreach($courses as $c)
+                                <option value="{{ $c->id }}" {{ old('course_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name (সম্পূর্ণ নাম) <span class="req">*</span></label>

@@ -17,13 +17,15 @@ class AccountingService
 {
     /**
      * Auto-generate Admission Fee Invoice when student is approved.
+     * Respects waiver approved_admission_fee if a used waiver is linked.
      */
     public static function createAdmissionInvoice(Student $student, AdmissionForm $admission, Enrollment $enrollment): Invoice
     {
         $batch = $enrollment->batch;
-        // Priority 1: Batch admission fee, Priority 2: FeeStructure, Priority 3: Fallback 2000
-        $feeRate = ($batch && $batch->admission_fee > 0) 
-            ? (float)$batch->admission_fee 
+
+        // Priority 1: Batch admission fee, Priority 2: FeeStructure fallback
+        $feeRate = ($batch && $batch->admission_fee > 0)
+            ? (float)$batch->admission_fee
             : (float)(FeeStructure::where('category', 'ADMISSION')
                 ->where(function ($q) use ($enrollment) {
                     $q->where('course_id', $enrollment->course_id)
@@ -32,16 +34,34 @@ class AccountingService
                 ->where('is_active', true)
                 ->value('amount') ?? 2000.00);
 
-        $discountAmount = 0.00;
-        if (($admission->discount_type ?? 'PERCENTAGE') === 'FIXED') {
-            $val = $admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent;
-            $discountAmount = min($feeRate, (float)$val);
-        } else {
-            $discountPercent = (float)($admission->discount_percent ?? 0);
-            $discountAmount  = round(($feeRate * $discountPercent) / 100, 2);
+        // Check if a waiver code is linked and has an approved_admission_fee set
+        $waiverApp = null;
+        if ($admission->waiver_code) {
+            $waiverApp = \App\Models\WaiverApplication::where('application_no', $admission->waiver_code)
+                ->where('status', 'APPROVED')
+                ->where('is_used', true)
+                ->first();
         }
 
-        $payableAmount = max(0, $feeRate - $discountAmount);
+        // If waiver has explicit admission fee override — use it directly
+        if ($waiverApp && $waiverApp->approved_admission_fee !== null
+            && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
+            $approvedFee    = (float) $waiverApp->approved_admission_fee;
+            $discountAmount = max(0, $feeRate - $approvedFee);
+            $payableAmount  = $approvedFee;
+        } else {
+            // Legacy: percentage or fixed discount from admission form
+            $discountAmount = 0.00;
+            if (($admission->discount_type ?? 'PERCENTAGE') === 'FIXED') {
+                $val = $admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent;
+                $discountAmount = min($feeRate, (float)$val);
+            } else {
+                $discountPercent = (float)($admission->discount_percent ?? 0);
+                $discountAmount  = round(($feeRate * $discountPercent) / 100, 2);
+            }
+            $payableAmount = max(0, $feeRate - $discountAmount);
+        }
+
         $invNo = 'INV-ADM-' . date('Ymd') . '-' . rand(1000, 9999);
 
         return Invoice::create([
@@ -63,6 +83,7 @@ class AccountingService
         ]);
     }
 
+
     /**
      * Auto-generate Subject Retake Fee Invoice.
      */
@@ -75,6 +96,7 @@ class AccountingService
                 ->where('is_active', true)
                 ->value('amount') ?? 1500.00);
 
+        $subjectName = $retake->subject?->name ?? $retake->subject()->value('name') ?? 'Subject';
         $invNo = 'INV-RET-' . date('Ymd') . '-' . rand(1000, 9999);
 
         return Invoice::create([
@@ -82,7 +104,7 @@ class AccountingService
             'student_id'     => $student->id,
             'enrollment_id'  => $retake->enrollment_id,
             'category'       => 'RETAKE',
-            'title'          => "Subject Retake Fee — {$retake->subject->name} ({$retake->retake_type})",
+            'title'          => "Subject Retake Fee — {$subjectName} ({$retake->retake_type})",
             'amount'         => $feeRate,
             'discount'       => 0.00,
             'payable_amount' => $feeRate,
@@ -98,16 +120,47 @@ class AccountingService
 
     /**
      * Auto-generate Semester Fee Invoice.
+     * If the student has an approved waiver with a package, uses the package total.
      */
     public static function createSemesterInvoice(Student $student, Enrollment $enrollment, ?Semester $semester = null): Invoice
     {
-        $feeRate = FeeStructure::where('category', 'SEMESTER')
-            ->where(function ($q) use ($enrollment) {
-                $q->where('course_id', $enrollment->course_id)
-                  ->orWhereNull('course_id');
-            })
-            ->where('is_active', true)
-            ->value('amount') ?? 10000.00; // Default semester fee fallback
+        // Check if student has an active approved waiver with a tuition package
+        $approvedPackage = null;
+        // Find waiver code from admission form
+        $waiverCode = \App\Models\AdmissionForm::where('student_id', $student->id)
+            ->whereNotNull('waiver_code')
+            ->value('waiver_code');
+
+        if ($waiverCode) {
+            $waiverApp = \App\Models\WaiverApplication::where('application_no', $waiverCode)
+                ->where('status', 'APPROVED')
+                ->where('is_used', true)
+                ->whereIn('apply_for', ['TUITION_FEE', 'BOTH'])
+                ->whereNotNull('approved_package_id')
+                ->first();
+
+            if ($waiverApp) {
+                $approvedPackage = \App\Models\CourseFeePackage::find($waiverApp->approved_package_id);
+            }
+        }
+
+        if ($approvedPackage) {
+            // Use the approved package total
+            $feeRate    = (float) $approvedPackage->total;
+            $feeTitle   = "Semester Tuition Fee — {$enrollment->course->name} ({$approvedPackage->name})";
+            $discountAmount = 0.00;
+        } else {
+            // Default: FeeStructure lookup
+            $feeRate  = FeeStructure::where('category', 'SEMESTER')
+                ->where(function ($q) use ($enrollment) {
+                    $q->where('course_id', $enrollment->course_id)
+                      ->orWhereNull('course_id');
+                })
+                ->where('is_active', true)
+                ->value('amount') ?? 10000.00;
+            $feeTitle       = "Semester Tuition Fee — {$enrollment->course->name}";
+            $discountAmount = 0.00;
+        }
 
         $semName = $semester?->name ?? 'Current Semester';
         $invNo   = 'INV-SEM-' . date('Ymd') . '-' . rand(1000, 9999);
@@ -117,9 +170,9 @@ class AccountingService
             'student_id'     => $student->id,
             'enrollment_id'  => $enrollment->id,
             'category'       => 'SEMESTER',
-            'title'          => "Semester Tuition Fee — {$enrollment->course->name} ({$semName})",
+            'title'          => $feeTitle . " ({$semName})",
             'amount'         => $feeRate,
-            'discount'       => 0.00,
+            'discount'       => $discountAmount,
             'payable_amount' => $feeRate,
             'paid_amount'    => 0.00,
             'due_amount'     => $feeRate,
@@ -130,6 +183,7 @@ class AccountingService
             'created_by'     => auth()->id(),
         ]);
     }
+
 
     /**
      * Receive payment against an invoice and update due status.

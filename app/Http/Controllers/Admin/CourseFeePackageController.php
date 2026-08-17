@@ -87,10 +87,10 @@ class CourseFeePackageController extends Controller
     public function storeItem(Request $request, CourseFeePackage $package)
     {
         $validated = $request->validate([
-            'fee_head_id'    => 'required|exists:fee_heads,id',
-            'label'          => 'nullable|string|max:150',
-            'quantity'       => 'required|integer|min:1',
-            'amount_per_unit'=> 'required|numeric|min:0',
+            'fee_head_id'     => 'required|exists:fee_heads,id',
+            'label'           => 'nullable|string|max:150',
+            'quantity'        => 'required|integer|min:1',
+            'amount_per_unit' => 'required|numeric|min:0',
         ]);
 
         $total = $validated['quantity'] * $validated['amount_per_unit'];
@@ -106,7 +106,7 @@ class CourseFeePackageController extends Controller
             'sort_order'      => $max + 1,
         ]);
 
-        return back()->with('success', "Fee item added to package.");
+        return back()->with('success', 'Fee item added to package.');
     }
 
     /**

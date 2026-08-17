@@ -1,6 +1,16 @@
 <x-admin-layout>
     <x-slot name="title">Review Waiver Application — {{ $waiverApplication->full_name }}</x-slot>
 
+    @php
+        $applyFor = $waiverApplication->apply_for ?? '';
+        $applyLabel = match($applyFor) {
+            'ADMISSION_FEE' => 'Admission Fee Only (ভর্তি ফি কমানোর জন্য)',
+            'TUITION_FEE'   => 'Tuition Fee Only (মাসিক ফি কমানোর জন্য)',
+            'BOTH'          => 'Both (Admission + Tuition উভয়)',
+            default         => $waiverApplication->apply_reason_type ?? '—',
+        };
+    @endphp
+
     <div class="page-header">
         <div class="page-header-left">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
@@ -11,7 +21,7 @@
         </div>
         <div class="page-header-actions">
             @if($waiverApplication->status === 'PENDING')
-                <button class="btn btn-success btn-lg" onclick="openModal('approveWaiverModal')">✓ Approve Waiver & Set Discount</button>
+                <button class="btn btn-success btn-lg" onclick="openModal('approveWaiverModal')">✓ Approve Waiver</button>
                 <button class="btn btn-danger btn-lg" onclick="openModal('rejectWaiverModal')">✕ Reject Application</button>
             @else
                 <span class="badge badge-{{ strtolower($waiverApplication->status) }}" style="font-size:14px;padding:8px 16px">
@@ -63,17 +73,12 @@
 
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">4. Waiver Request Details</div>
                 <table class="table" style="font-size:13px">
-                    @php
-                        $applyLabel = match($waiverApplication->apply_for ?? '') {
-                            'ADMISSION_FEE' => 'Admission Fee Only (ভর্তি ফি কমানোর জন্য)',
-                            'TUITION_FEE'   => 'Tuition Fee Only (মাসিক ফি কমানোর জন্য)',
-                            'BOTH'          => 'Both (Admission + Tuition উভয়)',
-                            default         => $waiverApplication->apply_reason_type ?? '—',
-                        };
-                    @endphp
                     <tr><th style="width:160px;color:var(--text-muted)">Applying For:</th><td><span class="badge badge-secondary no-dot">{{ $applyLabel }}</span></td></tr>
                     <tr><th style="color:var(--text-muted)">Convenient Admission Fee:</th><td>৳ {{ number_format($waiverApplication->convenient_admission_fee, 0) }}</td></tr>
                     <tr><th style="color:var(--text-muted)">Convenient Monthly Fee:</th><td>৳ {{ number_format($waiverApplication->convenient_monthly_fee, 0) }}</td></tr>
+                    @if($waiverApplication->course)
+                        <tr><th style="color:var(--text-muted)">Course Applied For:</th><td><strong>{{ $waiverApplication->course->name }}</strong></td></tr>
+                    @endif
                 </table>
             </div>
         </div>
@@ -87,18 +92,26 @@
                 @if($waiverApplication->status === 'APPROVED')
                     <div class="alert alert-success">
                         <strong style="font-size:16px">✓ Waiver Approved</strong><br>
-                        <div style="margin-top:6px;font-size:14px">
-                            Approved Discount / Waiver:
-                            <strong>
-                                @if($waiverApplication->discount_type === 'FIXED')
-                                    ৳ {{ number_format($waiverApplication->approved_discount_value, 0) }} Fixed Taka
-                                @else
-                                    {{ $waiverApplication->approved_discount_value > 0 ? $waiverApplication->approved_discount_value : $waiverApplication->approved_discount_percent }}% Percentage
-                                @endif
-                            </strong>
+                        <div style="margin-top:8px;font-size:13px">
+
+                            @if(in_array($applyFor, ['ADMISSION_FEE', 'BOTH']) && $waiverApplication->approved_admission_fee !== null)
+                                <div style="margin-bottom:6px">
+                                    <strong>Admission Fee Set:</strong>
+                                    <span class="badge badge-active no-dot" style="margin-left:6px">৳ {{ number_format($waiverApplication->approved_admission_fee, 0) }}</span>
+                                </div>
+                            @endif
+
+                            @if(in_array($applyFor, ['TUITION_FEE', 'BOTH']) && $waiverApplication->approvedPackage)
+                                <div style="margin-bottom:6px">
+                                    <strong>Approved Fee Package:</strong>
+                                    <span class="badge badge-scheduled no-dot" style="margin-left:6px">{{ $waiverApplication->approvedPackage->name }}</span>
+                                    <span style="color:var(--text-muted);font-size:12px"> — Total: ৳{{ number_format($waiverApplication->approvedPackage->total, 0) }}</span>
+                                </div>
+                            @endif
+
                         </div>
                         @if($waiverApplication->reviewer_notes)
-                            <div style="margin-top:8px"><em>Notes: {{ $waiverApplication->reviewer_notes }}</em></div>
+                            <div style="margin-top:8px;font-size:12px"><em>Notes: {{ $waiverApplication->reviewer_notes }}</em></div>
                         @endif
                         <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">
                             Reviewed by {{ $waiverApplication->reviewer->name ?? 'Admin' }} on {{ $waiverApplication->reviewed_at ? $waiverApplication->reviewed_at->format('d M Y, h:i A') : '—' }}.
@@ -115,40 +128,90 @@
                 @else
                     <div class="alert alert-info">
                         <strong>⏳ Pending Review</strong><br>
-                        Verify the applicant's financial hardship details, convenient fee amounts, and click Approve to set percentage or fixed taka waiver amount.
+                        Verify the applicant's financial hardship details and convenient fee amounts, then click <strong>Approve Waiver</strong> to proceed.
+                    </div>
+
+                    {{-- Waiver Type Summary Box --}}
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px 16px;margin-top:12px;font-size:13px">
+                        <div style="font-weight:700;color:#0369a1;margin-bottom:8px">📋 Approval Required:</div>
+                        @if(in_array($applyFor, ['ADMISSION_FEE', 'BOTH']))
+                            <div style="margin-bottom:4px">→ Set the <strong>Admission Fee</strong> student will pay (applicant suggests: ৳{{ number_format($waiverApplication->convenient_admission_fee, 0) }})</div>
+                        @endif
+                        @if(in_array($applyFor, ['TUITION_FEE', 'BOTH']))
+                            <div>→ Select an approved <strong>Fee Package</strong> for monthly tuition (applicant suggests: ৳{{ number_format($waiverApplication->convenient_monthly_fee, 0) }}/month)</div>
+                        @endif
                     </div>
                 @endif
             </div>
         </div>
     </div>
 
-    <!-- Approve Waiver Modal -->
+    {{-- ═══ APPROVE MODAL (Dynamic per type) ═══ --}}
     <div class="modal-overlay" id="approveWaiverModal">
-        <div class="modal">
+        <div class="modal" style="max-width:520px">
             <div class="modal-header">
-                <span class="modal-title">Approve Waiver & Set Discount</span>
+                <span class="modal-title">Approve Waiver — {{ $applyLabel }}</span>
                 <button class="modal-close" onclick="closeModal('approveWaiverModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.waiver-applications.approve', $waiverApplication) }}">
                 @csrf @method('PATCH')
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Discount / Waiver Type <span class="required">*</span></label>
-                        <select name="discount_type" id="approve_discount_type" class="form-control" onchange="toggleDiscountLabel(this.value)" required>
-                            <option value="PERCENTAGE">Percentage Discount (%)</option>
-                            <option value="FIXED">Fixed Amount Discount (৳ Taka)</option>
-                        </select>
-                    </div>
 
-                    <div class="form-group">
-                        <label id="discount_val_label">Approved Discount Percentage (%) <span class="required">*</span></label>
-                        <input type="number" name="approved_discount_value" id="approved_discount_value" class="form-control" value="50" min="0" step="0.5" placeholder="e.g. 50 for 50% or 1000 for ৳1000" required>
-                        <small style="color:var(--text-muted);font-size:12px" id="discount_val_help">Enter percentage discount to be applied on student's fee.</small>
-                    </div>
+                    {{-- ── ADMISSION FEE section ── --}}
+                    @if(in_array($applyFor, ['ADMISSION_FEE', 'BOTH']))
+                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin-bottom:16px">
+                            <div style="font-weight:700;color:#166534;margin-bottom:10px;font-size:13px">🏫 Admission Fee Setting</div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label>Student ভর্তি ফি দেবে (৳ Taka) <span class="required">*</span></label>
+                                <input type="number" name="approved_admission_fee" class="form-control"
+                                    value="{{ old('approved_admission_fee', $waiverApplication->convenient_admission_fee ?? 0) }}"
+                                    min="0" step="1" placeholder="e.g. 2000" required>
+                                <small style="color:var(--text-muted);font-size:12px">
+                                    Applicant requested: ৳{{ number_format($waiverApplication->convenient_admission_fee, 0) }}
+                                </small>
+                            </div>
+                        </div>
+                    @endif
 
-                    <div class="form-group">
+                    {{-- ── TUITION FEE / PACKAGE section ── --}}
+                    @if(in_array($applyFor, ['TUITION_FEE', 'BOTH']))
+                        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;margin-bottom:16px">
+                            <div style="font-weight:700;color:#92400e;margin-bottom:10px;font-size:13px">📦 Fee Package Selection (Tuition)</div>
+
+                            @if($coursePackages->isEmpty())
+                                <div style="color:#dc2626;font-size:13px;background:#fef2f2;padding:10px;border-radius:6px;border:1px solid #fecaca">
+                                    ⚠ এই course এ কোনো Fee Package তৈরি করা হয়নি।
+                                    <a href="{{ route('admin.courses.show', $waiverApplication->course_id) }}" style="color:#dc2626;font-weight:600" target="_blank">Course এ গিয়ে Package যোগ করুন →</a>
+                                </div>
+                            @else
+                                <div class="form-group" style="margin-bottom:0">
+                                    <label>Select Fee Package <span class="required">*</span></label>
+                                    <select name="approved_package_id" class="form-control" required onchange="showPackageDetail(this)">
+                                        <option value="">-- Select Package --</option>
+                                        @foreach($coursePackages as $pkg)
+                                            <option value="{{ $pkg->id }}"
+                                                data-total="{{ $pkg->total }}"
+                                                data-items="{{ $pkg->items->map(fn($i) => ($i->label ?: $i->feeHead?->name).': ৳'.number_format($i->total_amount,0))->join(' | ') }}"
+                                                {{ $pkg->is_default ? 'selected' : '' }}>
+                                                {{ $pkg->name }}
+                                                @if($pkg->is_default) ★ Default @endif
+                                                — ৳{{ number_format($pkg->total, 0) }} total
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div id="pkgDetailBox" style="display:none;margin-top:8px;font-size:12px;color:var(--text-muted);background:#f8fafc;padding:8px 12px;border-radius:6px;border:1px solid #e2e8f0"></div>
+                                    <small style="color:var(--text-muted);font-size:12px;margin-top:4px;display:block">
+                                        Applicant requested ≈ ৳{{ number_format($waiverApplication->convenient_monthly_fee, 0) }}/month
+                                    </small>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
+
+                    {{-- ── Notes ── --}}
+                    <div class="form-group" style="margin-bottom:0">
                         <label>Committee Review Notes</label>
-                        <textarea name="reviewer_notes" class="form-control" rows="3" placeholder="Approval notes, zakat fund approval, or special conditions..."></textarea>
+                        <textarea name="reviewer_notes" class="form-control" rows="3" placeholder="Approval notes, zakat fund approval, or special conditions...">{{ old('reviewer_notes') }}</textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -159,21 +222,7 @@
         </div>
     </div>
 
-    <script>
-    function toggleDiscountLabel(type) {
-        const lbl = document.getElementById('discount_val_label');
-        const help = document.getElementById('discount_val_help');
-        if (type === 'FIXED') {
-            lbl.innerHTML = 'Approved Fixed Discount Amount (৳ Taka) <span class="required">*</span>';
-            help.innerHTML = 'Enter fixed amount discount in Taka (e.g. 1000 Tk off).';
-        } else {
-            lbl.innerHTML = 'Approved Discount Percentage (%) <span class="required">*</span>';
-            help.innerHTML = 'Enter percentage discount to be applied on student fee (e.g. 50% off).';
-        }
-    }
-    </script>
-
-    <!-- Reject Waiver Modal -->
+    {{-- ═══ REJECT MODAL ═══ --}}
     <div class="modal-overlay" id="rejectWaiverModal">
         <div class="modal">
             <div class="modal-header">
@@ -195,4 +244,28 @@
             </form>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+    function showPackageDetail(sel) {
+        const opt = sel.options[sel.selectedIndex];
+        const box = document.getElementById('pkgDetailBox');
+        if (!box) return;
+        const items = opt.dataset.items;
+        const total = opt.dataset.total;
+        if (sel.value && items) {
+            box.style.display = 'block';
+            box.innerHTML = '<strong>Items:</strong> ' + items;
+        } else {
+            box.style.display = 'none';
+        }
+    }
+    // Trigger on load for default selected
+    document.addEventListener('DOMContentLoaded', function() {
+        const sel = document.querySelector('select[name="approved_package_id"]');
+        if (sel) showPackageDetail(sel);
+    });
+    </script>
+    @endpush
+
 </x-admin-layout>
