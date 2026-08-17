@@ -124,6 +124,12 @@
                         <input type="number" name="total_semesters" class="form-control" value="8" min="1" max="12" placeholder="e.g. 8">
                     </div>
 
+                    <div class="form-group">
+                        <label>Admission Fee (৳)</label>
+                        <input type="number" name="admission_fee" class="form-control" value="0" min="0" step="0.01" placeholder="e.g. 5000.00">
+                        <small style="color:var(--text-muted);font-size:12px">Admission fee for this course (overridable per batch)</small>
+                    </div>
+
                     <label class="form-check">
                         <input type="checkbox" name="is_active" value="1" checked> Active Course
                     </label>

@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\SubjectRetake;
 use App\Models\Student;
 use App\Models\Subject;
+use App\Services\AccountingService;
 use Illuminate\Http\Request;
 
 class SubjectRetakeController extends Controller
 {
     public function index()
     {
-        $retakes = SubjectRetake::with(['student', 'subject'])->latest()->get();
+        $retakes  = SubjectRetake::with(['student', 'subject'])->latest()->get();
         $students = Student::where('status', 'ACTIVE')->orderBy('name')->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
         return view('admin.retakes.index', compact('retakes', 'students', 'subjects'));
@@ -27,19 +28,37 @@ class SubjectRetakeController extends Controller
             'notes'       => 'nullable|string',
         ]);
 
-        $student = Student::findOrFail($validated['student_id']);
-
-        $retake = SubjectRetake::create([
+        SubjectRetake::create([
             'student_id'  => $validated['student_id'],
             'subject_id'  => $validated['subject_id'],
             'retake_type' => $validated['retake_type'],
-            'status'      => 'IN_PROGRESS',
+            'status'      => 'PENDING',
             'reason'      => $validated['notes'] ?? null,
         ]);
 
-        // Auto-generate Retake Fee Invoice
-        \App\Services\AccountingService::createRetakeInvoice($student, $retake);
+        return back()->with('success', 'Subject retake registered. Admin approval & fee will be set upon review.');
+    }
 
-        return back()->with('success', 'Subject retake registered & Auto Retake Fee Invoice generated!');
+    /**
+     * Admin approves a retake and sets the retake fee — invoice generated here.
+     */
+    public function approve(Request $request, SubjectRetake $retake)
+    {
+        $validated = $request->validate([
+            'retake_fee' => 'required|numeric|min:0',
+            'notes'      => 'nullable|string',
+        ]);
+
+        $retake->update([
+            'status'     => 'IN_PROGRESS',
+            'retake_fee' => $validated['retake_fee'],
+            'reason'     => $validated['notes'] ?? $retake->reason,
+        ]);
+
+        // Generate Retake Fee Invoice with the admin-set fee
+        $student = $retake->student;
+        AccountingService::createRetakeInvoice($student, $retake, (float) $validated['retake_fee']);
+
+        return back()->with('success', "Retake approved! Fee: ৳" . number_format($validated['retake_fee'], 0) . " Invoice generated.");
     }
 }

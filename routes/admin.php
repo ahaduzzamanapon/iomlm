@@ -96,6 +96,23 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('settings',          [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
     Route::put('settings',          [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
 
+    // ── Fee Heads (Settings → Fee Head) ───────────────────────────
+    Route::get('fee-heads',                     [\App\Http\Controllers\Admin\FeeHeadController::class, 'index'])->name('fee-heads.index');
+    Route::post('fee-heads',                    [\App\Http\Controllers\Admin\FeeHeadController::class, 'store'])->name('fee-heads.store');
+    Route::put('fee-heads/{feeHead}',           [\App\Http\Controllers\Admin\FeeHeadController::class, 'update'])->name('fee-heads.update');
+    Route::delete('fee-heads/{feeHead}',        [\App\Http\Controllers\Admin\FeeHeadController::class, 'destroy'])->name('fee-heads.destroy');
+
+    // ── Course Fee Packages ────────────────────────────────────────
+    Route::post('courses/{course}/packages',                          [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'store'])->name('courses.packages.store');
+    Route::put('courses/packages/{package}',                          [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'update'])->name('courses.packages.update');
+    Route::delete('courses/packages/{package}',                       [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'destroy'])->name('courses.packages.destroy');
+    Route::patch('courses/{course}/packages/{package}/set-default',   [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'setDefault'])->name('courses.packages.set-default');
+    Route::post('courses/packages/{package}/items',                   [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'storeItem'])->name('courses.packages.items.store');
+    Route::delete('courses/packages/items/{item}',                    [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'destroyItem'])->name('courses.packages.items.destroy');
+
+    // ── Retake Approve ────────────────────────────────────────────
+    Route::patch('retakes/{retake}/approve', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'approve'])->name('retakes.approve');
+
     // ── Public Applications (from /apply form) ────────────────────────
     Route::get('public-applications',                       [\App\Http\Controllers\Admin\PublicApplicationController::class, 'index'])->name('public-applications.index');
     Route::get('public-applications/{publicApplication}',   [\App\Http\Controllers\Admin\PublicApplicationController::class, 'show'])->name('public-applications.show');

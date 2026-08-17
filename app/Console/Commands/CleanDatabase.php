@@ -18,6 +18,8 @@ class CleanDatabase extends Command
         }
 
         $tables = [
+            'course_fee_package_items', 'course_fee_packages',
+            'waiver_applications',
             'subject_retakes', 'exam_answers', 'exam_submissions',
             'exam_attendees', 'exam_questions', 'exams', 'results',
             'attendances', 'assignment_submissions', 'assignments',

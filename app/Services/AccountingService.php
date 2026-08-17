@@ -66,11 +66,14 @@ class AccountingService
     /**
      * Auto-generate Subject Retake Fee Invoice.
      */
-    public static function createRetakeInvoice(Student $student, SubjectRetake $retake): Invoice
+    public static function createRetakeInvoice(Student $student, SubjectRetake $retake, float $feeOverride = 0.00): Invoice
     {
-        $feeRate = FeeStructure::where('category', 'RETAKE')
-            ->where('is_active', true)
-            ->value('amount') ?? 1500.00; // Default retake fee fallback
+        // Use admin-set fee if provided, else fall back to FeeStructure, else 1500
+        $feeRate = $feeOverride > 0
+            ? $feeOverride
+            : (float)(FeeStructure::where('category', 'RETAKE')
+                ->where('is_active', true)
+                ->value('amount') ?? 1500.00);
 
         $invNo = 'INV-RET-' . date('Ymd') . '-' . rand(1000, 9999);
 

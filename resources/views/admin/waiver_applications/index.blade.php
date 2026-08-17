@@ -75,7 +75,15 @@
                     </td>
                     <td><strong>৳ {{ number_format($app->monthly_income, 0) }}</strong></td>
                     <td>
-                        <span class="badge badge-secondary no-dot">{{ $app->apply_reason_type }}</span>
+                        @php
+                            $applyLabel = match($app->apply_for ?? '') {
+                                'ADMISSION_FEE' => 'Admission Fee Only',
+                                'TUITION_FEE'   => 'Tuition Fee Only',
+                                'BOTH'          => 'Both (Admission + Tuition)',
+                                default         => $app->apply_reason_type ?? '—',
+                            };
+                        @endphp
+                        <span class="badge badge-secondary no-dot">{{ $applyLabel }}</span>
                         <div class="td-muted" style="font-size:11px">
                             @if($app->convenient_admission_fee) Adm: ৳{{ $app->convenient_admission_fee }} @endif
                             @if($app->convenient_monthly_fee) Monthly: ৳{{ $app->convenient_monthly_fee }} @endif
@@ -85,7 +93,12 @@
                         @if($app->status === 'PENDING')
                             <span class="badge badge-pending">⏳ Pending Review</span>
                         @elseif($app->status === 'APPROVED')
-                            <span class="badge badge-active">✓ Approved ({{ $app->approved_discount_percent }}%)</span>
+                            @php
+                                $discDisplay = $app->discount_type === 'FIXED'
+                                    ? '৳'.number_format($app->approved_discount_value, 0).' Fixed'
+                                    : ($app->approved_discount_value ?: $app->approved_discount_percent).'%';
+                            @endphp
+                            <span class="badge badge-active">✓ Approved ({{ $discDisplay }})</span>
                         @else
                             <span class="badge badge-danger">✕ Rejected</span>
                         @endif

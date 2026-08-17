@@ -8,6 +8,10 @@ class SubjectRetake extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'retake_fee' => 'float',
+    ];
+
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id');

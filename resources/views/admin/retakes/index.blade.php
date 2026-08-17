@@ -4,7 +4,7 @@
     <div class="page-header">
         <div class="page-header-left">
             <h1>Subject Retake Engine</h1>
-            <p>Register retakes for failed subjects (EXAM_ONLY, CLASS_EXAM, FULL_RESTART)</p>
+            <p>Register retakes for failed subjects. Admin sets the Retake Fee upon approval.</p>
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addRetakeModal')">
@@ -22,8 +22,10 @@
                         <th>Student</th>
                         <th>Subject</th>
                         <th>Retake Type</th>
+                        <th>Retake Fee</th>
                         <th>Registered Date</th>
                         <th>Status</th>
+                        <th style="text-align:right">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -43,11 +45,28 @@
                                 <span class="badge badge-cancelled no-dot">Full Subject Restart</span>
                             @endif
                         </td>
+                        <td>
+                            @if($ret->retake_fee)
+                                <strong>৳{{ number_format($ret->retake_fee, 0) }}</strong>
+                            @else
+                                <span class="td-muted">Pending</span>
+                            @endif
+                        </td>
                         <td class="td-muted">{{ $ret->created_at->format('d M Y') }}</td>
                         <td><span class="badge badge-{{ strtolower($ret->status) }}">{{ ucfirst(strtolower($ret->status)) }}</span></td>
+                        <td style="text-align:right">
+                            @if($ret->status === 'PENDING')
+                                <button class="btn btn-success btn-sm"
+                                    onclick="openApproveRetake({{ $ret->id }}, @json($ret->student->name ?? ''), @json($ret->subject->name ?? ''))">
+                                    ✓ Approve & Set Fee
+                                </button>
+                            @else
+                                <span class="td-muted" style="font-size:12px">—</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No subject retakes registered yet.</td></tr>
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No subject retakes registered yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -97,6 +116,9 @@
                         <label>Notes</label>
                         <textarea name="notes" class="form-control" placeholder="Admin notes for retake approval..."></textarea>
                     </div>
+                    <div class="alert alert-info" style="margin-top:8px">
+                        💡 Retake Fee will be set by admin at the time of approval.
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addRetakeModal')">Cancel</button>
@@ -105,4 +127,46 @@
             </form>
         </div>
     </div>
+
+    <!-- Approve Retake Modal -->
+    <div class="modal-overlay" id="approveRetakeModal">
+        <div class="modal" style="max-width:450px">
+            <div class="modal-header">
+                <span class="modal-title">✓ Approve Retake & Set Fee</span>
+                <button class="modal-close" onclick="closeModal('approveRetakeModal')">&times;</button>
+            </div>
+            <form method="POST" id="approveRetakeForm">
+                @csrf @method('PATCH')
+                <div class="modal-body">
+                    <div style="background:#f8fafc;padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:13px">
+                        <strong id="ar_student"></strong> — <span id="ar_subject" style="color:var(--text-muted)"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Retake Fee (৳ Taka) <span class="required">*</span></label>
+                        <input type="number" name="retake_fee" class="form-control" min="0" placeholder="e.g. 1500" required>
+                        <small style="color:var(--text-muted);font-size:12px">This amount will generate an invoice for the student.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes (optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Approval notes..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('approveRetakeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-success">✓ Approve & Generate Invoice</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+    function openApproveRetake(id, student, subject) {
+        document.getElementById('approveRetakeForm').action = '/admin/retakes/' + id + '/approve';
+        document.getElementById('ar_student').textContent = student;
+        document.getElementById('ar_subject').textContent = subject;
+        openModal('approveRetakeModal');
+    }
+    </script>
+    @endpush
 </x-admin-layout>

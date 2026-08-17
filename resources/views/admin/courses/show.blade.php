@@ -225,4 +225,186 @@
         </div>
     </div>
     @endif
+
+    {{-- ════════════════════════════════════════════════════════
+         FEE PACKAGES SECTION
+    ════════════════════════════════════════════════════════ --}}
+    <div class="card" style="margin-top:24px">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+            <span class="card-title">💰 Fee Packages</span>
+            <div style="display:flex;gap:8px;align-items:center">
+                <span style="font-size:12px;color:var(--text-muted)">Admission Fee (Course): <strong>৳{{ number_format($course->admission_fee, 0) }}</strong></span>
+                <button class="btn btn-primary btn-sm" onclick="openModal('addPackageModal')">+ New Package</button>
+            </div>
+        </div>
+        <div class="card-body" style="padding:0">
+            @forelse($course->feePackages as $pkg)
+            <div style="border-bottom:1px solid var(--card-border);padding:16px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                    <div>
+                        <strong style="font-size:14px">{{ $pkg->name }}</strong>
+                        @if($pkg->is_default)
+                            <span class="badge badge-active no-dot" style="margin-left:8px;font-size:11px">Default</span>
+                        @endif
+                        @if($pkg->description)
+                            <div class="td-muted" style="font-size:12px;margin-top:2px">{{ $pkg->description }}</div>
+                        @endif
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <span style="font-size:13px;font-weight:700;color:var(--blue)">Package Total: ৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</span>
+                        @if(!$pkg->is_default)
+                        <form method="POST" action="{{ route('admin.courses.packages.set-default', [$course, $pkg]) }}">
+                            @csrf @method('PATCH')
+                            <button type="submit" class="btn btn-outline btn-sm" style="font-size:11px">Set Default</button>
+                        </form>
+                        @endif
+                        <button class="btn btn-outline btn-sm" onclick="openAddItemModal({{ $pkg->id }})">+ Add Item</button>
+                        <form method="POST" action="{{ route('admin.courses.packages.destroy', $pkg) }}" onsubmit="return confirm('Delete this package?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);font-size:11px">Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+                @if($pkg->items->count())
+                <table class="table" style="font-size:13px">
+                    <thead>
+                        <tr>
+                            <th>Fee Head</th>
+                            <th>Quantity (Count)</th>
+                            <th>Amount / Unit</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($pkg->items as $item)
+                        <tr>
+                            <td><strong>{{ $item->label ?: $item->feeHead->name }}</strong></td>
+                            <td>{{ $item->quantity }}</td>
+                            <td>৳{{ number_format($item->amount_per_unit, 0) }}</td>
+                            <td><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
+                            <td style="text-align:right">
+                                <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);font-size:11px">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endforeach
+                        <tr style="background:rgba(59,130,246,.04)">
+                            <td colspan="3" style="text-align:right;font-weight:700">Package Total:</td>
+                            <td colspan="2"><strong style="color:var(--blue)">৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                @else
+                    <div class="alert alert-info" style="margin:0">No fee items yet. Click "+ Add Item" to add fee heads to this package.</div>
+                @endif
+            </div>
+            @empty
+            <div style="padding:30px;text-align:center;color:var(--text-muted)">
+                No fee packages yet. Click "+ New Package" to create one.<br>
+                <small>Packages define the fee structure for students (e.g. Category 50, Category 100).</small>
+            </div>
+            @endforelse
+        </div>
+    </div>
+
+    <!-- Add Package Modal -->
+    <div class="modal-overlay" id="addPackageModal">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-header">
+                <span class="modal-title">New Fee Package</span>
+                <button class="modal-close" onclick="closeModal('addPackageModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.courses.packages.store', $course) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Package Name <span class="required">*</span></label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Category 50, Category 100, Standard Package" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" name="description" class="form-control" placeholder="Optional description">
+                    </div>
+                    <div class="form-group" style="margin-top:10px">
+                        <label class="form-check" style="cursor:pointer">
+                            <input type="checkbox" name="is_default" value="1"> Set as Default Package
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addPackageModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Package</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Package Item Modal -->
+    <div class="modal-overlay" id="addItemModal">
+        <div class="modal" style="max-width:480px">
+            <div class="modal-header">
+                <span class="modal-title">Add Fee Item to Package</span>
+                <button class="modal-close" onclick="closeModal('addItemModal')">&times;</button>
+            </div>
+            <form method="POST" id="addItemForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Fee Head <span class="required">*</span></label>
+                        <select name="fee_head_id" class="form-control" required>
+                            <option value="">-- Select Fee Head --</option>
+                            @foreach($feeHeads as $fh)
+                                <option value="{{ $fh->id }}">{{ $fh->name }}</option>
+                            @endforeach
+                        </select>
+                        <small style="color:var(--text-muted);font-size:12px">Admission Fee & Retake Fee are excluded (managed separately).</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Label <small style="color:var(--text-muted)">(optional override)</small></label>
+                        <input type="text" name="label" class="form-control" placeholder="Leave blank to use fee head name">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Quantity (Count) <span class="required">*</span></label>
+                            <input type="number" name="quantity" id="pkg_qty" class="form-control" min="1" value="1" oninput="calcTotal()" required>
+                            <small style="color:var(--text-muted);font-size:12px">Total count (e.g. 36 classes)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount / Unit (৳) <span class="required">*</span></label>
+                            <input type="number" name="amount_per_unit" id="pkg_amt" class="form-control" min="0" value="0" oninput="calcTotal()" required>
+                            <small style="color:var(--text-muted);font-size:12px">Fee per unit (e.g. 50 Tk/class)</small>
+                        </div>
+                    </div>
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 14px;border-radius:8px;font-size:13px">
+                        Total: <strong id="pkg_total" style="color:#166534;font-size:15px">৳0</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addItemModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+    function openAddItemModal(packageId) {
+        document.getElementById('addItemForm').action = '/admin/courses/packages/' + packageId + '/items';
+        document.getElementById('pkg_qty').value = 1;
+        document.getElementById('pkg_amt').value = 0;
+        document.getElementById('pkg_total').textContent = '৳0';
+        openModal('addItemModal');
+    }
+    function calcTotal() {
+        const qty = parseFloat(document.getElementById('pkg_qty').value) || 0;
+        const amt = parseFloat(document.getElementById('pkg_amt').value) || 0;
+        document.getElementById('pkg_total').textContent = '৳' + (qty * amt).toLocaleString('en-BD');
+    }
+    </script>
+    @endpush
 </x-admin-layout>

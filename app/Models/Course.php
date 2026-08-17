@@ -28,4 +28,14 @@ class Course extends Model
     {
         return $this->hasMany(Batch::class, 'course_id');
     }
+
+    public function feePackages()
+    {
+        return $this->hasMany(CourseFeePackage::class, 'course_id')->where('is_active', true)->orderBy('id');
+    }
+
+    public function defaultPackage()
+    {
+        return $this->hasOne(CourseFeePackage::class, 'course_id')->where('is_default', true);
+    }
 }

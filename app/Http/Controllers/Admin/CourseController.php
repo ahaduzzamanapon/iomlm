@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\FeeHead;
 use App\Models\Semester;
 use App\Models\Subject;
 use App\Models\CourseSubjectMap;
@@ -25,6 +26,7 @@ class CourseController extends Controller
             'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
             'duration_value' => 'required|numeric|min:0.5',
             'duration_unit'  => 'required|in:MONTH,YEAR',
+            'admission_fee'  => 'nullable|numeric|min:0',
         ]);
 
         $course = Course::create([
@@ -32,6 +34,7 @@ class CourseController extends Controller
             'type'           => $validated['type'],
             'duration_value' => $validated['duration_value'],
             'duration_unit'  => $validated['duration_unit'],
+            'admission_fee'  => $validated['admission_fee'] ?? 0.00,
             'is_active'      => $request->boolean('is_active', true),
         ]);
 
@@ -52,9 +55,15 @@ class CourseController extends Controller
 
     public function show(Course $course)
     {
-        $course->load(['semesters', 'courseSubjectMaps.subject', 'courseSubjectMaps.semester']);
+        $course->load([
+            'semesters',
+            'courseSubjectMaps.subject',
+            'courseSubjectMaps.semester',
+            'feePackages.items.feeHead',
+        ]);
         $availableSubjects = Subject::where('is_active', true)->orderBy('name')->get();
-        return view('admin.courses.show', compact('course', 'availableSubjects'));
+        $feeHeads = FeeHead::packageEligible()->orderBy('sort_order')->get();
+        return view('admin.courses.show', compact('course', 'availableSubjects', 'feeHeads'));
     }
 
     public function storeSemester(Request $request, Course $course)

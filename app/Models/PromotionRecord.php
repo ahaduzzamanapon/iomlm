@@ -13,18 +13,23 @@ class PromotionRecord extends Model
         return $this->belongsTo(Student::class, 'student_id');
     }
 
-    public function fromBatch()
+    public function enrollment()
     {
-        return $this->belongsTo(Batch::class, 'from_batch_id');
+        return $this->belongsTo(Enrollment::class, 'enrollment_id');
     }
 
-    public function toBatch()
+    public function fromSemester()
     {
-        return $this->belongsTo(Batch::class, 'to_batch_id');
+        return $this->belongsTo(Semester::class, 'from_semester_id');
     }
 
-    public function promoter()
+    public function toSemester()
     {
-        return $this->belongsTo(User::class, 'promoted_by');
+        return $this->belongsTo(Semester::class, 'to_semester_id');
+    }
+
+    public function decidedBy()
+    {
+        return $this->belongsTo(User::class, 'decided_by');
     }
 }

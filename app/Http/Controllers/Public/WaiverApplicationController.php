@@ -46,6 +46,14 @@ class WaiverApplicationController extends Controller
             'convenient_monthly_fee'         => 'nullable|numeric|min:0',
         ]);
 
+        // Map old apply_reason_type values to new apply_for enum
+        $applyForMap = [
+            'Admission Fee' => 'ADMISSION_FEE',
+            'Monthly Fee'   => 'TUITION_FEE',
+            'Both'          => 'BOTH',
+        ];
+        $applyFor = $applyForMap[$validated['apply_reason_type']] ?? 'BOTH';
+
         $app = WaiverApplication::create([
             'application_no'                 => WaiverApplication::generateApplicationNo(),
             'full_name'                      => $validated['full_name'],
@@ -72,6 +80,7 @@ class WaiverApplicationController extends Controller
             'family_siblings_details'        => $validated['family_siblings_details'],
             'financial_problem_description'  => $validated['financial_problem_description'],
             'apply_reason_type'              => $validated['apply_reason_type'],
+            'apply_for'                      => $applyFor,
             'convenient_admission_fee'       => $validated['convenient_admission_fee'] ?? 0,
             'convenient_monthly_fee'         => $validated['convenient_monthly_fee'] ?? 0,
             'status'                         => 'PENDING',

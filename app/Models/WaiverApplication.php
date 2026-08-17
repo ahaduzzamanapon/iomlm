@@ -19,11 +19,15 @@ class WaiverApplication extends Model
         'is_used'                => 'boolean',
         'reviewed_at'            => 'datetime',
         'date_of_birth'          => 'date',
+        'approved_admission_fee' => 'float',
+        'approved_discount_value'=> 'float',
     ];
 
-    public function division()      { return $this->belongsTo(Division::class); }
-    public function reviewer()      { return $this->belongsTo(User::class, 'reviewed_by'); }
-    public function admissionForm() { return $this->belongsTo(AdmissionForm::class); }
+    public function division()        { return $this->belongsTo(Division::class); }
+    public function reviewer()        { return $this->belongsTo(User::class, 'reviewed_by'); }
+    public function admissionForm()   { return $this->belongsTo(AdmissionForm::class); }
+    public function approvedPackage() { return $this->belongsTo(CourseFeePackage::class, 'approved_package_id'); }
+    public function course()          { return $this->belongsTo(Course::class); }
 
     public static function generateApplicationNo(): string
     {

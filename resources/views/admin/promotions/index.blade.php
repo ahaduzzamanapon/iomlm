@@ -20,10 +20,11 @@
                 <thead>
                     <tr>
                         <th>Student</th>
-                        <th>From Batch</th>
-                        <th>To Batch</th>
+                        <th>From Semester</th>
+                        <th>To Semester</th>
                         <th>Decision</th>
-                        <th>Promoted On</th>
+                        <th>Decided By</th>
+                        <th>Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -33,8 +34,8 @@
                             <strong>{{ $prom->student->name ?? '—' }}</strong><br>
                             <span class="td-muted">{{ $prom->student->student_code ?? 'N/A' }}</span>
                         </td>
-                        <td>{{ $prom->fromBatch->name ?? '—' }}</td>
-                        <td><strong>{{ $prom->toBatch->name ?? '—' }}</strong></td>
+                        <td>{{ $prom->fromSemester->name ?? '—' }}</td>
+                        <td><strong>{{ $prom->toSemester->name ?? '—' }}</strong></td>
                         <td>
                             @if($prom->decision === 'PROMOTED')
                                 <span class="badge badge-active">Promoted</span>
@@ -44,10 +45,11 @@
                                 <span class="badge badge-cancelled">Held Back</span>
                             @endif
                         </td>
+                        <td class="td-muted">{{ $prom->decidedBy->name ?? 'Admin' }}</td>
                         <td class="td-muted">{{ $prom->created_at->format('d M Y') }}</td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No promotion records found.</td></tr>
+                    <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">No promotion records found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -76,20 +78,20 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>From Batch <span class="required">*</span></label>
-                            <select name="from_batch_id" class="form-control" required>
-                                <option value="">-- Current Batch --</option>
-                                @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                            <label>From Semester</label>
+                            <select name="from_semester_id" class="form-control">
+                                <option value="">-- Current Semester --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>To Batch / Next Semester <span class="required">*</span></label>
-                            <select name="to_batch_id" class="form-control" required>
-                                <option value="">-- Target Batch --</option>
-                                @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                            <label>To Semester</label>
+                            <select name="to_semester_id" class="form-control">
+                                <option value="">-- Next Semester --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
                                 @endforeach
                             </select>
                         </div>
