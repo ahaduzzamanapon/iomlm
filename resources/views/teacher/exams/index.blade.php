@@ -1,43 +1,176 @@
 <x-teacher-layout>
-    <x-slot name="title">Exams & Evaluations</x-slot>
+    <x-slot name="title">Exams Management</x-slot>
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>Subject Examinations</h1>
-            <p>View scheduled exams and candidate attendees for your assigned subjects</p>
+            <h1>📝 Examinations &amp; Question Builder</h1>
+            <p>Create &amp; manage 4 types of exams: Class Quiz, Class Test, Half-Term, &amp; Final Exam</p>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-primary" onclick="openModal('createExamModal')">
+                + Schedule New Exam
+            </button>
         </div>
     </div>
 
+    @if(session('success'))
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
+            ✓ {{ session('success') }}
+        </div>
+    @endif
+
+    {{-- Exams Table --}}
     <div class="card">
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Subject</th>
-                        <th>Exam Title</th>
-                        <th>Exam Date</th>
-                        <th>Registered Candidates</th>
+                        <th>Title &amp; Subject</th>
+                        <th>Exam Type</th>
+                        <th>Marks / Negative</th>
+                        <th>Duration</th>
+                        <th>Questions</th>
                         <th>Status</th>
-                        <th style="text-align:right">Action</th>
+                        <th style="text-align:center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($exams as $exam)
+                    @forelse($exams as $ex)
+                    @php
+                        $typeBadge = match($ex->type) {
+                            'QUIZ' => 'badge-secondary',
+                            'CLASS_TEST' => 'badge-info',
+                            'HALF_TERM' => 'badge-warning',
+                            'FINAL' => 'badge-danger',
+                            default => 'badge-primary'
+                        };
+                    @endphp
                     <tr>
-                        <td class="td-primary"><strong>{{ $exam->subject->name ?? '—' }}</strong></td>
-                        <td>{{ $exam->title }}</td>
-                        <td class="td-muted">{{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }}</td>
-                        <td><span class="badge badge-secondary no-dot">{{ $exam->attendees->count() }} Candidates</span></td>
-                        <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
-                        <td style="text-align:right">
-                            <a href="{{ route('teacher.results.enter', $exam) }}" class="btn btn-primary btn-sm">Enter Results →</a>
+                        <td class="td-primary">
+                            <strong>{{ $ex->title }}</strong><br>
+                            <span style="color:#64748b;font-size:12px">🎯 {{ $ex->subject?->name ?? '—' }} ({{ $ex->subject?->code }})</span>
+                        </td>
+                        <td>
+                            <span class="badge {{ $typeBadge }} no-dot">{{ $ex->type }}</span>
+                            @if($ex->type === 'QUIZ')
+                                <div style="font-size:10px;color:#94a3b8;margin-top:2px">No GPA effect</div>
+                            @endif
+                        </td>
+                        <td>
+                            <strong>{{ $ex->full_marks }} Marks</strong><br>
+                            <small style="color:#e11d48">-{{ $ex->negative_marking }} per wrong</small>
+                        </td>
+                        <td>⏱️ {{ $ex->duration_minutes }} Mins</td>
+                        <td>
+                            <span class="badge badge-info no-dot">{{ $ex->examQuestions->count() }} Questions</span>
+                        </td>
+                        <td><span class="badge badge-success no-dot">{{ $ex->status }}</span></td>
+                        <td style="text-align:center">
+                            <a href="{{ route('teacher.exams.show', $ex) }}" class="btn btn-outline btn-sm">
+                                🛠️ Paper Builder
+                            </a>
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">No exams found for your assigned subjects.</td></tr>
+                    <tr>
+                        <td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">
+                            No exams scheduled yet. Click "+ Schedule New Exam" above.
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+
+    {{-- Create Exam Modal --}}
+    <div class="modal-overlay" id="createExamModal" style="display:none">
+        <div class="modal" style="max-width:600px">
+            <div class="modal-header">
+                <span class="modal-title">+ Schedule Exam (4-Tier Architecture)</span>
+                <button class="modal-close" onclick="closeModal('createExamModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('teacher.exams.store') }}">
+                @csrf
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>Subject <span class="required">*</span></label>
+                            <select name="subject_id" class="form-control" required>
+                                @foreach($subjects as $sub)
+                                    <option value="{{ $sub->id }}">{{ $sub->name }} ({{ $sub->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Exam Type <span class="required">*</span></label>
+                            <select name="type" class="form-control" required>
+                                <option value="QUIZ">1. Class Quiz (অনিয়মিত কুইজ - No GPA effect)</option>
+                                <option value="CLASS_TEST">2. Class Test (বিষয়ভিত্তিক ক্লাস টেস্ট)</option>
+                                <option value="HALF_TERM">3. Half-Term Exam (মিডটার্ম পরীক্ষা)</option>
+                                <option value="FINAL">4. Final Exam (ফাইনাল পরীক্ষা)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Exam Title <span class="required">*</span></label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Chapter 1 Class Test / Midterm 2026" required>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>Exam Date <span class="required">*</span></label>
+                            <input type="date" name="exam_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Start Date &amp; Time (Online Active)</label>
+                            <input type="datetime-local" name="start_datetime" class="form-control">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>Full Marks <span class="required">*</span></label>
+                            <input type="number" name="full_marks" class="form-control" value="20" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Pass Marks <span class="required">*</span></label>
+                            <input type="number" name="pass_marks" class="form-control" value="8" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Duration (Mins) <span class="required">*</span></label>
+                            <input type="number" name="duration_minutes" class="form-control" value="30" required>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>Negative Marking Rate</label>
+                            <input type="number" step="0.05" name="negative_marking" class="form-control" value="0.25" placeholder="0.25 per wrong answer">
+                        </div>
+                        <div class="form-group" style="display:flex;align-items:center;margin-top:24px">
+                            <label class="form-check">
+                                <input type="checkbox" name="is_anti_cheating" value="1" checked>
+                                Enable Live Anti-Cheating 🔒
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('createExamModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">💾 Create Exam &amp; Build Paper</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function openModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+    </script>
 </x-teacher-layout>

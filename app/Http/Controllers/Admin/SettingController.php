@@ -19,6 +19,11 @@ class SettingController extends Controller
         $inputs = $request->except(['_token', '_method']);
 
         foreach ($inputs as $key => $val) {
+            // Skip zoom_client_secret if blank — keep existing
+            if ($key === 'zoom_client_secret' && empty($val)) {
+                continue;
+            }
+
             Setting::updateOrCreate(
                 ['key' => $key],
                 ['value' => is_array($val) ? json_encode($val) : $val]

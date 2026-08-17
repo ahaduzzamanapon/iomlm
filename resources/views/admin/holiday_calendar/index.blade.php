@@ -21,7 +21,6 @@
                     <tr>
                         <th>Date</th>
                         <th>Holiday Occasion</th>
-                        <th>Scope</th>
                         <th>Yearly Recurring</th>
                         <th style="text-align:right">Action</th>
                     </tr>
@@ -33,7 +32,6 @@
                             <strong>{{ \Carbon\Carbon::parse($hol->date)->format('d M Y (l)') }}</strong>
                         </td>
                         <td>{{ $hol->name }}</td>
-                        <td><span class="badge badge-secondary no-dot">{{ $hol->scope }}</span></td>
                         <td>
                             @if($hol->is_recurring_yearly)
                                 <span class="badge badge-active">Yes (Every Year)</span>
@@ -49,7 +47,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No holidays scheduled in academic calendar.</td></tr>
+                    <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted)">No holidays scheduled in academic calendar.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -71,14 +69,7 @@
                             <label>Holiday Date <span class="required">*</span></label>
                             <input type="date" name="date" class="form-control" required>
                         </div>
-                        <div class="form-group">
-                            <label>Scope <span class="required">*</span></label>
-                            <select name="scope" class="form-control" required>
-                                <option value="GLOBAL">GLOBAL — Entire Institute</option>
-                                <option value="INSTITUTE">INSTITUTE</option>
-                            </select>
-                        </div>
-                    </div>
+                        <input type="hidden" name="scope" value="GLOBAL">
 
                     <div class="form-group">
                         <label>Holiday Name / Occasion <span class="required">*</span></label>

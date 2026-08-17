@@ -77,7 +77,7 @@
 
     <script>
         const eventsData = @json($events);
-        let currentDate = new Date(2026, 0, 1); // January 2026 default
+        let currentDate = new Date();
 
         function renderCalendar() {
             const year = currentDate.getFullYear();
@@ -114,12 +114,12 @@
                 let html = `<span class="day-number">${day}</span>`;
 
                 // Find matching events
-                const matchingEvents = eventsData.filter(e => e.scheduled_date === dateStr);
+                const matchingEvents = eventsData.filter(e => e.date === dateStr);
                 matchingEvents.forEach(evt => {
                     const pillClass = evt.status === 'COMPLETED' ? 'event-completed' : (evt.status === 'SCHEDULED' ? 'event-scheduled' : 'event-upcoming');
                     html += `
                         <div class="event-pill ${pillClass}" onclick='openEventModal(${JSON.stringify(evt)})'>
-                            🕒 ${evt.start_time} - ${evt.subject_name}
+                            🕒 ${evt.start_time} — ${evt.subject_name}
                         </div>
                     `;
                 });
@@ -145,9 +145,9 @@
 
         function openEventModal(evt) {
             document.getElementById('m_subject_name').innerText = evt.subject_name;
-            document.getElementById('m_module_title').innerText = evt.module_title;
+            document.getElementById('m_module_title').innerText = evt.batch_name + (evt.slot_name ? ' · ' + evt.slot_name : '');
             document.getElementById('m_teacher_name').innerText = evt.teacher_name;
-            document.getElementById('m_scheduled_date').innerText = evt.scheduled_date || 'Date Pending';
+            document.getElementById('m_scheduled_date').innerText = evt.date || 'Date Pending';
             document.getElementById('m_start_time').innerText = evt.start_time || 'TBA';
             document.getElementById('m_status_badge').innerText = evt.status;
 

@@ -11,30 +11,47 @@ use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
-    public function index()
+    private function teacher(): ?Teacher
     {
-        $teacher = Teacher::where('email', auth()->user()->email)->first();
-        $classes = ClassSession::with(['timeline.subject', 'timeline.module', 'attendances.student'])
-            ->where('teacher_id', $teacher?->id)
-            ->where('class_conducted', true)
-            ->latest()
-            ->get();
-
-        return view('teacher.attendance.index', compact('classes'));
+        return Teacher::where('email', auth()->user()->email)->first();
     }
 
+    /**
+     * Sessions that have been conducted (or are today) — teacher can manage attendance.
+     */
+    public function index()
+    {
+        $teacher = $this->teacher();
+
+        $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'moduleCovered', 'attendances.student'])
+            ->where('teacher_id', $teacher?->id)
+            ->whereIn('status', ['SCHEDULED', 'COMPLETED'])
+            ->orderBy('session_date', 'desc')
+            ->get();
+
+        return view('teacher.attendance.index', compact('sessions'));
+    }
+
+    /**
+     * Show attendance form for a specific session.
+     */
     public function mark(ClassSession $class)
     {
-        $class->load(['timeline.subject', 'timeline.module', 'timeline.batch', 'attendances.student']);
+        $class->load(['subject', 'batch', 'routineEntry.slot', 'attendances.student', 'moduleCovered']);
 
         $batchStudents = Enrollment::with('student')
-            ->where('batch_id', $class->timeline->batch_id)
+            ->where('batch_id', $class->batch_id)
             ->where('status', 'ACTIVE')
             ->get();
 
-        return view('teacher.classes.conduct', compact('class', 'batchStudents'));
+        $existingAttendance = $class->attendances->keyBy('student_id');
+
+        return view('teacher.attendance.mark', compact('class', 'batchStudents', 'existingAttendance'));
     }
 
+    /**
+     * Save attendance for a session.
+     */
     public function save(Request $request, ClassSession $class)
     {
         $request->validate([
@@ -43,10 +60,27 @@ class AttendanceController extends Controller
         ]);
 
         foreach ($request->input('attendance', []) as $studentId => $status) {
+            $enrollment = Enrollment::where('student_id', $studentId)
+                ->where('batch_id', $class->batch_id)
+                ->first();
+
             Attendance::updateOrCreate(
                 ['class_session_id' => $class->id, 'student_id' => $studentId],
-                ['status' => $status]
+                [
+                    'status'        => $status,
+                    'enrollment_id' => $enrollment?->id,
+                ]
             );
+        }
+
+        // Mark session as completed if all attendance done
+        if ($class->status === 'SCHEDULED') {
+            $class->update([
+                'class_conducted' => true,
+                'teacher_present' => true,
+                'status'          => 'COMPLETED',
+                'ended_at'        => now(),
+            ]);
         }
 
         return redirect()->route('teacher.attendance.index')

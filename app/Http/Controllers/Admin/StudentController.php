@@ -24,7 +24,12 @@ class StudentController extends Controller
 
     public function show(Student $student)
     {
-        $student->load(['enrollments.batch.course', 'attendances.classSession.timeline.subject', 'results.exam.subject']);
+        $student->load([
+            'enrollments.batch.course',
+            'enrollments.semester',
+            'admissions.interestedCourse',
+            'invoices',
+        ]);
         return view('admin.students.show', compact('student'));
     }
 
@@ -49,5 +54,23 @@ class StudentController extends Controller
 
         $student->update($validated);
         return redirect()->route('admin.students.show', $student)->with('success', 'Student details updated.');
+    }
+
+    public function printGradeSheet(Student $student)
+    {
+        $student->load(['enrollments.batch.course', 'results.exam.subject', 'attendances']);
+        return view('admin.students.grade_sheet', compact('student'));
+    }
+
+    public function printCertificate(Student $student)
+    {
+        $student->load(['enrollments.batch.course']);
+        return view('admin.students.certificate', compact('student'));
+    }
+
+    public function printIdCard(Student $student)
+    {
+        $student->load(['enrollments.batch.course']);
+        return view('admin.students.id_card', compact('student'));
     }
 }

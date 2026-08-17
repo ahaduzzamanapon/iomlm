@@ -15,7 +15,7 @@ class DashboardController extends Controller
             'total_courses'      => $this->count(\App\Models\Course::class, ['is_active' => true]),
             'active_batches'     => $this->count(\App\Models\Batch::class, ['status' => 'ACTIVE']),
             'pending_admissions' => $this->count(\App\Models\AdmissionForm::class, ['status' => 'PENDING']),
-            'today_classes'      => $this->count(\App\Models\ClassSession::class, ['status' => 'SCHEDULED']),
+            'today_classes'      => \App\Models\ClassSession::whereDate('session_date', today())->count(),
         ];
 
         $pendingAdmissions = \App\Models\AdmissionForm::with(['student', 'interestedCourse'])
@@ -24,9 +24,10 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        $todayClasses = \App\Models\ClassSession::with(['timeline.subject', 'timeline.module', 'teacher'])
-            ->where('status', 'SCHEDULED')
-            ->take(6)
+        // Today's actual classes (by session_date)
+        $todayClasses = \App\Models\ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot'])
+            ->whereDate('session_date', today())
+            ->orderBy('start_time')
             ->get();
 
         $activeBatches = \App\Models\Batch::with('course')

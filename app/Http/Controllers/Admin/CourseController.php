@@ -23,7 +23,7 @@ class CourseController extends Controller
         $validated = $request->validate([
             'name'           => 'required|string|max:200',
             'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
-            'duration_value' => 'required|integer|min:1',
+            'duration_value' => 'required|numeric|min:0.5',
             'duration_unit'  => 'required|in:MONTH,YEAR',
         ]);
 
@@ -85,6 +85,11 @@ class CourseController extends Controller
             'subject_id'  => 'required|exists:subjects,id',
             'semester_id' => 'nullable|exists:semesters,id',
         ]);
+
+        // Subject Based কোর্সে ১টির বেশি Subject যুক্ত করা যাবে না
+        if ($course->type === 'SUBJECT_BASED' && $course->courseSubjectMaps()->count() >= 1) {
+            return back()->with('error', 'Subject Based কোর্সে মাত্র ১টি Subject যুক্ত করা যায়। বিদ্যমান Subject টি আগে রিমুভ করুন।');
+        }
 
         CourseSubjectMap::firstOrCreate([
             'course_id'   => $course->id,

@@ -3,39 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Learning Plus ERP</title>
+    <title>Login — IOM ERP</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
         body {
             min-height: 100vh;
-            background: #0f172a;
+            background: #f8fafc;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
         }
 
         .login-bg {
             position: fixed; inset: 0;
             background:
-                radial-gradient(ellipse at 20% 50%, rgba(59,130,246,.15) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 20%, rgba(139,92,246,.12) 0%, transparent 50%),
-                radial-gradient(ellipse at 60% 80%, rgba(16,185,129,.08) 0%, transparent 50%),
-                #0f172a;
+                radial-gradient(ellipse at 15% 20%, rgba(59,130,246,.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 80%, rgba(99,102,241,.06) 0%, transparent 50%),
+                #f8fafc;
             z-index: 0;
         }
 
         .login-card {
             position: relative; z-index: 1;
-            background: rgba(255,255,255,.04);
-            border: 1px solid rgba(255,255,255,.08);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 20px;
             padding: 36px;
-            width: 100%; max-width: 460px;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 24px 80px rgba(0,0,0,.4);
+            width: 100%; max-width: 450px;
+            box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.1);
         }
 
         .login-logo {
@@ -43,109 +43,113 @@
             margin-bottom: 20px;
         }
         .login-logo-icon {
-            width: 44px; height: 44px;
-            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            width: 46px; height: 46px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
             border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 18px; font-weight: 800; color: #fff;
+            font-size: 20px; font-weight: 800; color: #fff;
+            box-shadow: 0 6px 16px rgba(37,99,235,.25);
         }
         .login-logo-text { line-height: 1.2; }
-        .login-logo-name { font-size: 18px; font-weight: 700; color: #f1f5f9; }
-        .login-logo-sub  { font-size: 12px; color: #64748b; }
+        .login-logo-name { font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+        .login-logo-sub  { font-size: 12px; color: #64748b; font-weight: 500; }
 
-        .login-title { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 4px; }
+        .login-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 4px; letter-spacing: -0.5px; }
         .login-subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
 
         .quick-login-box {
-            background: rgba(255,255,255,.03);
-            border: 1px dashed rgba(255,255,255,.12);
-            border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 22px;
         }
         .quick-login-title {
             font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-            color: #94a3b8; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;
+            color: #475569; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
         }
 
         .quick-section-label {
-            font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin: 8px 0 4px 0;
+            font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin: 10px 0 6px 0;
         }
 
         .quick-btn-grid {
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
         }
         .quick-btn {
-            padding: 7px 10px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-size: 11px; font-weight: 600;
-            border: 1px solid transparent;
+            border: 1px solid #cbd5e1;
             cursor: pointer; text-align: left;
             transition: all .2s;
             font-family: 'Inter', sans-serif;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            background: #ffffff;
         }
         .quick-btn.admin {
-            background: rgba(59,130,246,.15); color: #60a5fa; border-color: rgba(59,130,246,.3);
-            grid-column: 1 / -1; text-align: center;
+            background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;
+            grid-column: 1 / -1; text-align: center; font-size: 12px; font-weight: 700;
         }
-        .quick-btn.admin:hover { background: rgba(59,130,246,.3); transform: translateY(-1px); }
+        .quick-btn.admin:hover { background: #dbeafe; transform: translateY(-1px); }
 
         .quick-btn.teacher {
-            background: rgba(16,185,129,.15); color: #34d399; border-color: rgba(16,185,129,.3);
+            background: #ecfdf5; color: #047857; border-color: #a7f3d0;
         }
-        .quick-btn.teacher:hover { background: rgba(16,185,129,.3); transform: translateY(-1px); }
+        .quick-btn.teacher:hover { background: #d1fae5; transform: translateY(-1px); }
 
         .quick-btn.student {
-            background: rgba(139,92,246,.15); color: #a78bfa; border-color: rgba(139,92,246,.3);
+            background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe;
         }
-        .quick-btn.student:hover { background: rgba(139,92,246,.3); transform: translateY(-1px); }
+        .quick-btn.student:hover { background: #ede9fe; transform: translateY(-1px); }
 
-        .lf-group { margin-bottom: 14px; }
+        .lf-group { margin-bottom: 16px; }
         .lf-label {
-            display: block; font-size: 12px; font-weight: 600;
-            color: #94a3b8; margin-bottom: 6px;
+            display: block; font-size: 13px; font-weight: 600;
+            color: #334155; margin-bottom: 6px;
         }
         .lf-input {
-            width: 100%; padding: 10px 14px;
-            background: rgba(255,255,255,.06);
-            border: 1px solid rgba(255,255,255,.1);
-            border-radius: 8px;
-            color: #f1f5f9; font-size: 14px;
+            width: 100%; padding: 11px 14px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            color: #0f172a; font-size: 14px;
             font-family: 'Inter', sans-serif;
             outline: none;
             transition: all .2s;
+            box-sizing: border-box;
         }
         .lf-input:focus {
-            border-color: #3b82f6;
-            background: rgba(59,130,246,.08);
-            box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+            border-color: #2563eb;
+            background: #ffffff;
+            box-shadow: 0 0 0 3px rgba(37,99,235,.15);
         }
-        .lf-input::placeholder { color: #475569; }
+        .lf-input::placeholder { color: #94a3b8; }
 
         .lf-check {
             display: flex; align-items: center; gap: 8px;
-            font-size: 13px; color: #64748b; cursor: pointer; margin-top: 4px;
+            font-size: 13px; color: #475569; cursor: pointer; margin-top: 6px; font-weight: 500;
         }
-        .lf-check input { accent-color: #3b82f6; width: 14px; height: 14px; }
+        .lf-check input { accent-color: #2563eb; width: 15px; height: 15px; }
 
         .btn-login {
-            width: 100%; padding: 11px;
-            background: linear-gradient(135deg, #3b82f6, #6366f1);
-            color: #fff; font-size: 14px; font-weight: 600;
-            border: none; border-radius: 8px; cursor: pointer;
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            color: #fff; font-size: 15px; font-weight: 700;
+            border: none; border-radius: 10px; cursor: pointer;
             font-family: 'Inter', sans-serif;
             transition: all .2s;
-            margin-top: 10px;
+            margin-top: 14px;
+            box-shadow: 0 4px 12px rgba(37,99,235,.25);
         }
-        .btn-login:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 8px 20px rgba(59,130,246,.3); }
+        .btn-login:hover { opacity: .95; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(37,99,235,.35); }
 
         .error-msg {
-            background: rgba(239,68,68,.1);
-            border: 1px solid rgba(239,68,68,.2);
-            color: #fca5a5;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
             border-radius: 8px; padding: 10px 14px;
-            font-size: 13px; margin-bottom: 16px;
+            font-size: 13px; margin-bottom: 16px; font-weight: 500;
         }
     </style>
 </head>
@@ -155,39 +159,15 @@
 <div class="login-card">
     <!-- Logo -->
     <div class="login-logo">
-        <div class="login-logo-icon">LP</div>
+        <div class="login-logo-icon">IOM</div>
         <div class="login-logo-text">
-            <div class="login-logo-name">Learning Plus</div>
-            <div class="login-logo-sub">University Management System</div>
+            <div class="login-logo-name">IOM ERP</div>
+            <div class="login-logo-sub">Institute Management System</div>
         </div>
     </div>
 
-    <div class="login-title">Welcome back</div>
-    <div class="login-subtitle">Select a demo role or sign in below</div>
-
-    <!-- Quick Demo Login Buttons (Multiple Teachers & Multiple Students) -->
-    <div class="quick-login-box">
-        <div class="quick-login-title">
-            <span>⚡ 1-Click Demo Accounts</span>
-            <span style="font-size:10px;color:#64748b">Password: password</span>
-        </div>
-
-        <button type="button" class="quick-btn admin" onclick="quickLogin('admin@learningplus.com', 'password')">👑 System Administrator</button>
-
-        <div class="quick-section-label">👨‍🏫 Teachers (Multiple Accounts)</div>
-        <div class="quick-btn-grid">
-            <button type="button" class="quick-btn teacher" onclick="quickLogin('teacher@learningplus.com', 'password')">Dr. Alan Turing</button>
-            <button type="button" class="quick-btn teacher" onclick="quickLogin('ada@learningplus.com', 'password')">Prof. Ada Lovelace</button>
-            <button type="button" class="quick-btn teacher" onclick="quickLogin('shannon@learningplus.com', 'password')">Prof. C. Shannon</button>
-        </div>
-
-        <div class="quick-section-label">🎓 Students (Multiple Accounts)</div>
-        <div class="quick-btn-grid">
-            <button type="button" class="quick-btn student" onclick="quickLogin('student@learningplus.com', 'password')">John Doe (Active)</button>
-            <button type="button" class="quick-btn student" onclick="quickLogin('sarah@learningplus.com', 'password')">Sarah Ahmed (Active)</button>
-            <button type="button" class="quick-btn student" onclick="quickLogin('tanvir@gmail.com', 'password')">Tanvir H. (Pending)</button>
-        </div>
-    </div>
+    <div class="login-title">Sign In</div>
+    <div class="login-subtitle">Enter your credentials to access the admin panel</div>
 
     @if($errors->any())
     <div class="error-msg">

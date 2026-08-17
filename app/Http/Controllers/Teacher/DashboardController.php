@@ -3,88 +3,74 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClassSession;
+use App\Models\Exam;
+use App\Models\SubjectTeacherAssignment;
+use App\Models\Teacher;
+use Carbon\Carbon;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function index(): View
     {
-        // Teacher linked to auth user
-        $teacher = null;
-        try {
-            $teacher = \App\Models\Teacher::where('email', auth()->user()->email)->first();
-        } catch (\Exception) {}
-
+        $teacher   = Teacher::where('email', auth()->user()->email)->first();
         $teacherId = $teacher?->id;
+        $today     = Carbon::today();
 
-        $stats = [
-            'today_classes'   => $this->safeCount(\App\Models\ClassSession::class, ['teacher_id' => $teacherId, 'status' => 'SCHEDULED']),
-            'total_students'  => 0, // resolved via batch enrollments
-            'total_subjects'  => $teacherId ? \App\Models\SubjectTeacherAssignment::where('teacher_id', $teacherId)->where('is_active', true)->count() : 0,
-            'pending_results' => 0,
-        ];
+        // Today's classes for this teacher (by session_date)
+        $todayClasses = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'attendances'])
+            ->where('teacher_id', $teacherId)
+            ->whereDate('session_date', $today)
+            ->orderBy('start_time')
+            ->get();
 
-        // Today's classes for this teacher
-        $todayClasses = collect();
-        try {
-            $todayClasses = \App\Models\ClassSession::with(['timeline.subject', 'timeline.module'])
-                ->where('teacher_id', $teacherId)
-                ->whereIn('status', ['SCHEDULED', 'RUNNING', 'COMPLETED'])
-                ->latest()
-                ->take(6)
-                ->get();
-        } catch (\Exception) {}
+        // Upcoming sessions this week (not today)
+        $upcomingSessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot'])
+            ->where('teacher_id', $teacherId)
+            ->whereDate('session_date', '>', $today)
+            ->whereDate('session_date', '<=', $today->copy()->addDays(6))
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->take(5)
+            ->get();
+
+        // Sessions needing attendance (completed but no attendance)
+        $attendancePending = ClassSession::with(['subject', 'batch'])
+            ->where('teacher_id', $teacherId)
+            ->where('status', 'COMPLETED')
+            ->whereDoesntHave('attendances')
+            ->orderByDesc('session_date')
+            ->take(5)
+            ->get();
 
         // Upcoming exams for teacher's subjects
-        $upcomingExams = collect();
-        try {
-            $subjectIds = \App\Models\SubjectTeacherAssignment::where('teacher_id', $teacherId)
-                ->pluck('subject_id');
-            $upcomingExams = \App\Models\Exam::with('subject')
-                ->whereIn('subject_id', $subjectIds)
-                ->where('status', 'SCHEDULED')
-                ->orderBy('exam_date')
-                ->take(5)
-                ->get();
-        } catch (\Exception) {}
-
-        // Classes where attendance not marked (completed but no attendance records)
-        $attendancePending = collect();
-        try {
-            $attendancePending = \App\Models\ClassSession::with(['timeline.subject', 'timeline'])
-                ->where('teacher_id', $teacherId)
-                ->where('class_conducted', true)
-                ->whereDoesntHave('attendances')
-                ->take(5)
-                ->get();
-        } catch (\Exception) {}
+        $subjectIds = SubjectTeacherAssignment::where('teacher_id', $teacherId)->pluck('subject_id');
+        $upcomingExams = Exam::with('subject')
+            ->whereIn('subject_id', $subjectIds)
+            ->where('status', 'SCHEDULED')
+            ->orderBy('exam_date')
+            ->take(5)
+            ->get();
 
         // Exams completed but results not entered
-        $pendingResults = collect();
-        try {
-            $pendingResults = \App\Models\Exam::with('subject')
-                ->whereIn('subject_id', $subjectIds ?? [])
-                ->where('status', 'COMPLETED')
-                ->whereDoesntHave('results')
-                ->take(5)
-                ->get();
-        } catch (\Exception) {}
+        $pendingResults = Exam::with('subject')
+            ->whereIn('subject_id', $subjectIds)
+            ->where('status', 'COMPLETED')
+            ->whereDoesntHave('results')
+            ->take(5)
+            ->get();
+
+        $stats = [
+            'today_classes'   => $todayClasses->count(),
+            'total_subjects'  => $subjectIds->count(),
+            'pending_results' => $pendingResults->count(),
+            'attendance_todo' => $attendancePending->count(),
+        ];
 
         return view('teacher.dashboard', compact(
-            'stats', 'todayClasses', 'upcomingExams', 'attendancePending', 'pendingResults'
+            'stats', 'todayClasses', 'upcomingSessions',
+            'upcomingExams', 'attendancePending', 'pendingResults', 'today'
         ));
-    }
-
-    private function safeCount(string $model, array $where = []): int
-    {
-        try {
-            $q = $model::query();
-            foreach ($where as $col => $val) {
-                if ($val !== null) $q->where($col, $val);
-            }
-            return $q->count();
-        } catch (\Exception) {
-            return 0;
-        }
     }
 }

@@ -254,29 +254,80 @@ return new class extends Migration
         });
 
         // ══════════════════════════════════════════════
+        // ROUTINE SLOTS  (must be before timelines)
+        // Named time slots: e.g. "মাগরিবের পর" 18:45-20:00
+        // ══════════════════════════════════════════════
+        Schema::create('routine_slots', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100);
+            $table->time('start_time');
+            $table->time('end_time');
+            $table->unsignedSmallInteger('sort_order')->default(0);
+            $table->timestamps();
+        });
+
+        // ══════════════════════════════════════════════
+        // ROUTINE ENTRIES  (must be before timelines)
+        // Weekly grid: batch + slot + day → recurring class
+        // ══════════════════════════════════════════════
+        Schema::create('routine_entries', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('batch_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('slot_id')->constrained('routine_slots')->cascadeOnDelete();
+            $table->enum('day_of_week', ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI']);
+            // No FK constraint here — class_sessions doesn't exist yet (circular dep)
+            // Eloquent relationship still works; FK added post-class_sessions if needed
+            $table->unsignedBigInteger('class_session_id')->nullable();
+            $table->foreignId('subject_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('teacher_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('title', 200)->nullable();
+            $table->string('color', 20)->nullable();
+            $table->boolean('is_override')->default(false);
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+
+
+        // ══════════════════════════════════════════════
         // TIMELINE
         // ══════════════════════════════════════════════
         Schema::create('timelines', function (Blueprint $table) {
+
             $table->id();
             $table->foreignId('batch_id')->constrained()->restrictOnDelete();
             $table->foreignId('subject_id')->constrained()->restrictOnDelete();
             $table->foreignId('module_id')->constrained('subject_modules')->restrictOnDelete();
-            $table->date('scheduled_date');
+            // Link to routine entry (weekly pattern) — nullable for manual scheduling
+            $table->foreignId('routine_entry_id')->nullable()->constrained('routine_entries')->nullOnDelete();
+            $table->date('scheduled_date')->nullable(); // NULL = not yet scheduled (UPCOMING)
+            $table->unsignedSmallInteger('class_no')->default(1)->comment('Which class occurrence for this module (1st, 2nd, 3rd...)');
             $table->enum('status', ['UPCOMING', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELLED', 'RESCHEDULED'])->default('UPCOMING');
-            $table->foreignId('parent_timeline_id')->nullable()->constrained('timelines')->nullOnDelete(); // for reschedules
+            $table->foreignId('parent_timeline_id')->nullable()->constrained('timelines')->nullOnDelete();
             $table->unsignedSmallInteger('reschedule_count')->default(0);
             $table->timestamps();
             $table->softDeletes();
-            // Idempotency key per §19
-            $table->unique(['batch_id', 'subject_id', 'module_id', 'scheduled_date', 'status'], 'uq_timeline_slot');
         });
 
         // ══════════════════════════════════════════════
-        // CLASS SESSION
+        // CLASS SESSION (date-based, subject-level)
+        // One row = one actual class occurrence (e.g. Sunday 2026-01-19 Maghrib)
         // ══════════════════════════════════════════════
         Schema::create('class_sessions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('timeline_id')->constrained()->restrictOnDelete();
+
+            // Optional link to curriculum plan (timeline)
+            $table->foreignId('timeline_id')->nullable()->constrained()->nullOnDelete();
+
+            // The actual calendar date of this class
+            $table->date('session_date')->nullable()->comment('Actual class date e.g. 2026-01-19');
+
+            // Link to the recurring routine entry (which subject/slot/day this belongs to)
+            $table->foreignId('routine_entry_id')->nullable()->constrained('routine_entries')->nullOnDelete();
+
+            // Direct subject + batch refs (for display without joining timeline)
+            $table->foreignId('subject_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('batch_id')->nullable()->constrained()->nullOnDelete();
+
             $table->foreignId('teacher_id')->nullable()->constrained()->nullOnDelete();
             $table->time('start_time')->nullable()->comment('Class scheduled start time e.g. 20:00');
             $table->string('meeting_link', 500)->nullable();
@@ -285,6 +336,10 @@ return new class extends Migration
             $table->dateTime('started_at')->nullable();
             $table->dateTime('ended_at')->nullable();
             $table->enum('status', ['UPCOMING', 'SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELLED', 'RESCHEDULED'])->default('UPCOMING');
+
+            // Teacher optionally logs which module was covered in this session
+            $table->foreignId('module_covered_id')->nullable()->constrained('subject_modules')->nullOnDelete();
+
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
@@ -547,6 +602,7 @@ return new class extends Migration
         Schema::dropIfExists('attendances');
         Schema::dropIfExists('merged_class_groups');
         Schema::dropIfExists('class_sessions');
+        Schema::dropIfExists('routine_entries'); // must drop before timelines (FK)
         Schema::dropIfExists('timelines');
         Schema::dropIfExists('enrollments');
         Schema::dropIfExists('admission_forms');

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Dashboard' }} — Student | Learning Plus</title>
+    <title>{{ $title ?? 'Dashboard' }} — Student | IOM</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
         /* Student-specific accent: violet */
@@ -26,7 +26,7 @@
             </div>
             <div class="sidebar-logo-text">
                 <span class="sidebar-logo-name">Student Portal</span>
-                <span class="sidebar-logo-sub">Learning Plus ERP</span>
+                <span class="sidebar-logo-sub">IOM ERP</span>
             </div>
         </div>
 
@@ -41,19 +41,29 @@
 
             <!-- My Learning -->
             <div class="nav-group-label">My Learning</div>
-            <a href="{{ route('student.timeline') }}" class="nav-item {{ request()->routeIs('student.timeline*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-                My Timeline
+            <a href="{{ route('student.classes.today') }}" class="nav-item {{ request()->routeIs('student.classes.today') ? 'active' : '' }}" style="{{ !request()->routeIs('student.classes.today') ? 'border-left:3px solid #f59e0b' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1M4.22 4.22l.707.707M18.364 18.364l.707.707M1 12h1m18 0h1M4.22 19.778l.707-.707M18.364 5.636l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+                Today's Classes
+                @php
+                    try {
+                        $student = \App\Models\Student::where('email', auth()->user()->email)->first();
+                        $batchIds = $student ? \App\Models\Enrollment::where('student_id', $student->id)->where('status','ACTIVE')->pluck('batch_id') : collect();
+                        $todayClassCount = \App\Models\ClassSession::whereIn('batch_id', $batchIds)->whereDate('session_date', today())->count();
+                    } catch (\Exception) { $todayClassCount = 0; }
+                @endphp
+                @if($todayClassCount > 0)<span class="nav-badge" style="background:#f59e0b">{{ $todayClassCount }}</span>@endif
             </a>
-            <a href="{{ route('student.classes.index') }}" class="nav-item {{ request()->routeIs('student.classes*') ? 'active' : '' }}">
+            <a href="{{ route('student.classes.index') }}" class="nav-item {{ request()->routeIs('student.classes.index') ? 'active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
                 My Classes
-                @php try { $todayC = \App\Models\ClassSession::where('status','SCHEDULED')->whereDate('created_at', today())->count(); } catch(\Exception $e){ $todayC=0; } @endphp
-                @if($todayC > 0)<span class="nav-badge">{{ $todayC }}</span>@endif
             </a>
             <a href="{{ route('student.calendar') }}" class="nav-item {{ request()->routeIs('student.calendar*') ? 'active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 My Calendar
+            </a>
+            <a href="{{ route('student.routine.index') }}" class="nav-item {{ request()->routeIs('student.routine*') ? 'active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
+                My Routine
             </a>
             <a href="{{ route('student.subjects.index') }}" class="nav-item {{ request()->routeIs('student.subjects*') ? 'active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -65,18 +75,25 @@
             </a>
 
             <!-- Progress -->
-            <div class="nav-group-label">My Progress</div>
-            <a href="{{ route('student.attendance.index') }}" class="nav-item {{ request()->routeIs('student.attendance*') ? 'active' : '' }}">
+            <div class="nav-group-label">My Progress &amp; Exams</div>
+            <a href="{{ route('student.exams.index') }}" class="nav-item {{ request()->routeIs('student.exams*') ? 'active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                Online Exams
+            </a>
+            <a href="{{ route('student.attendance.index') }}" class="nav-item {{ request()->routeIs('student.attendance*') ? 'active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 My Attendance
             </a>
-            <a href="{{ route('student.exams.index') }}" class="nav-item {{ request()->routeIs('student.exams*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-                Upcoming Exams
-            </a>
             <a href="{{ route('student.results.index') }}" class="nav-item {{ request()->routeIs('student.results*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                My Results
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11 V3.055z"/></svg>
+                Academic Results
+            </a>
+
+            <!-- Financials -->
+            <div class="nav-group-label">Financials</div>
+            <a href="{{ route('student.fees.index') }}" class="nav-item {{ request()->routeIs('student.fees*') ? 'active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                My Fees &amp; Invoices
             </a>
 
             <!-- Documents -->

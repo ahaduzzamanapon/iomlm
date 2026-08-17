@@ -103,26 +103,42 @@
         <!-- Today's Classes -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Today's Classes</span>
-                <a href="{{ route('admin.classes.index') }}" class="btn btn-ghost btn-sm">View All</a>
+                <span class="card-title">📅 Today's Classes</span>
+                <a href="{{ route('admin.classes.index') }}" class="btn btn-ghost btn-sm">View All →</a>
             </div>
-            <div class="table-wrapper">
-                <table>
-                    <thead><tr><th>Subject</th><th>Module</th><th>Teacher</th><th>Status</th></tr></thead>
-                    <tbody>
-                        @forelse($todayClasses as $class)
-                        <tr>
-                            <td class="td-primary">{{ $class->timeline->subject->name ?? '—' }}</td>
-                            <td class="td-muted">{{ $class->timeline->module->title ?? '—' }}</td>
-                            <td>{{ $class->teacher->name ?? '—' }}</td>
-                            <td><span class="badge badge-{{ strtolower($class->status) }}">{{ ucfirst(strtolower($class->status)) }}</span></td>
-                        </tr>
-                        @empty
-                        <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">No classes today</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            @if($todayClasses->isEmpty())
+                <div style="padding:30px;text-align:center;color:var(--text-muted)">No classes scheduled today.</div>
+            @else
+            <div style="padding:0">
+                @foreach($todayClasses as $cs)
+                <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--card-border)">
+                    <div style="width:34px;height:34px;background:{{ $cs->routineEntry?->color ?? '#3b82f6' }}22;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid {{ $cs->routineEntry?->color ?? '#3b82f6' }}">
+                        <span style="font-size:13px">🎥</span>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $cs->subject?->name ?? '—' }}</div>
+                        <div style="font-size:10px;color:var(--text-muted)">
+                            {{ $cs->batch?->name ?? '' }}
+                            @if($cs->routineEntry?->slot) · {{ $cs->routineEntry->slot->name }} @endif
+                            · {{ $cs->teacher?->name ?? 'No teacher' }}
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
+                        @if($cs->meeting_link)
+                            <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:10px;padding:3px 8px">🔗 Join</a>
+                        @else
+                            <form method="POST" action="{{ route('admin.classes.updateSchedule', $cs) }}">
+                                @csrf @method('PUT')
+                                <input type="hidden" name="session_date" value="{{ $cs->session_date?->toDateString() ?? now()->toDateString() }}">
+                                <button class="btn btn-outline btn-sm" style="font-size:10px;padding:3px 8px;color:#f59e0b">⚡ Auto-Link</button>
+                            </form>
+                        @endif
+                        <a href="{{ route('admin.classes.show', $cs) }}" style="font-size:10px;color:#6366f1">Manage →</a>
+                    </div>
+                </div>
+                @endforeach
             </div>
+            @endif
         </div>
 
         <!-- Active Batches -->

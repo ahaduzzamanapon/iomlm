@@ -23,81 +23,137 @@
         </div>
     </div>
 
-    <div class="grid-2">
-        <!-- Mapped Subjects Table -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Mapped Subjects</span>
-                <span class="badge badge-secondary no-dot">{{ $course->courseSubjectMaps->count() }} Subjects</span>
+    {{-- ════════════════════════════════════════════════════════
+         SEMESTER BASED → প্রতিটি Semester আলাদা Card এ
+    ════════════════════════════════════════════════════════ --}}
+    @if($course->type === 'SEMESTER_BASED')
+
+        {{-- Header action row --}}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="font-size:13px;color:var(--text-muted)">
+                মোট <strong>{{ $course->semesters->count() }}</strong> টি Semester · <strong>{{ $course->courseSubjectMaps->count() }}</strong> টি Subject ম্যাপ করা হয়েছে
             </div>
+        </div>
+
+        @forelse($course->semesters->sortBy('sequence_no') as $sem)
+        @php
+            $semSubjects = $course->courseSubjectMaps->where('semester_id', $sem->id);
+            $totalCredit = $semSubjects->sum(fn($m) => $m->subject->credit ?? 0);
+        @endphp
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header" style="background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(99,102,241,.04));border-bottom:1px solid var(--card-border)">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">
+                        {{ $sem->sequence_no }}
+                    </div>
+                    <div>
+                        <span class="card-title" style="font-size:14px">{{ $sem->name }}</span>
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:1px">Sequence: {{ $sem->sequence_no }}</div>
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="badge badge-secondary no-dot">{{ $semSubjects->count() }} Subjects</span>
+                    <span class="badge badge-scheduled no-dot">{{ $totalCredit }} Credits</span>
+                    <form method="POST" action="{{ route('admin.courses.semesters.destroy', [$course, $sem]) }}" style="display:inline" onsubmit="return confirm('Delete semester?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="btn btn-ghost btn-sm text-red" title="Delete Semester">&times;</button>
+                    </form>
+                </div>
+            </div>
+
+            @if($semSubjects->count())
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Subject</th>
-                            @if($course->type === 'SEMESTER_BASED') <th>Semester</th> @endif
                             <th>Credit</th>
+                            <th>Full Marks</th>
                             <th style="text-align:right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($course->courseSubjectMaps as $map)
+                        @foreach($semSubjects as $i => $map)
                         <tr>
+                            <td style="font-size:12px;color:var(--text-muted);width:32px">{{ $i + 1 }}</td>
                             <td class="td-primary">
-                                {{ $map->subject->code ?? '—' }}: {{ $map->subject->name ?? '—' }}
+                                <strong>{{ $map->subject->code ?? '—' }}</strong>
+                                <div class="td-muted" style="font-size:12px">{{ $map->subject->name ?? '—' }}</div>
                             </td>
-                            @if($course->type === 'SEMESTER_BASED')
                             <td>
-                                <span class="badge badge-scheduled no-dot">{{ $map->semester->name ?? 'Unassigned' }}</span>
+                                <span class="badge badge-secondary no-dot">{{ $map->subject->credit ?? 0 }} Cr</span>
                             </td>
-                            @endif
-                            <td>{{ $map->subject->credit ?? 0 }} Cr</td>
+                            <td style="font-size:13px;color:var(--text-muted)">{{ $map->subject->full_marks ?? '—' }} / {{ $map->subject->pass_marks ?? '—' }}</td>
                             <td style="text-align:right">
-                                <form method="POST" action="{{ route('admin.courses.subjects.remove', [$course, $map]) }}" style="display:inline" onsubmit="return confirm('Remove subject mapping?')">
+                                <form method="POST" action="{{ route('admin.courses.subjects.remove', [$course, $map]) }}" style="display:inline" onsubmit="return confirm('Remove subject?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn btn-ghost btn-sm text-red">Remove</button>
                                 </form>
                             </td>
                         </tr>
-                        @empty
-                        <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted)">No subjects mapped to this course yet.</td></tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
             </div>
+            @else
+            <div style="padding:20px 24px;color:var(--text-muted);font-size:13px;text-align:center">
+                এই Semester এ এখনো কোনো Subject ম্যাপ করা হয়নি।
+                <a href="#" onclick="openModal('mapSubjectModal')" style="margin-left:6px;color:var(--blue)">+ Map Subject</a>
+            </div>
+            @endif
         </div>
-
-        <!-- Course Semesters (if semester-based) -->
-        @if($course->type === 'SEMESTER_BASED')
+        @empty
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">Course Semesters</span>
-                <span class="badge badge-secondary no-dot">{{ $course->semesters->count() }} Semesters</span>
-            </div>
-            <div style="padding:0">
-                @forelse($course->semesters as $sem)
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--card-border)">
-                    <div>
-                        <strong style="font-size:13px">{{ $sem->name }}</strong><br>
-                        <span class="td-muted" style="font-size:11px">Sequence No: {{ $sem->sequence_no }}</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:10px">
-                        <span class="badge badge-secondary no-dot">
-                            {{ $course->courseSubjectMaps->where('semester_id', $sem->id)->count() }} Subjects
-                        </span>
-                        <form method="POST" action="{{ route('admin.courses.semesters.destroy', [$course, $sem]) }}" style="display:inline" onsubmit="return confirm('Delete semester?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-ghost btn-sm text-red">&times;</button>
-                        </form>
-                    </div>
-                </div>
-                @empty
-                <div class="empty-state"><p>No semesters defined. Click "+ New Semester" to create one.</p></div>
-                @endforelse
+            <div class="empty-state">
+                <p>কোনো Semester তৈরি করা হয়নি। উপরে <strong>+ New Semester</strong> বাটনে ক্লিক করুন।</p>
             </div>
         </div>
-        @endif
+        @endforelse
+
+    {{-- ════════════════════════════════════════════════════════
+         SUBJECT BASED → একটি সিম্পল Subject card
+    ════════════════════════════════════════════════════════ --}}
+    @else
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Mapped Subject</span>
+            <span class="badge badge-secondary no-dot">{{ $course->courseSubjectMaps->count() }} Subject</span>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Credit</th>
+                        <th>Full Marks</th>
+                        <th style="text-align:right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($course->courseSubjectMaps as $map)
+                    <tr>
+                        <td class="td-primary">
+                            <strong>{{ $map->subject->code ?? '—' }}</strong>
+                            <div class="td-muted" style="font-size:12px">{{ $map->subject->name ?? '—' }}</div>
+                        </td>
+                        <td><span class="badge badge-secondary no-dot">{{ $map->subject->credit ?? 0 }} Cr</span></td>
+                        <td style="color:var(--text-muted);font-size:13px">{{ $map->subject->full_marks ?? '—' }} / {{ $map->subject->pass_marks ?? '—' }}</td>
+                        <td style="text-align:right">
+                            <form method="POST" action="{{ route('admin.courses.subjects.remove', [$course, $map]) }}" style="display:inline" onsubmit="return confirm('Remove subject?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-ghost btn-sm text-red">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted)">কোনো Subject ম্যাপ করা হয়নি।</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
+    @endif
 
     <!-- Map Subject Modal -->
     <div class="modal-overlay" id="mapSubjectModal">

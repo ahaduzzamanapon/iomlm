@@ -27,14 +27,19 @@ class SubjectRetakeController extends Controller
             'notes'       => 'nullable|string',
         ]);
 
-        SubjectRetake::create([
+        $student = Student::findOrFail($validated['student_id']);
+
+        $retake = SubjectRetake::create([
             'student_id'  => $validated['student_id'],
             'subject_id'  => $validated['subject_id'],
             'retake_type' => $validated['retake_type'],
-            'status'      => 'ACTIVE',
-            'notes'       => $validated['notes'] ?? null,
+            'status'      => 'IN_PROGRESS',
+            'reason'      => $validated['notes'] ?? null,
         ]);
 
-        return back()->with('success', 'Subject retake registered successfully.');
+        // Auto-generate Retake Fee Invoice
+        \App\Services\AccountingService::createRetakeInvoice($student, $retake);
+
+        return back()->with('success', 'Subject retake registered & Auto Retake Fee Invoice generated!');
     }
 }

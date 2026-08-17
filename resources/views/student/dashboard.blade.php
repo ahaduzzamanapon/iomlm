@@ -48,25 +48,55 @@
         </div>
     </div>
 
+    {{-- Central Notice Board Widget --}}
+    @if(isset($notices) && $notices->count() > 0)
+    <div class="card" style="margin-bottom:24px;border-top:4px solid #3b82f6">
+        <div class="card-header">
+            <span class="card-title">📢 Notice Board &amp; Announcements</span>
+        </div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
+            @foreach($notices as $n)
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                    <strong style="font-size:14px;color:#0f172a">{{ $n->title }}</strong>
+                    <span class="badge {{ $n->priority === 'URGENT' ? 'badge-danger' : ($n->priority === 'IMPORTANT' ? 'badge-warning' : 'badge-info') }} no-dot" style="font-size:10px">
+                        {{ $n->priority }}
+                    </span>
+                </div>
+                <div style="font-size:13px;color:#334155;line-height:1.5;margin-bottom:6px">
+                    {{ $n->content }}
+                </div>
+                <div style="font-size:11px;color:#64748b">
+                    Published {{ $n->created_at->diffForHumans() }} ({{ $n->created_at->format('d M Y') }})
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
     <div class="grid-2">
-        <!-- My Current Modules (Timeline) -->
+        <!-- Recent Sessions / Covered Modules -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">My Learning Timeline</span>
-                <a href="{{ route('student.timeline') }}" class="btn btn-ghost btn-sm">Full View</a>
+                <span class="card-title">📖 Subjects & Coverage</span>
+                <a href="{{ route('student.classes.index') }}" class="btn btn-ghost btn-sm">All Classes</a>
             </div>
-            <div class="module-list" style="padding:16px">
-                @forelse($currentModules as $timeline)
-                <div class="module-item">
-                    <div class="module-seq">{{ $loop->iteration }}</div>
-                    <div class="module-info">
-                        <div class="module-title">{{ $timeline->module->title ?? '—' }}</div>
-                        <div class="module-sub">{{ $timeline->subject->name ?? '—' }} · {{ $timeline->scheduled_date ? \Carbon\Carbon::parse($timeline->scheduled_date)->format('d M') : 'TBD' }}</div>
+            <div style="padding:0">
+                @forelse($currentModules as $cs)
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--card-border)">
+                    <div style="flex:1">
+                        <div style="font-size:13px;font-weight:600">{{ $cs->subject?->name ?? '—' }}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">
+                            {{ $cs->session_date?->format('d M Y (D)') ?? 'TBA' }}
+                            @if($cs->moduleCovered) · 📖 {{ $cs->moduleCovered->title }} @endif
+                        </div>
                     </div>
-                    <span class="badge badge-{{ strtolower($timeline->status) }}">{{ ucfirst(strtolower($timeline->status)) }}</span>
+                    @php $badge = match($cs->status) { 'COMPLETED'=>'badge-success','SCHEDULED'=>'badge-info','CANCELLED'=>'badge-danger',default=>'badge-warning' }; @endphp
+                    <span class="badge {{ $badge }} no-dot">{{ $cs->status }}</span>
                 </div>
                 @empty
-                <div class="empty-state"><p>No active modules</p></div>
+                <div class="empty-state"><p>No class sessions yet</p></div>
                 @endforelse
             </div>
         </div>
@@ -74,21 +104,26 @@
         <!-- Upcoming Classes -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Upcoming Classes</span>
-                <a href="{{ route('student.classes.index') }}" class="btn btn-ghost btn-sm">All Classes</a>
+                <span class="card-title">📅 Upcoming Classes</span>
+                <a href="{{ route('student.classes.index') }}" class="btn btn-ghost btn-sm">All →</a>
             </div>
             <div style="padding:0">
                 @forelse($upcomingClasses as $class)
-                <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--card-border)">
-                    <div style="width:40px;height:40px;background:#f5f3ff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="#8b5cf6"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--card-border)">
+                    <div style="width:38px;height:38px;background:#f5f3ff;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;color:#8b5cf6;font-size:12px">
+                        <span>{{ $class->session_date?->format('d') }}</span>
+                        <span style="font-size:9px">{{ $class->session_date?->format('M') }}</span>
                     </div>
                     <div style="flex:1">
-                        <div style="font-size:13px;font-weight:600">{{ $class->timeline->subject->name ?? '—' }}</div>
-                        <div style="font-size:11px;color:var(--text-muted)">{{ $class->timeline->module->title ?? '—' }} · Teacher: {{ $class->teacher->name ?? '—' }}</div>
+                        <div style="font-size:13px;font-weight:600">{{ $class->subject?->name ?? '—' }}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">
+                            {{ $class->batch?->name ?? '' }}
+                            @if($class->routineEntry?->slot) · {{ $class->routineEntry->slot->name }} @endif
+                            · {{ $class->teacher?->name ?? '—' }}
+                        </div>
                     </div>
                     @if($class->meeting_link)
-                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">Join</a>
+                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">🔗 Join</a>
                     @endif
                 </div>
                 @empty

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Dashboard' }} — Teacher | Learning Plus</title>
+    <title>{{ $title ?? 'Dashboard' }} — Teacher | IOM</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
         /* Teacher-specific accent: green */
@@ -26,7 +26,7 @@
             </div>
             <div class="sidebar-logo-text">
                 <span class="sidebar-logo-name">Teacher Panel</span>
-                <span class="sidebar-logo-sub">Learning Plus ERP</span>
+                <span class="sidebar-logo-sub">IOM ERP</span>
             </div>
         </div>
 
@@ -41,19 +41,28 @@
 
             <!-- My Schedule -->
             <div class="nav-group-label">My Schedule</div>
-            <a href="{{ route('teacher.classes.index') }}" class="nav-item {{ request()->routeIs('teacher.classes*') ? 'active' : '' }}">
+            <a href="{{ route('teacher.classes.today') }}" class="nav-item {{ request()->routeIs('teacher.classes.today') ? 'active' : '' }}" style="{{ request()->routeIs('teacher.classes.today') ? '' : 'border-left:3px solid #f59e0b' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1M4.22 4.22l.707.707M18.364 18.364l.707.707M1 12h1m18 0h1M4.22 19.778l.707-.707M18.364 5.636l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+                Today's Classes
+                @php
+                    try {
+                        $teacher = \App\Models\Teacher::where('email', auth()->user()->email)->first();
+                        $todayCount = $teacher ? \App\Models\ClassSession::where('teacher_id', $teacher->id)->whereDate('session_date', today())->count() : 0;
+                    } catch (\Exception) { $todayCount = 0; }
+                @endphp
+                @if($todayCount > 0)<span class="nav-badge" style="background:#f59e0b">{{ $todayCount }}</span>@endif
+            </a>
+            <a href="{{ route('teacher.classes.index') }}" class="nav-item {{ request()->routeIs('teacher.classes.index') ? 'active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-                My Classes
-                @php try { $upcomingClasses = \App\Models\ClassSession::whereHas('timeline', fn($q) => $q->whereIn('batch_id', auth()->user()->teacher?->batches->pluck('id') ?? []))->where('status','SCHEDULED')->count(); } catch(\Exception $e) { $upcomingClasses = 0; } @endphp
-                @if($upcomingClasses > 0)<span class="nav-badge">{{ $upcomingClasses }}</span>@endif
+                All Classes
             </a>
             <a href="{{ route('teacher.calendar') }}" class="nav-item {{ request()->routeIs('teacher.calendar*') ? 'active' : '' }}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                My Calendar
+                Calendar
             </a>
-            <a href="{{ route('teacher.schedule') }}" class="nav-item {{ request()->routeIs('teacher.schedule*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                Weekly Schedule
+            <a href="{{ route('teacher.routine.index') }}" class="nav-item {{ request()->routeIs('teacher.routine*') ? 'active' : '' }}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
+                My Routine
             </a>
 
             <!-- Teaching -->

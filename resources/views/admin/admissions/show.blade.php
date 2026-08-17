@@ -25,24 +25,132 @@
         <!-- Application Details -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Applicant Details</span>
-                @if($admission->student->student_code)
-                    <span class="badge badge-active no-dot">Student ID: {{ $admission->student->student_code }}</span>
-                @endif
+                <span class="card-title">Applicant & Application Details</span>
+                <div>
+                    <span class="badge badge-{{ $admission->source === 'PUBLIC' ? 'scheduled' : 'active' }} no-dot">Source: {{ $admission->source }}</span>
+                    @if($admission->student->student_code)
+                        <span class="badge badge-active no-dot">Student ID: {{ $admission->student->student_code }}</span>
+                    @endif
+                </div>
             </div>
             <div class="card-body">
-                <table class="table" style="font-size:13px">
-                    <tr><th style="width:140px;color:var(--text-muted)">Full Name:</th><td><strong>{{ $admission->student->name }}</strong></td></tr>
-                    <tr><th style="color:var(--text-muted)">Phone:</th><td>{{ $admission->student->phone }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Email:</th><td>{{ $admission->student->email ?? '—' }}</td></tr>
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Basic Information</div>
+                <table class="table" style="font-size:13px;margin-bottom:16px">
+                    <tr><th style="width:140px;color:var(--text-muted)">Application No:</th><td><strong>{{ $admission->application_no ?? 'APP-'.$admission->id }}</strong></td></tr>
+                    <tr><th style="color:var(--text-muted)">Full Name:</th><td><strong>{{ $admission->applicant_name ?? $admission->student->name }}</strong></td></tr>
+                    <tr><th style="color:var(--text-muted)">Phone:</th><td>{{ $admission->phone ?? $admission->student->phone }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Email:</th><td>{{ $admission->email ?? $admission->student->email ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Date of Birth:</th><td>{{ $admission->date_of_birth ?? $admission->student->date_of_birth ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Gender / Device:</th><td>{{ $admission->gender ?? $admission->student->gender ?? '—' }} ({{ $admission->device_type ?? 'N/A' }})</td></tr>
                     <tr><th style="color:var(--text-muted)">Course Interested:</th><td><strong>{{ $admission->interestedCourse->name ?? '—' }}</strong></td></tr>
-                    <tr><th style="color:var(--text-muted)">Blood Group / NID:</th><td>{{ $admission->student->blood_group ?? '—' }} / {{ $admission->student->national_id ?? '—' }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Guardian:</th><td>{{ $admission->student->guardian_name ?? '—' }} ({{ $admission->student->guardian_phone ?? '—' }})</td></tr>
-                    <tr><th style="color:var(--text-muted)">SSC / HSC GPA:</th><td>{{ $admission->student->ssc_gpa ?? '—' }} / {{ $admission->student->hsc_gpa ?? '—' }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Address:</th><td>{{ $admission->student->address ?? '—' }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Lead Source:</th><td>{{ $admission->lead_source ?? 'Direct' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Academic Session:</th><td>{{ $admission->session->name ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Lead Source / Waiver:</th><td>{{ $admission->lead_source ?? 'Direct' }} (Waiver: {{ $admission->discount_percent ?? 0 }}%)</td></tr>
+                </table>
+
+                @if($admission->waiver_code)
+                @php $waiverApp = \App\Models\WaiverApplication::where('application_no', $admission->waiver_code)->first(); @endphp
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:14px 16px;border-radius:10px;margin-bottom:16px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                        <strong style="color:#166534;font-size:14px">🎁 Applied Poor Fund Waiver Code: {{ $admission->waiver_code }}</strong>
+                        <span class="badge badge-active no-dot">
+                            {{ $admission->discount_type === 'FIXED' ? ('৳'.$admission->discount_amount.' Fixed Discount') : (($admission->discount_percent ?? 0).'% Approved Discount') }}
+                        </span>
+                    </div>
+                    @if($waiverApp)
+                        <div style="font-size:12px;color:#15803d;margin-bottom:8px">
+                            Applied by {{ $waiverApp->full_name }} · Convenient Adm Fee: ৳{{ $waiverApp->convenient_admission_fee }} · Monthly: ৳{{ $waiverApp->convenient_monthly_fee }}
+                        </div>
+                        <a href="{{ route('admin.waiver-applications.show', $waiverApp) }}" target="_blank" class="btn btn-outline btn-sm" style="font-size:12px">
+                            📋 View Full Poor Fund Application Details ↗
+                        </a>
+                    @endif
+                </div>
+                @endif
+
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Accounts & Fee Summary</div>
+                @php 
+                    $batchFee = $admission->batch->admission_fee ?? 2000;
+                    $discVal = ($admission->discount_type === 'FIXED') 
+                        ? ($admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent) 
+                        : round($batchFee * (($admission->discount_percent ?? 0) / 100), 2);
+                    $netPayable = max(0, $batchFee - $discVal);
+                    $invoice = \App\Models\Invoice::where('source_type', \App\Models\AdmissionForm::class)->where('source_id', $admission->id)->first();
+                @endphp
+                <table class="table" style="font-size:13px;margin-bottom:16px">
+                    <tr><th style="width:160px;color:var(--text-muted)">Batch Admission Fee:</th><td>৳ {{ number_format($batchFee, 0) }}</td></tr>
+                    <tr>
+                        <th style="color:var(--text-muted)">Applied Discount:</th>
+                        <td>
+                            -৳ {{ number_format($discVal, 0) }} 
+                            <span class="badge badge-secondary no-dot" style="font-size:11px">
+                                ({{ $admission->discount_type === 'FIXED' ? 'Fixed Taka Waiver' : ($admission->discount_percent.'% Percentage Waiver') }})
+                            </span>
+                        </td>
+                    </tr>
+                    <tr><th style="color:var(--text-muted)">Net Payable Fee:</th><td><strong style="color:var(--blue);font-size:15px">৳ {{ number_format($netPayable, 0) }}</strong></td></tr>
+                    <tr>
+                        <th style="color:var(--text-muted)">Accounts Due Status:</th>
+                        <td>
+                            @if($invoice)
+                                @if($invoice->status === 'PAID')
+                                    <span class="badge badge-active">🟢 PAID (Invoice: {{ $invoice->invoice_no }})</span>
+                                @elseif($invoice->status === 'PARTIAL')
+                                    <span class="badge badge-pending">🟡 PARTIAL (Paid: ৳{{ number_format($invoice->paid_amount,0) }}, Due: ৳{{ number_format($invoice->due_amount,0) }})</span>
+                                @else
+                                    <span class="badge badge-danger">🔴 UNPAID DUE (Due Amount: ৳{{ number_format($invoice->due_amount,0) }})</span>
+                                @endif
+                            @else
+                                <span class="badge badge-pending">⏳ Invoice generated upon Approval</span>
+                            @endif
+                        </td>
+                    </tr>
+                </table>
+
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Personal & Identification</div>
+                <table class="table" style="font-size:13px;margin-bottom:16px">
+                    <tr><th style="width:140px;color:var(--text-muted)">Blood Group:</th><td>{{ $admission->bloodGroup->name ?? $admission->student->blood_group ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Religion / Nationality:</th><td>{{ $admission->religion->name ?? '—' }} / {{ $admission->nationality ?? 'Bangladeshi' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">National ID (NID):</th><td>{{ $admission->national_id ?? $admission->student->national_id ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Passport / Birth Cert:</th><td>{{ $admission->passport_no ?? '—' }} / {{ $admission->birth_certificate_no ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Guardian Info:</th><td>{{ $admission->guardian_name ?? $admission->student->guardian_name ?? '—' }} ({{ $admission->guardian_phone ?? $admission->student->guardian_phone ?? '—' }})</td></tr>
+                </table>
+
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Education Records</div>
+                <table class="table" style="font-size:13px;margin-bottom:16px">
+                    <tr><th style="width:140px;color:var(--text-muted)">Occupation / Qualification:</th><td>{{ $admission->occupation ?? '—' }} / {{ $admission->education_qualification ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">SSC Record:</th><td>{{ $admission->ssc_school ?? '—' }} (Board: {{ $admission->ssc_board ?? '—' }}, Year: {{ $admission->ssc_year ?? '—' }}, GPA: {{ $admission->student->ssc_gpa ?? '—' }})</td></tr>
+                    <tr><th style="color:var(--text-muted)">HSC Record:</th><td>{{ $admission->hsc_college ?? '—' }} (Board: {{ $admission->hsc_board ?? '—' }}, Year: {{ $admission->hsc_year ?? '—' }}, GPA: {{ $admission->student->hsc_gpa ?? '—' }})</td></tr>
+                    <tr><th style="color:var(--text-muted)">Higher Education:</th><td>{{ $admission->university_name ?? '—' }} ({{ $admission->department_name ?? '—' }})</td></tr>
+                </table>
+
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Addresses</div>
+                <table class="table" style="font-size:13px">
+                    <tr>
+                        <th style="width:140px;color:var(--text-muted)">Present Address:</th>
+                        <td>
+                            {{ $admission->present_house ?? '—' }}
+                            @if($admission->present_post_office), PO: {{ $admission->present_post_office }}@endif
+                            @if($admission->present_police_station), Thana: {{ $admission->present_police_station }}@endif
+                            @if($admission->presentDistrict), District: {{ $admission->presentDistrict->name }}@endif
+                            @if($admission->presentDivision), Division: {{ $admission->presentDivision->name }}@endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="color:var(--text-muted)">Permanent Address:</th>
+                        <td>
+                            @if($admission->same_as_present)
+                                <em>Same as present address</em>
+                            @else
+                                {{ $admission->permanent_house ?? '—' }}
+                                @if($admission->permanent_post_office), PO: {{ $admission->permanent_post_office }}@endif
+                                @if($admission->permanent_police_station), Thana: {{ $admission->permanent_police_station }}@endif
+                                @if($admission->permanentDistrict), District: {{ $admission->permanentDistrict->name }}@endif
+                                @if($admission->permanentDivision), Division: {{ $admission->permanentDivision->name }}@endif
+                            @endif
+                        </td>
+                    </tr>
                     @if($admission->notes)
-                    <tr><th style="color:var(--text-muted)">Notes:</th><td>{{ $admission->notes }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Review Notes:</th><td>{{ $admission->notes }}</td></tr>
                     @endif
                 </table>
             </div>

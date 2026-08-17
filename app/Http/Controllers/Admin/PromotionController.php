@@ -28,7 +28,9 @@ class PromotionController extends Controller
             'notes'         => 'nullable|string',
         ]);
 
-        PromotionRecord::create([
+        $student = Student::findOrFail($validated['student_id']);
+
+        $promotion = PromotionRecord::create([
             'student_id'    => $validated['student_id'],
             'from_batch_id' => $validated['from_batch_id'],
             'to_batch_id'   => $validated['to_batch_id'],
@@ -37,6 +39,13 @@ class PromotionController extends Controller
             'notes'         => $validated['notes'] ?? null,
         ]);
 
-        return back()->with('success', 'Promotion decision recorded.');
+        if (in_array($validated['decision'], ['PROMOTED', 'FORCE_PROMOTED'])) {
+            $enrollment = $student->enrollments()->where('status', 'ACTIVE')->first();
+            if ($enrollment) {
+                \App\Services\AccountingService::createSemesterInvoice($student, $enrollment);
+            }
+        }
+
+        return back()->with('success', 'Promotion decision recorded & Auto Semester Fee Invoice generated if promoted!');
     }
 }

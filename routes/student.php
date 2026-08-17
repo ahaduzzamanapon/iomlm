@@ -19,7 +19,8 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
     Route::get('timeline', [\App\Http\Controllers\Student\TimelineController::class, 'index'])->name('timeline');
 
     // My Classes & Calendar
-    Route::get('classes',      [\App\Http\Controllers\Student\ClassController::class, 'index'])->name('classes.index');
+    Route::get('classes',          [\App\Http\Controllers\Student\ClassController::class, 'index'])->name('classes.index');
+    Route::get('classes/today',    [\App\Http\Controllers\Student\ClassController::class, 'today'])->name('classes.today');
     Route::get('calendar',     [\App\Http\Controllers\Student\ClassController::class, 'calendar'])->name('calendar');
     Route::get('classes/{class}',  [\App\Http\Controllers\Student\ClassController::class, 'show'])->name('classes.show');
 
@@ -34,9 +35,14 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
     // Attendance
     Route::get('attendance', [\App\Http\Controllers\Student\AttendanceController::class, 'index'])->name('attendance.index');
 
+    // Fees & Accounts Dues
+    Route::get('fees', [\App\Http\Controllers\Student\FeeController::class, 'index'])->name('fees.index');
+
     // Exams
-    Route::get('exams',        [\App\Http\Controllers\Student\ExamController::class, 'index'])->name('exams.index');
-    Route::get('exams/{exam}', [\App\Http\Controllers\Student\ExamController::class, 'show'])->name('exams.show');
+    Route::get('exams',                       [\App\Http\Controllers\Student\ExamController::class, 'index'])->name('exams.index');
+    Route::get('exams/{exam}/take',           [\App\Http\Controllers\Student\ExamController::class, 'take'])->name('exams.take');
+    Route::post('exams/{exam}/submit',        [\App\Http\Controllers\Student\ExamController::class, 'submit'])->name('exams.submit');
+    Route::get('exams/{exam}/result/{submission}', [\App\Http\Controllers\Student\ExamController::class, 'result'])->name('exams.result');
 
     // Results
     Route::get('results',         [\App\Http\Controllers\Student\ResultController::class, 'index'])->name('results.index');
@@ -45,4 +51,7 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
     // Documents
     Route::get('documents',              [\App\Http\Controllers\Student\DocumentController::class, 'index'])->name('documents.index');
     Route::post('documents/{type}/generate', [\App\Http\Controllers\Student\DocumentController::class, 'generate'])->name('documents.generate');
+
+    // Routine
+    Route::get('routine', [\App\Http\Controllers\Student\RoutineController::class, 'index'])->name('routine.index');
 });

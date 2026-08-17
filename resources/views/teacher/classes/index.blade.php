@@ -3,111 +3,116 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>My Class Schedule & Execution</h1>
-            <p>Conduct classes, schedule dates & meeting links, and mark attendance</p>
+            <h1>🎥 My Classes</h1>
+            <p>Routine-based weekly schedule — add meeting links & take attendance</p>
+        </div>
+        <div class="page-header-actions">
+            <a href="{{ route('teacher.classes.today') }}" class="btn btn-primary btn-sm">📅 Today's Classes</a>
         </div>
     </div>
 
-    <div class="card">
+    @if($sessions->isEmpty())
+        <div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">
+            <p>No classes assigned to you yet. Contact admin to set up your routine.</p>
+        </div>
+    @else
+    @php $today = \Carbon\Carbon::today()->toDateString(); @endphp
+    @foreach($sessions as $weekKey => $weekSessions)
+    @php
+        $firstDate = $weekSessions->first()->session_date;
+        $weekLabel = $firstDate ? 'Week of ' . $firstDate->startOfWeek()->format('d M Y') : 'Unscheduled';
+    @endphp
+    <div class="card" style="margin-bottom:16px">
+        <div class="card-header" style="background:#f8fafc">
+            <span class="card-title" style="font-size:13px;color:#64748b">📅 {{ $weekLabel }}</span>
+        </div>
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Subject & Module</th>
+                        <th>Date</th>
+                        <th>Subject</th>
                         <th>Batch</th>
-                        <th>Scheduled Date & Time</th>
+                        <th>Slot</th>
+                        <th>Meeting Link</th>
+                        <th>Module Covered</th>
+                        <th>Attendance</th>
                         <th>Status</th>
-                        <th style="text-align:right">Action</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($classes as $c)
-                    <tr>
-                        <td class="td-primary">
-                            <strong>{{ $c->timeline->subject->name ?? '—' }}</strong><br>
-                            <span class="td-muted">Module #{{ $c->timeline->module->sequence_no ?? 1 }}: {{ $c->timeline->module->title ?? '—' }}</span>
-                        </td>
-                        <td><span class="badge badge-secondary no-dot">{{ $c->timeline->batch->name ?? '—' }}</span></td>
+                    @foreach($weekSessions->sortBy('session_date') as $cs)
+                    @php
+                        $isToday   = $cs->session_date?->toDateString() === $today;
+                        $attended  = $cs->attendances->where('status','PRESENT')->count();
+                        $atTotal   = $cs->attendances->count();
+                    @endphp
+                    <tr style="{{ $isToday ? 'background:#eff6ff;' : '' }}">
                         <td>
-                            @if($c->timeline->scheduled_date)
-                                <strong>{{ \Carbon\Carbon::parse($c->timeline->scheduled_date)->format('d M Y') }}</strong>
-                                @if($c->start_time)
-                                    <br><span style="font-size:11px;color:var(--blue);font-weight:600">🕒 {{ \Carbon\Carbon::parse($c->start_time)->format('h:i A') }}</span>
-                                @endif
-                            @else
-                                <span class="badge badge-upcoming no-dot">Upcoming (Unscheduled)</span>
-                            @endif
+                            <strong style="font-size:12px">{{ $cs->session_date?->format('d M (D)') ?? 'TBA' }}</strong>
+                            @if($isToday)<div><span class="badge badge-success no-dot" style="font-size:9px">TODAY</span></div>@endif
+                        </td>
+                        <td class="td-primary">{{ $cs->subject?->name ?? '—' }}</td>
+                        <td class="td-muted" style="font-size:11px">{{ $cs->batch?->name ?? '—' }}</td>
+                        <td class="td-muted" style="font-size:11px">
+                            {{ $cs->routineEntry?->slot?->name ?? '—' }}
+                            @if($cs->start_time)<br><small>{{ \Carbon\Carbon::parse($cs->start_time)->format('h:i A') }}</small>@endif
                         </td>
                         <td>
-                            @if($c->timeline->scheduled_date)
-                                <span class="badge badge-{{ strtolower($c->status) }}">{{ ucfirst(strtolower($c->status)) }}</span>
-                            @else
-                                <span class="badge badge-upcoming">Upcoming</span>
-                            @endif
-                        </td>
-                        <td style="text-align:right">
-                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
-                                <button class="btn btn-outline btn-sm" onclick="openScheduleModal('{{ $c->id }}', '{{ $c->timeline->scheduled_date }}', '{{ $c->start_time }}', '{{ $c->meeting_link }}')">
-                                    📅 Set Date, Time & Link
-                                </button>
-                                @if($c->status === 'SCHEDULED' || $c->status === 'RUNNING')
-                                    <a href="{{ route('teacher.classes.conduct', $c) }}" class="btn btn-primary btn-sm">▶ Conduct Class</a>
+                            @if($cs->meeting_link)
+                                <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-outline" style="font-size:11px">🔗 Join</a>
+                            @elseif($cs->status !== 'COMPLETED' && $cs->status !== 'CANCELLED')
+                                @if($meetingProvider === 'zoom')
+                                    <form method="POST" action="{{ route('teacher.classes.setLink', $cs) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline" style="font-size:11px;color:#2563eb">⚡ Zoom</button>
+                                    </form>
                                 @else
-                                    <span class="td-muted" style="font-size:12px">Completed</span>
+                                    <button class="btn btn-sm btn-outline" style="font-size:11px;color:#f59e0b"
+                                        onclick="document.getElementById('lf{{$cs->id}}').style.display='flex'">
+                                        🔗 Add Link
+                                    </button>
+                                    <form id="lf{{$cs->id}}" method="POST"
+                                        action="{{ route('teacher.classes.setLink', $cs) }}"
+                                        style="display:none;gap:4px;align-items:center;margin-top:4px">
+                                        @csrf
+                                        <input type="url" name="meeting_link" class="form-control"
+                                            style="font-size:11px;min-width:180px"
+                                            placeholder="{{ $meetingProvider === 'google_meet' ? 'meet.google.com/…' : 'Meeting URL…' }}"
+                                            required>
+                                        <button type="submit" class="btn btn-primary btn-sm" style="font-size:10px">Save</button>
+                                    </form>
                                 @endif
-                            </div>
+                            @else
+                                <span style="color:#d1d5db;font-size:11px">—</span>
+                            @endif
+                        </td>
+                        <td class="td-muted" style="font-size:11px">{{ $cs->moduleCovered?->title ?? '—' }}</td>
+                        <td style="text-align:center">
+                            @if($atTotal > 0)
+                                <span style="font-weight:700;font-size:12px;color:{{ $attended==$atTotal?'#10b981':'#f59e0b' }}">{{ $attended }}/{{ $atTotal }}</span>
+                            @else
+                                <span style="color:#d1d5db">—</span>
+                            @endif
+                        </td>
+                        <td>
+                            @php $badge = match($cs->status) { 'COMPLETED'=>'badge-success','SCHEDULED'=>'badge-info','CANCELLED'=>'badge-danger',default=>'badge-warning' }; @endphp
+                            <span class="badge {{ $badge }} no-dot">{{ $cs->status }}</span>
+                        </td>
+                        <td>
+                            @if($cs->status !== 'COMPLETED' && $cs->status !== 'CANCELLED')
+                                <a href="{{ route('teacher.classes.conduct', $cs) }}" class="btn btn-sm btn-primary" style="font-size:11px">Conduct →</a>
+                            @elseif($cs->status === 'COMPLETED')
+                                <a href="{{ route('teacher.attendance.mark', $cs) }}" class="btn btn-sm btn-ghost" style="font-size:11px">Attendance</a>
+                            @endif
                         </td>
                     </tr>
-                    @empty
-                    <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No class sessions scheduled for your assigned subjects.</td></tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>
     </div>
-
-    <!-- Teacher Schedule Modal -->
-    <div class="modal-overlay" id="teacherScheduleModal">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title">Schedule Class Date, Time & Meeting Link</span>
-                <button class="modal-close" onclick="closeModal('teacherScheduleModal')">&times;</button>
-            </div>
-            <form id="teacherScheduleForm" method="POST" action="">
-                @csrf
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Scheduled Date <span class="required">*</span></label>
-                            <input type="date" id="modal_scheduled_date" name="scheduled_date" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Class Start Time</label>
-                            <input type="time" id="modal_start_time" name="start_time" class="form-control">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Meeting Link (Google Meet / Zoom)</label>
-                        <input type="url" id="modal_meeting_link" name="meeting_link" class="form-control" placeholder="https://meet.google.com/abc-defg-hij">
-                        <small style="color:var(--text-muted);margin-top:4px;display:block">Leave blank to auto-generate a unique Google Meet link.</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('teacherScheduleModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Schedule</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function openScheduleModal(classId, date, time, link) {
-            document.getElementById('teacherScheduleForm').action = '/teacher/classes/' + classId + '/schedule';
-            document.getElementById('modal_scheduled_date').value = date || new Date().toISOString().split('T')[0];
-            document.getElementById('modal_start_time').value = time || '20:00';
-            document.getElementById('modal_meeting_link').value = link || '';
-            openModal('teacherScheduleModal');
-        }
-    </script>
+    @endforeach
+    @endif
 </x-teacher-layout>

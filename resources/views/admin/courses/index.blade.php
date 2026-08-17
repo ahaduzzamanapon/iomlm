@@ -107,7 +107,8 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Duration Value <span class="required">*</span></label>
-                            <input type="number" name="duration_value" class="form-control" value="4" min="1" required>
+                            <input type="number" name="duration_value" class="form-control" value="1" min="0.5" step="0.5" required>
+                            <small style="color:var(--text-muted);font-size:12px">Decimal allowed — e.g. 1.5 = 18 months</small>
                         </div>
                         <div class="form-group">
                             <label>Duration Unit <span class="required">*</span></label>

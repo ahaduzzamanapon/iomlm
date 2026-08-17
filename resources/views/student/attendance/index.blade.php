@@ -46,10 +46,12 @@
                     @forelse($attendances as $att)
                     <tr>
                         <td class="td-primary">
-                            <strong>{{ $att->classSession->timeline->subject->name ?? '—' }}</strong><br>
-                            <span class="td-muted">Module: {{ $att->classSession->timeline->module->title ?? '—' }}</span>
+                            <strong>{{ $att->classSession?->subject?->name ?? '—' }}</strong><br>
+                            @if($att->classSession?->moduleCovered)
+                                <span class="td-muted">📖 {{ $att->classSession->moduleCovered->title }}</span>
+                            @endif
                         </td>
-                        <td class="td-muted">{{ \Carbon\Carbon::parse($att->classSession->timeline->scheduled_date ?? now())->format('d M Y') }}</td>
+                        <td class="td-muted">{{ $att->classSession?->session_date?->format('d M Y (D)') ?? 'TBA' }}</td>
                         <td><span class="badge badge-{{ strtolower($att->status) }}">{{ ucfirst(strtolower($att->status)) }}</span></td>
                     </tr>
                     @empty

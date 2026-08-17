@@ -27,4 +27,14 @@ class Exam extends Model
     {
         return $this->hasMany(Result::class, 'exam_id');
     }
+
+    public function examQuestions()
+    {
+        return $this->hasMany(ExamQuestion::class, 'exam_id')->orderBy('sort_order');
+    }
+
+    public function submissions()
+    {
+        return $this->hasMany(ExamSubmission::class, 'exam_id');
+    }
 }

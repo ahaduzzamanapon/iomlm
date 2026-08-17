@@ -21,11 +21,11 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon blue">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
             </div>
             <div class="stat-info">
-                <div class="stat-value">{{ $stats['total_students'] }}</div>
-                <div class="stat-label">My Students</div>
+                <div class="stat-value">{{ $stats['attendance_todo'] }}</div>
+                <div class="stat-label">Attendance Pending</div>
             </div>
         </div>
         <div class="stat-card">
@@ -52,30 +52,41 @@
         <!-- Today's Classes -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Today's Classes</span>
-                <a href="{{ route('teacher.classes.index') }}" class="btn btn-ghost btn-sm">All Classes</a>
+                <span class="card-title">📅 Today's Classes</span>
+                <a href="{{ route('teacher.classes.today') }}" class="btn btn-ghost btn-sm">View All Today →</a>
             </div>
             <div style="padding:0">
-                @forelse($todayClasses as $class)
-                <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--card-border)">
-                    <div style="width:40px;height:40px;background:#ecfdf5;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="#10b981"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                @forelse($todayClasses as $cs)
+                <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--card-border)">
+                    <div style="width:36px;height:36px;background:{{ $cs->routineEntry?->color ?? '#3b82f6' }}22;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid {{ $cs->routineEntry?->color ?? '#3b82f6' }}">
+                        <span style="font-size:14px">🎥</span>
                     </div>
-                    <div style="flex:1">
-                        <div style="font-size:13px;font-weight:600">{{ $class->timeline->subject->name ?? '—' }}</div>
-                        <div style="font-size:11px;color:var(--text-muted)">Module: {{ $class->timeline->module->title ?? '—' }}</div>
-                    </div>
-                    <div style="text-align:right">
-                        <span class="badge badge-{{ strtolower($class->status) }}">{{ ucfirst(strtolower($class->status)) }}</span>
-                        @if($class->status === 'SCHEDULED')
-                        <div style="margin-top:4px">
-                            <a href="{{ route('teacher.classes.conduct', $class) }}" class="btn btn-success btn-sm">Start</a>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $cs->subject?->name ?? '—' }}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">
+                            {{ $cs->batch?->name ?? '' }}
+                            @if($cs->routineEntry?->slot) · {{ $cs->routineEntry->slot->name }} @endif
+                            @if($cs->start_time) · {{ \Carbon\Carbon::parse($cs->start_time)->format('h:i A') }} @endif
                         </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+                        @if($cs->meeting_link)
+                            <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:11px">🔗 Join</a>
+                        @else
+                            <form method="POST" action="{{ route('teacher.classes.setLink', $cs) }}">
+                                @csrf
+                                <button class="btn btn-outline btn-sm" style="font-size:11px;color:#f59e0b">⚡ Generate Link</button>
+                            </form>
+                        @endif
+                        @if($cs->status !== 'COMPLETED' && $cs->status !== 'CANCELLED')
+                            <a href="{{ route('teacher.classes.conduct', $cs) }}" class="btn btn-ghost btn-sm" style="font-size:11px">Conduct →</a>
+                        @else
+                            <span class="badge badge-success no-dot" style="font-size:9px">DONE</span>
                         @endif
                     </div>
                 </div>
                 @empty
-                <div class="empty-state"><p>No classes scheduled today</p></div>
+                <div class="empty-state"><p>No classes today 🎉</p></div>
                 @endforelse
             </div>
         </div>
@@ -108,17 +119,20 @@
         <!-- Attendance Pending -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Attendance Not Marked</span>
+                <span class="card-title">⚠️ Attendance Not Marked</span>
                 <span class="badge badge-pending no-dot" style="font-size:11px">Action Required</span>
             </div>
             <div style="padding:0">
-                @forelse($attendancePending as $class)
-                <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--card-border)">
+                @forelse($attendancePending as $cs)
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--card-border)">
                     <div style="flex:1">
-                        <div style="font-size:13px;font-weight:600">{{ $class->timeline->subject->name ?? '—' }}</div>
-                        <div style="font-size:11px;color:var(--text-muted)">{{ $class->timeline->scheduled_date ?? '—' }}</div>
+                        <div style="font-size:13px;font-weight:600">{{ $cs->subject?->name ?? '—' }}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">
+                            {{ $cs->batch?->name ?? '' }}
+                            @if($cs->session_date) · {{ $cs->session_date->format('d M') }} @endif
+                        </div>
                     </div>
-                    <a href="{{ route('teacher.attendance.mark', $class) }}" class="btn btn-outline btn-sm">Mark Now</a>
+                    <a href="{{ route('teacher.attendance.mark', $cs) }}" class="btn btn-outline btn-sm">Mark Now</a>
                 </div>
                 @empty
                 <div class="empty-state"><p>All attendance marked ✓</p></div>
