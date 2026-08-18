@@ -8,7 +8,10 @@ use App\Models\Student;
 use App\Models\Course;
 use App\Models\Batch;
 use App\Models\Enrollment;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class AdmissionController extends Controller
 {
@@ -231,9 +234,9 @@ class AdmissionController extends Controller
             'batch_id' => 'required|exists:batches,id',
         ]);
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($admission, $request) {
+        return DB::transaction(function () use ($admission, $request) {
             $student = $admission->student;
-            $batch = Batch::findOrFail($request->input('batch_id'));
+            $batch   = Batch::findOrFail($request->input('batch_id'));
 
             // Generate Student Code (e.g. STD-2026-005)
             if (empty($student->student_code)) {
@@ -243,6 +246,32 @@ class AdmissionController extends Controller
 
             $student->status = 'ACTIVE';
             $student->save();
+
+            // ── Auto-create Student User Account ──────────────────────────────
+            // Skip if an account is already linked (idempotency guard).
+            if (empty($student->user_id)) {
+                // Derive a unique login email: prefer the real email, otherwise
+                // use phone@student.local as a stable, predictable fallback.
+                $loginEmail = $student->email
+                    ?: (preg_replace('/[^0-9a-zA-Z]/', '', $student->phone) . '@student.local');
+
+                // Avoid creating a duplicate user for the same email.
+                $user = User::where('email', $loginEmail)->first();
+
+                if (! $user) {
+                    $user = User::create([
+                        'name'     => $student->name,
+                        'email'    => $loginEmail,
+                        'password' => Hash::make('password'),  // default password, hashed
+                        'role'     => 'student',
+                    ]);
+                }
+
+                // Link the user account to the student record.
+                $student->user_id = $user->id;
+                $student->save();
+            }
+            // ──────────────────────────────────────────────────────────────────
 
             // Update Admission Form
             $admission->update([
@@ -266,7 +295,7 @@ class AdmissionController extends Controller
             \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
             \App\Services\AccountingService::createSemesterInvoice($student, $enrollment);
 
-            return back()->with('success', "Admission APPROVED! Student activated with Code: {$student->student_code}, enrolled into {$batch->name}, and Auto-Invoices generated.");
+            return back()->with('success', "Admission APPROVED! Student Code: {$student->student_code}, enrolled into {$batch->name}. Student login account created.");
         });
     }
 
