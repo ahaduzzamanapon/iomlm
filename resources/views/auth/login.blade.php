@@ -57,52 +57,6 @@
         .login-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 4px; letter-spacing: -0.5px; }
         .login-subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
 
-        .quick-login-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 22px;
-        }
-        .quick-login-title {
-            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-            color: #475569; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
-        }
-
-        .quick-section-label {
-            font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; margin: 10px 0 6px 0;
-        }
-
-        .quick-btn-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;
-        }
-        .quick-btn {
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 11px; font-weight: 600;
-            border: 1px solid #cbd5e1;
-            cursor: pointer; text-align: left;
-            transition: all .2s;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            background: #ffffff;
-        }
-        .quick-btn.admin {
-            background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;
-            grid-column: 1 / -1; text-align: center; font-size: 12px; font-weight: 700;
-        }
-        .quick-btn.admin:hover { background: #dbeafe; transform: translateY(-1px); }
-
-        .quick-btn.teacher {
-            background: #ecfdf5; color: #047857; border-color: #a7f3d0;
-        }
-        .quick-btn.teacher:hover { background: #d1fae5; transform: translateY(-1px); }
-
-        .quick-btn.student {
-            background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe;
-        }
-        .quick-btn.student:hover { background: #ede9fe; transform: translateY(-1px); }
-
         .lf-group { margin-bottom: 16px; }
         .lf-label {
             display: block; font-size: 13px; font-weight: 600;
@@ -216,14 +170,5 @@
         <button type="submit" class="btn-login">Sign In →</button>
     </form>
 </div>
-
-<script>
-function quickLogin(email, password) {
-    document.getElementById('email').value = email;
-    document.getElementById('password').value = password;
-    document.getElementById('loginForm').submit();
-}
-</script>
-
 </body>
 </html>

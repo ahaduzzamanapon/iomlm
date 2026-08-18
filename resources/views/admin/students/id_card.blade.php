@@ -56,7 +56,7 @@
 
                 <table class="info-list">
                     <tr><td class="info-label">Batch:</td><td><strong>{{ $student->enrollments->first()?->batch?->name ?? '—' }}</strong></td></tr>
-                    <tr><td class="info-label">Course:</td><td>{{ $student->enrollments->first()?->course?->name ?? '—' }}</td></tr>
+                    <tr><td class="info-label">Course:</td><td>{{ $student->enrollments->first()?->course?->name ?? $student->enrollments->first()?->batch?->course?->name ?? '—' }}</td></tr>
                     <tr><td class="info-label">Blood Grp:</td><td><strong style="color:#e11d48">{{ $student->blood_group ?? 'O+' }}</strong></td></tr>
                     <tr><td class="info-label">Phone:</td><td>{{ $student->phone }}</td></tr>
                 </table>

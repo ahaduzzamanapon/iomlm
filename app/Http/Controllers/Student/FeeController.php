@@ -29,4 +29,14 @@ class FeeController extends Controller
 
         return view('student.fees.index', compact('invoices', 'payments', 'totalDue', 'totalPaid'));
     }
+
+    public function printReceipt(Payment $payment)
+    {
+        $student = Student::where('email', auth()->user()->email)->firstOrFail();
+        if ($payment->student_id !== $student->id) {
+            abort(403, 'Unauthorized access to receipt.');
+        }
+        $payment->load(['invoice', 'student', 'receivedBy']);
+        return view('admin.accounts.print_receipt', compact('payment'));
+    }
 }

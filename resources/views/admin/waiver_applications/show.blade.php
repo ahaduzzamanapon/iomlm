@@ -193,7 +193,7 @@
                                                 data-total="{{ $pkg->total }}"
                                                 data-items="{{ $pkg->items->map(fn($i) => ($i->label ?: $i->feeHead?->name).': ৳'.number_format($i->total_amount,0))->join(' | ') }}"
                                                 {{ $pkg->is_default ? 'selected' : '' }}>
-                                                {{ $pkg->name }}
+                                                {{ $pkg->course?->name ? ($pkg->course->name.' — ') : '' }}{{ $pkg->name }}
                                                 @if($pkg->is_default) ★ Default @endif
                                                 — ৳{{ number_format($pkg->total, 0) }} total
                                             </option>

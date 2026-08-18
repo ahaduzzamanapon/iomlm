@@ -20,7 +20,7 @@
                     <tbody>
                         @forelse($student->attendances as $att)
                         <tr>
-                            <td>{{ $att->classSession->timeline->subject->name ?? '—' }}</td>
+                            <td>{{ $att->classSession?->subject?->name ?? $att->classSession?->timeline?->subject?->name ?? '—' }}</td>
                             <td><span class="badge badge-{{ strtolower($att->status) }}">{{ ucfirst(strtolower($att->status)) }}</span></td>
                         </tr>
                         @empty

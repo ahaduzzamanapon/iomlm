@@ -75,7 +75,7 @@
     </div>
 
     {{-- Create Notice Modal --}}
-    <div class="modal-overlay" id="createNoticeModal" style="display:none">
+    <div class="modal-overlay" id="createNoticeModal">
         <div class="modal" style="max-width:600px">
             <div class="modal-header">
                 <span class="modal-title">+ Publish Announcement Notice</span>
@@ -129,13 +129,4 @@
             </form>
         </div>
     </div>
-
-    <script>
-    function openModal(id) {
-        document.getElementById(id).style.display = 'flex';
-    }
-    function closeModal(id) {
-        document.getElementById(id).style.display = 'none';
-    }
-    </script>
 </x-admin-layout>

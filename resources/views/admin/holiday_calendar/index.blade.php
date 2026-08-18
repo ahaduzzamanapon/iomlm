@@ -64,19 +64,18 @@
             <form method="POST" action="{{ route('admin.holiday-calendar.store') }}">
                 @csrf
                 <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Holiday Date <span class="required">*</span></label>
-                            <input type="date" name="date" class="form-control" required>
-                        </div>
-                        <input type="hidden" name="scope" value="GLOBAL">
+                    <div class="form-group">
+                        <label>Holiday Date <span class="required">*</span></label>
+                        <input type="date" name="date" class="form-control" required>
+                    </div>
+                    <input type="hidden" name="scope" value="GLOBAL">
 
                     <div class="form-group">
                         <label>Holiday Name / Occasion <span class="required">*</span></label>
                         <input type="text" name="name" class="form-control" placeholder="e.g. Eid-ul-Fitr Vacation" required>
                     </div>
 
-                    <label class="form-check">
+                    <label class="form-check" style="margin-top:10px">
                         <input type="checkbox" name="is_recurring_yearly" value="1" checked> Recurring every year on same date
                     </label>
                 </div>

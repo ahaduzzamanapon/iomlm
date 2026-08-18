@@ -107,7 +107,7 @@
                         <td><span class="badge badge-secondary no-dot">{{ $pay->payment_method }}</span></td>
                         <td class="td-muted" style="font-size:12px">{{ $pay->paid_at->format('d M Y, h:i A') }}</td>
                         <td style="text-align:center">
-                            <a href="{{ route('admin.accounts.payments.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm">
+                            <a href="{{ route('student.fees.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm">
                                 🖨️ Download Receipt
                             </a>
                         </td>

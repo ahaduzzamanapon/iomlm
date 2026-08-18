@@ -121,7 +121,7 @@
     </div>
 
     {{-- Create Custom Invoice Modal --}}
-    <div class="modal-overlay" id="createInvoiceModal" style="display:none">
+    <div class="modal-overlay" id="createInvoiceModal">
         <div class="modal" style="max-width:550px">
             <div class="modal-header">
                 <span class="modal-title">+ Create Custom Student Invoice</span>
@@ -181,7 +181,7 @@
     </div>
 
     {{-- Collect Payment Modal --}}
-    <div class="modal-overlay" id="collectModal" style="display:none">
+    <div class="modal-overlay" id="collectModal">
         <div class="modal" style="max-width:500px">
             <div class="modal-header">
                 <span class="modal-title">💵 Receive Fee Payment</span>
@@ -224,19 +224,15 @@
         </div>
     </div>
 
+    @push('scripts')
     <script>
     function openPaymentModal(invoiceId, invNo, dueAmount) {
         document.getElementById('modalInvNo').innerText = invNo;
         document.getElementById('modalAmount').value = dueAmount;
         document.getElementById('modalAmount').max = dueAmount;
         document.getElementById('collectForm').action = '/admin/accounts/invoices/' + invoiceId + '/collect';
-        document.getElementById('collectModal').style.display = 'flex';
-    }
-    function openModal(id) {
-        document.getElementById(id).style.display = 'flex';
-    }
-    function closeModal(id) {
-        document.getElementById(id).style.display = 'none';
+        openModal('collectModal');
     }
     </script>
+    @endpush
 </x-admin-layout>

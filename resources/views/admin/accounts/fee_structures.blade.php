@@ -64,7 +64,7 @@
     </div>
 
     {{-- Create Rate Modal --}}
-    <div class="modal-overlay" id="createRateModal" style="display:none">
+    <div class="modal-overlay" id="createRateModal">
         <div class="modal" style="max-width:550px">
             <div class="modal-header">
                 <span class="modal-title">+ Set Master Fee Structure Rate</span>
@@ -118,13 +118,4 @@
             </form>
         </div>
     </div>
-
-    <script>
-    function openModal(id) {
-        document.getElementById(id).style.display = 'flex';
-    }
-    function closeModal(id) {
-        document.getElementById(id).style.display = 'none';
-    }
-    </script>
 </x-admin-layout>

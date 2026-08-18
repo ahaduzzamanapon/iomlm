@@ -271,10 +271,8 @@
                     <thead>
                         <tr>
                             <th>Fee Head</th>
-                            <th>৳/Month</th>
-                            <th>Years</th>
-                            <th>Months/Year</th>
-                            <th>Formula</th>
+                            <th>Rate</th>
+                            <th>Months / Units</th>
                             <th>Total</th>
                             <th></th>
                         </tr>
@@ -283,12 +281,8 @@
                         @foreach($pkg->items as $item)
                         <tr>
                             <td><strong>{{ $item->label ?: $item->feeHead->name }}</strong></td>
-                            <td>৳{{ number_format($item->amount_per_unit, 0) }}/month</td>
-                            <td>{{ $item->duration_years ?? 1 }} yr</td>
-                            <td>{{ $item->quantity }} months</td>
-                            <td style="color:var(--text-muted);font-size:12px">
-                                {{ number_format($item->amount_per_unit,0) }} × {{ $item->duration_years ?? 1 }} × {{ $item->quantity }}
-                            </td>
+                            <td>৳{{ number_format($item->amount_per_unit, 0) }}</td>
+                            <td>{{ $item->quantity }} {{ $item->feeHead?->slug === 'tuition_fee' ? 'months' : 'units' }}</td>
                             <td><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
                             <td style="text-align:right">
                                 <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
@@ -299,7 +293,7 @@
                         </tr>
                         @endforeach
                         <tr style="background:rgba(59,130,246,.04)">
-                            <td colspan="5" style="text-align:right;font-weight:700">Package Total:</td>
+                            <td colspan="3" style="text-align:right;font-weight:700">Package Total:</td>
                             <td colspan="2"><strong style="color:var(--blue)">৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</strong></td>
                         </tr>
                     </tbody>

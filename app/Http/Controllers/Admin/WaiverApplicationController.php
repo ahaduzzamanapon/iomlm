@@ -44,12 +44,16 @@ class WaiverApplicationController extends Controller
         $waiverApplication->load(['division', 'reviewer', 'course', 'approvedPackage']);
 
         // Load course fee packages so the approval modal can show them
-        $coursePackages = collect();
         if ($waiverApplication->course_id) {
-            $coursePackages = CourseFeePackage::with('items.feeHead')
+            $coursePackages = CourseFeePackage::with(['items.feeHead', 'course'])
                 ->where('course_id', $waiverApplication->course_id)
                 ->where('is_active', true)
                 ->orderBy('id')
+                ->get();
+        } else {
+            $coursePackages = CourseFeePackage::with(['items.feeHead', 'course'])
+                ->where('is_active', true)
+                ->orderBy('course_id')
                 ->get();
         }
 

@@ -21,18 +21,21 @@ class AccountingService
      */
     public static function createAdmissionInvoice(Student $student, AdmissionForm $admission, Enrollment $enrollment): Invoice
     {
-        $batch = $enrollment->batch;
+        $batch  = $enrollment->batch;
+        $course = $enrollment->course ?? $batch?->course;
 
-        // Priority 1: Batch admission fee, Priority 2: FeeStructure fallback
+        // Priority 1: Batch admission fee, Priority 2: Course admission fee, Priority 3: FeeStructure fallback
         $feeRate = ($batch && $batch->admission_fee > 0)
             ? (float)$batch->admission_fee
-            : (float)(FeeStructure::where('category', 'ADMISSION')
-                ->where(function ($q) use ($enrollment) {
-                    $q->where('course_id', $enrollment->course_id)
-                      ->orWhereNull('course_id');
-                })
-                ->where('is_active', true)
-                ->value('amount') ?? 2000.00);
+            : (($course && $course->admission_fee > 0)
+                ? (float)$course->admission_fee
+                : (float)(FeeStructure::where('category', 'ADMISSION')
+                    ->where(function ($q) use ($enrollment) {
+                        $q->where('course_id', $enrollment->course_id)
+                          ->orWhereNull('course_id');
+                    })
+                    ->where('is_active', true)
+                    ->value('amount') ?? 2000.00));
 
         // Check if a waiver code is linked and has an approved_admission_fee set
         $waiverApp = null;
@@ -150,16 +153,27 @@ class AccountingService
             $feeTitle   = "Semester Tuition Fee — {$enrollment->course->name} ({$approvedPackage->name})";
             $discountAmount = 0.00;
         } else {
-            // Default: FeeStructure lookup
-            $feeRate  = FeeStructure::where('category', 'SEMESTER')
-                ->where(function ($q) use ($enrollment) {
-                    $q->where('course_id', $enrollment->course_id)
-                      ->orWhereNull('course_id');
-                })
-                ->where('is_active', true)
-                ->value('amount') ?? 10000.00;
-            $feeTitle       = "Semester Tuition Fee — {$enrollment->course->name}";
-            $discountAmount = 0.00;
+            // Check if course has default fee package
+            $course = $enrollment->course ?? $enrollment->batch?->course;
+            $defaultPackage = $course?->feePackages()->where('is_default', true)->first()
+                ?? $course?->feePackages()->first();
+
+            if ($defaultPackage && $defaultPackage->total > 0) {
+                $feeRate  = (float) $defaultPackage->total;
+                $feeTitle = "Semester Tuition Fee — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
+                $discountAmount = 0.00;
+            } else {
+                // Fallback: FeeStructure lookup
+                $feeRate  = (float)(FeeStructure::where('category', 'SEMESTER')
+                    ->where(function ($q) use ($enrollment) {
+                        $q->where('course_id', $enrollment->course_id)
+                          ->orWhereNull('course_id');
+                    })
+                    ->where('is_active', true)
+                    ->value('amount') ?? 10000.00);
+                $feeTitle       = "Semester Tuition Fee — {$enrollment->course->name}";
+                $discountAmount = 0.00;
+            }
         }
 
         $semName = $semester?->name ?? 'Current Semester';

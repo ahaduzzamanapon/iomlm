@@ -180,7 +180,7 @@
     </div>
 
     {{-- Create Single Question Modal --}}
-    <div class="modal-overlay" id="createQuestionModal" style="display:none">
+    <div class="modal-overlay" id="createQuestionModal">
         <div class="modal" style="max-width:650px">
             <div class="modal-header">
                 <span class="modal-title">+ নতুন MCQ প্রশ্ন যোগ করুন</span>
@@ -257,7 +257,7 @@
     </div>
 
     {{-- Bulk JSON Upload Modal --}}
-    <div class="modal-overlay" id="bulkUploadModal" style="display:none">
+    <div class="modal-overlay" id="bulkUploadModal">
         <div class="modal" style="max-width:650px">
             <div class="modal-header">
                 <span class="modal-title">📤 বাল্ক JSON আপলোড</span>
@@ -299,13 +299,4 @@
             </form>
         </div>
     </div>
-
-    <script>
-    function openModal(id) {
-        document.getElementById(id).style.display = 'flex';
-    }
-    function closeModal(id) {
-        document.getElementById(id).style.display = 'none';
-    }
-    </script>
 </x-admin-layout>

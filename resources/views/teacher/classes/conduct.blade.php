@@ -43,6 +43,12 @@
         </div>
     </div>
 
+    @if($class->meeting_link || $class->zoom_meeting_id)
+    <form id="syncZoomForm" method="POST" action="{{ route('teacher.classes.syncZoomAttendance', $class) }}" style="display:none">
+        @csrf
+    </form>
+    @endif
+
     <form method="POST" action="{{ route('teacher.classes.complete', $class) }}">
         @csrf
         <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
@@ -55,12 +61,9 @@
                         <span class="badge badge-info no-dot">{{ $batchStudents->count() }} Students</span>
                     </div>
                     @if($class->meeting_link || $class->zoom_meeting_id)
-                        <form method="POST" action="{{ route('teacher.classes.syncZoomAttendance', $class) }}">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline" style="color:#2563eb;font-weight:600" title="Fetch attendance report from Zoom">
-                                ⚡ Sync Zoom Attendance
-                            </button>
-                        </form>
+                        <button type="submit" form="syncZoomForm" class="btn btn-sm btn-outline" style="color:#2563eb;font-weight:600" title="Fetch attendance report from Zoom">
+                            ⚡ Sync Zoom Attendance
+                        </button>
                     @endif
                 </div>
 

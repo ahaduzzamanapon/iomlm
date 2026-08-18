@@ -16,14 +16,14 @@
         </div>
         <div class="page-header-actions" style="gap:6px;display:flex">
             @if($class->status !== 'COMPLETED' && $class->status !== 'CANCELLED')
-            <button class="btn btn-outline btn-sm" onclick="document.getElementById('scheduleModal').style.display='flex'">📅 Edit Schedule</button>
+            <button class="btn btn-outline btn-sm" onclick="openModal('scheduleModal')">📅 Edit Schedule</button>
             <form method="POST" action="{{ route('admin.classes.cancel', $class) }}" onsubmit="return confirm('Cancel this session?')">
                 @csrf
                 <button class="btn btn-outline btn-sm" style="color:#ef4444">✕ Cancel Session</button>
             </form>
             @endif
             @if($class->status === 'SCHEDULED' || $class->status === 'RUNNING')
-            <button class="btn btn-primary btn-sm" onclick="document.getElementById('completeModal').style.display='flex'">✅ Mark Complete</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('completeModal')">✅ Mark Complete</button>
             @endif
         </div>
     </div>
@@ -113,7 +113,7 @@
                     @endif
 
                     @if($class->status !== 'COMPLETED' && $class->status !== 'CANCELLED')
-                    <button class="btn btn-outline" style="width:100%" onclick="document.getElementById('scheduleModal').style.display='flex'">📅 Edit Date / Link</button>
+                    <button class="btn btn-outline" style="width:100%" onclick="openModal('scheduleModal')">📅 Edit Date / Link</button>
                     @endif
                 </div>
             </div>
@@ -121,24 +121,24 @@
     </div>
 
     {{-- Edit Schedule Modal --}}
-    <div id="scheduleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
-        <div style="background:#fff;border-radius:12px;padding:24px;width:400px;max-width:95vw">
-            <div style="display:flex;justify-content:space-between;margin-bottom:16px">
-                <h3 style="margin:0">Edit Session</h3>
-                <button onclick="document.getElementById('scheduleModal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer">✕</button>
+    <div class="modal-overlay" id="scheduleModal">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-header">
+                <span class="modal-title">Edit Session Schedule</span>
+                <button class="modal-close" onclick="closeModal('scheduleModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.classes.updateSchedule', $class) }}">
                 @csrf @method('PUT')
-                <div style="display:flex;flex-direction:column;gap:12px">
-                    <div>
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:12px">
+                    <div class="form-group">
                         <label class="form-label">Session Date</label>
                         <input type="date" name="session_date" class="form-control" value="{{ $class->session_date?->toDateString() ?? now()->toDateString() }}">
                     </div>
-                    <div>
+                    <div class="form-group">
                         <label class="form-label">Start Time</label>
                         <input type="time" name="start_time" class="form-control" value="{{ $class->start_time }}">
                     </div>
-                    <div>
+                    <div class="form-group">
                         <label class="form-label">Teacher</label>
                         <select name="teacher_id" class="form-control">
                             @foreach($teachers as $t)
@@ -146,11 +146,11 @@
                             @endforeach
                         </select>
                     </div>
-                    <div>
+                    <div class="form-group">
                         <label class="form-label">Meeting Link <small style="color:#9ca3af">(blank = auto-generate)</small></label>
                         <input type="url" name="meeting_link" class="form-control" placeholder="https://meet.google.com/..." value="{{ $class->meeting_link }}">
                     </div>
-                    <div>
+                    <div class="form-group">
                         <label class="form-label">Module Covered (optional)</label>
                         <select name="module_covered_id" class="form-control">
                             <option value="">— Not specified —</option>
@@ -159,6 +159,9 @@
                             @endforeach
                         </select>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('scheduleModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
@@ -166,16 +169,16 @@
     </div>
 
     {{-- Complete Modal --}}
-    <div id="completeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center">
-        <div style="background:#fff;border-radius:12px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto">
-            <div style="display:flex;justify-content:space-between;margin-bottom:16px">
-                <h3 style="margin:0">✅ Mark Class Complete</h3>
-                <button onclick="document.getElementById('completeModal').style.display='none'" style="background:none;border:none;font-size:18px;cursor:pointer">✕</button>
+    <div class="modal-overlay" id="completeModal">
+        <div class="modal" style="max-width:500px">
+            <div class="modal-header">
+                <span class="modal-title">✅ Mark Class Complete</span>
+                <button class="modal-close" onclick="closeModal('completeModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.classes.complete', $class) }}">
                 @csrf
-                <div style="display:flex;flex-direction:column;gap:12px">
-                    <div>
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;max-height:70vh;overflow-y:auto">
+                    <div class="form-group">
                         <label class="form-label">Module Covered Today (optional)</label>
                         <select name="module_covered_id" class="form-control">
                             <option value="">— Not specified —</option>
@@ -185,8 +188,8 @@
                         </select>
                     </div>
                     @if($batchStudents->count() > 0)
-                    <div>
-                        <div class="form-label" style="margin-bottom:8px">Attendance</div>
+                    <div class="form-group">
+                        <label class="form-label" style="margin-bottom:8px">Attendance</label>
                         @foreach($batchStudents as $en)
                         @php $att = $class->attendances->firstWhere('student_id', $en->student_id); @endphp
                         <div style="display:flex;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid #f1f5f9">
@@ -200,10 +203,13 @@
                         @endforeach
                     </div>
                     @endif
-                    <div>
+                    <div class="form-group">
                         <label class="form-label">Notes (optional)</label>
                         <textarea name="notes" class="form-control" rows="2" placeholder="Class notes...">{{ $class->notes }}</textarea>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('completeModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">✅ Mark as Completed</button>
                 </div>
             </form>

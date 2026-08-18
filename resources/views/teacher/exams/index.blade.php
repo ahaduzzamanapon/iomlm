@@ -84,7 +84,7 @@
     </div>
 
     {{-- Create Exam Modal --}}
-    <div class="modal-overlay" id="createExamModal" style="display:none">
+    <div class="modal-overlay" id="createExamModal">
         <div class="modal" style="max-width:600px">
             <div class="modal-header">
                 <span class="modal-title">+ Schedule Exam (4-Tier Architecture)</span>
@@ -164,13 +164,4 @@
             </form>
         </div>
     </div>
-
-    <script>
-    function openModal(id) {
-        document.getElementById(id).style.display = 'flex';
-    }
-    function closeModal(id) {
-        document.getElementById(id).style.display = 'none';
-    }
-    </script>
 </x-teacher-layout>

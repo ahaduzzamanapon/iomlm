@@ -37,6 +37,7 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
 
     // Fees & Accounts Dues
     Route::get('fees', [\App\Http\Controllers\Student\FeeController::class, 'index'])->name('fees.index');
+    Route::get('fees/payments/{payment}/receipt', [\App\Http\Controllers\Student\FeeController::class, 'printReceipt'])->name('fees.receipt');
 
     // Exams
     Route::get('exams',                       [\App\Http\Controllers\Student\ExamController::class, 'index'])->name('exams.index');

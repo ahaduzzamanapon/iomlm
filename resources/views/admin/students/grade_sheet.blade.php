@@ -54,7 +54,7 @@
                 <div class="info-label">Current Enrolled Batch</div>
                 <strong>{{ $student->enrollments->first()?->batch?->name ?? '—' }}</strong><br>
                 <div class="info-label" style="margin-top:8px">Course Program</div>
-                <strong>{{ $student->enrollments->first()?->course?->name ?? '—' }}</strong>
+                <strong>{{ $student->enrollments->first()?->course?->name ?? $student->enrollments->first()?->batch?->course?->name ?? '—' }}</strong>
             </div>
         </div>
 

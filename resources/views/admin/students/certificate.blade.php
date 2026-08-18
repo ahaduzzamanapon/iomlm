@@ -52,7 +52,7 @@
                 <br><br>
                 has successfully completed all required academic modules, examinations, and coursework for the program of
                 <br>
-                <span class="course-name">{{ $student->enrollments->first()?->course?->name ?? 'Diploma Course' }}</span>
+                <span class="course-name">{{ $student->enrollments->first()?->course?->name ?? $student->enrollments->first()?->batch?->course?->name ?? 'Diploma Course' }}</span>
                 <br>
                 with outstanding dedication and academic performance.
             </div>
