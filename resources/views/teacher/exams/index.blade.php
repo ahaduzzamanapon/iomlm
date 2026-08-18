@@ -66,9 +66,16 @@
                         </td>
                         <td><span class="badge badge-success no-dot">{{ $ex->status }}</span></td>
                         <td style="text-align:center">
-                            <a href="{{ route('teacher.exams.show', $ex) }}" class="btn btn-outline btn-sm">
-                                🛠️ Paper Builder
-                            </a>
+                            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+                                <a href="{{ route('teacher.exams.show', $ex) }}" class="btn btn-outline btn-sm">
+                                    🛠️ Paper Builder
+                                </a>
+                                @if($ex->examQuestions->contains(fn($eq) => $eq->question?->question_type === 'WRITTEN'))
+                                    <a href="{{ route('teacher.exams.grade', $ex) }}" class="btn btn-outline btn-sm" style="color:#9d174d;border-color:#f9a8d4">
+                                        ✏️ Grade
+                                    </a>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                     @empty

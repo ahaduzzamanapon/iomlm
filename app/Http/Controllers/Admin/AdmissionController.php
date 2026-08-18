@@ -8,7 +8,9 @@ use App\Models\Student;
 use App\Models\Course;
 use App\Models\Batch;
 use App\Models\Enrollment;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AdmissionController extends Controller
 {
@@ -244,6 +246,30 @@ class AdmissionController extends Controller
             $student->status = 'ACTIVE';
             $student->save();
 
+            // ── AUTO-CREATE USER ACCOUNT ──────────────────────────────────
+            // Only create if not already linked to a user account
+            if (empty($student->user_id)) {
+                $loginEmail    = $student->email ?: ($student->student_code . '@iom.student');
+                $tempPassword  = $student->phone ?: 'iom@1234';
+
+                // If email already taken by another user, use student_code based email
+                if (User::where('email', $loginEmail)->exists()) {
+                    $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code)) . '@iom.student';
+                }
+
+                $user = User::create([
+                    'name'     => $student->name,
+                    'email'    => $loginEmail,
+                    'password' => Hash::make($tempPassword),
+                    'role'     => 'student',
+                ]);
+
+                // Link User to Student
+                $student->user_id = $user->id;
+                $student->save();
+            }
+            // ─────────────────────────────────────────────────────────────
+
             // Update Admission Form
             $admission->update([
                 'status'      => 'APPROVED',
@@ -266,7 +292,11 @@ class AdmissionController extends Controller
             \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
             \App\Services\AccountingService::createSemesterInvoice($student, $enrollment);
 
-            return back()->with('success', "Admission APPROVED! Student activated with Code: {$student->student_code}, enrolled into {$batch->name}, and Auto-Invoices generated.");
+            $loginInfo = empty($student->email)
+                ? "Login: {$student->user?->email} | Password: {$student->phone}"
+                : "Login: {$student->email} | Password: {$student->phone}";
+
+            return back()->with('success', "Admission APPROVED! Student Code: {$student->student_code}, Batch: {$batch->name}. 🔑 {$loginInfo}");
         });
     }
 

@@ -46,13 +46,17 @@ Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function
     Route::post('exams/{exam}/questions',          [\App\Http\Controllers\Teacher\ExamController::class, 'attachQuestion'])->name('exams.questions.attach');
     Route::delete('exams/{exam}/questions/{examQuestion}', [\App\Http\Controllers\Teacher\ExamController::class, 'detachQuestion'])->name('exams.questions.detach');
 
+    // Exam Grading (Written Questions)
+    Route::get('exams/{exam}/grade',               [\App\Http\Controllers\Teacher\ExamGradingController::class, 'index'])->name('exams.grade');
+    Route::patch('exam-answers/{answer}/grade',    [\App\Http\Controllers\Teacher\ExamGradingController::class, 'grade'])->name('exam-answers.grade');
+
     // Results
     Route::get('results',                      [\App\Http\Controllers\Teacher\ResultController::class, 'index'])->name('results.index');
     Route::get('results/{exam}/enter',         [\App\Http\Controllers\Teacher\ResultController::class, 'enter'])->name('results.enter');
     Route::post('results/{exam}/store',        [\App\Http\Controllers\Teacher\ResultController::class, 'store'])->name('results.store');
 
     // Learning Resources
-    Route::resource('resources', \App\Http\Controllers\Teacher\LearningResourceController::class);
+    Route::resource('resources', \App\Http\Controllers\Teacher\LearningResourceController::class)->only(['index', 'store', 'destroy']);
 
     // Routine
     Route::get('routine', [\App\Http\Controllers\Teacher\RoutineController::class, 'index'])->name('routine.index');

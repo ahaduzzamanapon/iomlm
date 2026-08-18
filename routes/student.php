@@ -29,8 +29,7 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
     Route::get('subjects/{subject}', [\App\Http\Controllers\Student\SubjectController::class, 'show'])->name('subjects.show');
 
     // Resources
-    Route::get('resources',          [\App\Http\Controllers\Student\LearningResourceController::class, 'index'])->name('resources.index');
-    Route::get('resources/{module}', [\App\Http\Controllers\Student\LearningResourceController::class, 'show'])->name('resources.show');
+    Route::get('resources', [\App\Http\Controllers\Student\LearningResourceController::class, 'index'])->name('resources.index');
 
     // Attendance
     Route::get('attendance', [\App\Http\Controllers\Student\AttendanceController::class, 'index'])->name('attendance.index');
@@ -46,8 +45,7 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
     Route::get('exams/{exam}/result/{submission}', [\App\Http\Controllers\Student\ExamController::class, 'result'])->name('exams.result');
 
     // Results
-    Route::get('results',         [\App\Http\Controllers\Student\ResultController::class, 'index'])->name('results.index');
-    Route::get('results/{result}', [\App\Http\Controllers\Student\ResultController::class, 'show'])->name('results.show');
+    Route::get('results', [\App\Http\Controllers\Student\ResultController::class, 'index'])->name('results.index');
 
     // Documents
     Route::get('documents',              [\App\Http\Controllers\Student\DocumentController::class, 'index'])->name('documents.index');

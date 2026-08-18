@@ -37,4 +37,10 @@ class LearningResourceController extends Controller
 
         return back()->with('success', 'Learning resource uploaded successfully.');
     }
+
+    public function destroy(LearningResource $resource)
+    {
+        $resource->delete();
+        return back()->with('success', 'Resource removed.');
+    }
 }

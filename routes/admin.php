@@ -25,8 +25,8 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::delete('courses/{course}/semesters/{semester}', [\App\Http\Controllers\Admin\CourseController::class, 'destroySemester'])->name('courses.semesters.destroy');
     Route::post('courses/{course}/subjects', [\App\Http\Controllers\Admin\CourseController::class, 'assignSubject'])->name('courses.subjects.assign');
     Route::delete('courses/{course}/subjects/{map}', [\App\Http\Controllers\Admin\CourseController::class, 'removeSubject'])->name('courses.subjects.remove');
-    Route::resource('semesters',        \App\Http\Controllers\Admin\SemesterController::class);
-    Route::resource('holiday-calendar', \App\Http\Controllers\Admin\HolidayCalendarController::class);
+    Route::resource('semesters', \App\Http\Controllers\Admin\SemesterController::class)->only(['index', 'store', 'destroy']);
+    Route::resource('holiday-calendar', \App\Http\Controllers\Admin\HolidayCalendarController::class)->only(['index', 'store', 'destroy']);
 
     // ── Teachers ──────────────────────────────────────────────────────
     Route::resource('teachers', \App\Http\Controllers\Admin\TeacherController::class);
@@ -60,14 +60,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('classes/{class}/cancel',    [\App\Http\Controllers\Admin\ClassSessionController::class, 'markCancelled'])->name('classes.cancel');
 
     // ── Question Bank ────────────────────────────────────────────────
-    Route::resource('questions',   \App\Http\Controllers\Admin\QuestionController::class);
+    Route::get('questions/template-download', [\App\Http\Controllers\Admin\QuestionController::class, 'downloadTemplate'])->name('questions.template-download');
+    Route::resource('questions', \App\Http\Controllers\Admin\QuestionController::class)->only(['index', 'store', 'destroy']);
     Route::post('questions/bulk-upload', [\App\Http\Controllers\Admin\QuestionController::class, 'bulkUpload'])->name('questions.bulk-upload');
 
     // ── Exams, Results, Retakes, Promotions ───────────────────────────
-    Route::resource('exams',      \App\Http\Controllers\Admin\ExamController::class);
-    Route::get('retakes',         [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'index'])->name('retakes.index');
-    Route::post('retakes',        [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'store'])->name('retakes.store');
-    Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class);
+    Route::resource('exams', \App\Http\Controllers\Admin\ExamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::get('retakes',  [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'index'])->name('retakes.index');
+    Route::post('retakes', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'store'])->name('retakes.store');
+    Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class)->only(['index', 'store']);
 
     // ── Routine ────────────────────────────────────────────────────────────
     Route::get('routine',                           [\App\Http\Controllers\Admin\RoutineController::class, 'index'])->name('routine.index');
@@ -91,7 +92,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('accounts/payments/{payment}/receipt', [\App\Http\Controllers\Admin\AccountsController::class, 'printReceipt'])->name('accounts.payments.receipt');
 
     // ── Notice Board ──────────────────────────────────────────────────
-    Route::resource('notices', \App\Http\Controllers\Admin\NoticeController::class);
+    Route::resource('notices', \App\Http\Controllers\Admin\NoticeController::class)->only(['index', 'store', 'destroy']);
 
     // ── Reports & Settings ────────────────────────────────────────────
     Route::get('reports',           [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');

@@ -20,4 +20,14 @@ class Question extends Model
     {
         return $this->belongsTo(Subject::class, 'subject_id');
     }
+
+    public function isMcq(): bool
+    {
+        return $this->question_type === 'MCQ';
+    }
+
+    public function isWritten(): bool
+    {
+        return $this->question_type === 'WRITTEN';
+    }
 }
