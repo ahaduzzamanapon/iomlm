@@ -19,6 +19,7 @@ jobs:
           server: ${{ secrets.FTP_HOST || secrets.FTP_SERVER || '173.212.221.176' }}
           username: ${{ secrets.FTP_USER || secrets.FTP_USERNAME || 'iom_mysoftheaven' }}
           password: ${{ secrets.FTP_PASS || secrets.FTP_PASSWORD || 'a1bf5da5e3ed8' }}
+          port: ${{ secrets.FTP_PORT || 1021 }}
           server-dir: '/'
           exclude: |
             **/.git*
