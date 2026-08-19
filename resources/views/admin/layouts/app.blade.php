@@ -61,6 +61,7 @@
 </head>
 <body>
 <div class="app-wrapper">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <!-- ═══ ADMIN SIDEBAR ═══ -->
     <aside class="sidebar" id="sidebar">
@@ -345,7 +346,18 @@
 </div>
 
 <script>
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+function toggleSidebar(){
+    const s = document.getElementById('sidebar');
+    const w = document.querySelector('.app-wrapper');
+    const o = document.getElementById('sidebarOverlay');
+    if (window.innerWidth <= 768) {
+        s.classList.toggle('open');
+        if (o) o.classList.toggle('active');
+    } else {
+        s.classList.toggle('collapsed');
+        if (w) w.classList.toggle('sidebar-collapsed');
+    }
+}
 
 function toggleDropdown(id){
     const m=document.getElementById(id),open=m.classList.contains('open');

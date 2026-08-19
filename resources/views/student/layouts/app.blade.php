@@ -18,6 +18,7 @@
 </head>
 <body>
 <div class="app-wrapper">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
     <!-- ═══ STUDENT SIDEBAR ═══ -->
     <aside class="sidebar" id="sidebar">
@@ -158,7 +159,18 @@
     </div>
 </div>
 <script>
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open'); }
+function toggleSidebar(){
+    const s = document.getElementById('sidebar');
+    const w = document.querySelector('.app-wrapper');
+    const o = document.getElementById('sidebarOverlay');
+    if (window.innerWidth <= 768) {
+        s.classList.toggle('open');
+        if (o) o.classList.toggle('active');
+    } else {
+        s.classList.toggle('collapsed');
+        if (w) w.classList.toggle('sidebar-collapsed');
+    }
+}
 function toggleDropdown(id){ const m=document.getElementById(id),o=m.classList.contains('open'); document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open')); if(!o)m.classList.add('open'); }
 document.addEventListener('click',function(e){ if(!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open')); });
 function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
