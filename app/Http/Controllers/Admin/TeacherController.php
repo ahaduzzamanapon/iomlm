@@ -25,6 +25,7 @@ class TeacherController extends Controller
             'name'                      => 'required|string|max:200',
             'email'                     => 'nullable|email|unique:teachers,email',
             'phone'                     => 'nullable|string|max:30',
+            'password'                  => 'nullable|string|min:6',
             'date_of_birth'             => 'nullable|date',
             'gender'                    => 'nullable|string|max:20',
             'marital_status'            => 'nullable|string|max:20',
@@ -62,7 +63,8 @@ class TeacherController extends Controller
 
         // ── AUTO-CREATE USER ACCOUNT FOR TEACHER ─────────────────────────
         $loginEmail   = !empty($validated['email']) ? $validated['email'] : ($nextEmpId . '@iom.teacher');
-        $tempPassword = !empty($validated['phone']) ? $validated['phone'] : 'iom@1234';
+        $customPass   = $request->input('password');
+        $tempPassword = !empty($customPass) ? $customPass : (!empty($validated['phone']) ? $validated['phone'] : 'iom@1234');
 
         if (User::where('email', $loginEmail)->exists()) {
             $loginEmail = strtolower(str_replace([' ', '-'], '.', $nextEmpId)) . '@iom.teacher';
@@ -87,6 +89,7 @@ class TeacherController extends Controller
             'name'                       => 'required|string|max:200',
             'email'                      => 'nullable|email|unique:teachers,email,' . $teacher->id,
             'phone'                      => 'nullable|string|max:30',
+            'password'                   => 'nullable|string|min:6',
             'date_of_birth'              => 'nullable|date',
             'gender'                     => 'nullable|string|max:20',
             'marital_status'             => 'nullable|string|max:20',
@@ -108,7 +111,18 @@ class TeacherController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]));
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Teacher updated successfully.');
+        if ($teacher->user) {
+            $userUpdate = ['name' => $teacher->name];
+            if (!empty($validated['email'])) {
+                $userUpdate['email'] = $validated['email'];
+            }
+            if ($request->filled('password')) {
+                $userUpdate['password'] = Hash::make($request->input('password'));
+            }
+            $teacher->user->update($userUpdate);
+        }
+
+        return redirect()->route('admin.teachers.index')->with('success', 'Teacher profile updated successfully.');
     }
 
     public function assignSubject(Request $request, Teacher $teacher)

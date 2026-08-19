@@ -161,8 +161,14 @@
                             <input type="email" name="email" class="form-control" placeholder="teacher@iom.edu.bd">
                         </div>
                         <div class="form-group">
-                            <label>Date of Birth</label>
-                            <input type="date" name="date_of_birth" class="form-control">
+                            <label>Login Password</label>
+                            <div style="position:relative;display:flex;align-items:center">
+                                <input type="password" id="add_teacher_password" name="password" class="form-control" style="padding-right:44px" placeholder="Leave empty to use phone number">
+                                <button type="button" onclick="togglePasswordVisibility('add_teacher_password', this)" style="position:absolute;right:8px;background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b">
+                                    <svg class="eye-show" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <svg class="eye-hide" style="display:none" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.03 10.03 0 014.122-.963c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21M3 3l18 18"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -408,8 +414,14 @@
                             <input type="email" name="email" id="et_email" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label>Date of Birth</label>
-                            <input type="date" name="date_of_birth" id="et_dob" class="form-control">
+                            <label>Reset / Change Password</label>
+                            <div style="position:relative;display:flex;align-items:center">
+                                <input type="password" id="edit_teacher_password" name="password" class="form-control" style="padding-right:44px" placeholder="Leave blank to keep current password">
+                                <button type="button" onclick="togglePasswordVisibility('edit_teacher_password', this)" style="position:absolute;right:8px;background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b">
+                                    <svg class="eye-show" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    <svg class="eye-hide" style="display:none" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.03 10.03 0 014.122-.963c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21M3 3l18 18"/></svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-row">
