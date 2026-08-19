@@ -21,6 +21,7 @@ jobs:
           password: ${{ secrets.FTP_PASS }}
           port: 1021
           server-dir: '/'
+          security: loose
           exclude: |
             **/.git*
             **/.git*/**
