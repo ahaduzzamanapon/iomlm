@@ -24,14 +24,20 @@ jobs:
           exclude: |
             **/.git*
             **/.git*/**
+            **/.github/**
             **/node_modules/**
             .env
+            storage/**
+            tests/**
+            .editorconfig
+            .gitattributes
+            .gitignore
+            README.md
+            package.json
+            package-lock.json
+            vite.config.js
             public/.htaccess
             **/.htaccess
-            storage/framework/cache/**
-            storage/framework/sessions/**
-            storage/framework/views/**
-            storage/logs/**
             learning-plus.zip
             inspect_data.php
             wipe_data.php
