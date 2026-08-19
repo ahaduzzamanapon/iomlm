@@ -62,11 +62,11 @@
 <body>
 <!-- Global Page Loader System -->
 <div class="loader-top-bar" id="globalTopBar"></div>
-<div class="page-loader" id="globalPageLoader">
+<div class="page-loader" id="globalPageLoader" style="display:none">
     <div class="loader-card">
         <div class="loader-spinner-container">
             <div class="loader-ring"></div>
-            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" class="loader-logo-static">
+            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" class="loader-logo-static" style="width:26px;height:26px;max-width:26px;max-height:26px;object-fit:contain">
         </div>
         <div class="loader-label">Loading IOM ERP...</div>
     </div>
