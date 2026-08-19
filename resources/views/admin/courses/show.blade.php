@@ -26,314 +26,249 @@
     {{-- ════════════════════════════════════════════════════════
          SEMESTER BASED → প্রতিটি Semester আলাদা Card এ
     ════════════════════════════════════════════════════════ --}}
-    @if($course->type === 'SEMESTER_BASED')
+    <style>
+    @media (max-width: 992px) {
+        .course-grid-container {
+            grid-template-columns: 1fr !important;
+        }
+    }
+    </style>
 
-        {{-- Header action row --}}
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-            <div style="font-size:13px;color:var(--text-muted)">
-                মোট <strong>{{ $course->semesters->count() }}</strong> টি Semester · <strong>{{ $course->courseSubjectMaps->count() }}</strong> টি Subject ম্যাপ করা হয়েছে
-            </div>
-        </div>
-
-        @forelse($course->semesters->sortBy('sequence_no') as $sem)
-        @php
-            $semSubjects = $course->courseSubjectMaps->where('semester_id', $sem->id);
-            $totalCredit = $semSubjects->sum(fn($m) => $m->subject->credit ?? 0);
-        @endphp
-        <div class="card" style="margin-bottom:16px">
-            <div class="card-header" style="background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(99,102,241,.04));border-bottom:1px solid var(--card-border)">
-                <div style="display:flex;align-items:center;gap:10px">
-                    <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">
-                        {{ $sem->sequence_no }}
-                    </div>
-                    <div>
-                        <span class="card-title" style="font-size:14px">{{ $sem->name }}</span>
-                        <div style="font-size:11px;color:var(--text-muted);margin-top:1px">Sequence: {{ $sem->sequence_no }}</div>
-                    </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px">
-                    <span class="badge badge-secondary no-dot">{{ $semSubjects->count() }} Subjects</span>
-                    <span class="badge badge-scheduled no-dot">{{ $totalCredit }} Credits</span>
-                    <form method="POST" action="{{ route('admin.courses.semesters.destroy', [$course, $sem]) }}" style="display:inline" onsubmit="return confirm('Delete semester?')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-ghost btn-sm text-red" title="Delete Semester">&times;</button>
-                    </form>
+    {{-- Side-by-Side Compact Grid Layout --}}
+    <div class="course-grid-container" style="display:grid;grid-template-columns:minmax(0, 1.1fr) minmax(0, 0.9fr);gap:20px;align-items:start">
+        
+        {{-- LEFT COLUMN: Academic Structure (Semesters & Subjects) --}}
+        <div class="course-academic-col">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <h3 style="font-size:14px;font-weight:600;margin:0;display:flex;align-items:center;gap:6px;color:var(--text-secondary)">
+                    📚 Semesters & Subjects
+                </h3>
+                <div style="font-size:12px;color:var(--text-muted)">
+                    {{ $course->semesters->count() }} Semesters · {{ $course->courseSubjectMaps->count() }} Subjects
                 </div>
             </div>
 
-            @if($semSubjects->count())
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Subject</th>
-                            <th>Credit</th>
-                            <th>Full Marks</th>
-                            <th style="text-align:right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($semSubjects as $i => $map)
-                        <tr>
-                            <td style="font-size:12px;color:var(--text-muted);width:32px">{{ $i + 1 }}</td>
-                            <td class="td-primary">
-                                <strong>{{ $map->subject->code ?? '—' }}</strong>
-                                <div class="td-muted" style="font-size:12px">{{ $map->subject->name ?? '—' }}</div>
-                            </td>
-                            <td>
-                                <span class="badge badge-secondary no-dot">{{ $map->subject->credit ?? 0 }} Cr</span>
-                            </td>
-                            <td style="font-size:13px;color:var(--text-muted)">{{ $map->subject->full_marks ?? '—' }} / {{ $map->subject->pass_marks ?? '—' }}</td>
-                            <td style="text-align:right">
-                                <form method="POST" action="{{ route('admin.courses.subjects.remove', [$course, $map]) }}" style="display:inline" onsubmit="return confirm('Remove subject?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-ghost btn-sm text-red">Remove</button>
-                                </form>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-            @else
-            <div style="padding:20px 24px;color:var(--text-muted);font-size:13px;text-align:center">
-                এই Semester এ এখনো কোনো Subject ম্যাপ করা হয়নি।
-                <a href="#" onclick="openModal('mapSubjectModal')" style="margin-left:6px;color:var(--blue)">+ Map Subject</a>
-            </div>
-            @endif
-        </div>
-        @empty
-        <div class="card">
-            <div class="empty-state">
-                <p>কোনো Semester তৈরি করা হয়নি। উপরে <strong>+ New Semester</strong> বাটনে ক্লিক করুন।</p>
-            </div>
-        </div>
-        @endforelse
-
-    {{-- ════════════════════════════════════════════════════════
-         SUBJECT BASED → একটি সিম্পল Subject card
-    ════════════════════════════════════════════════════════ --}}
-    @else
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">Mapped Subject</span>
-            <span class="badge badge-secondary no-dot">{{ $course->courseSubjectMaps->count() }} Subject</span>
-        </div>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Subject</th>
-                        <th>Credit</th>
-                        <th>Full Marks</th>
-                        <th style="text-align:right">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($course->courseSubjectMaps as $map)
-                    <tr>
-                        <td class="td-primary">
-                            <strong>{{ $map->subject->code ?? '—' }}</strong>
-                            <div class="td-muted" style="font-size:12px">{{ $map->subject->name ?? '—' }}</div>
-                        </td>
-                        <td><span class="badge badge-secondary no-dot">{{ $map->subject->credit ?? 0 }} Cr</span></td>
-                        <td style="color:var(--text-muted);font-size:13px">{{ $map->subject->full_marks ?? '—' }} / {{ $map->subject->pass_marks ?? '—' }}</td>
-                        <td style="text-align:right">
-                            <form method="POST" action="{{ route('admin.courses.subjects.remove', [$course, $map]) }}" style="display:inline" onsubmit="return confirm('Remove subject?')">
+            @if($course->type === 'SEMESTER_BASED')
+                @forelse($course->semesters->sortBy('sequence_no') as $sem)
+                @php
+                    $semSubjects = $course->courseSubjectMaps->where('semester_id', $sem->id);
+                    $totalCredit = $semSubjects->sum(fn($m) => $m->subject->credit ?? 0);
+                @endphp
+                <div class="card" style="margin-bottom:14px">
+                    <div class="card-header" style="background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(99,102,241,.04));border-bottom:1px solid var(--card-border);padding:10px 14px">
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">
+                                {{ $sem->sequence_no }}
+                            </div>
+                            <div>
+                                <span class="card-title" style="font-size:13px">{{ $sem->name }}</span>
+                                <div style="font-size:10px;color:var(--text-muted)">Seq: {{ $sem->sequence_no }}</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <span class="badge badge-secondary no-dot" style="font-size:10px;padding:2px 6px">{{ $semSubjects->count() }} Subjects</span>
+                            <span class="badge badge-scheduled no-dot" style="font-size:10px;padding:2px 6px">{{ $totalCredit }} Cr</span>
+                            <form method="POST" action="{{ route('admin.courses.semesters.destroy', [$course, $sem]) }}" style="display:inline" onsubmit="return confirm('Delete semester?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-ghost btn-sm text-red">Remove</button>
+                                <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:2px 6px" title="Delete Semester">&times;</button>
                             </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted)">কোনো Subject ম্যাপ করা হয়নি।</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-    @endif
-
-    <!-- Map Subject Modal -->
-    <div class="modal-overlay" id="mapSubjectModal">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title">Map Subject to {{ $course->name }}</span>
-                <button class="modal-close" onclick="closeModal('mapSubjectModal')">&times;</button>
-            </div>
-            <form method="POST" action="{{ route('admin.courses.subjects.assign', $course) }}">
-                @csrf
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label>Select Subject <span class="required">*</span></label>
-                        <select name="subject_id" class="form-control" required>
-                            <option value="">-- Choose Subject --</option>
-                            @foreach($availableSubjects as $subj)
-                                <option value="{{ $subj->id }}">{{ $subj->code }}: {{ $subj->name }} ({{ $subj->credit }} Cr)</option>
-                            @endforeach
-                        </select>
+                        </div>
                     </div>
 
-                    @if($course->type === 'SEMESTER_BASED')
-                    <div class="form-group">
-                        <label>Select Semester <span class="required">*</span></label>
-                        <select name="semester_id" class="form-control" required>
-                            <option value="">-- Choose Semester --</option>
-                            @foreach($course->semesters as $sem)
-                                <option value="{{ $sem->id }}">{{ $sem->name }}</option>
-                            @endforeach
-                        </select>
+                    @if($semSubjects->count())
+                    <div class="table-wrapper">
+                        <table style="font-size:12px">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Subject</th>
+                                    <th>Credit</th>
+                                    <th>Marks</th>
+                                    <th style="text-align:right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($semSubjects as $i => $map)
+                                <tr>
+                                    <td style="font-size:11px;color:var(--text-muted);width:24px">{{ $i + 1 }}</td>
+                                    <td class="td-primary">
+                                        <strong style="font-size:12px">{{ $map->subject->code ?? '—' }}</strong>
+                                        <div class="td-muted" style="font-size:11px">{{ $map->subject->name ?? '—' }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-secondary no-dot" style="font-size:10px">{{ $map->subject->credit ?? 0 }} Cr</span>
+                                    </td>
+                                    <td style="font-size:11px;color:var(--text-muted)">{{ $map->subject->full_marks ?? '—' }} / {{ $map->subject->pass_marks ?? '—' }}</td>
+                                    <td style="text-align:right">
+                                        <form method="POST" action="{{ route('admin.courses.subjects.remove', [$course, $map]) }}" style="display:inline" onsubmit="return confirm('Remove subject?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-ghost btn-sm text-red" style="font-size:11px;padding:2px 6px">Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @else
+                    <div style="padding:14px 16px;color:var(--text-muted);font-size:12px;text-align:center">
+                        এই Semester এ এখনো কোনো Subject ম্যাপ করা হয়নি।
+                        <a href="#" onclick="openModal('mapSubjectModal')" style="margin-left:4px;color:var(--blue)">+ Map Subject</a>
                     </div>
                     @endif
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('mapSubjectModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Map Subject</button>
+                @empty
+                <div class="card">
+                    <div class="empty-state" style="padding:24px">
+                        <p style="font-size:13px">কোনো Semester তৈরি করা হয়নি। উপরে <strong>+ New Semester</strong> বাটনে ক্লিক করুন।</p>
+                    </div>
                 </div>
-            </form>
+                @endforelse
+            @else
+                <div class="card">
+                    <div class="card-header" style="padding:10px 14px">
+                        <span class="card-title" style="font-size:13px">Mapped Subjects</span>
+                        <span class="badge badge-secondary no-dot" style="font-size:10px">{{ $course->courseSubjectMaps->count() }} Subject</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table style="font-size:12px">
+                            <thead>
+                                <tr>
+                                    <th>Subject</th>
+                                    <th>Credit</th>
+                                    <th>Marks</th>
+                                    <th style="text-align:right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($course->courseSubjectMaps as $map)
+                                <tr>
+                                    <td class="td-primary">
+                                        <strong>{{ $map->subject->code ?? '—' }}</strong>
+                                        <div class="td-muted" style="font-size:11px">{{ $map->subject->name ?? '—' }}</div>
+                                    </td>
+                                    <td><span class="badge badge-secondary no-dot" style="font-size:10px">{{ $map->subject->credit ?? 0 }} Cr</span></td>
+                                    <td style="color:var(--text-muted);font-size:11px">{{ $map->subject->full_marks ?? '—' }} / {{ $map->subject->pass_marks ?? '—' }}</td>
+                                    <td style="text-align:right">
+                                        <form method="POST" action="{{ route('admin.courses.subjects.remove', [$course, $map]) }}" style="display:inline" onsubmit="return confirm('Remove subject?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-ghost btn-sm text-red" style="font-size:11px;padding:2px 6px">Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">কোনো Subject ম্যাপ করা হয়নি।</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
-    </div>
 
-    <!-- Add Semester Modal -->
-    @if($course->type === 'SEMESTER_BASED')
-    <div class="modal-overlay" id="addSemesterModal">
-        <div class="modal">
-            <div class="modal-header">
-                <span class="modal-title">Add New Semester to {{ $course->name }}</span>
-                <button class="modal-close" onclick="closeModal('addSemesterModal')">&times;</button>
+        {{-- RIGHT COLUMN: Fee Packages & Financial Setup --}}
+        <div class="course-financial-col">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <h3 style="font-size:14px;font-weight:600;margin:0;display:flex;align-items:center;gap:6px;color:var(--text-secondary)">
+                    💰 Fee Packages & Pricing
+                </h3>
             </div>
-            <form method="POST" action="{{ route('admin.courses.semesters.store', $course) }}">
-                @csrf
-                <div class="modal-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Sequence No. <span class="required">*</span></label>
-                            <input type="number" name="sequence_no" class="form-control" value="{{ $course->semesters->count() + 1 }}" min="1" required>
+
+            <div class="card">
+                <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:10px 14px">
+                    <div>
+                        <span class="card-title" style="font-size:13px">Fee Packages</span>
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:1px">
+                            Admission Fee: <strong>৳{{ number_format($course->admission_fee, 0) }}</strong>
                         </div>
-                        <div class="form-group">
-                            <label>Semester Name <span class="required">*</span></label>
-                            <input type="text" name="name" class="form-control" placeholder="e.g. 5th Semester" required>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <button class="btn btn-outline btn-sm" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1);font-size:11px;padding:3px 8px" onclick="openModal('templateModal')">
+                            📋 Template
+                        </button>
+                        <button class="btn btn-primary btn-sm" style="font-size:11px;padding:3px 8px" onclick="openModal('addPackageModal')">+ Package</button>
+                    </div>
+                </div>
+
+                <div class="card-body" style="padding:0">
+                    @forelse($course->feePackages as $pkg)
+                    <div style="border-bottom:1px solid var(--card-border);padding:14px 16px">
+
+                        {{-- Package Header Row --}}
+                        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                                <strong style="font-size:14px">{{ $pkg->name }}</strong>
+                                @if($pkg->is_default)
+                                    <span class="badge badge-active no-dot" style="font-size:10px;padding:1px 6px">Default</span>
+                                @endif
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                                <span style="font-size:12px;font-weight:700;color:var(--blue);background:rgba(59,130,246,.08);padding:2px 8px;border-radius:12px">
+                                    ৳{{ number_format($pkg->items->sum('total_amount'), 0) }}
+                                </span>
+                                @if(!$pkg->is_default)
+                                <form method="POST" action="{{ route('admin.courses.packages.set-default', [$course, $pkg]) }}">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px">Default</button>
+                                </form>
+                                @endif
+                                <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px" onclick="openAddItemModal({{ $pkg->id }})">+ Item</button>
+                                <form method="POST" action="{{ route('admin.courses.packages.destroy', $pkg) }}" onsubmit="return confirm('Delete this package?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);font-size:10px;padding:2px 6px">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        @if($pkg->items->count())
+                        <div class="table-wrapper" style="border-radius:8px;overflow:hidden;border:1px solid var(--card-border)">
+                            <table style="font-size:12px;margin:0">
+                                <thead>
+                                    <tr style="background:rgba(99,102,241,.04)">
+                                        <th style="padding:6px 10px">Fee Head</th>
+                                        <th style="padding:6px 10px">Rate</th>
+                                        <th style="padding:6px 10px">Qty</th>
+                                        <th style="padding:6px 10px">Total</th>
+                                        <th style="padding:6px 10px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($pkg->items as $item)
+                                    <tr>
+                                        <td style="padding:6px 10px"><strong>{{ $item->label ?: $item->feeHead->name }}</strong></td>
+                                        <td style="padding:6px 10px">৳{{ number_format($item->amount_per_unit, 0) }}</td>
+                                        <td style="padding:6px 10px;color:var(--blue)">{{ $item->quantity }}</td>
+                                        <td style="padding:6px 10px"><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
+                                        <td style="padding:6px 10px;text-align:right">
+                                            <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:1px 4px;font-size:11px">&times;</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        @else
+                            <div style="background:rgba(59,130,246,.04);border:1px dashed rgba(59,130,246,.25);border-radius:8px;padding:12px;text-align:center;font-size:12px;color:var(--text-muted)">
+                                কোনো fee item নেই। <a href="#" onclick="openAddItemModal({{ $pkg->id }})" style="color:var(--blue)">+ Add Item</a>
+                            </div>
+                        @endif
+                    </div>
+                    @empty
+                    <div style="padding:24px;text-align:center;color:var(--text-muted)">
+                        <div style="font-size:24px;margin-bottom:6px">💰</div>
+                        <div style="font-weight:600;font-size:13px;margin-bottom:2px">কোনো Fee Package নেই</div>
+                        <div style="font-size:11px;margin-bottom:12px">Template ব্যবহার করুন অথবা নতুন প্যাকেজ তৈরি করুন।</div>
+                        <div style="display:flex;gap:6px;justify-content:center">
+                            <button class="btn btn-outline btn-sm" onclick="openModal('templateModal')" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1)">📋 Template</button>
+                            <button class="btn btn-primary btn-sm" onclick="openModal('addPackageModal')">+ New Package</button>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('addSemesterModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Semester</button>
-                </div>
-            </form>
-        </div>
-    </div>
-    @endif
-
-    {{-- ════════════════════════════════════════════════════════
-         FEE PACKAGES SECTION
-    ════════════════════════════════════════════════════════ --}}
-    <div class="card" style="margin-top:24px">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-            <div>
-                <span class="card-title">💰 Fee Packages</span>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
-                    Admission Fee (Course): <strong>৳{{ number_format($course->admission_fee, 0) }}</strong>
+                    @endforelse
                 </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <button class="btn btn-outline btn-sm" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1);display:flex;align-items:center;gap:5px" onclick="openModal('templateModal')">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M4 6h16M4 10h16M4 14h7M4 18h7"/></svg>
-                    Use Template
-                </button>
-                <button class="btn btn-primary btn-sm" onclick="openModal('addPackageModal')">+ New Package</button>
-            </div>
-        </div>
-
-        <div class="card-body" style="padding:0">
-            @forelse($course->feePackages as $pkg)
-            <div style="border-bottom:1px solid var(--card-border);padding:18px 20px">
-
-                {{-- Package Header Row --}}
-                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-                    {{-- LEFT: Package name + badges --}}
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                        <strong style="font-size:15px">{{ $pkg->name }}</strong>
-                        @if($pkg->is_default)
-                            <span class="badge badge-active no-dot" style="font-size:11px">Default</span>
-                        @endif
-                        @if($pkg->description)
-                            <span style="font-size:12px;color:var(--text-muted)">— {{ $pkg->description }}</span>
-                        @endif
-                    </div>
-                    {{-- RIGHT: Total + Actions --}}
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                        <span style="font-size:14px;font-weight:700;color:var(--blue);background:rgba(59,130,246,.08);padding:4px 12px;border-radius:20px;white-space:nowrap">
-                            Package Total: ৳{{ number_format($pkg->items->sum('total_amount'), 0) }}
-                        </span>
-                        @if(!$pkg->is_default)
-                        <form method="POST" action="{{ route('admin.courses.packages.set-default', [$course, $pkg]) }}">
-                            @csrf @method('PATCH')
-                            <button type="submit" class="btn btn-outline btn-sm" style="font-size:11px">Set Default</button>
-                        </form>
-                        @endif
-                        <button class="btn btn-outline btn-sm" onclick="openAddItemModal({{ $pkg->id }})">+ Add Item</button>
-                        <form method="POST" action="{{ route('admin.courses.packages.destroy', $pkg) }}" onsubmit="return confirm('Delete this package?')">
-                            @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);font-size:11px">Delete</button>
-                        </form>
-                    </div>
-                </div>
-
-                @if($pkg->items->count())
-                <div class="table-wrapper" style="border-radius:10px;overflow:hidden;border:1px solid var(--card-border)">
-                    <table style="font-size:13px;margin:0">
-                        <thead>
-                            <tr style="background:rgba(99,102,241,.04)">
-                                <th style="padding:10px 14px">Fee Head</th>
-                                <th style="padding:10px 14px">Rate (৳)</th>
-                                <th style="padding:10px 14px">Months / Units</th>
-                                <th style="padding:10px 14px">Total</th>
-                                <th style="padding:10px 14px"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($pkg->items as $item)
-                            <tr>
-                                <td style="padding:10px 14px"><strong>{{ $item->label ?: $item->feeHead->name }}</strong></td>
-                                <td style="padding:10px 14px">৳{{ number_format($item->amount_per_unit, 0) }}</td>
-                                <td style="padding:10px 14px;color:var(--blue)">{{ $item->quantity }} {{ str_contains(strtolower($item->feeHead?->slug ?? ''), 'monthly') ? 'months' : 'units' }}</td>
-                                <td style="padding:10px 14px"><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
-                                <td style="padding:10px 14px;text-align:right">
-                                    <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-ghost btn-sm text-red">Remove</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot>
-                            <tr style="background:rgba(59,130,246,.04)">
-                                <td colspan="3" style="padding:10px 14px;text-align:right;font-weight:700">Package Total:</td>
-                                <td colspan="2" style="padding:10px 14px"><strong style="color:var(--blue);font-size:15px">৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</strong></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                @else
-                    <div style="background:rgba(59,130,246,.04);border:1px dashed rgba(59,130,246,.25);border-radius:10px;padding:16px;text-align:center;font-size:13px;color:var(--text-muted)">
-                        কোনো fee item নেই। <a href="#" onclick="openAddItemModal({{ $pkg->id }})" style="color:var(--blue)">+ Add Item</a> করুন।
-                    </div>
-                @endif
-            </div>
-            @empty
-            <div style="padding:36px;text-align:center;color:var(--text-muted)">
-                <div style="font-size:32px;margin-bottom:10px">💰</div>
-                <div style="font-weight:600;margin-bottom:4px">কোনো Fee Package নেই</div>
-                <div style="font-size:13px;margin-bottom:16px">Template ব্যবহার করে সব fee head সহ একটি package auto-তৈরি করুন, অথবা নিজে তৈরি করুন।</div>
-                <div style="display:flex;gap:8px;justify-content:center">
-                    <button class="btn btn-outline" onclick="openModal('templateModal')" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1)">📋 Use Template</button>
-                    <button class="btn btn-primary" onclick="openModal('addPackageModal')">+ New Package</button>
-                </div>
-            </div>
-            @endforelse
         </div>
     </div>
 
