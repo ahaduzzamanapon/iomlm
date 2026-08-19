@@ -16,9 +16,9 @@ jobs:
       - name: 📂 Sync files via FTP
         uses: SamKirby/ftp-deploy-action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER || '173.212.221.176' }}
-          username: ${{ secrets.FTP_USERNAME || 'iom_mysoftheaven' }}
-          password: ${{ secrets.FTP_PASSWORD || 'a1bf5da5e3ed8' }}
+          server: ${{ secrets.FTP_HOST || secrets.FTP_SERVER || '173.212.221.176' }}
+          username: ${{ secrets.FTP_USER || secrets.FTP_USERNAME || 'iom_mysoftheaven' }}
+          password: ${{ secrets.FTP_PASS || secrets.FTP_PASSWORD || 'a1bf5da5e3ed8' }}
           server-dir: '/'
           exclude: |
             **/.git*
