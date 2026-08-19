@@ -64,8 +64,9 @@
 <div class="loader-top-bar" id="globalTopBar"></div>
 <div class="page-loader" id="globalPageLoader">
     <div class="loader-card">
-        <div class="loader-spinner">
-            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" class="loader-logo-img">
+        <div class="loader-spinner-container">
+            <div class="loader-ring"></div>
+            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" class="loader-logo-static">
         </div>
         <div class="loader-label">Loading IOM ERP...</div>
     </div>

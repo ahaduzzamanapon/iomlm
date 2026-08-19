@@ -1136,19 +1136,21 @@ button.dropdown-item {
   position: fixed;
   inset: 0;
   z-index: 99999;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .page-loader.active {
   opacity: 1;
+  visibility: visible;
   pointer-events: auto;
 }
 
@@ -1160,7 +1162,7 @@ button.dropdown-item {
   background-size: 300% 100%;
   z-index: 100000;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease;
 }
 .loader-top-bar.active {
   opacity: 1;
@@ -1178,28 +1180,34 @@ button.dropdown-item {
   align-items: center;
   gap: 16px;
   background: #ffffff;
-  padding: 24px 36px;
-  border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+  padding: 26px 40px;
+  border-radius: 22px;
+  box-shadow: 0 20px 60px -10px rgba(15, 23, 42, 0.3);
   border: 1px solid rgba(226, 232, 240, 0.9);
-  animation: loader-card-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform: scale(0.95) translateY(6px);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes loader-card-pop {
-  0% { transform: scale(0.9); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+.page-loader.active .loader-card {
+  transform: scale(1) translateY(0);
 }
 
-.loader-spinner {
-  width: 48px; height: 48px;
+.loader-spinner-container {
+  position: relative;
+  width: 52px; height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-ring {
+  position: absolute;
+  inset: 0;
   border: 3.5px solid #e2e8f0;
   border-top-color: #2563eb;
   border-right-color: #6366f1;
   border-radius: 50%;
-  animation: loader-spin 0.75s linear infinite;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  animation: loader-spin 0.8s linear infinite;
 }
 
 @keyframes loader-spin {
@@ -1207,9 +1215,11 @@ button.dropdown-item {
   100% { transform: rotate(360deg); }
 }
 
-.loader-logo-img {
-  width: 24px; height: 24px;
+.loader-logo-static {
+  width: 26px; height: 26px;
   object-fit: contain;
+  position: relative;
+  z-index: 2;
 }
 
 .loader-label {
