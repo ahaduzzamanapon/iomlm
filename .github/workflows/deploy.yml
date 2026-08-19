@@ -26,6 +26,8 @@ jobs:
             **/.git*/**
             **/node_modules/**
             .env
+            public/.htaccess
+            **/.htaccess
             storage/framework/cache/**
             storage/framework/sessions/**
             storage/framework/views/**
