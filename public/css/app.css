@@ -1130,3 +1130,92 @@ button.dropdown-item {
   .grid-3 { grid-template-columns: 1fr; }
   .page-content { padding: 16px; }
 }
+
+/* ─── Global Page Loader System ─────────────────────────────── */
+.page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.page-loader.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.loader-top-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3.5px;
+  background: linear-gradient(90deg, #2563eb, #6366f1, #10b981, #2563eb);
+  background-size: 300% 100%;
+  z-index: 100000;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.loader-top-bar.active {
+  opacity: 1;
+  animation: loader-bar-slide 1.4s infinite linear;
+}
+
+@keyframes loader-bar-slide {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 300% 0%; }
+}
+
+.loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: #ffffff;
+  padding: 24px 36px;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  animation: loader-card-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes loader-card-pop {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.loader-spinner {
+  width: 48px; height: 48px;
+  border: 3.5px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-right-color: #6366f1;
+  border-radius: 50%;
+  animation: loader-spin 0.75s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes loader-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-logo-img {
+  width: 24px; height: 24px;
+  object-fit: contain;
+}
+
+.loader-label {
+  font-family: var(--font-heading);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}

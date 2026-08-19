@@ -17,6 +17,17 @@
     @stack('styles')
 </head>
 <body>
+<!-- Global Page Loader System -->
+<div class="loader-top-bar" id="globalTopBar"></div>
+<div class="page-loader" id="globalPageLoader">
+    <div class="loader-card">
+        <div class="loader-spinner">
+            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" class="loader-logo-img">
+        </div>
+        <div class="loader-label">Loading Student Portal...</div>
+    </div>
+</div>
+
 <div class="app-wrapper">
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
@@ -178,6 +189,43 @@ function closeModal(id){ document.getElementById(id).classList.remove('open'); d
 document.addEventListener('click',function(e){ if(e.target.classList.contains('modal-overlay')){ e.target.classList.remove('open'); document.body.style.overflow=''; } });
 const lf=document.getElementById('lp-flash');
 if(lf) setTimeout(()=>{ lf.style.opacity='0'; lf.style.transition='opacity .4s'; setTimeout(()=>lf.remove(),400); },4000);
+
+/* ── Global Page Loader Logic ── */
+function showLoader(){
+    const loader = document.getElementById('globalPageLoader');
+    const bar = document.getElementById('globalTopBar');
+    if(loader) loader.classList.add('active');
+    if(bar) bar.classList.add('active');
+}
+function hideLoader(){
+    const loader = document.getElementById('globalPageLoader');
+    const bar = document.getElementById('globalTopBar');
+    if(loader) loader.classList.remove('active');
+    if(bar) bar.classList.remove('active');
+}
+window.addEventListener('pageshow', function(){ hideLoader(); });
+document.addEventListener('DOMContentLoaded', function(){
+    hideLoader();
+    document.addEventListener('click', function(e){
+        const a = e.target.closest('a');
+        if(a && a.href && !a.href.startsWith('javascript:') && !a.href.includes('#') && a.target !== '_blank' && !a.hasAttribute('download')){
+            showLoader();
+        }
+    });
+    document.addEventListener('submit', function(e){
+        showLoader();
+    });
+});
+if(window.fetch){
+    const origFetch = window.fetch;
+    window.fetch = function(){
+        const bar = document.getElementById('globalTopBar');
+        if(bar) bar.classList.add('active');
+        return origFetch.apply(this, arguments).finally(function(){
+            if(bar) bar.classList.remove('active');
+        });
+    };
+}
 </script>
 @stack('scripts')
 </body>
