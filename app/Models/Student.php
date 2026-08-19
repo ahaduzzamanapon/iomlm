@@ -8,6 +8,13 @@ class Student extends Model
 {
     protected $guarded = [];
 
+    // ── Relationships ───────────────────────────────────────────────────
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class, 'student_id');

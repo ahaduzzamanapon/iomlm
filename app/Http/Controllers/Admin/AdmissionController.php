@@ -10,6 +10,7 @@ use App\Models\Batch;
 use App\Models\Enrollment;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AdmissionController extends Controller
@@ -233,9 +234,9 @@ class AdmissionController extends Controller
             'batch_id' => 'required|exists:batches,id',
         ]);
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($admission, $request) {
+        return DB::transaction(function () use ($admission, $request) {
             $student = $admission->student;
-            $batch = Batch::findOrFail($request->input('batch_id'));
+            $batch   = Batch::findOrFail($request->input('batch_id'));
 
             // Generate Student Code (e.g. STD-2026-005)
             if (empty($student->student_code)) {

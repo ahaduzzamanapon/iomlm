@@ -178,6 +178,19 @@
                         <strong>✓ Application Approved</strong><br>
                         Reviewed by {{ $admission->reviewer->name ?? 'Admin' }} on {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}.
                     </div>
+                    @php $studentUser = $admission->student->user; @endphp
+                    @if($studentUser)
+                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px 14px;border-radius:8px;font-size:13px;margin-top:10px">
+                            <strong style="color:#166534">🔑 Student Login Account</strong><br>
+                            <span style="color:#15803d">Login Email:</span> <code>{{ $studentUser->email }}</code><br>
+                            <span style="color:#15803d">Role:</span> <span class="badge badge-active no-dot">{{ ucfirst($studentUser->role) }}</span>
+                            <div style="margin-top:6px;font-size:11px;color:#6b7280">Password was auto-generated at account creation. Student can reset via admin if needed.</div>
+                        </div>
+                    @else
+                        <div style="background:#fef9c3;border:1px solid #fde047;padding:10px 14px;border-radius:8px;font-size:12px;margin-top:10px;color:#713f12">
+                            ⚠️ No user account linked yet. Re-run approval or contact admin.
+                        </div>
+                    @endif
                 @elseif($admission->status === 'REJECTED')
                     <div class="alert alert-danger">
                         <strong>✕ Application Rejected</strong><br>
