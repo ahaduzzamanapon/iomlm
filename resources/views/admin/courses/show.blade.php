@@ -272,6 +272,77 @@
         </div>
     </div>
 
+    <!-- Map Subject Modal -->
+    <div class="modal-overlay" id="mapSubjectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Map Subject to {{ $course->name }}</span>
+                <button class="modal-close" onclick="closeModal('mapSubjectModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.courses.subjects.assign', $course) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Select Subject <span class="required">*</span></label>
+                        <select name="subject_id" class="form-control" required>
+                            <option value="">-- Choose Subject --</option>
+                            @foreach($availableSubjects as $subj)
+                                <option value="{{ $subj->id }}">{{ $subj->code }}: {{ $subj->name }} ({{ $subj->credit }} Cr)</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    @if($course->type === 'SEMESTER_BASED')
+                    <div class="form-group">
+                        <label>Select Semester <span class="required">*</span></label>
+                        <select name="semester_id" class="form-control" required>
+                            <option value="">-- Choose Semester --</option>
+                            @foreach($course->semesters as $sem)
+                                <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('mapSubjectModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Map Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Semester Modal -->
+    @if($course->type === 'SEMESTER_BASED')
+    <div class="modal-overlay" id="addSemesterModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Add New Semester to {{ $course->name }}</span>
+                <button class="modal-close" onclick="closeModal('addSemesterModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.courses.semesters.store', $course) }}">
+                @csrf
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sequence No. <span class="required">*</span></label>
+                            <input type="number" name="sequence_no" class="form-control" value="{{ $course->semesters->count() + 1 }}" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Semester Name <span class="required">*</span></label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g. 5th Semester" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addSemesterModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Semester</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+
     <!-- Add Package Modal -->
     <div class="modal-overlay" id="addPackageModal">
         <div class="modal" style="max-width:440px">
