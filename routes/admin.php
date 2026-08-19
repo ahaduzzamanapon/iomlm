@@ -99,6 +99,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('settings',          [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
     Route::put('settings',          [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
 
+    // ── Google Auth Setup ───────────────────────────────────────────────
+    Route::get('settings/google-auth',  [\App\Http\Controllers\Admin\GoogleAuthSettingController::class, 'index'])->name('settings.google-auth.index');
+    Route::post('settings/google-auth', [\App\Http\Controllers\Admin\GoogleAuthSettingController::class, 'update'])->name('settings.google-auth.update');
+
     // ── Fee Heads (Settings → Fee Head) ───────────────────────────
     Route::get('fee-heads',                     [\App\Http\Controllers\Admin\FeeHeadController::class, 'index'])->name('fee-heads.index');
     Route::post('fee-heads',                    [\App\Http\Controllers\Admin\FeeHeadController::class, 'store'])->name('fee-heads.store');

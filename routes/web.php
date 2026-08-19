@@ -26,6 +26,10 @@ Route::get('/login', [\App\Http\Controllers\Auth\LoginController::class, 'showLo
 Route::post('/login', [\App\Http\Controllers\Auth\LoginController::class, 'login']);
 Route::post('/logout', [\App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
 
+// ── Google OAuth Routes ──────────────────────────────────────────────
+Route::get('/auth/google/redirect', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'redirect'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
 // ── Panel Routes ─────────────────────────────────────────────────────
 require __DIR__.'/admin.php';
 require __DIR__.'/teacher.php';
