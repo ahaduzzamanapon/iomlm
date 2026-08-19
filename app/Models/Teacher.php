@@ -8,6 +8,11 @@ class Teacher extends Model
 {
     protected $guarded = [];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
     public function assignments()
     {
         return $this->hasMany(SubjectTeacherAssignment::class, 'teacher_id');
