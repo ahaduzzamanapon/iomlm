@@ -1,0 +1,34 @@
+name: Deploy to Live Server via FTP
+
+on:
+  push:
+    branches:
+      - live
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploying to Live Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+
+      - name: 📂 Sync files via FTP
+        uses: SamKirby/ftp-deploy-action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER || '173.212.221.176' }}
+          username: ${{ secrets.FTP_USERNAME || 'iom_mysoftheaven' }}
+          password: ${{ secrets.FTP_PASSWORD || 'a1bf5da5e3ed8' }}
+          server-dir: '/'
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            .env
+            storage/framework/cache/**
+            storage/framework/sessions/**
+            storage/framework/views/**
+            storage/logs/**
+            learning-plus.zip
+            inspect_data.php
+            wipe_data.php
