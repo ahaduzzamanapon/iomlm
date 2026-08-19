@@ -26,7 +26,8 @@ jobs:
             **/.git*/**
             **/.github/**
             **/node_modules/**
-            .env
+            .env*
+            **/.env*
             storage/**
             tests/**
             .editorconfig
