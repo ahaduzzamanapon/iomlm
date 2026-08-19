@@ -16,7 +16,7 @@ class ExamController extends Controller
 {
     private function student(): ?Student
     {
-        return Student::where('email', auth()->user()->email)->first();
+        return Student::where('user_id', auth()->id())->first();
     }
 
     public function index()
@@ -120,8 +120,8 @@ class ExamController extends Controller
                     ['submission_id' => $submission->id, 'question_id' => $q->id],
                     [
                         'selected_option_id' => null,
-                        'is_correct'         => null,
-                        'marks_awarded'      => 0.00, // Teacher will grade later
+                        'is_correct'         => 0,   // Written — teacher grades manually
+                        'marks_awarded'      => 0.00,
                         'answer_image_path'  => $imagePath,
                     ]
                 );

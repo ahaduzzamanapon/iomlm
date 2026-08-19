@@ -117,4 +117,53 @@ class CourseFeePackageController extends Controller
         $item->delete();
         return back()->with('success', "Fee item removed.");
     }
+
+    /**
+     * Create a package from template — auto-populates all active fee heads.
+     */
+    public function fromTemplate(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'name'       => 'required|string|max:150',
+            'is_default' => 'nullable|boolean',
+        ]);
+
+        $totalMonths = $course->duration_unit === 'YEAR'
+            ? $course->duration_value * 12
+            : $course->duration_value;
+
+        if ($request->boolean('is_default')) {
+            $course->feePackages()->update(['is_default' => false]);
+        }
+
+        $package = CourseFeePackage::create([
+            'course_id'   => $course->id,
+            'name'        => $validated['name'],
+            'description' => 'Auto-generated from template',
+            'is_default'  => $request->boolean('is_default', false),
+            'is_active'   => true,
+        ]);
+
+        // Get all active fee heads and create items
+        $feeHeads = FeeHead::where('is_active', true)->orderBy('sort_order')->get();
+        foreach ($feeHeads as $i => $fh) {
+            $slug = $fh->slug ?? '';
+            // Monthly-based fee heads get quantity = total months
+            $isMonthly = str_contains(strtolower($slug), 'monthly') || str_contains(strtolower($slug), 'tuition');
+            $qty       = $isMonthly ? $totalMonths : 1;
+            $rate      = 0; // Admin fills in the actual amount later
+
+            CourseFeePackageItem::create([
+                'package_id'      => $package->id,
+                'fee_head_id'     => $fh->id,
+                'label'           => $fh->name,
+                'quantity'        => $qty,
+                'amount_per_unit' => $rate,
+                'total_amount'    => 0,
+                'sort_order'      => $i + 1,
+            ]);
+        }
+
+        return back()->with('success', "✅ Template package '{$package->name}' created with " . $feeHeads->count() . " fee heads. Edit the amounts below.");
+    }
 }

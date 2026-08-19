@@ -11,7 +11,7 @@ class SubjectController extends Controller
 {
     public function index()
     {
-        $teacher = Teacher::where('email', auth()->user()->email)->first();
+        $teacher = Teacher::where('user_id', auth()->id())->first();
         $assignments = SubjectTeacherAssignment::with(['subject.modules' => fn($q) => $q->orderBy('sequence_no')])
             ->where('teacher_id', $teacher?->id)
             ->get();

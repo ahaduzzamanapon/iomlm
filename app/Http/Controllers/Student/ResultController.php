@@ -11,7 +11,7 @@ class ResultController extends Controller
 {
     public function index()
     {
-        $student = Student::where('email', auth()->user()->email)->first();
+        $student = Student::where('user_id', auth()->id())->first();
         $results = Result::with(['subject', 'exam'])
             ->where('student_id', $student?->id)
             ->latest('attempt_no')

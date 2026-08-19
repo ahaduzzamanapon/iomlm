@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
+use App\Models\User;
 use App\Models\Subject;
 use App\Models\SubjectTeacherAssignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class TeacherController extends Controller
 {
@@ -53,12 +55,30 @@ class TeacherController extends Controller
         $maxId    = Teacher::max('id') ?? 0;
         $nextEmpId = 'EMP-' . str_pad($maxId + 1, 3, '0', STR_PAD_LEFT);
 
-        Teacher::create(array_merge($validated, [
+        $teacher = Teacher::create(array_merge($validated, [
             'employee_id' => $nextEmpId,
             'is_active'   => $request->boolean('is_active', true),
         ]));
 
-        return back()->with('success', 'Teacher added successfully.');
+        // ── AUTO-CREATE USER ACCOUNT FOR TEACHER ─────────────────────────
+        $loginEmail   = !empty($validated['email']) ? $validated['email'] : ($nextEmpId . '@iom.teacher');
+        $tempPassword = !empty($validated['phone']) ? $validated['phone'] : 'iom@1234';
+
+        if (User::where('email', $loginEmail)->exists()) {
+            $loginEmail = strtolower(str_replace([' ', '-'], '.', $nextEmpId)) . '@iom.teacher';
+        }
+
+        $user = User::create([
+            'name'     => $teacher->name,
+            'email'    => $loginEmail,
+            'password' => Hash::make($tempPassword),
+            'role'     => 'teacher',
+        ]);
+
+        $teacher->update(['user_id' => $user->id]);
+        // ─────────────────────────────────────────────────────────────────
+
+        return back()->with('success', "Teacher added successfully. 🔑 Login: {$loginEmail} | Password: {$tempPassword}");
     }
 
     public function update(Request $request, Teacher $teacher)

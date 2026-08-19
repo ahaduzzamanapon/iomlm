@@ -12,7 +12,7 @@ class FeeController extends Controller
 {
     public function index()
     {
-        $student  = Student::where('email', auth()->user()->email)->first();
+        $student  = Student::where('user_id', auth()->id())->first();
         
         $invoices = Invoice::with('enrollment.course')
             ->where('student_id', $student?->id)
@@ -32,7 +32,7 @@ class FeeController extends Controller
 
     public function printReceipt(Payment $payment)
     {
-        $student = Student::where('email', auth()->user()->email)->firstOrFail();
+        $student = Student::where('user_id', auth()->id())->firstOrFail();
         if ($payment->student_id !== $student->id) {
             abort(403, 'Unauthorized access to receipt.');
         }

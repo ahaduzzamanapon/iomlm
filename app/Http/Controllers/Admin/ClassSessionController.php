@@ -128,9 +128,12 @@ class ClassSessionController extends Controller
         ]);
 
         foreach ($request->input('attendance', []) as $studentId => $status) {
+            $enrollment = \App\Models\Enrollment::where('student_id', $studentId)
+                ->where('batch_id', $class->batch_id)
+                ->first();
             \App\Models\Attendance::updateOrCreate(
                 ['class_session_id' => $class->id, 'student_id' => $studentId],
-                ['status' => $status]
+                ['status' => $status, 'enrollment_id' => $enrollment?->id]
             );
         }
 

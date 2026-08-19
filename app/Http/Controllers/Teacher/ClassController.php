@@ -17,7 +17,7 @@ class ClassController extends Controller
 {
     private function teacher(): ?Teacher
     {
-        return Teacher::where('email', auth()->user()->email)->first();
+        return Teacher::where('user_id', auth()->id())->first();
     }
 
     /**

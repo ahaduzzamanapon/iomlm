@@ -39,8 +39,10 @@
 
     <div class="cert-outer">
         <div class="cert-inner">
-            <div class="cert-badge">🏅</div>
-            <h1 class="institute-name">IOM Institute</h1>
+            <div style="display:flex;justify-content:center;margin-bottom:10px">
+                <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:64px;width:auto;object-fit:contain">
+            </div>
+            <h1 class="institute-name">Islamic Online Madrasah</h1>
             <div class="cert-title">Certificate of Completion</div>
 
             <div class="cert-body">

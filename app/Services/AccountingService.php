@@ -148,8 +148,8 @@ class AccountingService
         }
 
         if ($approvedPackage) {
-            // Use the approved package total
-            $feeRate    = (float) $approvedPackage->total;
+            // Use the approved package items total (no column called 'total')
+            $feeRate    = (float) $approvedPackage->items()->sum('total_amount');
             $feeTitle   = "Semester Tuition Fee — {$enrollment->course->name} ({$approvedPackage->name})";
             $discountAmount = 0.00;
         } else {
@@ -158,8 +158,10 @@ class AccountingService
             $defaultPackage = $course?->feePackages()->where('is_default', true)->first()
                 ?? $course?->feePackages()->first();
 
-            if ($defaultPackage && $defaultPackage->total > 0) {
-                $feeRate  = (float) $defaultPackage->total;
+            $packageTotal = $defaultPackage ? (float) $defaultPackage->items()->sum('total_amount') : 0;
+
+            if ($defaultPackage && $packageTotal > 0) {
+                $feeRate  = $packageTotal;
                 $feeTitle = "Semester Tuition Fee — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
                 $discountAmount = 0.00;
             } else {

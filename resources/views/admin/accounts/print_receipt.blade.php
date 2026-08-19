@@ -33,8 +33,9 @@
     </div>
 
     <div class="receipt-card">
-        <div class="header">
-            <h1 class="institute-name">IOM Institute</h1>
+        <div class="header" style="display:flex;flex-direction:column;align-items:center">
+            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:48px;width:auto;object-fit:contain;margin-bottom:6px">
+            <h1 class="institute-name">Islamic Online Madrasah</h1>
             <div class="receipt-title">OFFICIAL MONEY RECEIPT</div>
             <div style="font-size:12px;color:#64748b;margin-top:2px">Receipt No: <strong>{{ $payment->payment_no }}</strong></div>
         </div>

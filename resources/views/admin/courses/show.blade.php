@@ -230,28 +230,43 @@
          FEE PACKAGES SECTION
     ════════════════════════════════════════════════════════ --}}
     <div class="card" style="margin-top:24px">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-            <span class="card-title">💰 Fee Packages</span>
-            <div style="display:flex;gap:8px;align-items:center">
-                <span style="font-size:12px;color:var(--text-muted)">Admission Fee (Course): <strong>৳{{ number_format($course->admission_fee, 0) }}</strong></span>
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+                <span class="card-title">💰 Fee Packages</span>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+                    Admission Fee (Course): <strong>৳{{ number_format($course->admission_fee, 0) }}</strong>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <button class="btn btn-outline btn-sm" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1);display:flex;align-items:center;gap:5px" onclick="openModal('templateModal')">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M4 6h16M4 10h16M4 14h7M4 18h7"/></svg>
+                    Use Template
+                </button>
                 <button class="btn btn-primary btn-sm" onclick="openModal('addPackageModal')">+ New Package</button>
             </div>
         </div>
+
         <div class="card-body" style="padding:0">
             @forelse($course->feePackages as $pkg)
-            <div style="border-bottom:1px solid var(--card-border);padding:16px">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-                    <div>
-                        <strong style="font-size:14px">{{ $pkg->name }}</strong>
+            <div style="border-bottom:1px solid var(--card-border);padding:18px 20px">
+
+                {{-- Package Header Row --}}
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+                    {{-- LEFT: Package name + badges --}}
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <strong style="font-size:15px">{{ $pkg->name }}</strong>
                         @if($pkg->is_default)
-                            <span class="badge badge-active no-dot" style="margin-left:8px;font-size:11px">Default</span>
+                            <span class="badge badge-active no-dot" style="font-size:11px">Default</span>
                         @endif
                         @if($pkg->description)
-                            <div class="td-muted" style="font-size:12px;margin-top:2px">{{ $pkg->description }}</div>
+                            <span style="font-size:12px;color:var(--text-muted)">— {{ $pkg->description }}</span>
                         @endif
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center">
-                        <span style="font-size:13px;font-weight:700;color:var(--blue)">Package Total: ৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</span>
+                    {{-- RIGHT: Total + Actions --}}
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                        <span style="font-size:14px;font-weight:700;color:var(--blue);background:rgba(59,130,246,.08);padding:4px 12px;border-radius:20px;white-space:nowrap">
+                            Package Total: ৳{{ number_format($pkg->items->sum('total_amount'), 0) }}
+                        </span>
                         @if(!$pkg->is_default)
                         <form method="POST" action="{{ route('admin.courses.packages.set-default', [$course, $pkg]) }}">
                             @csrf @method('PATCH')
@@ -267,45 +282,56 @@
                 </div>
 
                 @if($pkg->items->count())
-                <table class="table" style="font-size:13px">
-                    <thead>
-                        <tr>
-                            <th>Fee Head</th>
-                            <th>Rate</th>
-                            <th>Months / Units</th>
-                            <th>Total</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($pkg->items as $item)
-                        <tr>
-                            <td><strong>{{ $item->label ?: $item->feeHead->name }}</strong></td>
-                            <td>৳{{ number_format($item->amount_per_unit, 0) }}</td>
-                            <td>{{ $item->quantity }} {{ $item->feeHead?->slug === 'tuition_fee' ? 'months' : 'units' }}</td>
-                            <td><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
-                            <td style="text-align:right">
-                                <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);font-size:11px">Remove</button>
-                                </form>
-                            </td>
-                        </tr>
-                        @endforeach
-                        <tr style="background:rgba(59,130,246,.04)">
-                            <td colspan="3" style="text-align:right;font-weight:700">Package Total:</td>
-                            <td colspan="2"><strong style="color:var(--blue)">৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="table-wrapper" style="border-radius:10px;overflow:hidden;border:1px solid var(--card-border)">
+                    <table style="font-size:13px;margin:0">
+                        <thead>
+                            <tr style="background:rgba(99,102,241,.04)">
+                                <th style="padding:10px 14px">Fee Head</th>
+                                <th style="padding:10px 14px">Rate (৳)</th>
+                                <th style="padding:10px 14px">Months / Units</th>
+                                <th style="padding:10px 14px">Total</th>
+                                <th style="padding:10px 14px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($pkg->items as $item)
+                            <tr>
+                                <td style="padding:10px 14px"><strong>{{ $item->label ?: $item->feeHead->name }}</strong></td>
+                                <td style="padding:10px 14px">৳{{ number_format($item->amount_per_unit, 0) }}</td>
+                                <td style="padding:10px 14px;color:var(--blue)">{{ $item->quantity }} {{ str_contains(strtolower($item->feeHead?->slug ?? ''), 'monthly') ? 'months' : 'units' }}</td>
+                                <td style="padding:10px 14px"><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
+                                <td style="padding:10px 14px;text-align:right">
+                                    <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-ghost btn-sm text-red">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:rgba(59,130,246,.04)">
+                                <td colspan="3" style="padding:10px 14px;text-align:right;font-weight:700">Package Total:</td>
+                                <td colspan="2" style="padding:10px 14px"><strong style="color:var(--blue);font-size:15px">৳{{ number_format($pkg->items->sum('total_amount'), 0) }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
                 @else
-                    <div class="alert alert-info" style="margin:0">No fee items yet. Click "+ Add Item" to add fee heads to this package.</div>
+                    <div style="background:rgba(59,130,246,.04);border:1px dashed rgba(59,130,246,.25);border-radius:10px;padding:16px;text-align:center;font-size:13px;color:var(--text-muted)">
+                        কোনো fee item নেই। <a href="#" onclick="openAddItemModal({{ $pkg->id }})" style="color:var(--blue)">+ Add Item</a> করুন।
+                    </div>
                 @endif
             </div>
             @empty
-            <div style="padding:30px;text-align:center;color:var(--text-muted)">
-                No fee packages yet. Click "+ New Package" to create one.<br>
-                <small>Packages define the fee structure for students (e.g. Category 50, Category 100).</small>
+            <div style="padding:36px;text-align:center;color:var(--text-muted)">
+                <div style="font-size:32px;margin-bottom:10px">💰</div>
+                <div style="font-weight:600;margin-bottom:4px">কোনো Fee Package নেই</div>
+                <div style="font-size:13px;margin-bottom:16px">Template ব্যবহার করে সব fee head সহ একটি package auto-তৈরি করুন, অথবা নিজে তৈরি করুন।</div>
+                <div style="display:flex;gap:8px;justify-content:center">
+                    <button class="btn btn-outline" onclick="openModal('templateModal')" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1)">📋 Use Template</button>
+                    <button class="btn btn-primary" onclick="openModal('addPackageModal')">+ New Package</button>
+                </div>
             </div>
             @endforelse
         </div>
@@ -343,6 +369,59 @@
         </div>
     </div>
 
+    <!-- Template Modal -->
+    <div class="modal-overlay" id="templateModal">
+        <div class="modal" style="max-width:500px">
+            <div class="modal-header" style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(59,130,246,.05))">
+                <div>
+                    <span class="modal-title">📋 Template থেকে Package তৈরি করুন</span>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px">সব active fee heads সহ package auto-তৈরি হবে</div>
+                </div>
+                <button class="modal-close" onclick="closeModal('templateModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.courses.packages.from-template', $course) }}">
+                @csrf
+                <div class="modal-body">
+                    {{-- Preview of what will be created --}}
+                    <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:14px;margin-bottom:16px">
+                        <div style="font-size:12px;font-weight:600;color:#6366f1;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Auto-generated fee items:</div>
+                        @foreach($feeHeads as $fh)
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(99,102,241,.1)">
+                            <span style="font-size:13px">{{ $fh->name }}</span>
+                            <span style="font-size:11px;color:var(--text-muted);background:rgba(99,102,241,.1);padding:2px 8px;border-radius:20px">
+                                @if(str_contains(strtolower($fh->slug ?? ''), 'monthly') || str_contains(strtolower($fh->slug ?? ''), 'tuition'))
+                                    {{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }} months × ৳0
+                                @else
+                                    1 unit × ৳0
+                                @endif
+                            </span>
+                        </div>
+                        @endforeach
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
+                            ⚠️ সব amount ৳0 দিয়ে তৈরি হবে — পরে edit করুন।
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Package Name <span class="required">*</span></label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Standard Package 2026" value="Standard Package" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-check" style="cursor:pointer">
+                            <input type="checkbox" name="is_default" value="1"> Set as Default Package
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('templateModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#6366f1,#3b82f6)">
+                        📋 Create from Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Add Package Item Modal -->
     <div class="modal-overlay" id="addItemModal">
         <div class="modal" style="max-width:500px">
@@ -367,7 +446,6 @@
                                 <option value="{{ $fh->id }}" data-slug="{{ $fh->slug }}">{{ $fh->name }}</option>
                             @endforeach
                         </select>
-                        <small style="color:var(--text-muted);font-size:12px">Admission Fee &amp; Retake Fee are excluded (managed separately).</small>
                     </div>
 
                     <div class="form-group">
@@ -395,7 +473,7 @@
                                 <div class="form-group" style="flex:1">
                                     <label>৳ Per Month <span class="required">*</span></label>
                                     <input type="number" id="pkg_monthly" class="form-control" min="0" value="0" step="0.01" oninput="calcMonthly()">
-                                    <small style="color:var(--text-muted);font-size:11px">e.g. 50</small>
+                                    <small style="color:var(--text-muted);font-size:11px">e.g. 500</small>
                                 </div>
                                 <div class="form-group" style="flex:1">
                                     <label>Total Months</label>
@@ -453,21 +531,17 @@
         document.getElementById('pkg_total_months_input').value = COURSE_TOTAL_MONTHS;
         document.getElementById('pkg_qty_fixed').value = 1;
         document.getElementById('pkg_amt_fixed').value = 0;
-        // Default: fixed mode until a tuition head is selected
         setMode('fixed');
         openModal('addItemModal');
     }
 
-    // Auto-toggle mode based on selected fee head slug
     function onFeeHeadChange(sel) {
         const slug = sel.options[sel.selectedIndex]?.dataset?.slug ?? '';
-        // If the fee head slug contains 'tuition' → monthly mode
-        const isTuition = slug.toLowerCase().includes('tuition');
-        setMode(isTuition ? 'monthly' : 'fixed');
+        const isMonthly = slug.toLowerCase().includes('tuition') || slug.toLowerCase().includes('monthly');
+        setMode(isMonthly ? 'monthly' : 'fixed');
     }
 
     function setMode(mode) {
-        // Update radio buttons
         document.querySelector('input[value="monthly"]').checked = mode === 'monthly';
         document.querySelector('input[value="fixed"]').checked   = mode === 'fixed';
         toggleFeeMode(mode);

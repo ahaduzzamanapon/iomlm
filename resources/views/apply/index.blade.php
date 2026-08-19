@@ -113,10 +113,11 @@
 </head>
 <body>
 
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 {{-- Header --}}
 <header class="site-header">
     <div class="site-logo">
-        <div class="site-logo-icon">IOM</div>
+        <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:48px;width:auto;object-fit:contain">
         <div>
             <div class="site-logo-name">ISLAMIC ONLINE MADRASAH</div>
             <div class="site-logo-sub">Through Knowledge, Towards Jannah</div>

@@ -12,7 +12,7 @@ class ClassController extends Controller
 {
     private function student(): ?Student
     {
-        return Student::where('email', auth()->user()->email)->first();
+        return Student::where('user_id', auth()->id())->first();
     }
 
     public function today()

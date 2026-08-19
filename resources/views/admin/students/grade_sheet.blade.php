@@ -37,8 +37,9 @@
     </div>
 
     <div class="sheet-card">
-        <div class="header">
-            <h1 class="institute-title">IOM Institute</h1>
+        <div class="header" style="display:flex;flex-direction:column;align-items:center">
+            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:52px;width:auto;object-fit:contain;margin-bottom:6px">
+            <h1 class="institute-title">Islamic Online Madrasah</h1>
             <div class="sheet-sub">OFFICIAL ACADEMIC TRANSCRIPT &amp; GRADE SHEET</div>
             <div style="font-size:12px;color:#64748b;margin-top:4px">Issued Date: {{ date('d F Y') }}</div>
         </div>

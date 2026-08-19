@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — IOM ERP</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
@@ -43,12 +44,8 @@
             margin-bottom: 20px;
         }
         .login-logo-icon {
-            width: 46px; height: 46px;
-            background: linear-gradient(135deg, #2563eb, #4f46e5);
-            border-radius: 12px;
+            width: 48px; height: 48px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 20px; font-weight: 800; color: #fff;
-            box-shadow: 0 6px 16px rgba(37,99,235,.25);
         }
         .login-logo-text { line-height: 1.2; }
         .login-logo-name { font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
@@ -113,7 +110,7 @@
 <div class="login-card">
     <!-- Logo -->
     <div class="login-logo">
-        <div class="login-logo-icon">IOM</div>
+        <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="width:48px;height:48px;object-fit:contain">
         <div class="login-logo-text">
             <div class="login-logo-name">IOM ERP</div>
             <div class="login-logo-sub">Institute Management System</div>

@@ -13,7 +13,7 @@ class RoutineController extends Controller
 {
     public function index()
     {
-        $student  = Student::where('email', auth()->user()->email)->first();
+        $student  = Student::where('user_id', auth()->id())->first();
         $batchIds = Enrollment::where('student_id', $student?->id)
             ->where('status', 'ACTIVE')
             ->pluck('batch_id');

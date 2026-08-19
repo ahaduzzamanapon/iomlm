@@ -16,7 +16,7 @@ class ExamController extends Controller
 {
     private function teacher(): ?Teacher
     {
-        return Teacher::where('email', auth()->user()->email)->first();
+        return Teacher::where('user_id', auth()->id())->first();
     }
 
     public function index()
@@ -42,7 +42,7 @@ class ExamController extends Controller
         $validated = $request->validate([
             'subject_id'       => 'required|in:' . $assignedSubjectIds->implode(','),
             'title'            => 'required|string|max:200',
-            'type'             => 'required|in:QUIZ,CLASS_TEST,HALF_TERM,FINAL',
+            'type'             => 'required|in:QUIZ,MIDTERM,FINAL,RETAKE,PRACTICAL',
             'exam_date'        => 'required|date',
             'start_datetime'   => 'nullable|date',
             'duration_minutes' => 'required|integer|min:5|max:300',

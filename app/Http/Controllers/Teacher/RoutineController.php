@@ -12,7 +12,7 @@ class RoutineController extends Controller
 {
     public function index()
     {
-        $teacher = Teacher::where('email', auth()->user()->email)->first();
+        $teacher = Teacher::where('user_id', auth()->id())->first();
 
         $slots   = RoutineSlot::orderBy('sort_order')->get();
         $days    = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];

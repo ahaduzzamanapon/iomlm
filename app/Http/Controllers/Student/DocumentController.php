@@ -11,14 +11,14 @@ class DocumentController extends Controller
 {
     public function index()
     {
-        $student = Student::where('email', auth()->user()->email)->first();
+        $student = Student::where('user_id', auth()->id())->first();
         $documents = StudentDocument::where('student_id', $student?->id)->latest()->get();
         return view('student.documents.index', compact('documents'));
     }
 
     public function generate(Request $request, $type)
     {
-        $student = Student::where('email', auth()->user()->email)->first();
+        $student = Student::where('user_id', auth()->id())->first();
 
         $doc = StudentDocument::create([
             'student_id'      => $student->id,

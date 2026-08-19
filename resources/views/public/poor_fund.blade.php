@@ -70,13 +70,14 @@
     .btn-submit:hover { background: #1d4ed8; }
 
     .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
-    </style>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 </head>
 <body>
 
 <nav class="nav-bar">
-    <div class="nav-title">
-        <span>📋</span> Online Poor Fund Application — IOM
+    <div class="nav-title" style="display:flex;align-items:center;gap:10px">
+        <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:34px;width:auto;object-fit:contain">
+        <span>Online Poor Fund Application — IOM</span>
     </div>
     <a href="/apply" class="btn-home">← Online Admission Form</a>
 </nav>

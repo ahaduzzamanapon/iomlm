@@ -66,7 +66,7 @@ class BatchController extends Controller
             'start_date'        => 'required|date',
             'admission_fee'     => 'nullable|numeric|min:0',
             'monthly_fee'       => 'nullable|numeric|min:0',
-            'status'            => 'required|in:ACTIVE,COMPLETED,SUSPENDED',
+            'status'            => 'required|in:PLANNED,ACTIVE,COMPLETED,CANCELLED',
         ]);
 
         $batch->update(array_merge($validated, [
