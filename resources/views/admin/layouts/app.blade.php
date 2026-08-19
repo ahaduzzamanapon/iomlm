@@ -436,6 +436,20 @@ if(window.fetch){
         });
     };
 }
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const eyeShow = btn.querySelector('.eye-show');
+    const eyeHide = btn.querySelector('.eye-hide');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (eyeShow) eyeShow.style.display = 'none';
+        if (eyeHide) eyeHide.style.display = 'inline-block';
+    } else {
+        input.type = 'password';
+        if (eyeShow) eyeShow.style.display = 'inline-block';
+        if (eyeHide) eyeHide.style.display = 'none';
+    }
+}
 </script>
 @stack('scripts')
 </body>
