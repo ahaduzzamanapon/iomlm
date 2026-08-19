@@ -27,12 +27,10 @@ jobs:
             **/.git*/**
             **/.github/**
             **/node_modules/**
-            .env*
-            **/.env*
+            .env
+            .env.production
             .npmrc
             **/.npmrc
-            .*
-            storage/**
             tests/**
             .editorconfig
             .gitattributes
@@ -41,8 +39,10 @@ jobs:
             package.json
             package-lock.json
             vite.config.js
-            public/.htaccess
-            **/.htaccess
+            storage/framework/cache/*
+            storage/framework/sessions/*
+            storage/framework/views/*
+            storage/logs/*
             learning-plus.zip
             inspect_data.php
             wipe_data.php
