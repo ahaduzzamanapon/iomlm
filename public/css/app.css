@@ -412,6 +412,8 @@ input, select, textarea { font-family: var(--font); }
   gap: 18px;
   transition: all var(--transition);
   box-shadow: var(--card-shadow);
+  cursor: pointer;
+  text-decoration: none;
 }
 .stat-card:hover {
   box-shadow: var(--card-shadow-hover);
