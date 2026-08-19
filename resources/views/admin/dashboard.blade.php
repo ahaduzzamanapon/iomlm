@@ -7,9 +7,6 @@
             <h2 class="banner-title">Assalamu Alaikum, {{ auth()->user()->name ?? 'Admin' }} 👋</h2>
             <p class="banner-sub">Here is your live academic overview — {{ now()->format('l, d M Y') }}</p>
         </div>
-        <div class="banner-status">
-            <span class="live-dot"></span> System Live
-        </div>
     </div>
 
     <div class="page-header" style="margin-bottom:20px">
