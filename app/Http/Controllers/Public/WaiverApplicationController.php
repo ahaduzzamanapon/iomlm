@@ -11,8 +11,18 @@ class WaiverApplicationController extends Controller
 {
     public function show()
     {
-        $divisions = Division::orderBy('name')->get();
-        $courses   = \App\Models\Course::where('is_active', true)->orderBy('name')->get();
+        try {
+            $divisions = Division::orderBy('name')->get();
+        } catch (\Throwable $e) {
+            $divisions = collect();
+        }
+
+        try {
+            $courses = \App\Models\Course::where('is_active', true)->orderBy('name')->get();
+        } catch (\Throwable $e) {
+            $courses = collect();
+        }
+
         return view('public.poor_fund', compact('divisions', 'courses'));
     }
 

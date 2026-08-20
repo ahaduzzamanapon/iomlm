@@ -70,6 +70,7 @@
     .btn-submit:hover { background: #1d4ed8; }
 
     .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+    </style>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 </head>
 <body>
