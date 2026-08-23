@@ -75,11 +75,11 @@ class QuestionController extends Controller
             ]);
 
             Question::create([
-                'question_type' => 'WRITTEN',
-                'subject_id'    => $validated['subject_id'] ?? null,
-                'question_text' => $validated['question_text'],
-                'difficulty'    => $validated['difficulty'],
-                'options'       => null,
+                'question_type'     => 'WRITTEN',
+                'subject_id'        => $validated['subject_id'] ?? null,
+                'question_text'     => $validated['question_text'],
+                'difficulty'        => $validated['difficulty'],
+                'options'           => [],
                 'correct_option_id' => null,
             ]);
         }
@@ -148,10 +148,10 @@ class QuestionController extends Controller
                 Question::firstOrCreate(
                     ['question_text' => $questionText],
                     [
-                        'question_type' => 'WRITTEN',
-                        'subject_id'    => $subject?->id,
-                        'difficulty'    => $difficulty,
-                        'options'       => null,
+                        'question_type'     => 'WRITTEN',
+                        'subject_id'        => $subject?->id,
+                        'difficulty'        => $difficulty,
+                        'options'           => [],
                         'correct_option_id' => null,
                     ]
                 );
