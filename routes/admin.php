@@ -115,6 +115,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::delete('courses/packages/{package}',                       [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'destroy'])->name('courses.packages.destroy');
     Route::patch('courses/{course}/packages/{package}/set-default',   [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'setDefault'])->name('courses.packages.set-default');
     Route::post('courses/packages/{package}/items',                   [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'storeItem'])->name('courses.packages.items.store');
+    Route::put('courses/packages/items/{item}',                       [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'updateItem'])->name('courses.packages.items.update');
     Route::delete('courses/packages/items/{item}',                    [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'destroyItem'])->name('courses.packages.items.destroy');
     Route::post('courses/{course}/packages/from-template',            [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'fromTemplate'])->name('courses.packages.from-template');
 

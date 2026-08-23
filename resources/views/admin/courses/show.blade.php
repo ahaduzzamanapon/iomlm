@@ -213,6 +213,7 @@
                                 </form>
                                 @endif
                                 <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px" onclick="openAddItemModal({{ $pkg->id }})">+ Item</button>
+                                <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px" onclick="openEditPackageModal({{ $pkg->id }}, {{ json_encode($pkg->name) }}, {{ json_encode($pkg->description) }}, {{ $pkg->is_default ? 'true' : 'false' }})">Edit</button>
                                 <form method="POST" action="{{ route('admin.courses.packages.destroy', $pkg) }}" onsubmit="return confirm('Delete this package?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);font-size:10px;padding:2px 6px">Delete</button>
@@ -229,7 +230,7 @@
                                         <th style="padding:6px 10px">Rate</th>
                                         <th style="padding:6px 10px">Qty</th>
                                         <th style="padding:6px 10px">Total</th>
-                                        <th style="padding:6px 10px"></th>
+                                        <th style="padding:6px 10px;text-align:right">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -239,10 +240,11 @@
                                         <td style="padding:6px 10px">৳{{ number_format($item->amount_per_unit, 0) }}</td>
                                         <td style="padding:6px 10px;color:var(--blue)">{{ $item->quantity }}</td>
                                         <td style="padding:6px 10px"><strong>৳{{ number_format($item->total_amount, 0) }}</strong></td>
-                                        <td style="padding:6px 10px;text-align:right">
+                                        <td style="padding:6px 10px;text-align:right;white-space:nowrap">
+                                            <button type="button" class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px;margin-right:2px" onclick="openEditItemModal({{ $item->id }}, {{ json_encode($item->label ?: $item->feeHead->name) }}, {{ $item->quantity }}, {{ $item->amount_per_unit }})">Edit</button>
                                             <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:1px 4px;font-size:11px">&times;</button>
+                                                <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:1px 4px;font-size:11px" title="Delete Item">&times;</button>
                                             </form>
                                         </td>
                                     </tr>
@@ -526,9 +528,103 @@
         </div>
     </div>
 
+    <!-- Edit Package Modal -->
+    <div class="modal-overlay" id="editPackageModal">
+        <div class="modal" style="max-width:440px">
+            <div class="modal-header">
+                <span class="modal-title" id="editPackageTitle">Edit Fee Package</span>
+                <button class="modal-close" onclick="closeModal('editPackageModal')">&times;</button>
+            </div>
+            <form method="POST" id="editPackageForm">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Package Name <span class="required">*</span></label>
+                        <input type="text" name="name" id="ep_name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" name="description" id="ep_description" class="form-control">
+                    </div>
+                    <div class="form-group" style="margin-top:10px">
+                        <label class="form-check" style="cursor:pointer">
+                            <input type="checkbox" name="is_default" id="ep_is_default" value="1"> Set as Default Package
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editPackageModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Package</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Package Item Modal -->
+    <div class="modal-overlay" id="editItemModal">
+        <div class="modal" style="max-width:460px">
+            <div class="modal-header">
+                <span class="modal-title" id="editItemTitle">Edit Fee Item</span>
+                <button class="modal-close" onclick="closeModal('editItemModal')">&times;</button>
+            </div>
+            <form method="POST" id="editItemForm">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Fee Head / Label <span class="required">*</span></label>
+                        <input type="text" name="label" id="edit_item_label" class="form-control" required>
+                    </div>
+                    <div class="form-row" style="gap:12px">
+                        <div class="form-group" style="flex:1">
+                            <label>Rate / Unit (৳) <span class="required">*</span></label>
+                            <input type="number" name="amount_per_unit" id="edit_item_rate" class="form-control" min="0" step="0.01" required oninput="calcEditItemTotal()">
+                        </div>
+                        <div class="form-group" style="flex:1">
+                            <label>Quantity (Months / Qty) <span class="required">*</span></label>
+                            <input type="number" name="quantity" id="edit_item_qty" class="form-control" min="1" required oninput="calcEditItemTotal()">
+                        </div>
+                    </div>
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:10px 14px;border-radius:8px;font-size:13px;text-align:center">
+                        Total Amount: <strong id="edit_item_total" style="color:#166534;font-size:16px">৳0</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editItemModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
     const COURSE_TOTAL_MONTHS = {{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }};
+
+    function openEditPackageModal(packageId, name, description, isDefault) {
+        document.getElementById('editPackageForm').action = '/admin/courses/packages/' + packageId;
+        document.getElementById('editPackageTitle').textContent = 'Edit Package: ' + name;
+        document.getElementById('ep_name').value = name;
+        document.getElementById('ep_description').value = description || '';
+        document.getElementById('ep_is_default').checked = !!isDefault;
+        openModal('editPackageModal');
+    }
+
+    function openEditItemModal(itemId, label, qty, rate) {
+        document.getElementById('editItemForm').action = '/admin/courses/packages/items/' + itemId;
+        document.getElementById('editItemTitle').textContent = 'Edit Fee Item: ' + label;
+        document.getElementById('edit_item_label').value = label;
+        document.getElementById('edit_item_qty').value = qty;
+        document.getElementById('edit_item_rate').value = rate;
+        calcEditItemTotal();
+        openModal('editItemModal');
+    }
+
+    function calcEditItemTotal() {
+        const rate = parseFloat(document.getElementById('edit_item_rate').value) || 0;
+        const qty = parseFloat(document.getElementById('edit_item_qty').value) || 0;
+        const total = rate * qty;
+        document.getElementById('edit_item_total').textContent = '৳' + total.toLocaleString('en-BD');
+    }
 
     function openAddItemModal(packageId) {
         document.getElementById('addItemForm').action = '/admin/courses/packages/' + packageId + '/items';

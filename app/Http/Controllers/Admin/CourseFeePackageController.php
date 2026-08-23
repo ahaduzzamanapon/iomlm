@@ -110,6 +110,29 @@ class CourseFeePackageController extends Controller
     }
 
     /**
+     * Update an item inside a package.
+     */
+    public function updateItem(Request $request, CourseFeePackageItem $item)
+    {
+        $validated = $request->validate([
+            'label'           => 'nullable|string|max:150',
+            'quantity'        => 'required|integer|min:1',
+            'amount_per_unit' => 'required|numeric|min:0',
+        ]);
+
+        $total = $validated['quantity'] * $validated['amount_per_unit'];
+
+        $item->update([
+            'label'           => $validated['label'] ?? null,
+            'quantity'        => $validated['quantity'],
+            'amount_per_unit' => $validated['amount_per_unit'],
+            'total_amount'    => $total,
+        ]);
+
+        return back()->with('success', 'Fee item updated.');
+    }
+
+    /**
      * Remove an item from a package.
      */
     public function destroyItem(CourseFeePackageItem $item)
