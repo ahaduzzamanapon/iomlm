@@ -36,12 +36,39 @@ class RoutineController extends Controller
 
         $selectedBatchId = $request->query('batch_id');
 
-        // Load entries, optionally filtered by batch
-        $query = RoutineEntry::with(['batch.course', 'slot', 'subject', 'teacher', 'classSession']);
-        if ($selectedBatchId) {
-            $query->where('batch_id', $selectedBatchId);
+        // Load all entries to accurately detect conflicts (Batch overlap & Teacher overlap)
+        $allEntries = RoutineEntry::with(['batch.course', 'slot', 'subject', 'teacher', 'classSession'])->get();
+
+        $batchCounts   = [];
+        $teacherCounts = [];
+        foreach ($allEntries as $e) {
+            $bKey = $e->slot_id . '_' . $e->day_of_week . '_' . $e->batch_id;
+            $batchCounts[$bKey] = ($batchCounts[$bKey] ?? 0) + 1;
+
+            if (!empty($e->teacher_id)) {
+                $tKey = $e->slot_id . '_' . $e->day_of_week . '_' . $e->teacher_id;
+                $teacherCounts[$tKey] = ($teacherCounts[$tKey] ?? 0) + 1;
+            }
         }
-        $entries = $query->get()->groupBy(['slot_id', 'day_of_week']);
+
+        foreach ($allEntries as $e) {
+            $bKey = $e->slot_id . '_' . $e->day_of_week . '_' . $e->batch_id;
+            $tKey = !empty($e->teacher_id) ? ($e->slot_id . '_' . $e->day_of_week . '_' . $e->teacher_id) : null;
+
+            $hasBatchConflict   = ($batchCounts[$bKey] ?? 0) > 1;
+            $hasTeacherConflict = $tKey && (($teacherCounts[$tKey] ?? 0) > 1);
+
+            if ($hasBatchConflict || $hasTeacherConflict) {
+                $e->is_override = true;
+                $e->conflict_type = $hasBatchConflict && $hasTeacherConflict
+                    ? 'Batch & Teacher Overlap'
+                    : ($hasBatchConflict ? 'Batch Overlap' : 'Teacher Overlap');
+            }
+        }
+
+        $entries = ($selectedBatchId
+            ? $allEntries->where('batch_id', $selectedBatchId)
+            : $allEntries)->groupBy(['slot_id', 'day_of_week']);
 
         // Assign a color per batch (index-based)
         $batchColors = [];
@@ -110,22 +137,30 @@ class RoutineController extends Controller
             'color'            => 'nullable|string|max:20',
         ]);
 
-        // Teacher conflict detection
-        $isOverride = false;
+        // Conflict detection (Batch overlap & Teacher overlap)
+        $batchConflict = RoutineEntry::where('slot_id', $validated['slot_id'])
+            ->where('day_of_week', $validated['day_of_week'])
+            ->where('batch_id', $validated['batch_id'])
+            ->exists();
+
+        $teacherConflict = false;
         if (!empty($validated['teacher_id'])) {
-            $conflict = RoutineEntry::where('slot_id', $validated['slot_id'])
+            $teacherConflict = RoutineEntry::where('slot_id', $validated['slot_id'])
                 ->where('day_of_week', $validated['day_of_week'])
                 ->where('teacher_id', $validated['teacher_id'])
-                ->where('batch_id', '!=', $validated['batch_id'])
                 ->exists();
-
-            $isOverride = $conflict;
         }
+
+        $isOverride = $batchConflict || $teacherConflict;
 
         RoutineEntry::create(array_merge($validated, ['is_override' => $isOverride]));
 
-        if ($isOverride) {
-            return back()->with('success', 'Entry added — ⚠️ Teacher conflict detected! Marked as OVERRIDE (shown in red).');
+        if ($batchConflict && $teacherConflict) {
+            return back()->with('warning', '⚠️ Conflict detected: Both Batch and Teacher are already scheduled in this slot! Marked in RED.');
+        } elseif ($batchConflict) {
+            return back()->with('warning', '⚠️ Batch Conflict: This batch already has a class in this time slot! Marked in RED.');
+        } elseif ($teacherConflict) {
+            return back()->with('warning', '⚠️ Teacher Conflict: Teacher is already teaching another class in this time slot! Marked in RED.');
         }
 
         return back()->with('success', 'Routine entry added.');
@@ -144,31 +179,46 @@ class RoutineController extends Controller
             'color'            => 'nullable|string|max:20',
         ]);
 
-        // Re-check conflict
-        $isOverride = false;
+        // Conflict detection (Batch overlap & Teacher overlap)
+        $batchConflict = RoutineEntry::where('slot_id', $validated['slot_id'])
+            ->where('day_of_week', $validated['day_of_week'])
+            ->where('batch_id', $validated['batch_id'])
+            ->where('id', '!=', $entry->id)
+            ->exists();
+
+        $teacherConflict = false;
         if (!empty($validated['teacher_id'])) {
-            $conflict = RoutineEntry::where('slot_id', $validated['slot_id'])
+            $teacherConflict = RoutineEntry::where('slot_id', $validated['slot_id'])
                 ->where('day_of_week', $validated['day_of_week'])
                 ->where('teacher_id', $validated['teacher_id'])
-                ->where('batch_id', '!=', $validated['batch_id'])
                 ->where('id', '!=', $entry->id)
                 ->exists();
-            $isOverride = $conflict;
         }
+
+        $isOverride = $batchConflict || $teacherConflict;
 
         $entry->update(array_merge($validated, ['is_override' => $isOverride]));
 
-        $msg = 'Routine entry updated.' . ($isOverride ? ' ⚠️ Teacher conflict — marked RED.' : '');
+        $msg = 'Routine entry updated.';
+        if ($batchConflict && $teacherConflict) {
+            $msg .= ' ⚠️ Batch & Teacher conflict — marked in RED.';
+        } elseif ($batchConflict) {
+            $msg .= ' ⚠️ Batch conflict (2 classes in same slot) — marked in RED.';
+        } elseif ($teacherConflict) {
+            $msg .= ' ⚠️ Teacher conflict — marked in RED.';
+        }
 
         // AJAX (drag-drop) → return JSON
         if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
             return response()->json([
-                'is_override' => $isOverride,
-                'message'     => $msg,
+                'is_override'      => $isOverride,
+                'batch_conflict'   => $batchConflict,
+                'teacher_conflict' => $teacherConflict,
+                'message'          => $msg,
             ]);
         }
 
-        return back()->with('success', $msg);
+        return back()->with($isOverride ? 'warning' : 'success', $msg);
     }
 
 

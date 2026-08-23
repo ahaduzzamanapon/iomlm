@@ -66,7 +66,7 @@
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;font-size:12px;align-items:center">
         <span style="color:#64748b">Legend:</span>
         <span style="background:#3b82f6;color:#fff;border-radius:4px;padding:2px 8px">Normal Entry</span>
-        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444">🔴 Teacher Conflict (Override)</span>
+        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444">🔴 Overlap Conflict (Batch / Teacher)</span>
         <span style="background:repeating-linear-gradient(45deg,#fef9c3,#fef9c3 4px,#fefce8 4px,#fefce8 8px);padding:2px 8px;border-radius:4px;border:1px solid #f59e0b">Weekend</span>
     </div>
 
@@ -113,6 +113,7 @@
                                     <div class="entry-pill {{ $entry->is_override ? 'override' : '' }}"
                                          id="pill-{{ $entry->id }}"
                                          style="background:{{ $entry->is_override ? '#ef4444' : $color }}"
+                                         title="{{ $entry->is_override ? '⚠️ OVERLAP CONFLICT: ' . ($entry->conflict_type ?? 'Batch or Teacher schedule overlap in this slot!') : '' }}"
                                          draggable="true"
                                          data-entry-id="{{ $entry->id }}"
                                          data-batch-id="{{ $entry->batch_id }}"
