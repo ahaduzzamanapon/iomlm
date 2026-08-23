@@ -136,11 +136,22 @@
                 {{-- Written Answer Image --}}
                 @if($q->question_type === 'WRITTEN')
                     @if($answer?->answer_image_path)
+                        @php
+                            $imgRel = ltrim(str_replace('public/', '', $answer->answer_image_path), '/');
+                            $imgUrl = asset('storage/' . $imgRel);
+                        @endphp
                         <div style="margin-top:10px">
-                            <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px">📷 আপনার উত্তর:</div>
-                            <img src="{{ Storage::url($answer->answer_image_path) }}"
+                            <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+                                <span>📷 আপনার উত্তর:</span>
+                                <a href="{{ $imgUrl }}" target="_blank" style="font-size:11px;color:#2563eb;text-decoration:underline">🔎 পূর্ণআকারে দেখুন (Open Image) ↗</a>
+                            </div>
+                            <img src="{{ $imgUrl }}"
                                  alt="Your Answer"
-                                 style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid #f9a8d4">
+                                 style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid #f9a8d4;display:block"
+                                 onerror="this.onerror=null;this.style.display='none';document.getElementById('ans-fallback-{{ $answer->id }}').style.display='block';">
+                            <div id="ans-fallback-{{ $answer->id }}" style="display:none;padding:10px;background:#fff1f2;border:1px solid #fecdd3;border-radius:6px;font-size:12px;color:#9f1239;margin-top:6px">
+                                📷 আপনার উত্তরের ছবি পাওয়া গেছে — <a href="{{ $imgUrl }}" target="_blank" style="color:#9f1239;font-weight:700;text-decoration:underline">সরাসরি নতুন ট্যাবে দেখুন ↗</a>
+                            </div>
                         </div>
                     @else
                         <div style="color:#94a3b8;font-size:13px;font-style:italic;margin-top:8px">⚪ কোনো উত্তর Upload করা হয়নি।</div>

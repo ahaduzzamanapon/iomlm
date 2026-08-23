@@ -249,8 +249,11 @@
                     </div>
 
                     @if($savedAns?->answer_image_path)
+                        @php
+                            $savedImgUrl = asset('storage/' . ltrim(str_replace('public/', '', $savedAns->answer_image_path), '/'));
+                        @endphp
                         <div style="margin-top:10px;font-size:12px;color:#10b981;font-weight:600">
-                            ✓ আগে Upload করা ছবি আছে। নতুন ছবি Upload করলে replace হবে।
+                            ✓ আগে Upload করা ছবি আছে (<a href="{{ $savedImgUrl }}" target="_blank" style="color:#10b981;text-decoration:underline">ছবিটি দেখুন ↗</a>)। নতুন ছবি Upload করলে replace হবে।
                         </div>
                     @endif
                 </div>

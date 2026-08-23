@@ -68,13 +68,24 @@
                     <div style="font-size:12px;color:#64748b;margin-bottom:12px">সর্বোচ্চ নম্বর: <strong>{{ $eq->marks }}</strong></div>
 
                     @if($answer && $answer->answer_image_path)
+                        @php
+                            $imgRel = ltrim(str_replace('public/', '', $answer->answer_image_path), '/');
+                            $imgUrl = asset('storage/' . $imgRel);
+                        @endphp
                         <div style="margin-bottom:12px">
-                            <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px">📷 ছাত্রের উত্তর:</div>
-                            <img src="{{ Storage::url($answer->answer_image_path) }}"
+                            <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
+                                <span>📷 ছাত্রের উত্তর:</span>
+                                <a href="{{ $imgUrl }}" target="_blank" style="font-size:11px;color:#2563eb;text-decoration:underline">🔎 পূর্ণআকারে দেখুন (Open Full Image) ↗</a>
+                            </div>
+                            <img src="{{ $imgUrl }}"
                                  alt="Student Answer"
-                                 style="max-width:100%;max-height:500px;border-radius:8px;border:1px solid #f9a8d4;cursor:pointer"
+                                 style="max-width:100%;max-height:500px;border-radius:8px;border:1px solid #f9a8d4;cursor:pointer;display:block"
                                  onclick="this.style.maxHeight = this.style.maxHeight === 'none' ? '500px' : 'none'"
+                                 onerror="this.onerror=null;this.style.display='none';document.getElementById('t-ans-fallback-{{ $answer->id }}').style.display='block';"
                                  title="Click to expand/collapse">
+                            <div id="t-ans-fallback-{{ $answer->id }}" style="display:none;padding:10px;background:#fff1f2;border:1px solid #fecdd3;border-radius:6px;font-size:12px;color:#9f1239;margin-top:6px">
+                                📷 ছাত্রের উত্তর ছবি পাওয়া গেছে — <a href="{{ $imgUrl }}" target="_blank" style="color:#9f1239;font-weight:700;text-decoration:underline">নতুন ট্যাবে সরাসরি দেখুন ↗</a>
+                            </div>
                         </div>
 
                         {{-- Grading Form --}}
