@@ -36,7 +36,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="overflow:visible">
         {{-- Search Toolbar --}}
         <div style="padding:14px 20px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div class="search-box" style="flex:1;min-width:220px">
@@ -54,7 +54,8 @@
         </div>
 
         {{-- Table --}}
-        <table id="teacherTable">
+        <div class="table-wrapper" style="overflow:visible">
+            <table id="teacherTable">
                 <thead>
                     <tr>
                         <th>Employee ID</th>
@@ -130,6 +131,7 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
     </div>
 
     <!-- Create Teacher Modal -->

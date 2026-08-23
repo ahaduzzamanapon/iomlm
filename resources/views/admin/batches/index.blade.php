@@ -15,7 +15,8 @@
     </div>
 
     <div class="card" style="overflow:visible">
-        <table>
+        <div class="table-wrapper" style="overflow:visible">
+            <table>
                 <thead>
                     <tr>
                         <th>Batch Code</th>
@@ -89,6 +90,7 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
     </div>
 
     <!-- Create Batch Modal -->
