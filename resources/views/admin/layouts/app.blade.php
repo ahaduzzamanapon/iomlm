@@ -378,7 +378,18 @@ function toggleSidebar(){
 function toggleDropdown(id){
     const m=document.getElementById(id),open=m.classList.contains('open');
     document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open'));
-    if(!open) m.classList.add('open');
+    if(!open) {
+        m.classList.add('open');
+        const rect = m.getBoundingClientRect();
+        const winHeight = window.innerHeight || document.documentElement.clientHeight;
+        if (rect.bottom > winHeight - 10 && rect.top > rect.height) {
+            m.style.top = 'auto';
+            m.style.bottom = 'calc(100% + 6px)';
+        } else {
+            m.style.top = 'calc(100% + 6px)';
+            m.style.bottom = 'auto';
+        }
+    }
 }
 document.addEventListener('click',function(e){
     if(!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open'));

@@ -1047,12 +1047,17 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgba(0,0,0,.12);
-  min-width: 160px; z-index: 300;
+  box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  min-width: 160px; z-index: 999;
   display: none;
   overflow: hidden;
 }
 .dropdown-menu.open { display: block; }
+.card:has(.dropdown-menu.open),
+.table-wrapper:has(.dropdown-menu.open),
+td:has(.dropdown-menu.open) {
+  overflow: visible !important;
+}
 .dropdown-item {
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px;
