@@ -70,7 +70,7 @@
                             <span class="badge badge-scheduled no-dot" style="font-size:10px;padding:2px 6px">{{ $totalCredit }} Cr</span>
                             <form method="POST" action="{{ route('admin.courses.semesters.destroy', [$course, $sem]) }}" style="display:inline" onsubmit="return confirm('Delete semester?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:2px 6px" title="Delete Semester">&times;</button>
+                                <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:2px 6px;font-size:11px" title="Delete Semester">Delete</button>
                             </form>
                         </div>
                     </div>
@@ -244,7 +244,7 @@
                                             <button type="button" class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px;margin-right:2px" onclick="openEditItemModal({{ $item->id }}, {{ json_encode($item->label ?: $item->feeHead->name) }}, {{ $item->quantity }}, {{ $item->amount_per_unit }})">Edit</button>
                                             <form method="POST" action="{{ route('admin.courses.packages.items.destroy', $item) }}" onsubmit="return confirm('Remove this fee item?')" style="display:inline">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:1px 4px;font-size:11px" title="Delete Item">&times;</button>
+                                                <button type="submit" class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px;color:var(--red)" title="Delete Item">Delete</button>
                                             </form>
                                         </td>
                                     </tr>
