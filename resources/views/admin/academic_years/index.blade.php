@@ -14,6 +14,12 @@
         </div>
     </div>
 
+    @if(session('success'))
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
+            ✓ {{ session('success') }}
+        </div>
+    @endif
+
     <div class="card">
         <div class="table-wrapper">
             <table>
@@ -37,20 +43,36 @@
                         </td>
                         <td>
                             @forelse($year->sessions as $sess)
-                                <span class="badge badge-secondary no-dot" style="margin-right:4px">{{ $sess->name }}</span>
+                                <div style="display:inline-flex;align-items:center;margin-right:6px;margin-bottom:4px">
+                                    <span class="badge badge-secondary no-dot" style="margin-right:2px">{{ $sess->name }}</span>
+                                    <form method="POST" action="{{ route('admin.academic-years.session.destroy', $sess) }}" style="display:inline" onsubmit="return confirm('Remove session {{ $sess->name }}?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" title="Remove Session" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px">&times;</button>
+                                    </form>
+                                </div>
                             @empty
                                 <span class="td-muted">No sessions</span>
                             @endforelse
                         </td>
                         <td>
-                            @if($year->is_active)
-                                <span class="badge badge-active">Active</span>
-                            @else
-                                <span class="badge badge-secondary">Inactive</span>
-                            @endif
+                            <form method="POST" action="{{ route('admin.academic-years.toggle-status', $year) }}" style="display:inline">
+                                @csrf @method('PATCH')
+                                <button type="submit" style="background:none;border:none;padding:0;cursor:pointer" title="Click to toggle status (Active / Inactive)">
+                                    @if($year->is_active)
+                                        <span class="badge badge-active" style="cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+                                            ● Active
+                                        </span>
+                                    @else
+                                        <span class="badge badge-secondary" style="cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='scale(1.06)'" onmouseout="this.style.transform='scale(1)'">
+                                            ○ Inactive
+                                        </span>
+                                    @endif
+                                </button>
+                            </form>
                         </td>
                         <td style="text-align:right">
                             <button class="btn btn-outline btn-sm" onclick="openSessionModal({{ $year->id }}, '{{ $year->name }}')">+ Session</button>
+                            <button class="btn btn-outline btn-sm" onclick='openEditYearModal(@json($year))'>Edit</button>
                             <form method="POST" action="{{ route('admin.academic-years.destroy', $year) }}" style="display:inline" onsubmit="return confirm('Delete this academic year?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-ghost btn-sm text-red">Delete</button>
@@ -77,7 +99,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Academic Year Name <span class="required">*</span></label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Academic Year 2026" required>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Academic Year 2026-27" required>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -96,6 +118,42 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addYearModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Academic Year</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Academic Year Modal -->
+    <div class="modal-overlay" id="editYearModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Academic Year</span>
+                <button class="modal-close" onclick="closeModal('editYearModal')">&times;</button>
+            </div>
+            <form method="POST" id="editYearForm">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Academic Year Name <span class="required">*</span></label>
+                        <input type="text" name="name" id="edit_year_name" class="form-control" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start Date <span class="required">*</span></label>
+                            <input type="date" name="start_date" id="edit_year_start_date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>End Date <span class="required">*</span></label>
+                            <input type="date" name="end_date" id="edit_year_end_date" class="form-control" required>
+                        </div>
+                    </div>
+                    <label class="form-check">
+                        <input type="checkbox" name="is_active" id="edit_year_is_active" value="1"> Set as Active Academic Year
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editYearModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Academic Year</button>
                 </div>
             </form>
         </div>
@@ -133,6 +191,15 @@
         document.getElementById('sessionModalTitle').innerText = 'Add Session to ' + yearName;
         document.getElementById('sessionForm').action = '/admin/academic-years/' + yearId + '/session';
         openModal('addSessionModal');
+    }
+
+    function openEditYearModal(year) {
+        document.getElementById('editYearForm').action = '/admin/academic-years/' + year.id;
+        document.getElementById('edit_year_name').value = year.name;
+        document.getElementById('edit_year_start_date').value = year.start_date ? year.start_date.split('T')[0] : '';
+        document.getElementById('edit_year_end_date').value = year.end_date ? year.end_date.split('T')[0] : '';
+        document.getElementById('edit_year_is_active').checked = !!year.is_active;
+        openModal('editYearModal');
     }
     </script>
     @endpush

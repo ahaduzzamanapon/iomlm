@@ -17,7 +17,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
 
     // ── Academic Setup ────────────────────────────────────────────────
     Route::resource('academic-years',   \App\Http\Controllers\Admin\AcademicYearController::class);
+    Route::patch('academic-years/{academicYear}/toggle-status', [\App\Http\Controllers\Admin\AcademicYearController::class, 'toggleStatus'])->name('academic-years.toggle-status');
     Route::post('academic-years/{academicYear}/session', [\App\Http\Controllers\Admin\AcademicYearController::class, 'storeSession'])->name('academic-years.session.store');
+    Route::delete('academic-years/sessions/{academicSession}', [\App\Http\Controllers\Admin\AcademicYearController::class, 'destroySession'])->name('academic-years.session.destroy');
     Route::resource('subjects',         \App\Http\Controllers\Admin\SubjectController::class);
     Route::resource('subjects.modules', \App\Http\Controllers\Admin\SubjectModuleController::class)->shallow();
     Route::resource('courses',          \App\Http\Controllers\Admin\CourseController::class);
