@@ -74,8 +74,12 @@
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">4. Waiver Request Details</div>
                 <table class="table" style="font-size:13px">
                     <tr><th style="width:160px;color:var(--text-muted)">Applying For:</th><td><span class="badge badge-secondary no-dot">{{ $applyLabel }}</span></td></tr>
-                    <tr><th style="color:var(--text-muted)">Convenient Admission Fee:</th><td>৳ {{ number_format($waiverApplication->convenient_admission_fee, 0) }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Convenient Monthly Fee:</th><td>৳ {{ number_format($waiverApplication->convenient_monthly_fee, 0) }}</td></tr>
+                    @if(in_array($applyFor, ['ADMISSION_FEE', 'BOTH', '']))
+                        <tr><th style="color:var(--text-muted)">Convenient Admission Fee:</th><td>৳ {{ number_format($waiverApplication->convenient_admission_fee, 0) }}</td></tr>
+                    @endif
+                    @if(in_array($applyFor, ['TUITION_FEE', 'BOTH', '']))
+                        <tr><th style="color:var(--text-muted)">Convenient Monthly Fee:</th><td>৳ {{ number_format($waiverApplication->convenient_monthly_fee, 0) }}</td></tr>
+                    @endif
                     @if($waiverApplication->course)
                         <tr><th style="color:var(--text-muted)">Course Applied For:</th><td><strong>{{ $waiverApplication->course->name }}</strong></td></tr>
                     @endif

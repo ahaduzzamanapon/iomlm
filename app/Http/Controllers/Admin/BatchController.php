@@ -47,7 +47,7 @@ class BatchController extends Controller
             'admission_fee'            => $validated['admission_fee'] ?? 0.00,
             'monthly_fee'              => $validated['monthly_fee'] ?? 0.00,
             'status'                   => 'ACTIVE',
-            'is_admission_open'        => $request->boolean('is_admission_open', true),
+            'is_admission_open'        => $request->boolean('is_admission_open'),
             'subject_version_snapshot' => 1,
         ]);
 
@@ -66,7 +66,7 @@ class BatchController extends Controller
             'start_date'        => 'required|date',
             'admission_fee'     => 'nullable|numeric|min:0',
             'monthly_fee'       => 'nullable|numeric|min:0',
-            'status'            => 'required|in:PLANNED,ACTIVE,COMPLETED,CANCELLED',
+            'status'            => 'required|in:PLANNED,ACTIVE,COMPLETED,CANCELLED,SUSPENDED',
         ]);
 
         $batch->update(array_merge($validated, [
