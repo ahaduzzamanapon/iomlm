@@ -159,14 +159,33 @@
     <script>
     const ticketUuid = @json($ticket->uuid);
     const feed = document.getElementById('userChatFeed');
+    let currentTicketStatus = @json($ticket->status);
 
     function fetchUserMessages() {
         fetch(`/online-support/messages/${ticketUuid}`)
             .then(res => res.json())
             .then(data => {
+                updateBadgeAndInput(data);
                 renderUserFeed(data.messages);
             })
             .catch(err => console.error(err));
+    }
+
+    function updateBadgeAndInput(data) {
+        const badge = document.getElementById('agentStatusBadge');
+        if (!badge) return;
+
+        if (data.status === 'CLOSED') {
+            badge.innerHTML = `<span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:12px;font-weight:700">🔒 সার্ভিস সম্পন্ন (Closed)</span>`;
+            if (currentTicketStatus !== 'CLOSED') {
+                currentTicketStatus = 'CLOSED';
+                setTimeout(() => location.reload(), 800);
+            }
+        } else if (data.agent_name && data.agent_name !== 'অপেক্ষা করা হচ্ছে...') {
+            badge.innerHTML = `<span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:12px;font-weight:700">🟢 প্রতিনিধি ${data.agent_name} সংযুক্ত আছেন</span>`;
+        } else {
+            badge.innerHTML = `<span style="background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:12px;font-weight:700">⏳ প্রতিনিধি অপেক্ষায় আছে...</span>`;
+        }
     }
 
     function getAttachmentHtml(url, isUser) {
