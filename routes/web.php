@@ -8,20 +8,10 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Root redirect → login (Breeze default) or admin dashboard
+// Root Welcome Page (Public Landing)
 Route::get('/', function () {
-    if (auth()->check()) {
-        $role = auth()->user()->role ?? 'admin';
-        return match($role) {
-            'teacher'       => redirect()->route('teacher.dashboard'),
-            'student'       => redirect()->route('student.dashboard'),
-            'support_agent' => redirect()->route('support.dashboard'),
-            'support'       => redirect()->route('support.dashboard'),
-            default         => redirect()->route('admin.dashboard'),
-        };
-    }
-    return redirect()->route('login');
-});
+    return view('welcome');
+})->name('welcome');
 
 // ── Auth routes (login/logout only — no registration for now) ─────────
 Route::get('/login', [\App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
