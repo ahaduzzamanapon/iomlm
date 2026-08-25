@@ -82,6 +82,28 @@ class CourseController extends Controller
         return back()->with('success', 'Semester added to course.');
     }
 
+    public function update(Request $request, Course $course)
+    {
+        $validated = $request->validate([
+            'name'           => 'required|string|max:200',
+            'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
+            'duration_value' => 'required|numeric|min:0.5',
+            'duration_unit'  => 'required|in:MONTH,YEAR',
+            'admission_fee'  => 'nullable|numeric|min:0',
+        ]);
+
+        $course->update([
+            'name'           => $validated['name'],
+            'type'           => $validated['type'],
+            'duration_value' => $validated['duration_value'],
+            'duration_unit'  => $validated['duration_unit'],
+            'admission_fee'  => $validated['admission_fee'] ?? $course->admission_fee,
+            'is_active'      => $request->boolean('is_active'),
+        ]);
+
+        return back()->with('success', 'Course updated successfully.');
+    }
+
     public function destroySemester(Course $course, Semester $semester)
     {
         $semester->delete();
@@ -90,23 +112,32 @@ class CourseController extends Controller
 
     public function assignSubject(Request $request, Course $course)
     {
-        $validated = $request->validate([
-            'subject_id'  => 'required|exists:subjects,id',
-            'semester_id' => 'nullable|exists:semesters,id',
+        $request->validate([
+            'subject_ids'   => 'required_without:subject_id|array',
+            'subject_ids.*' => 'exists:subjects,id',
+            'subject_id'    => 'nullable|exists:subjects,id',
+            'semester_id'   => 'nullable|exists:semesters,id',
         ]);
 
+        $subjectIds = $request->input('subject_ids');
+        if (empty($subjectIds) && $request->filled('subject_id')) {
+            $subjectIds = [$request->input('subject_id')];
+        }
+
         // Subject Based কোর্সে ১টির বেশি Subject যুক্ত করা যাবে না
-        if ($course->type === 'SUBJECT_BASED' && $course->courseSubjectMaps()->count() >= 1) {
+        if ($course->type === 'SUBJECT_BASED' && ($course->courseSubjectMaps()->count() + count($subjectIds)) > 1) {
             return back()->with('error', 'Subject Based কোর্সে মাত্র ১টি Subject যুক্ত করা যায়। বিদ্যমান Subject টি আগে রিমুভ করুন।');
         }
 
-        CourseSubjectMap::firstOrCreate([
-            'course_id'   => $course->id,
-            'subject_id'  => $validated['subject_id'],
-            'semester_id' => $course->type === 'SEMESTER_BASED' ? $validated['semester_id'] : null,
-        ]);
+        foreach ($subjectIds as $subId) {
+            CourseSubjectMap::firstOrCreate([
+                'course_id'   => $course->id,
+                'subject_id'  => $subId,
+                'semester_id' => $course->type === 'SEMESTER_BASED' ? $request->input('semester_id') : null,
+            ]);
+        }
 
-        return back()->with('success', 'Subject mapped to course successfully.');
+        return back()->with('success', 'Subjects mapped to course successfully.');
     }
 
     public function removeSubject(Course $course, CourseSubjectMap $map)

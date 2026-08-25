@@ -68,7 +68,7 @@
                 <div class="stat-label">Pending Admissions</div>
             </div>
         </a>
-        <a href="{{ route('admin.classes.index') }}" class="stat-card">
+        <a href="{{ route('admin.classes.index', ['date' => now()->toDateString()]) }}" class="stat-card">
             <div class="stat-icon teal">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
             </div>
@@ -122,7 +122,7 @@
                     <span style="font-size:18px">🎥</span>
                     <span class="card-title">Today's Scheduled Classes</span>
                 </div>
-                <a href="{{ route('admin.classes.index') }}" class="btn btn-ghost btn-sm">View Routine →</a>
+                <a href="{{ route('admin.classes.index', ['date' => now()->toDateString()]) }}" class="btn btn-ghost btn-sm">View Routine →</a>
             </div>
             @if($todayClasses->isEmpty())
                 <div style="padding:36px;text-align:center;color:var(--text-muted)">

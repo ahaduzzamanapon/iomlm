@@ -26,7 +26,7 @@ class HolidayCalendarController extends Controller
             'date'                 => $validated['date'],
             'name'                 => $validated['name'],
             'scope'                => $validated['scope'],
-            'is_recurring_yearly'  => $request->boolean('is_recurring_yearly', true),
+            'is_recurring_yearly'  => $request->boolean('is_recurring_yearly'),
         ]);
 
         return back()->with('success', 'Holiday added to academic calendar.');

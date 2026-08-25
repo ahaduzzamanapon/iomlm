@@ -173,9 +173,6 @@
                         <label>Session Name <span class="required">*</span></label>
                         <input type="text" name="name" class="form-control" placeholder="e.g. Spring 2026, Fall 2026" required>
                     </div>
-                    <label class="form-check">
-                        <input type="checkbox" name="is_active" value="1" checked> Active Session
-                    </label>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addSessionModal')">Cancel</button>

@@ -278,26 +278,16 @@
     <div class="modal-overlay" id="mapSubjectModal">
         <div class="modal">
             <div class="modal-header">
-                <span class="modal-title">Map Subject to {{ $course->name }}</span>
+                <span class="modal-title">Map Subjects to {{ $course->name }}</span>
                 <button class="modal-close" onclick="closeModal('mapSubjectModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.courses.subjects.assign', $course) }}">
                 @csrf
                 <div class="modal-body">
-                    <div class="form-group">
-                        <label>Select Subject <span class="required">*</span></label>
-                        <select name="subject_id" class="form-control" required>
-                            <option value="">-- Choose Subject --</option>
-                            @foreach($availableSubjects as $subj)
-                                <option value="{{ $subj->id }}">{{ $subj->code }}: {{ $subj->name }} ({{ $subj->credit }} Cr)</option>
-                            @endforeach
-                        </select>
-                    </div>
-
                     @if($course->type === 'SEMESTER_BASED')
                     <div class="form-group">
-                        <label>Select Semester <span class="required">*</span></label>
-                        <select name="semester_id" class="form-control" required>
+                        <label>Select Semester (Constant) <span class="required">*</span></label>
+                        <select name="semester_id" id="map_semester_id" class="form-control" required>
                             <option value="">-- Choose Semester --</option>
                             @foreach($course->semesters as $sem)
                                 <option value="{{ $sem->id }}">{{ $sem->name }}</option>
@@ -305,10 +295,20 @@
                         </select>
                     </div>
                     @endif
+
+                    <div class="form-group">
+                        <label>Select Subjects (Select Multiple) <span class="required">*</span></label>
+                        <select name="subject_ids[]" class="form-control" multiple style="height:180px;padding:8px" required>
+                            @foreach($availableSubjects as $subj)
+                                <option value="{{ $subj->id }}">{{ $subj->code }}: {{ $subj->name }} ({{ $subj->credit }} Cr)</option>
+                            @endforeach
+                        </select>
+                        <small style="color:var(--text-muted);font-size:11px">Ctrl / Cmd চেপে একাধিক সাবজেক্ট একসাথে সিলেক্ট করতে পারবেন</small>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('mapSubjectModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Map Subject</button>
+                    <button type="submit" class="btn btn-primary">Map Subjects</button>
                 </div>
             </form>
         </div>
