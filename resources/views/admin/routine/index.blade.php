@@ -168,17 +168,25 @@
 
                     <div class="form-group">
                         <label>Batch <span class="required">*</span></label>
-                        <select name="batch_id" class="form-control" required>
+                        <select name="batch_id" id="add_batch_id" class="form-control" required onchange="onBatchSelect(this.value, 'add')">
                             <option value="">Select Batch</option>
                             @foreach($batches as $b)
                                 <option value="{{ $b->id }}" {{ $selectedBatchId == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
                             @endforeach
                         </select>
                     </div>
+
+                    <div class="form-group">
+                        <label>Semester (Running Semester)</label>
+                        <select name="semester_id" id="add_semester_id" class="form-control" onchange="onSemesterSelect('add')">
+                            <option value="">— Select Semester —</option>
+                        </select>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Subject</label>
-                            <select name="subject_id" class="form-control">
+                            <select name="subject_id" id="add_subject_id" class="form-control">
                                 <option value="">— Select Subject —</option>
                                 @foreach($subjects as $s)
                                     <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
@@ -187,7 +195,7 @@
                         </div>
                         <div class="form-group">
                             <label>Teacher</label>
-                            <select name="teacher_id" class="form-control">
+                            <select name="teacher_id" id="add_teacher_id" class="form-control">
                                 <option value="">— Assign Teacher —</option>
                                 @foreach($teachers as $t)
                                     <option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -225,10 +233,16 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Batch</label>
-                        <select name="batch_id" id="edit_batch_id" class="form-control">
+                        <select name="batch_id" id="edit_batch_id" class="form-control" onchange="onBatchSelect(this.value, 'edit')">
                             @foreach($batches as $b)
                                 <option value="{{ $b->id }}">{{ $b->name }}</option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Semester (Running Semester)</label>
+                        <select name="semester_id" id="edit_semester_id" class="form-control" onchange="onSemesterSelect('edit')">
+                            <option value="">— Select Semester —</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -356,6 +370,112 @@
     <script>
     const CSRF = '{{ csrf_token() }}';
 
+    // Batch details map for dynamic semester & subject filtering
+    const batchDetails = {
+        @foreach($batches as $b)
+        "{{ $b->id }}": {
+            id: {{ $b->id }},
+            name: @json($b->name),
+            course_type: @json($b->course->type ?? 'SEMESTER_BASED'),
+            current_semester_id: {{ $b->semesterPosition?->current_semester_id ?? 'null' }},
+            semesters: @json($b->course->semesters ?? []),
+            subject_maps: @json($b->course ? $b->course->courseSubjectMaps->map(function($m) {
+                return [
+                    'subject_id' => $m->subject_id,
+                    'semester_id' => $m->semester_id,
+                    'code' => $m->subject->code ?? '',
+                    'name' => $m->subject->name ?? '',
+                ];
+            }) : [])
+        },
+        @endforeach
+    };
+
+    const allSubjects = [
+        @foreach($subjects as $s)
+        { id: {{ $s->id }}, code: @json($s->code), name: @json($s->name) },
+        @endforeach
+    ];
+
+    function onBatchSelect(batchId, prefix = 'add', targetSemesterId = null, targetSubjectId = null) {
+        const semSelect = document.getElementById(prefix + '_semester_id');
+        if (!semSelect) return;
+
+        semSelect.innerHTML = '<option value="">— Select Semester —</option>';
+
+        const batch = batchDetails[batchId];
+        if (batch) {
+            if (batch.course_type === 'SEMESTER_BASED' && batch.semesters && batch.semesters.length > 0) {
+                batch.semesters.forEach(sem => {
+                    const isRunning = (sem.id == batch.current_semester_id);
+                    const opt = document.createElement('option');
+                    opt.value = sem.id;
+                    opt.textContent = sem.name + (isRunning ? ' (Running)' : '');
+                    semSelect.appendChild(opt);
+                });
+
+                if (targetSemesterId) {
+                    semSelect.value = targetSemesterId;
+                } else if (batch.current_semester_id) {
+                    semSelect.value = batch.current_semester_id;
+                }
+            } else {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Direct Subject Enrolled (No Semester)';
+                semSelect.appendChild(opt);
+            }
+        }
+
+        onSemesterSelect(prefix, targetSubjectId);
+    }
+
+    function onSemesterSelect(prefix = 'add', targetSubjectId = null) {
+        const batchSelect = document.getElementById(prefix + '_batch_id');
+        const semSelect   = document.getElementById(prefix + '_semester_id');
+        const subjSelect  = document.getElementById(prefix + '_subject_id');
+
+        if (!subjSelect) return;
+
+        const batchId = batchSelect ? batchSelect.value : null;
+        const semId   = semSelect ? semSelect.value : null;
+        const batch   = batchId ? batchDetails[batchId] : null;
+
+        subjSelect.innerHTML = '<option value="">— Select Subject —</option>';
+
+        if (batch && batch.subject_maps && batch.subject_maps.length > 0) {
+            let filteredMaps = batch.subject_maps;
+            if (semId) {
+                filteredMaps = filteredMaps.filter(m => m.semester_id == semId);
+            }
+
+            if (filteredMaps.length > 0) {
+                filteredMaps.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.subject_id;
+                    opt.textContent = (m.code ? m.code + ': ' : '') + m.name;
+                    subjSelect.appendChild(opt);
+                });
+            } else {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'No mapped subjects for this semester';
+                subjSelect.appendChild(opt);
+            }
+        } else {
+            allSubjects.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.code + ': ' + s.name;
+                subjSelect.appendChild(opt);
+            });
+        }
+
+        if (targetSubjectId) {
+            subjSelect.value = targetSubjectId;
+        }
+    }
+
     // ══════════════════════════════════════════════════════
     // DRAG & DROP
     // ══════════════════════════════════════════════════════
@@ -402,7 +522,6 @@
                 e.dataTransfer.dropEffect = isWeekend ? 'none' : 'move';
             });
             cell.addEventListener('dragleave', e => {
-                // only clear if leaving the cell itself (not a child)
                 if (!cell.contains(e.relatedTarget)) {
                     cell.classList.remove('drag-over', 'drop-reject');
                 }
@@ -424,12 +543,10 @@
                 const teachId  = draggingPill.dataset.teacherId || null;
                 const title    = draggingPill.dataset.title || null;
 
-                // Optimistic move: append pill to new cell before server responds
                 const addBtn = cell.querySelector('.add-btn');
                 if (addBtn) cell.insertBefore(draggingPill, addBtn);
                 else cell.appendChild(draggingPill);
 
-                // Add placeholder "+ add" if source cell now empty
                 const remainingPills = sourceCell.querySelectorAll('.entry-pill');
                 if (remainingPills.length === 0 && !sourceCell.querySelector('.add-btn')) {
                     const btn = document.createElement('button');
@@ -441,7 +558,6 @@
                     sourceCell.appendChild(btn);
                 }
 
-                // AJAX update
                 try {
                     const body = new URLSearchParams({
                         _method:     'PUT',
@@ -471,20 +587,17 @@
                         }
                         toast('⚠️ Moved — teacher conflict detected! Shown in red.', '#f59e0b');
                     } else {
-                        // Conflict cleared — restore original batch color
                         const origColor = draggingPill.dataset.originalColor || '#3b82f6';
                         draggingPill.style.background = origColor;
                         draggingPill.classList.remove('override');
                         draggingPill.querySelector('.override-badge')?.remove();
                         toast('✅ Entry moved to ' + newDay + ' — conflict resolved!');
                     }
-                    // Update data attributes to reflect new position
                     draggingPill.setAttribute('onclick',
                         draggingPill.getAttribute('onclick')
                             .replace(/(, '[A-Z]{3}',\s*)(\d+)/, `, '${newDay}', ${newSlot}`)
                     );
                 } catch (err) {
-                    // Revert on network failure
                     const origAddBtn = sourceCell.querySelector('.add-btn');
                     if (origAddBtn) sourceCell.insertBefore(draggingPill, origAddBtn);
                     else sourceCell.appendChild(draggingPill);
@@ -494,17 +607,24 @@
         });
     }
 
-    // ══════════════════════════════════════════════════════
-    // Override update() to return JSON for drag-drop AJAX
-    // ══════════════════════════════════════════════════════
-    // (handled server-side — see note below)
+    document.addEventListener('DOMContentLoaded', function() {
+        initDragDrop();
+        const initialBatch = document.getElementById('add_batch_id')?.value;
+        if (initialBatch) onBatchSelect(initialBatch, 'add');
+    });
 
-    document.addEventListener('DOMContentLoaded', initDragDrop);
-
-    // ── Modal helpers (existing) ──────────────────────────
+    // ── Modal helpers ──────────────────────────
     function openAddModal(day, slotId) {
         document.getElementById('add_day').value = day;
         document.getElementById('add_slot_id').value = slotId;
+
+        const batchSelect = document.getElementById('add_batch_id');
+        if (batchSelect && batchSelect.value) {
+            onBatchSelect(batchSelect.value, 'add');
+        } else {
+            onBatchSelect('', 'add');
+        }
+
         openModal('addEntryModal');
     }
 
@@ -513,8 +633,17 @@
         document.getElementById('edit_day_of_week').value = day;
         document.getElementById('edit_slot_id').value = slotId;
         document.getElementById('edit_batch_id').value = batchId;
-        if (subjectId)  document.getElementById('edit_subject_id').value = subjectId;
-        if (teacherId)  document.getElementById('edit_teacher_id').value = teacherId;
+
+        let foundSemId = null;
+        const b = batchDetails[batchId];
+        if (b && b.subject_maps && subjectId) {
+            const m = b.subject_maps.find(map => map.subject_id == subjectId);
+            if (m) foundSemId = m.semester_id;
+        }
+
+        onBatchSelect(batchId, 'edit', foundSemId, subjectId);
+
+        if (teacherId) document.getElementById('edit_teacher_id').value = teacherId;
         document.getElementById('edit_title').value = title;
 
         document.getElementById('editDeleteBtn').onclick = function() {

@@ -30,7 +30,14 @@ class RoutineController extends Controller
     public function index(Request $request)
     {
         $slots   = RoutineSlot::orderBy('sort_order')->orderBy('start_time')->get();
-        $batches = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
+        $batches = Batch::where('status', 'ACTIVE')
+            ->with([
+                'course.semesters',
+                'course.courseSubjectMaps.subject',
+                'semesterPosition.currentSemester',
+            ])
+            ->orderBy('name')
+            ->get();
         $days    = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
         $weekends = $this->weekends();
 
