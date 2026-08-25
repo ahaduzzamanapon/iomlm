@@ -87,8 +87,27 @@ class RoutineController extends Controller
         $teachers  = Teacher::where('is_active', true)->orderBy('name')->get();
         $holidays  = HolidayCalendar::pluck('date')->toArray();
 
+        $batchData = $batches->mapWithKeys(function($b) {
+            return [$b->id => [
+                'id'                  => $b->id,
+                'name'                => $b->name,
+                'course_type'         => $b->course?->type ?? 'SEMESTER_BASED',
+                'current_semester_id' => $b->semesterPosition?->current_semester_id ?? null,
+                'semesters'           => $b->course?->semesters->map(fn($s) => [
+                    'id'   => $s->id,
+                    'name' => $s->name,
+                ])->values()->all() ?? [],
+                'subject_maps'        => $b->course?->courseSubjectMaps->map(fn($m) => [
+                    'subject_id'  => $m->subject_id,
+                    'semester_id' => $m->semester_id,
+                    'code'        => $m->subject->code ?? '',
+                    'name'        => $m->subject->name ?? '',
+                ])->values()->all() ?? [],
+            ]];
+        })->all();
+
         return view('admin.routine.index', compact(
-            'slots', 'batches', 'days', 'entries', 'weekends',
+            'slots', 'batches', 'batchData', 'days', 'entries', 'weekends',
             'batchColors', 'subjects', 'teachers', 'selectedBatchId', 'holidays'
         ));
     }

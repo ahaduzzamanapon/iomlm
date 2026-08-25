@@ -371,25 +371,7 @@
     const CSRF = '{{ csrf_token() }}';
 
     // Batch details map for dynamic semester & subject filtering
-    const batchDetails = {
-        @foreach($batches as $b)
-        "{{ $b->id }}": {
-            id: {{ $b->id }},
-            name: @json($b->name),
-            course_type: @json($b->course->type ?? 'SEMESTER_BASED'),
-            current_semester_id: {{ $b->semesterPosition?->current_semester_id ?? 'null' }},
-            semesters: @json($b->course->semesters ?? []),
-            subject_maps: @json($b->course ? $b->course->courseSubjectMaps->map(function($m) {
-                return [
-                    'subject_id' => $m->subject_id,
-                    'semester_id' => $m->semester_id,
-                    'code' => $m->subject->code ?? '',
-                    'name' => $m->subject->name ?? '',
-                ];
-            }) : [])
-        },
-        @endforeach
-    };
+    const batchDetails = @json($batchData);
 
     const allSubjects = [
         @foreach($subjects as $s)
