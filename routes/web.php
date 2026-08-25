@@ -66,3 +66,7 @@ Route::middleware(['auth'])->prefix('support')->name('support.')->group(function
     Route::post('/tickets/{uuid}/message', [\App\Http\Controllers\Support\SupportAgentController::class, 'sendMessage'])->name('tickets.message');
     Route::post('/tickets/{uuid}/close', [\App\Http\Controllers\Support\SupportAgentController::class, 'closeTicket'])->name('tickets.close');
 });
+
+// ── Hidden Artisan Command Runner Route (/command) ────────────────────
+Route::get('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'index'])->middleware(['auth'])->name('command.index');
+Route::post('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'run'])->middleware(['auth'])->name('command.run');

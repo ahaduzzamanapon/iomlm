@@ -52,6 +52,10 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::patch('support-departments/{supportDepartment}/toggle', [\App\Http\Controllers\Admin\SupportDepartmentController::class, 'toggleStatus'])->name('support-departments.toggle');
     Route::resource('support-agents',      \App\Http\Controllers\Admin\SupportUserController::class);
 
+    // ── Hidden Artisan Command Console ──────────────────────────────
+    Route::get('command',  [\App\Http\Controllers\Admin\CommandRunnerController::class, 'index'])->name('command.run.index');
+    Route::post('command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'run'])->name('command.run');
+
     Route::resource('students', \App\Http\Controllers\Admin\StudentController::class);
     Route::get('students/{student}/grade-sheet', [\App\Http\Controllers\Admin\StudentController::class, 'printGradeSheet'])->name('students.grade-sheet');
     Route::get('students/{student}/certificate', [\App\Http\Controllers\Admin\StudentController::class, 'printCertificate'])->name('students.certificate');
