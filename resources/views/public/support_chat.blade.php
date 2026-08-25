@@ -171,18 +171,22 @@
 
     function getAttachmentHtml(url, isUser) {
         if (!url) return '';
-        const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+        const cleanUrl = url.split('?')[0].split('#')[0];
+        const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|jfif)$/i.test(cleanUrl);
+        const linkColor = isUser ? '#ffffff' : '#0284c7';
         if (isImg) {
             return `
                 <div style="margin-top:8px">
                     <a href="${url}" target="_blank" title="ক্লিক করে বড় ছবি দেখুন">
-                        <img src="${url}" style="max-width:260px;max-height:240px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);display:block;object-fit:cover;background:#f1f5f9" alt="Attachment">
+                        <img src="${url}" 
+                             style="max-width:260px;max-height:240px;border-radius:8px;border:1px solid rgba(0,0,0,0.15);display:block;object-fit:cover;background:#e2e8f0" 
+                             alt="Chat Image Attachment"
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<a href=\\'${url}\\' target=\\'_blank\\' style=\\'color:${linkColor};text-decoration:underline;font-weight:600\\'>📄 চিত্র/ফাইল দেখুন ↗</a>';">
                     </a>
                 </div>
             `;
         }
-        const color = isUser ? '#ffffff' : '#0284c7';
-        return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${color};text-decoration:underline;font-weight:600">📄 ডকুমেন্ট/ফাইল দেখুন ↗</a></div>`;
+        return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${linkColor};text-decoration:underline;font-weight:600">📄 ডকুমেন্ট/ফাইল দেখুন ↗</a></div>`;
     }
 
     function renderUserFeed(messages) {

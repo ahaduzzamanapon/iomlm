@@ -200,18 +200,22 @@
 
     function getAgentAttachmentHtml(url, isAgent) {
         if (!url) return '';
-        const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+        const cleanUrl = url.split('?')[0].split('#')[0];
+        const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|jfif)$/i.test(cleanUrl);
+        const linkColor = isAgent ? '#ffffff' : '#0284c7';
         if (isImg) {
             return `
                 <div style="margin-top:8px">
                     <a href="${url}" target="_blank" title="Click to view full image">
-                        <img src="${url}" style="max-width:260px;max-height:240px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);display:block;object-fit:cover;background:#f1f5f9" alt="Attachment">
+                        <img src="${url}" 
+                             style="max-width:260px;max-height:240px;border-radius:8px;border:1px solid rgba(0,0,0,0.15);display:block;object-fit:cover;background:#e2e8f0" 
+                             alt="Chat Attachment Image"
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<a href=\\'${url}\\' target=\\'_blank\\' style=\\'color:${linkColor};text-decoration:underline;font-weight:600\\'>📄 View Attachment File ↗</a>';">
                     </a>
                 </div>
             `;
         }
-        const color = isAgent ? '#ffffff' : '#0284c7';
-        return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${color};text-decoration:underline;font-weight:600">📄 View Attachment File ↗</a></div>`;
+        return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${linkColor};text-decoration:underline;font-weight:600">📄 View Attachment File ↗</a></div>`;
     }
 
     function renderAgentFeed(messages) {
