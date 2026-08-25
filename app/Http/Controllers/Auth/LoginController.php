@@ -45,9 +45,11 @@ class LoginController extends Controller
     {
         $role = Auth::user()->role ?? 'admin';
         return match($role) {
-            'teacher' => redirect()->intended(route('teacher.dashboard')),
-            'student' => redirect()->intended(route('student.dashboard')),
-            default   => redirect()->intended(route('admin.dashboard')),
+            'teacher'       => redirect()->intended(route('teacher.dashboard')),
+            'student'       => redirect()->intended(route('student.dashboard')),
+            'support_agent',
+            'support'       => redirect()->intended(route('support.dashboard')),
+            default         => redirect()->intended(route('admin.dashboard')),
         };
     }
 }

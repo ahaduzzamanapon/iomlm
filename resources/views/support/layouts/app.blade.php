@@ -144,7 +144,7 @@
                 <div style="display:flex;align-items:center;gap:16px">
                     <div style="text-align:right">
                         <div style="font-weight:700;font-size:13px">{{ auth()->user()->name }}</div>
-                        <div style="font-size:11px;color:#0284c7;font-weight:600">Support Agent</div>
+                        <div style="font-size:11px;color:#0284c7;font-weight:600">{{ auth()->user()->isAdmin() ? 'Super Admin' : 'Support Agent' }}</div>
                     </div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
