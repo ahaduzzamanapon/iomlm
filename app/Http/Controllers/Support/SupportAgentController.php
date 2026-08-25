@@ -45,6 +45,56 @@ class SupportAgentController extends Controller
     }
 
     /**
+     * Live Queue API for Auto-refreshing Dashboard
+     */
+    public function queueApi(Request $request)
+    {
+        $agent = Auth::user();
+        $myDepartmentIds = $agent->isAdmin()
+            ? SupportDepartment::pluck('id')->toArray()
+            : $agent->supportDepartments()->pluck('support_departments.id')->toArray();
+
+        $statusFilter = $request->query('status', 'ALL');
+
+        $ticketQuery = SupportTicket::with('department', 'assignedAgent', 'latestMessage')
+            ->whereIn('department_id', $myDepartmentIds)
+            ->latest();
+
+        if ($statusFilter !== 'ALL' && in_array($statusFilter, ['PENDING', 'IN_PROGRESS', 'CLOSED'])) {
+            $ticketQuery->where('status', $statusFilter);
+        }
+
+        $tickets = $ticketQuery->get()->map(function ($t) {
+            return [
+                'id'              => $t->id,
+                'ticket_no'       => $t->ticket_no,
+                'uuid'            => $t->uuid,
+                'name'            => $t->name,
+                'phone'           => $t->phone,
+                'email'           => $t->email,
+                'student_id'      => $t->student_id,
+                'department_name' => $t->department?->name ?? '—',
+                'subject'         => $t->subject,
+                'problem_details' => $t->problem_details,
+                'created_at'      => $t->created_at->format('d M Y, h:i A'),
+                'status'          => $t->status,
+                'agent_name'      => $t->assignedAgent?->name,
+            ];
+        });
+
+        $pendingCount    = SupportTicket::whereIn('department_id', $myDepartmentIds)->where('status', 'PENDING')->count();
+        $myActiveCount   = SupportTicket::where('assigned_agent_id', $agent->id)->where('status', 'IN_PROGRESS')->count();
+        $myResolvedCount = SupportTicket::where('assigned_agent_id', $agent->id)->where('status', 'CLOSED')->count();
+
+        return response()->json([
+            'pendingCount'    => $pendingCount,
+            'myActiveCount'   => $myActiveCount,
+            'myResolvedCount' => $myResolvedCount,
+            'tickets'         => $tickets,
+        ]);
+    }
+
+    /**
      * Accept Ticket to start live chat
      */
     public function acceptTicket($uuid)

@@ -61,6 +61,7 @@ Route::post('/online-support/rate/{uuid}', [\App\Http\Controllers\Public\OnlineS
 // ── Support Agent Panel Routes (Auth) ─────────────────────────────────
 Route::middleware(['auth'])->prefix('support')->name('support.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Support\SupportAgentController::class, 'dashboard'])->name('dashboard');
+    Route::get('/api/queue', [\App\Http\Controllers\Support\SupportAgentController::class, 'queueApi'])->name('api.queue');
     Route::post('/tickets/{uuid}/accept', [\App\Http\Controllers\Support\SupportAgentController::class, 'acceptTicket'])->name('tickets.accept');
     Route::post('/tickets/{uuid}/transfer', [\App\Http\Controllers\Support\SupportAgentController::class, 'transferTicket'])->name('tickets.transfer');
     Route::get('/chat/{uuid}', [\App\Http\Controllers\Support\SupportAgentController::class, 'agentChat'])->name('chat');
