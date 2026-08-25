@@ -48,9 +48,11 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::patch('waiver-applications/{waiverApplication}/reject',        [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'reject'])->name('waiver-applications.reject');
 
     // ── Support Setup (Departments & Agents) ──────────────────────────
-    Route::resource('support-departments', \App\Http\Controllers\Admin\SupportDepartmentController::class);
+    Route::get('support-tickets',                        [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'index'])->name('support-tickets.index');
+    Route::patch('support-tickets/{ticket}/reassign',    [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'reassign'])->name('support-tickets.reassign');
+    Route::resource('support-departments',               \App\Http\Controllers\Admin\SupportDepartmentController::class);
     Route::patch('support-departments/{supportDepartment}/toggle', [\App\Http\Controllers\Admin\SupportDepartmentController::class, 'toggleStatus'])->name('support-departments.toggle');
-    Route::resource('support-agents',      \App\Http\Controllers\Admin\SupportUserController::class);
+    Route::resource('support-agents',                    \App\Http\Controllers\Admin\SupportUserController::class);
 
     // ── Hidden Artisan Command Console ──────────────────────────────
     Route::get('command',  [\App\Http\Controllers\Admin\CommandRunnerController::class, 'index'])->name('command.run.index');

@@ -252,6 +252,36 @@
                 </div>
             </div>
 
+            {{-- ── 7.5. Support & Helpdesk ── --}}
+            @php $supportActive = request()->routeIs('admin.support-tickets*','admin.support-departments*','admin.support-agents*','support*'); @endphp
+            <div class="tree-group">
+                <div class="tree-toggle {{ $supportActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Support &amp; Helpdesk
+                    @php
+                        $pendingSupportCount = \App\Models\SupportTicket::where('status', 'PENDING')->count();
+                    @endphp
+                    @if($pendingSupportCount > 0)
+                        <span class="nav-badge" style="background:#f59e0b">{{ $pendingSupportCount }}</span>
+                    @endif
+                    <svg class="tree-toggle-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                </div>
+                <div class="tree-children {{ $supportActive ? 'open' : '' }}">
+                    <a href="{{ route('admin.support-tickets.index') }}" class="nav-item {{ request()->routeIs('admin.support-tickets*') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        All Support Tickets
+                    </a>
+                    <a href="{{ route('admin.support-departments.index') }}" class="nav-item {{ request()->routeIs('admin.support-departments*','admin.support-agents*') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        Departments &amp; Agents
+                    </a>
+                    <a href="{{ route('support.dashboard') }}" target="_blank" class="nav-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                        Open Agent Live Chat ↗
+                    </a>
+                </div>
+            </div>
+
             {{-- ── 8. System ── --}}
             @php $systemActive = request()->routeIs('admin.reports*','admin.settings*','admin.app-settings*','admin.fee-heads*'); @endphp
             <div class="tree-group">
