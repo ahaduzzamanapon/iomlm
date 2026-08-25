@@ -169,6 +169,22 @@
             .catch(err => console.error(err));
     }
 
+    function getAttachmentHtml(url, isUser) {
+        if (!url) return '';
+        const isImg = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+        if (isImg) {
+            return `
+                <div style="margin-top:8px">
+                    <a href="${url}" target="_blank" title="ক্লিক করে বড় ছবি দেখুন">
+                        <img src="${url}" style="max-width:260px;max-height:240px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);display:block;object-fit:cover;background:#f1f5f9" alt="Attachment">
+                    </a>
+                </div>
+            `;
+        }
+        const color = isUser ? '#ffffff' : '#0284c7';
+        return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${color};text-decoration:underline;font-weight:600">📄 ডকুমেন্ট/ফাইল দেখুন ↗</a></div>`;
+    }
+
     function renderUserFeed(messages) {
         const isScrolledBottom = feed.scrollHeight - feed.clientHeight <= feed.scrollTop + 50;
 
@@ -188,7 +204,7 @@
                         <div style="font-size:11px;color:#64748b;margin-bottom:2px">You &middot; ${m.time}</div>
                         <div style="background:#0284c7;color:#fff;padding:10px 14px;border-radius:12px 12px 0 12px;max-width:80%;font-size:14px;line-height:1.4">
                             ${m.message}
-                            ${m.attachment ? `<div style="margin-top:6px"><a href="${m.attachment}" target="_blank" style="color:#fff;text-decoration:underline">📎 চিত্র/ফাইল দেখুন ↗</a></div>` : ''}
+                            ${getAttachmentHtml(m.attachment, true)}
                         </div>
                     </div>
                 `;
@@ -198,7 +214,7 @@
                         <div style="font-size:11px;color:#64748b;margin-bottom:2px">Support Agent (${m.sender_name}) &middot; ${m.time}</div>
                         <div style="background:#ffffff;border:1px solid #cbd5e1;color:#0f172a;padding:10px 14px;border-radius:12px 12px 12px 0;max-width:80%;font-size:14px;line-height:1.4">
                             ${m.message}
-                            ${m.attachment ? `<div style="margin-top:6px"><a href="${m.attachment}" target="_blank" style="color:#0284c7;text-decoration:underline">📎 চিত্র/ফাইল দেখুন ↗</a></div>` : ''}
+                            ${getAttachmentHtml(m.attachment, false)}
                         </div>
                     </div>
                 `;
@@ -244,11 +260,47 @@
     function previewUserFile(input) {
         const p = document.getElementById('userFilePreview');
         if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const isImage = file.type.startsWith('image/');
             p.style.display = 'block';
-            p.innerText = '📎 সংযুক্ত: ' + input.files[0].name;
+
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    p.innerHTML = `
+                        <div style="display:inline-flex;align-items:center;gap:10px;background:#f1f5f9;padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;margin-top:6px">
+                            <img src="${e.target.result}" style="width:55px;height:55px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1" alt="Preview">
+                            <div>
+                                <div style="font-size:12px;color:#0284c7;font-weight:700">📷 ${file.name}</div>
+                                <div style="font-size:10px;color:#64748b">${(file.size/1024).toFixed(1)} KB &middot; ছবি রেডি আছে</div>
+                            </div>
+                            <button type="button" onclick="clearUserFile()" style="border:none;background:#ef4444;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;margin-left:8px;font-size:13px;font-weight:700" title="ফাইল মুছুন">&times;</button>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                p.innerHTML = `
+                    <div style="display:inline-flex;align-items:center;gap:10px;background:#f1f5f9;padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;margin-top:6px">
+                        <span style="font-size:22px">📄</span>
+                        <div>
+                            <div style="font-size:12px;color:#0284c7;font-weight:700">${file.name}</div>
+                            <div style="font-size:10px;color:#64748b">${(file.size/1024).toFixed(1)} KB</div>
+                        </div>
+                        <button type="button" onclick="clearUserFile()" style="border:none;background:#ef4444;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;margin-left:8px;font-size:13px;font-weight:700" title="ফাইল মুছুন">&times;</button>
+                    </div>
+                `;
+            }
         } else {
             p.style.display = 'none';
+            p.innerHTML = '';
         }
+    }
+
+    function clearUserFile() {
+        const input = document.getElementById('userAttachmentInput');
+        if (input) input.value = '';
+        previewUserFile(input);
     }
 
     fetchUserMessages();
