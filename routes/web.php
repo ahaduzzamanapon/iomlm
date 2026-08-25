@@ -62,9 +62,16 @@ Route::post('/online-support/rate/{uuid}', [\App\Http\Controllers\Public\OnlineS
 Route::middleware(['auth'])->prefix('support')->name('support.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Support\SupportAgentController::class, 'dashboard'])->name('dashboard');
     Route::post('/tickets/{uuid}/accept', [\App\Http\Controllers\Support\SupportAgentController::class, 'acceptTicket'])->name('tickets.accept');
+    Route::post('/tickets/{uuid}/transfer', [\App\Http\Controllers\Support\SupportAgentController::class, 'transferTicket'])->name('tickets.transfer');
     Route::get('/chat/{uuid}', [\App\Http\Controllers\Support\SupportAgentController::class, 'agentChat'])->name('chat');
     Route::post('/tickets/{uuid}/message', [\App\Http\Controllers\Support\SupportAgentController::class, 'sendMessage'])->name('tickets.message');
     Route::post('/tickets/{uuid}/close', [\App\Http\Controllers\Support\SupportAgentController::class, 'closeTicket'])->name('tickets.close');
+
+    // Canned Messages (Quick Replies)
+    Route::get('/canned-messages', [\App\Http\Controllers\Support\SupportAgentController::class, 'cannedMessagesIndex'])->name('canned-messages.index');
+    Route::post('/canned-messages', [\App\Http\Controllers\Support\SupportAgentController::class, 'cannedMessagesStore'])->name('canned-messages.store');
+    Route::put('/canned-messages/{cannedMessage}', [\App\Http\Controllers\Support\SupportAgentController::class, 'cannedMessagesUpdate'])->name('canned-messages.update');
+    Route::delete('/canned-messages/{cannedMessage}', [\App\Http\Controllers\Support\SupportAgentController::class, 'cannedMessagesDestroy'])->name('canned-messages.destroy');
 });
 
 // ── Hidden Artisan Command Runner Route (/command) ────────────────────

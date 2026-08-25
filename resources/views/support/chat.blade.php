@@ -10,9 +10,12 @@
                     <div style="font-weight:700;font-size:15px">💬 Live Chat: {{ $ticket->name }}</div>
                     <div style="font-size:11px;color:#94a3b8">Ticket: <strong>{{ $ticket->ticket_no }}</strong> &middot; Dept: {{ $ticket->department->name }}</div>
                 </div>
-                <div>
+                <div style="display:flex;gap:8px">
                     @if($ticket->status !== 'CLOSED')
-                        <form method="POST" action="{{ route('support.tickets.close', $ticket->uuid) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই সাপোর্ট টিকিটটি বন্ধ করতে চান?')">
+                        <button type="button" class="btn btn-outline btn-sm" onclick="openModal('transferDeptModal')" style="color:#38bdf8;border-color:#38bdf8">
+                            🔄 Pass to Other Dept
+                        </button>
+                        <form method="POST" action="{{ route('support.tickets.close', $ticket->uuid) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই সাপোর্ট টিকিটটি বন্ধ করতে চান?')" style="display:inline">
                             @csrf
                             <button type="submit" class="btn btn-danger btn-sm" style="background:#e11d48">
                                 🔒 Close Ticket
@@ -34,6 +37,9 @@
                 <div style="padding:16px;background:#fff;border-top:1px solid #e2e8f0;border-radius:0 0 12px 12px">
                     <form id="agentMessageForm" onsubmit="sendAgentMessage(event)" style="display:flex;flex-direction:column;gap:10px">
                         <div style="display:flex;gap:10px;align-items:center">
+                            <button type="button" class="btn btn-outline" style="height:44px;color:#f59e0b;border-color:#fde047;background:#fefce8" onclick="openModal('cannedModal')" title="কাস্টম মেসেজ নির্বাচন করুন">
+                                ⚡ Quick Reply
+                            </button>
                             <input type="text" id="agentMsgInput" class="form-control" placeholder="উত্তর লিখুন..." autocomplete="off" style="flex:1;height:44px;font-size:14px">
                             <label class="btn btn-outline" style="cursor:pointer;height:44px;display:inline-flex;align-items:center" title="Attach file/image">
                                 📷 <input type="file" id="agentAttachmentInput" accept="image/*,.pdf" style="display:none" onchange="previewAgentFile(this)">
@@ -101,6 +107,81 @@
             </div>
         </div>
 
+    </div>
+
+    {{-- Modal 1: Transfer Department Modal --}}
+    <div class="modal-overlay" id="transferDeptModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">🔄 Pass Ticket to Other Department</span>
+                <button class="modal-close" onclick="closeModal('transferDeptModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('support.tickets.transfer', $ticket->uuid) }}">
+                @csrf
+                <div class="modal-body">
+                    <div style="font-size:13px;color:#64748b;margin-bottom:12px">
+                        বর্তমান ডিপার্টমেন্ট: <strong>{{ $ticket->department->name }}</strong>
+                    </div>
+
+                    <div class="form-group">
+                        <label>নতুন ডিপার্টমেন্ট নির্বাচন করুন <span class="required">*</span></label>
+                        <select name="new_department_id" class="form-control" required>
+                            <option value="">-- Select Target Department --</option>
+                            @foreach($departments as $d)
+                                @if($d->id !== $ticket->department_id)
+                                    <option value="{{ $d->id }}">{{ $d->name }}</option>
+                                @endif
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>স্থানান্তরের কারণ / নোট (ঐচ্ছিক)</label>
+                        <textarea name="reason" class="form-control" rows="2" placeholder="e.g. স্টুডেন্টের সমস্যাটি ভাইদের ভর্তি সংক্রান্ত..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('transferDeptModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7">স্থানান্তর করুন (Transfer)</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Modal 2: Quick Replies / Canned Messages Modal --}}
+    <div class="modal-overlay" id="cannedModal">
+        <div class="modal" style="max-width:550px">
+            <div class="modal-header">
+                <span class="modal-title">⚡ Select Quick Reply (কাস্টম মেসেজ)</span>
+                <button class="modal-close" onclick="closeModal('cannedModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height:380px;overflow-y:auto">
+                <div style="display:flex;flex-direction:column;gap:10px">
+                    @forelse($cannedMessages as $cm)
+                        <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <strong style="color:#0284c7;font-size:14px">{{ $cm->title }}</strong>
+                                <div style="font-size:12px;color:#475569;margin-top:2px;white-space:pre-line;max-height:60px;overflow:hidden">{{ $cm->message }}</div>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-primary btn-sm" onclick='insertCannedText(@json($cm->message))'>
+                                    Select &amp; Fill
+                                </button>
+                            </div>
+                        </div>
+                    @empty
+                        <div style="text-align:center;padding:30px;color:#94a3b8">
+                            আপনার কোনো কাস্টম মেসেজ তৈরি করা নেই। <br>
+                            <a href="{{ route('support.canned-messages.index') }}" target="_blank" style="color:#0284c7;font-weight:700">এখানে ক্লিক করে কাস্টম মেসেজ যুক্ত করুন →</a>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+            <div class="modal-footer" style="display:flex;justify-content:space-between">
+                <a href="{{ route('support.canned-messages.index') }}" target="_blank" style="font-size:12px;color:#0284c7;font-weight:700">⚙️ Manage My Quick Replies</a>
+                <button type="button" class="btn btn-outline" onclick="closeModal('cannedModal')">Close</button>
+            </div>
+        </div>
     </div>
 
     @push('scripts')
@@ -197,6 +278,15 @@
         } else {
             p.style.display = 'none';
         }
+    }
+
+    function insertCannedText(text) {
+        const input = document.getElementById('agentMsgInput');
+        if (input) {
+            input.value = text;
+            input.focus();
+        }
+        closeModal('cannedModal');
     }
 
     fetchAgentMessages();

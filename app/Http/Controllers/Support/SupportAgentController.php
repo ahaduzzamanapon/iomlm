@@ -78,21 +78,109 @@ class SupportAgentController extends Controller
     }
 
     /**
-     * Agent Live Chat View
+     * Transfer Ticket to another department (Pass to Other Dept)
+     */
+    public function transferTicket(Request $request, $uuid)
+    {
+        $agent = Auth::user();
+        $ticket = SupportTicket::where('uuid', $uuid)->firstOrFail();
+
+        $validated = $request->validate([
+            'new_department_id' => 'required|exists:support_departments,id',
+            'reason'            => 'nullable|string|max:255',
+        ]);
+
+        $oldDept = $ticket->department->name ?? '—';
+        $newDept = SupportDepartment::findOrFail($validated['new_department_id']);
+
+        $ticket->update([
+            'department_id'     => $newDept->id,
+            'assigned_agent_id' => null, // Reset agent so new dept agents can accept
+            'status'            => 'PENDING',
+        ]);
+
+        $reasonText = !empty($validated['reason']) ? " (কারণ: {$validated['reason']})" : '';
+
+        SupportMessage::create([
+            'ticket_id'   => $ticket->id,
+            'sender_type' => 'SYSTEM',
+            'sender_id'   => $agent->id,
+            'message'     => "সাপোর্ট প্রতিনিধি '{$agent->name}' টিকিটটি '{$oldDept}' থেকে '{$newDept->name}' ডিপার্টমেন্টে স্থানান্তর করেছেন{$reasonText}।",
+        ]);
+
+        return redirect()->route('support.dashboard')->with('success', "টিকিটটি '{$newDept->name}' ডিপার্টমেন্টে স্থানান্তর করা হয়েছে।");
+    }
+
+    /**
+     * Agent Live Chat View (Updated to include Canned Messages)
      */
     public function agentChat($uuid)
     {
         $agent = Auth::user();
-        $myDepartmentIds = $agent->isAdmin()
-            ? SupportDepartment::pluck('id')->toArray()
-            : $agent->supportDepartments()->pluck('support_departments.id')->toArray();
 
         $ticket = SupportTicket::with('department', 'assignedAgent', 'messages.sender')
             ->where('uuid', $uuid)
-            ->whereIn('department_id', $myDepartmentIds)
             ->firstOrFail();
 
-        return view('support.chat', compact('ticket'));
+        $departments = SupportDepartment::orderBy('sort_order', 'asc')->get();
+        $cannedMessages = \App\Models\SupportCannedMessage::where('user_id', $agent->id)->get();
+
+        return view('support.chat', compact('ticket', 'departments', 'cannedMessages'));
+    }
+
+    /**
+     * Agent Canned Messages (Quick Replies) Index & Storage
+     */
+    public function cannedMessagesIndex()
+    {
+        $agent = Auth::user();
+        $cannedMessages = \App\Models\SupportCannedMessage::where('user_id', $agent->id)->latest()->get();
+        return view('support.canned_messages', compact('cannedMessages'));
+    }
+
+    public function cannedMessagesStore(Request $request)
+    {
+        $agent = Auth::user();
+        $validated = $request->validate([
+            'title'   => 'required|string|max:150',
+            'message' => 'required|string',
+        ]);
+
+        \App\Models\SupportCannedMessage::create([
+            'user_id' => $agent->id,
+            'title'   => $validated['title'],
+            'message' => $validated['message'],
+        ]);
+
+        return back()->with('success', 'কাস্টম মেসেজ টেমপ্লেট সফলভাবে সংরক্ষিত হয়েছে।');
+    }
+
+    public function cannedMessagesUpdate(Request $request, \App\Models\SupportCannedMessage $cannedMessage)
+    {
+        $agent = Auth::user();
+        if ($cannedMessage->user_id !== $agent->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'title'   => 'required|string|max:150',
+            'message' => 'required|string',
+        ]);
+
+        $cannedMessage->update($validated);
+
+        return back()->with('success', 'কাস্টম মেসেজ আপডেট করা হয়েছে।');
+    }
+
+    public function cannedMessagesDestroy(\App\Models\SupportCannedMessage $cannedMessage)
+    {
+        $agent = Auth::user();
+        if ($cannedMessage->user_id !== $agent->id) {
+            abort(403);
+        }
+
+        $cannedMessage->delete();
+        return back()->with('success', 'কাস্টম মেসেজ মুছে ফেলা হয়েছে।');
     }
 
     /**
