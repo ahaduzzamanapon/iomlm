@@ -189,7 +189,15 @@
         return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${linkColor};text-decoration:underline;font-weight:600">📄 ডকুমেন্ট/ফাইল দেখুন ↗</a></div>`;
     }
 
+    let lastUserMessageFingerprint = '';
+
     function renderUserFeed(messages) {
+        const fingerprint = messages.map(m => m.id + '_' + m.message + '_' + (m.attachment || '')).join('|');
+        if (fingerprint === lastUserMessageFingerprint) {
+            return; // No new changes, do not re-render DOM!
+        }
+        lastUserMessageFingerprint = fingerprint;
+
         const isScrolledBottom = feed.scrollHeight - feed.clientHeight <= feed.scrollTop + 50;
 
         let html = '';

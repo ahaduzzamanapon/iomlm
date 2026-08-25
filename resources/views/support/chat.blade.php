@@ -218,7 +218,15 @@
         return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${linkColor};text-decoration:underline;font-weight:600">📄 View Attachment File ↗</a></div>`;
     }
 
+    let lastAgentMessageFingerprint = '';
+
     function renderAgentFeed(messages) {
+        const fingerprint = messages.map(m => m.id + '_' + m.message + '_' + (m.attachment || '')).join('|');
+        if (fingerprint === lastAgentMessageFingerprint) {
+            return; // No new changes, do not re-render DOM!
+        }
+        lastAgentMessageFingerprint = fingerprint;
+
         const isScrolledBottom = feed.scrollHeight - feed.clientHeight <= feed.scrollTop + 50;
 
         let html = '';
