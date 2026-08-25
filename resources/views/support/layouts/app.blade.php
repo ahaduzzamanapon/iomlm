@@ -171,5 +171,31 @@
             </main>
         </div>
     </div>
+
+    <script>
+    function openModal(id){
+        const m = document.getElementById(id);
+        if(m) { m.classList.add('open'); document.body.style.overflow='hidden'; }
+    }
+    function closeModal(id){
+        const m = document.getElementById(id);
+        if(m) { m.classList.remove('open'); document.body.style.overflow=''; }
+    }
+    document.addEventListener('click', function(e){
+        if(e.target.classList.contains('modal-overlay')){
+            e.target.classList.remove('open');
+            document.body.style.overflow='';
+        }
+    });
+    document.addEventListener('keydown', function(e){
+        if(e.key === 'Escape'){
+            document.querySelectorAll('.modal-overlay.open').forEach(m => {
+                m.classList.remove('open');
+                document.body.style.overflow='';
+            });
+        }
+    });
+    </script>
+    @stack('scripts')
 </body>
 </html>
