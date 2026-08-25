@@ -13,9 +13,11 @@ Route::get('/', function () {
     if (auth()->check()) {
         $role = auth()->user()->role ?? 'admin';
         return match($role) {
-            'teacher' => redirect()->route('teacher.dashboard'),
-            'student' => redirect()->route('student.dashboard'),
-            default   => redirect()->route('admin.dashboard'),
+            'teacher'       => redirect()->route('teacher.dashboard'),
+            'student'       => redirect()->route('student.dashboard'),
+            'support_agent' => redirect()->route('support.dashboard'),
+            'support'       => redirect()->route('support.dashboard'),
+            default         => redirect()->route('admin.dashboard'),
         };
     }
     return redirect()->route('login');
@@ -46,3 +48,21 @@ Route::get('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationControll
 Route::post('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store'])->name('poor_fund.store');
 Route::get('/poor-fund/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('poor_fund.success');
 Route::get('/api/waiver-lookup', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'lookup'])->name('api.waiver-lookup');
+
+// ── Public Online Support Form & Live Chat ─────────────────────────────
+Route::get('/online-support', [\App\Http\Controllers\Public\OnlineSupportController::class, 'index'])->name('online-support.index');
+Route::post('/online-support', [\App\Http\Controllers\Public\OnlineSupportController::class, 'store'])->name('online-support.store');
+Route::get('/online-support/search', [\App\Http\Controllers\Public\OnlineSupportController::class, 'searchStatus'])->name('online-support.search');
+Route::get('/online-support/chat/{uuid}', [\App\Http\Controllers\Public\OnlineSupportController::class, 'chatView'])->name('online-support.chat');
+Route::get('/online-support/messages/{uuid}', [\App\Http\Controllers\Public\OnlineSupportController::class, 'getMessages'])->name('online-support.messages');
+Route::post('/online-support/chat/{uuid}/message', [\App\Http\Controllers\Public\OnlineSupportController::class, 'sendMessage'])->name('online-support.chat.send');
+Route::post('/online-support/rate/{uuid}', [\App\Http\Controllers\Public\OnlineSupportController::class, 'submitRating'])->name('online-support.rate');
+
+// ── Support Agent Panel Routes (Auth) ─────────────────────────────────
+Route::middleware(['auth'])->prefix('support')->name('support.')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Support\SupportAgentController::class, 'dashboard'])->name('dashboard');
+    Route::post('/tickets/{uuid}/accept', [\App\Http\Controllers\Support\SupportAgentController::class, 'acceptTicket'])->name('tickets.accept');
+    Route::get('/chat/{uuid}', [\App\Http\Controllers\Support\SupportAgentController::class, 'agentChat'])->name('chat');
+    Route::post('/tickets/{uuid}/message', [\App\Http\Controllers\Support\SupportAgentController::class, 'sendMessage'])->name('tickets.message');
+    Route::post('/tickets/{uuid}/close', [\App\Http\Controllers\Support\SupportAgentController::class, 'closeTicket'])->name('tickets.close');
+});

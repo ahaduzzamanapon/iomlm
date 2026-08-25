@@ -47,6 +47,11 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::patch('waiver-applications/{waiverApplication}/approve',       [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'approve'])->name('waiver-applications.approve');
     Route::patch('waiver-applications/{waiverApplication}/reject',        [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'reject'])->name('waiver-applications.reject');
 
+    // ── Support Setup (Departments & Agents) ──────────────────────────
+    Route::resource('support-departments', \App\Http\Controllers\Admin\SupportDepartmentController::class);
+    Route::patch('support-departments/{supportDepartment}/toggle', [\App\Http\Controllers\Admin\SupportDepartmentController::class, 'toggleStatus'])->name('support-departments.toggle');
+    Route::resource('support-agents',      \App\Http\Controllers\Admin\SupportUserController::class);
+
     Route::resource('students', \App\Http\Controllers\Admin\StudentController::class);
     Route::get('students/{student}/grade-sheet', [\App\Http\Controllers\Admin\StudentController::class, 'printGradeSheet'])->name('students.grade-sheet');
     Route::get('students/{student}/certificate', [\App\Http\Controllers\Admin\StudentController::class, 'printCertificate'])->name('students.certificate');

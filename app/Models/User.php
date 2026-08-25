@@ -41,8 +41,14 @@ class User extends Authenticatable
         return $this->hasOne(Student::class, 'user_id');
     }
 
+    public function supportDepartments()
+    {
+        return $this->belongsToMany(SupportDepartment::class, 'support_department_user', 'user_id', 'support_department_id');
+    }
+
     // ── Helpers ──────────────────────────────────────────────
-    public function isAdmin(): bool   { return $this->role === 'admin'; }
-    public function isTeacher(): bool { return $this->role === 'teacher'; }
-    public function isStudent(): bool { return $this->role === 'student'; }
+    public function isAdmin(): bool        { return $this->role === 'admin'; }
+    public function isTeacher(): bool      { return $this->role === 'teacher'; }
+    public function isStudent(): bool      { return $this->role === 'student'; }
+    public function isSupportAgent(): bool { return in_array($this->role, ['support_agent', 'support', 'admin']); }
 }

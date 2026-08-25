@@ -53,4 +53,7 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
 
     // Routine
     Route::get('routine', [\App\Http\Controllers\Student\RoutineController::class, 'index'])->name('routine.index');
+
+    // Online Support
+    Route::get('support', [\App\Http\Controllers\Student\StudentSupportController::class, 'index'])->name('support.index');
 });
