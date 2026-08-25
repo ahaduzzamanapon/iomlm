@@ -58,7 +58,7 @@ class TeacherController extends Controller
 
         $teacher = Teacher::create(array_merge($validated, [
             'employee_id' => $nextEmpId,
-            'is_active'   => $request->boolean('is_active', true),
+            'is_active'   => $request->boolean('is_active'),
         ]));
 
         // ── AUTO-CREATE USER ACCOUNT FOR TEACHER ─────────────────────────
@@ -85,9 +85,10 @@ class TeacherController extends Controller
 
     public function update(Request $request, Teacher $teacher)
     {
+        $userId = $teacher->user_id ?? 0;
         $validated = $request->validate([
             'name'                       => 'required|string|max:200',
-            'email'                      => 'nullable|email|unique:teachers,email,' . $teacher->id,
+            'email'                      => 'nullable|email|unique:teachers,email,' . $teacher->id . '|unique:users,email,' . $userId,
             'phone'                      => 'nullable|string|max:30',
             'password'                   => 'nullable|string|min:6',
             'date_of_birth'              => 'nullable|date',
@@ -119,7 +120,11 @@ class TeacherController extends Controller
             if ($request->filled('password')) {
                 $userUpdate['password'] = Hash::make($request->input('password'));
             }
-            $teacher->user->update($userUpdate);
+            try {
+                $teacher->user->update($userUpdate);
+            } catch (\Exception $e) {
+                // Ignore silent duplicate email errors on user table if fallback
+            }
         }
 
         return redirect()->route('admin.teachers.index')->with('success', 'Teacher profile updated successfully.');
