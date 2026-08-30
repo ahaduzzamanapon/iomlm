@@ -12,9 +12,24 @@ class FeeController extends Controller
 {
     public function index()
     {
-        $student  = Student::where('user_id', auth()->id())->first();
-        
-        $invoices = Invoice::with('enrollment.course')
+        $student = Student::with([
+            'enrollments.course',
+            'enrollments.batch.semesterPosition.currentSemester',
+            'enrollments.semester'
+        ])->where('user_id', auth()->id())->first();
+
+        $activeEnrollment = $student?->enrollments->where('status', 'ACTIVE')->first()
+            ?? $student?->enrollments->first();
+
+        $course     = $activeEnrollment?->course;
+        $courseType = $course?->type ?? 'SEMESTER_BASED';
+
+        // Current Running Semester
+        $runningSemester = $activeEnrollment?->batch?->semesterPosition?->currentSemester
+            ?? $activeEnrollment?->semester;
+        $runningSemesterName = $runningSemester?->name ?? 'চলতি সেমিস্টার';
+
+        $invoices = Invoice::with(['enrollment.course'])
             ->where('student_id', $student?->id)
             ->latest()
             ->get();
@@ -27,7 +42,45 @@ class FeeController extends Controller
         $totalDue  = $invoices->where('status', '!=', 'CANCELLED')->sum('due_amount');
         $totalPaid = $payments->sum('amount');
 
-        return view('student.fees.index', compact('invoices', 'payments', 'totalDue', 'totalPaid'));
+        // Running semester dues computation
+        $runningSemesterDue = 0.0;
+        foreach ($invoices as $inv) {
+            $isCurrentSemester = false;
+
+            if ($runningSemester && $inv->source_id == $runningSemester->id && $inv->source_type === \App\Models\Semester::class) {
+                $isCurrentSemester = true;
+            } elseif ($runningSemester && str_contains(mb_strtolower($inv->title), mb_strtolower($runningSemester->name))) {
+                $isCurrentSemester = true;
+            } elseif (str_contains(mb_strtolower($inv->title), 'current semester')) {
+                $isCurrentSemester = true;
+            }
+
+            $inv->is_current_running_semester = $isCurrentSemester;
+
+            if ($isCurrentSemester && $inv->status !== 'CANCELLED') {
+                $runningSemesterDue += $inv->due_amount;
+            }
+        }
+
+        // Group invoices by Semester / Category for Breakdown Summary Table
+        $semesterBreakdown = $invoices->where('status', '!=', 'CANCELLED')->groupBy(function($inv) use ($runningSemesterName) {
+            if ($inv->is_current_running_semester) {
+                return "রানিং সেমিস্টার ({$runningSemesterName})";
+            }
+            if ($inv->category === 'ADMISSION') {
+                return 'ভর্তি ফি (Admission Fee)';
+            }
+            if ($inv->category === 'RETAKE') {
+                return 'বিষয় রিটেক ফি (Retake Fee)';
+            }
+            return 'অন্যান্য / সেমিস্টার ফি';
+        });
+
+        return view('student.fees.index', compact(
+            'student', 'course', 'courseType', 'runningSemester', 'runningSemesterName',
+            'invoices', 'payments', 'totalDue', 'totalPaid', 'runningSemesterDue',
+            'semesterBreakdown'
+        ));
     }
 
     public function printReceipt(Payment $payment)
