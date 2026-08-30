@@ -480,6 +480,9 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     });
     document.addEventListener('submit', function(e){
+        if (e.defaultPrevented || e.target.hasAttribute('data-ajax') || e.target.closest('.modal') || e.target.closest('.modal-overlay')) {
+            return;
+        }
         showLoader();
     });
 });
