@@ -249,9 +249,11 @@ class AdmissionController extends Controller
 
             // ── AUTO-CREATE USER ACCOUNT ──────────────────────────────────
             // Only create if not already linked to a user account
+            $rawPassword = null;
             if (empty($student->user_id)) {
                 $loginEmail    = $student->email ?: ($student->student_code . '@iom.student');
                 $tempPassword  = $student->phone ?: 'iom@1234';
+                $rawPassword   = $tempPassword;
 
                 // If email already taken by another user, use student_code based email
                 if (User::where('email', $loginEmail)->exists()) {
@@ -268,6 +270,8 @@ class AdmissionController extends Controller
                 // Link User to Student
                 $student->user_id = $user->id;
                 $student->save();
+            } else {
+                $user = $student->user;
             }
             // ─────────────────────────────────────────────────────────────
 
@@ -293,11 +297,43 @@ class AdmissionController extends Controller
             \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
             \App\Services\AccountingService::createSemesterInvoice($student, $enrollment);
 
+            // ── DISPATCH ADMISSION APPROVAL EMAIL ────────────────────────
+            $targetEmail = $student->email ?: ($user ? $user->email : null);
+            if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    $mailService = app(\App\Services\DynamicMailService::class);
+                    $subject = "🎉 Admission Approved! Welcome to IOM — Your Login Credentials";
+                    $displayPassword = $rawPassword ?: ($student->phone ?: 'Your registered phone number');
+                    $courseName = $admission->interestedCourse->name ?? 'Islamic Online Madrasah';
+
+                    $emailBody = "Assalamu Alaikum, {$student->name}!\n\n"
+                        . "Alhamdulillah! Your admission application (App No: {$admission->application_no}) for \"{$courseName}\" has been APPROVED.\n\n"
+                        . "Here are your Student Portal login credentials:\n"
+                        . "----------------------------------------\n"
+                        . "• Student Code: {$student->student_code}\n"
+                        . "• Batch Name: {$batch->name}\n"
+                        . "• Login Email: {$user->email}\n"
+                        . "• Password: {$displayPassword}\n"
+                        . "----------------------------------------\n\n"
+                        . "Please login to your Student Portal using the link below to access your class schedule, routine, and learning materials.";
+
+                    $mailService->sendHtmlNotification(
+                        $targetEmail,
+                        $subject,
+                        $emailBody,
+                        null,
+                        url('/login')
+                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Admission Approval Email Exception: ' . $e->getMessage());
+                }
+            }
+
             $loginInfo = empty($student->email)
                 ? "Login: {$student->user?->email} | Password: {$student->phone}"
                 : "Login: {$student->email} | Password: {$student->phone}";
 
-            return back()->with('success', "Admission APPROVED! Student Code: {$student->student_code}, Batch: {$batch->name}. 🔑 {$loginInfo}");
+            return back()->with('success', "Admission APPROVED! Student Code: {$student->student_code}, Batch: {$batch->name}. 🔑 {$loginInfo} 📧 Credentials email dispatched to student.");
         });
     }
 
