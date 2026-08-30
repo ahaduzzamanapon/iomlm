@@ -116,6 +116,17 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('settings/google-auth',  [\App\Http\Controllers\Admin\GoogleAuthSettingController::class, 'index'])->name('settings.google-auth.index');
     Route::post('settings/google-auth', [\App\Http\Controllers\Admin\GoogleAuthSettingController::class, 'update'])->name('settings.google-auth.update');
 
+    // ── Notification Settings (Firebase & SMTP) ─────────────────────────
+    Route::get('settings/notifications',           [\App\Http\Controllers\Admin\NotificationSettingController::class, 'index'])->name('settings.notifications.index');
+    Route::post('settings/notifications/firebase', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'updateFirebase'])->name('settings.notifications.firebase');
+    Route::post('settings/notifications/smtp',     [\App\Http\Controllers\Admin\NotificationSettingController::class, 'updateSmtp'])->name('settings.notifications.smtp');
+    Route::post('settings/notifications/test-mail',[\App\Http\Controllers\Admin\NotificationSettingController::class, 'sendTestMail'])->name('settings.notifications.test-mail');
+
+    // ── Send Notification Broadcast Center ──────────────────────────────
+    Route::get('notifications',                    [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'index'])->name('notifications.index');
+    Route::get('notifications/create',             [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'create'])->name('notifications.create');
+    Route::post('notifications',                   [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'send'])->name('notifications.send');
+
     // ── Fee Heads (Settings → Fee Head) ───────────────────────────
     Route::get('fee-heads',                     [\App\Http\Controllers\Admin\FeeHeadController::class, 'index'])->name('fee-heads.index');
     Route::post('fee-heads',                    [\App\Http\Controllers\Admin\FeeHeadController::class, 'store'])->name('fee-heads.store');

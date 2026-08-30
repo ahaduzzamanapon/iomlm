@@ -68,3 +68,6 @@ Route::middleware(['auth'])->prefix('support')->name('support.')->group(function
 // ── Hidden Artisan Command Runner Route (/command) ────────────────────
 Route::get('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'index'])->middleware(['auth'])->name('command.index');
 Route::post('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'run'])->middleware(['auth'])->name('command.run');
+
+// ── FCM Device Token Save Route (Auth Users) ──────────────────────────
+Route::post('/user/fcm-token', [\App\Http\Controllers\UserFcmTokenController::class, 'store'])->middleware('auth')->name('user.fcm-token');

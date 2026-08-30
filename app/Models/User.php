@@ -46,6 +46,11 @@ class User extends Authenticatable
         return $this->belongsToMany(SupportDepartment::class, 'support_department_user', 'user_id', 'support_department_id');
     }
 
+    public function fcmTokens()
+    {
+        return $this->hasMany(UserFcmToken::class, 'user_id');
+    }
+
     // ── Helpers ──────────────────────────────────────────────
     public function isAdmin(): bool        { return $this->role === 'admin'; }
     public function isTeacher(): bool      { return $this->role === 'teacher'; }

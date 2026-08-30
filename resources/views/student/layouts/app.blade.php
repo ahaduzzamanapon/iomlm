@@ -235,6 +235,7 @@ if(window.fetch){
     };
 }
 </script>
+<x-fcm-initializer />
 @stack('scripts')
 </body>
 </html>
