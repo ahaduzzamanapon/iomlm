@@ -53,6 +53,8 @@ class DynamicMailService
             'name'    => $fromName ?: 'IOM Education',
         ]);
 
+        Mail::purge('smtp');
+
         return true;
     }
 
