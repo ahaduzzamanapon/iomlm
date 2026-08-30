@@ -40,6 +40,13 @@ class DynamicMailService
             'username'   => $username,
             'password'   => $password,
             'timeout'    => 15,
+            'stream'     => [
+                'ssl' => [
+                    'allow_self_signed' => true,
+                    'verify_peer'       => false,
+                    'verify_peer_name'  => false,
+                ],
+            ],
         ]);
         Config::set('mail.from', [
             'address' => $fromAddress ?: 'noreply@iom.edu.bd',

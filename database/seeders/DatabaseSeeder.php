@@ -70,6 +70,16 @@ class DatabaseSeeder extends Seeder
             ['key' => 'firebase_messaging_sender_id', 'value' => '576968020636',                  'type' => 'string', 'group' => 'notification', 'label' => 'Messaging Sender ID'],
             ['key' => 'firebase_app_id',              'value' => '1:576968020636:web:785c62d46ef1815b62d359', 'type' => 'string', 'group' => 'notification', 'label' => 'Firebase App ID'],
             ['key' => 'firebase_enabled',             'value' => '1',                             'type' => 'bool',   'group' => 'notification', 'label' => 'Enable Firebase'],
+            // SMTP Defaults
+            ['key' => 'smtp_driver',                  'value' => 'smtp',                          'type' => 'string', 'group' => 'notification', 'label' => 'SMTP Driver'],
+            ['key' => 'smtp_host',                    'value' => 'exam-arena.lc-synergy.ltd',    'type' => 'string', 'group' => 'notification', 'label' => 'SMTP Host'],
+            ['key' => 'smtp_port',                    'value' => '465',                           'type' => 'string', 'group' => 'notification', 'label' => 'SMTP Port'],
+            ['key' => 'smtp_encryption',              'value' => 'ssl',                           'type' => 'string', 'group' => 'notification', 'label' => 'SMTP Encryption'],
+            ['key' => 'smtp_username',                'value' => 'exam-arena@exam-arena.lc-synergy.ltd', 'type' => 'string', 'group' => 'notification', 'label' => 'SMTP Username'],
+            ['key' => 'smtp_password',                'value' => 'r&K.Qre[eY9x+]iu',             'type' => 'string', 'group' => 'notification', 'label' => 'SMTP Password'],
+            ['key' => 'smtp_from_address',            'value' => 'exam-arena@exam-arena.lc-synergy.ltd', 'type' => 'string', 'group' => 'notification', 'label' => 'From Address'],
+            ['key' => 'smtp_from_name',               'value' => 'NXLY Exam Arena',               'type' => 'string', 'group' => 'notification', 'label' => 'From Name'],
+            ['key' => 'smtp_enabled',                 'value' => '1',                             'type' => 'bool',   'group' => 'notification', 'label' => 'Enable SMTP'],
         ] as $s) {
             Setting::create($s);
         }
