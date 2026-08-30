@@ -106,6 +106,48 @@ class WaiverApplicationController extends Controller
 
         $waiverApplication->update($updateData);
 
+        // ── DISPATCH WAIVER APPROVAL EMAIL WITH COUPON CODE ───────────
+        if (!empty($waiverApplication->email) && filter_var($waiverApplication->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                $mailService = app(\App\Services\DynamicMailService::class);
+                $subject = "🎉 Waiver Approved! Your Coupon Code: {$waiverApplication->application_no}";
+
+                $detailsList = [];
+                $detailsList[] = "• Waiver / Coupon Code: {$waiverApplication->application_no}";
+
+                if (isset($updateData['approved_admission_fee'])) {
+                    $detailsList[] = "• Approved Admission Fee: ৳" . number_format($updateData['approved_admission_fee'], 0);
+                }
+                if (isset($updateData['approved_package_id'])) {
+                    $pkg = CourseFeePackage::find($updateData['approved_package_id']);
+                    if ($pkg) {
+                        $detailsList[] = "• Approved Fee Package: {$pkg->name}";
+                    }
+                }
+
+                $detailsText = implode("\n", $detailsList);
+
+                $emailBody = "Assalamu Alaikum, {$waiverApplication->full_name}!\n\n"
+                    . "Alhamdulillah! Your Waiver Application (No: {$waiverApplication->application_no}) has been APPROVED by the administration.\n\n"
+                    . "Here are your Approved Waiver & Coupon Code details:\n"
+                    . "----------------------------------------\n"
+                    . "{$detailsText}\n"
+                    . "----------------------------------------\n\n"
+                    . "You can enter your Coupon / Waiver Code ({$waiverApplication->application_no}) in the Admission Form to enjoy your approved waiver rate.\n\n"
+                    . "Click below to submit your Admission Application:";
+
+                $mailService->sendHtmlNotification(
+                    $waiverApplication->email,
+                    $subject,
+                    $emailBody,
+                    null,
+                    url('/admissions/apply?waiver_code=' . urlencode($waiverApplication->application_no))
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Waiver Approval Email Exception: ' . $e->getMessage());
+            }
+        }
+
         // Build success message
         $parts = [];
         if (isset($updateData['approved_admission_fee'])) {
@@ -118,7 +160,7 @@ class WaiverApplicationController extends Controller
 
         $summary = implode(' | ', $parts);
 
-        return back()->with('success', "Waiver Application {$waiverApplication->application_no} APPROVED! — {$summary}");
+        return back()->with('success', "Waiver Application {$waiverApplication->application_no} APPROVED! — {$summary} 📧 Coupon Code email dispatched to applicant.");
     }
 
     public function reject(Request $request, WaiverApplication $waiverApplication)
