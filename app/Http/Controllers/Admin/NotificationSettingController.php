@@ -15,7 +15,7 @@ class NotificationSettingController extends Controller
             // Firebase
             'firebase_project_id', 'firebase_api_key', 'firebase_auth_domain',
             'firebase_storage_bucket', 'firebase_messaging_sender_id', 'firebase_app_id',
-            'firebase_server_key', 'firebase_vapid_key', 'firebase_enabled',
+            'firebase_server_key', 'firebase_vapid_key', 'firebase_service_account_json', 'firebase_enabled',
             // SMTP
             'smtp_driver', 'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password',
             'smtp_encryption', 'smtp_from_address', 'smtp_from_name', 'smtp_enabled'
