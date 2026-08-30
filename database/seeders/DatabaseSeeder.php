@@ -54,14 +54,22 @@ class DatabaseSeeder extends Seeder
         // settings: key, value, type, group, label
         // ══════════════════════════════════════════════════════════════
         foreach ([
-            ['key' => 'institute_name',         'value' => 'Islamic Online Madrasah (IOM)', 'type' => 'string', 'group' => 'general',  'label' => 'Institute Name'],
-            ['key' => 'institute_phone',         'value' => '09638-113322',                  'type' => 'string', 'group' => 'general',  'label' => 'Phone'],
-            ['key' => 'institute_email',         'value' => 'info@iom.edu.bd',               'type' => 'string', 'group' => 'general',  'label' => 'Email'],
-            ['key' => 'weekend_days',            'value' => 'FRI',                           'type' => 'string', 'group' => 'academic', 'label' => 'Weekend Days'],
-            ['key' => 'min_attendance_required', 'value' => '0',                             'type' => 'bool',   'group' => 'academic', 'label' => 'Require Min Attendance'],
-            ['key' => 'min_attendance_percent',  'value' => '75',                            'type' => 'int',    'group' => 'academic', 'label' => 'Min Attendance %'],
-            ['key' => 'final_result_policy',     'value' => 'BEST_ATTEMPT',                  'type' => 'string', 'group' => 'academic', 'label' => 'Result Policy'],
-            ['key' => 'due_enforcement_level',   'value' => 'NONE',                          'type' => 'string', 'group' => 'accounts', 'label' => 'Fee Due Enforcement'],
+            ['key' => 'institute_name',               'value' => 'Islamic Online Madrasah (IOM)', 'type' => 'string', 'group' => 'general',  'label' => 'Institute Name'],
+            ['key' => 'institute_phone',              'value' => '09638-113322',                  'type' => 'string', 'group' => 'general',  'label' => 'Phone'],
+            ['key' => 'institute_email',              'value' => 'info@iom.edu.bd',               'type' => 'string', 'group' => 'general',  'label' => 'Email'],
+            ['key' => 'weekend_days',                 'value' => 'FRI',                           'type' => 'string', 'group' => 'academic', 'label' => 'Weekend Days'],
+            ['key' => 'min_attendance_required',      'value' => '0',                             'type' => 'bool',   'group' => 'academic', 'label' => 'Require Min Attendance'],
+            ['key' => 'min_attendance_percent',       'value' => '75',                            'type' => 'int',    'group' => 'academic', 'label' => 'Min Attendance %'],
+            ['key' => 'final_result_policy',          'value' => 'BEST_ATTEMPT',                  'type' => 'string', 'group' => 'academic', 'label' => 'Result Policy'],
+            ['key' => 'due_enforcement_level',        'value' => 'NONE',                          'type' => 'string', 'group' => 'accounts', 'label' => 'Fee Due Enforcement'],
+            // Firebase Defaults
+            ['key' => 'firebase_project_id',          'value' => 'iomm-316e7',                    'type' => 'string', 'group' => 'notification', 'label' => 'Firebase Project ID'],
+            ['key' => 'firebase_api_key',             'value' => 'AIzaSyAGXfaiJx09ID91H5TFMzgBIFJ4ebofjsU', 'type' => 'string', 'group' => 'notification', 'label' => 'Firebase Web API Key'],
+            ['key' => 'firebase_auth_domain',         'value' => 'iomm-316e7.firebaseapp.com',   'type' => 'string', 'group' => 'notification', 'label' => 'Firebase Auth Domain'],
+            ['key' => 'firebase_storage_bucket',      'value' => 'iomm-316e7.firebasestorage.app','type' => 'string', 'group' => 'notification', 'label' => 'Firebase Storage Bucket'],
+            ['key' => 'firebase_messaging_sender_id', 'value' => '576968020636',                  'type' => 'string', 'group' => 'notification', 'label' => 'Messaging Sender ID'],
+            ['key' => 'firebase_app_id',              'value' => '1:576968020636:web:785c62d46ef1815b62d359', 'type' => 'string', 'group' => 'notification', 'label' => 'Firebase App ID'],
+            ['key' => 'firebase_enabled',             'value' => '1',                             'type' => 'bool',   'group' => 'notification', 'label' => 'Enable Firebase'],
         ] as $s) {
             Setting::create($s);
         }
