@@ -10,7 +10,7 @@ class RoleMiddleware
 {
     /**
      * Handle an incoming request.
-     * Usage in routes: ->middleware('role:admin') / 'role:teacher' / 'role:student'
+     * Usage in routes: ->middleware('role:admin,super_admin') / 'role:teacher' / 'role:student'
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
@@ -18,10 +18,37 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        $userRole = auth()->user()->role ?? 'admin'; // default admin until roles fully wired
+        $user = auth()->user();
+        $userRole = strtolower(trim($user->role ?? ''));
+
+        // Handle alias role matches
+        if ($userRole === 'super_admin' && (in_array('admin', $roles) || in_array('super_admin', $roles))) {
+            return $next($request);
+        }
+        if ($userRole === 'support_agent' && (in_array('support', $roles) || in_array('support_agent', $roles))) {
+            return $next($request);
+        }
 
         if (!in_array($userRole, $roles)) {
-            abort(403, 'Unauthorized — insufficient role.');
+            // Redirect unauthorized users to their respective panel dashboard
+            $redirectRoute = match($userRole) {
+                'teacher'       => route('teacher.dashboard'),
+                'student'       => route('student.dashboard'),
+                'support',
+                'support_agent' => route('support.dashboard'),
+                'admin',
+                'super_admin'   => route('admin.dashboard'),
+                default         => route('login'),
+            };
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access. Your role does not have permission for this section.'
+                ], 403);
+            }
+
+            return redirect($redirectRoute)->with('error', '⛔ Access Denied! You do not have permission to access that area.');
         }
 
         return $next($request);

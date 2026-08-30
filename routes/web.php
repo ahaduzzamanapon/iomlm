@@ -49,7 +49,7 @@ Route::post('/online-support/chat/{uuid}/message', [\App\Http\Controllers\Public
 Route::post('/online-support/rate/{uuid}', [\App\Http\Controllers\Public\OnlineSupportController::class, 'submitRating'])->name('online-support.rate');
 
 // ── Support Agent Panel Routes (Auth) ─────────────────────────────────
-Route::middleware(['auth'])->prefix('support')->name('support.')->group(function () {
+Route::middleware(['auth', 'role:support,support_agent,admin,super_admin'])->prefix('support')->name('support.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Support\SupportAgentController::class, 'dashboard'])->name('dashboard');
     Route::get('/api/queue', [\App\Http\Controllers\Support\SupportAgentController::class, 'queueApi'])->name('api.queue');
     Route::post('/tickets/{uuid}/accept', [\App\Http\Controllers\Support\SupportAgentController::class, 'acceptTicket'])->name('tickets.accept');
@@ -66,8 +66,8 @@ Route::middleware(['auth'])->prefix('support')->name('support.')->group(function
 });
 
 // ── Hidden Artisan Command Runner Route (/command) ────────────────────
-Route::get('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'index'])->middleware(['auth'])->name('command.index');
-Route::post('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'run'])->middleware(['auth'])->name('command.run');
+Route::get('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'index'])->middleware(['auth', 'role:admin,super_admin'])->name('command.index');
+Route::post('/command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'run'])->middleware(['auth', 'role:admin,super_admin'])->name('command.run');
 
 // ── FCM Device Token Save Route (Auth Users) ──────────────────────────
 Route::post('/user/fcm-token', [\App\Http\Controllers\UserFcmTokenController::class, 'store'])->middleware('auth')->name('user.fcm-token');

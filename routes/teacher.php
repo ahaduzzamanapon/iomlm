@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function () {
+Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')->name('teacher.')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
