@@ -29,7 +29,7 @@ class NotificationSettingController extends Controller
         $keys = [
             'firebase_project_id', 'firebase_api_key', 'firebase_auth_domain',
             'firebase_storage_bucket', 'firebase_messaging_sender_id', 'firebase_app_id',
-            'firebase_server_key', 'firebase_vapid_key'
+            'firebase_server_key', 'firebase_vapid_key', 'firebase_service_account_json'
         ];
 
         foreach ($keys as $k) {

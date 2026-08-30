@@ -105,17 +105,24 @@
                         </div>
 
                         <div class="form-group">
-                            <label>FCM Server Key (Legacy Server Key) <span class="required">*</span></label>
+                            <label>FCM Server Key (Legacy HTTP API Key)</label>
                             <textarea name="firebase_server_key" class="form-control" rows="2"
-                                placeholder="AAAA... (Found in Firebase Console → Project Settings → Cloud Messaging → Cloud Messaging API Legacy)">{{ $settings['firebase_server_key'] ?? '' }}</textarea>
-                            <span class="form-help">Required for backend Push Notification delivery.</span>
+                                placeholder="AAAA... (Found in Firebase Console → Project Settings → Cloud Messaging → 3 dots menu → Enable in Google Cloud Console)">{{ $settings['firebase_server_key'] ?? '' }}</textarea>
+                            <span class="form-help">Used for Legacy Push Notification API. Click the 3-dots menu on Cloud Messaging page to enable in Google Cloud Console.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Firebase Service Account Private Key (JSON) — Recommended for FCM HTTP v1</label>
+                            <textarea name="firebase_service_account_json" class="form-control" rows="4"
+                                placeholder='{"type": "service_account", "project_id": "iomm-316e7", "private_key_id": "...", "private_key": "-----BEGIN PRIVATE KEY-----\n...", "client_email": "..."}'>{{ $settings['firebase_service_account_json'] ?? '' }}</textarea>
+                            <span class="form-help">Found in Firebase Console → Project Settings → <strong>Service accounts</strong> → Generate new private key.</span>
                         </div>
 
                         <div class="form-group">
                             <label>VAPID Public Key (Web Push Certificate)</label>
                             <input type="text" name="firebase_vapid_key" class="form-control"
-                                placeholder="e.g. BEl6... (Found in Cloud Messaging → Web Push certificates)"
-                                value="{{ $settings['firebase_vapid_key'] ?? '' }}">
+                                placeholder="e.g. BEcvBekci2MxeLCqFRnCiBj51vSzyJ89AEJ6UgIqc-6fs1Qzb-wnkvPViL61z8PdDSySZWZTAILJnbWlt-IA2m8"
+                                value="{{ $settings['firebase_vapid_key'] ?? 'BEcvBekci2MxeLCqFRnCiBj51vSzyJ89AEJ6UgIqc-6fs1Qzb-wnkvPViL61z8PdDSySZWZTAILJnbWlt-IA2m8' }}">
                         </div>
                     </div>
                     <div class="card-footer" style="text-align:right">
