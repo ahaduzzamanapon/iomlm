@@ -33,14 +33,21 @@ class DynamicMailService
 
         Config::set('mail.default', 'smtp');
         Config::set('mail.mailers.smtp', [
-            'transport'  => 'smtp',
-            'host'       => $host,
-            'port'       => (int) $port,
-            'encryption' => strtolower($encryption) === 'none' ? null : strtolower($encryption),
-            'username'   => $username,
-            'password'   => $password,
-            'timeout'    => 15,
-            'stream'     => [
+            'transport'      => 'smtp',
+            'host'           => $host,
+            'port'           => (int) $port,
+            'encryption'     => strtolower($encryption) === 'none' ? null : strtolower($encryption),
+            'username'       => $username,
+            'password'       => $password,
+            'timeout'        => 15,
+            'stream'         => [
+                'ssl' => [
+                    'allow_self_signed' => true,
+                    'verify_peer'       => false,
+                    'verify_peer_name'  => false,
+                ],
+            ],
+            'stream_options' => [
                 'ssl' => [
                     'allow_self_signed' => true,
                     'verify_peer'       => false,
@@ -54,6 +61,27 @@ class DynamicMailService
         ]);
 
         Mail::purge('smtp');
+
+        try {
+            $mailer = Mail::driver('smtp');
+            if (method_exists($mailer, 'getSymfonyTransport')) {
+                $transport = $mailer->getSymfonyTransport();
+                if (method_exists($transport, 'getStream')) {
+                    $stream = $transport->getStream();
+                    if ($stream && method_exists($stream, 'setStreamOptions')) {
+                        $stream->setStreamOptions([
+                            'ssl' => [
+                                'allow_self_signed' => true,
+                                'verify_peer'       => false,
+                                'verify_peer_name'  => false,
+                            ],
+                        ]);
+                    }
+                }
+            }
+        } catch (\Throwable $t) {
+            // Ignore transport stream customization errors
+        }
 
         return true;
     }
@@ -76,6 +104,22 @@ class DynamicMailService
 
             return true;
         } catch (\Exception $e) {
+            // Retry with TLS 587 if SSL cert verification failed
+            if (str_contains($e->getMessage(), 'certificate verify failed')) {
+                try {
+                    Config::set('mail.mailers.smtp.encryption', 'tls');
+                    Config::set('mail.mailers.smtp.port', 587);
+                    Mail::purge('smtp');
+
+                    Mail::html($html, function ($message) use ($toEmail, $subject) {
+                        $message->to($toEmail)->subject($subject);
+                    });
+                    return true;
+                } catch (\Exception $ex) {
+                    Log::error('SMTP Mail Notification Exception (TLS retry): ' . $ex->getMessage());
+                }
+            }
+
             Log::error('SMTP Mail Notification Exception: ' . $e->getMessage());
             return false;
         }
@@ -101,6 +145,23 @@ class DynamicMailService
 
             return ['success' => true, 'message' => "Test email sent successfully to {$toEmail}!"];
         } catch (\Exception $e) {
+            // Retry with TLS 587 if SSL cert verification failed
+            if (str_contains($e->getMessage(), 'certificate verify failed')) {
+                try {
+                    Config::set('mail.mailers.smtp.encryption', 'tls');
+                    Config::set('mail.mailers.smtp.port', 587);
+                    Mail::purge('smtp');
+
+                    Mail::html($html, function ($message) use ($toEmail, $subject) {
+                        $message->to($toEmail)->subject($subject);
+                    });
+
+                    return ['success' => true, 'message' => "Test email sent successfully to {$toEmail}! (Connected via TLS Port 587)"];
+                } catch (\Exception $ex) {
+                    return ['success' => false, 'message' => 'SMTP Connection Error: ' . $ex->getMessage()];
+                }
+            }
+
             return ['success' => false, 'message' => 'SMTP Connection Error: ' . $e->getMessage()];
         }
     }
