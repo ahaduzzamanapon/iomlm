@@ -30,28 +30,37 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     try {
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const messaging = firebase.messaging();
 
         navigator.serviceWorker.register('/firebase-messaging-sw.js').then(function(registration) {
-            messaging.useServiceWorker(registration);
-
             Notification.requestPermission().then(function(permission) {
                 if (permission === 'granted') {
                     const vapidKey = @json($fbSettings['firebase_vapid_key'] ?? '');
-                    const tokenOptions = vapidKey ? { vapidKey: vapidKey } : {};
+                    const tokenOptions = {
+                        serviceWorkerRegistration: registration
+                    };
+                    if (vapidKey) {
+                        tokenOptions.vapidKey = vapidKey;
+                    }
 
                     messaging.getToken(tokenOptions).then(function(currentToken) {
                         if (currentToken) {
                             saveFcmTokenOnLogin(currentToken);
+                        } else {
+                            console.log('FCM Notice: No registration token available.');
                         }
                     }).catch(function(err) {
-                        console.log('FCM token retrieve notice:', err.message);
+                        console.error('FCM token retrieve error:', err);
                     });
+                } else {
+                    console.log('FCM Notice: Notification permission denied by user.');
                 }
             });
         }).catch(function(err) {
-            console.log('FCM SW registration notice:', err.message);
+            console.error('FCM SW registration error:', err);
         });
 
         // Handle foreground notifications
@@ -67,14 +76,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     } catch(e) {
-        console.log('FCM Init notice:', e.message);
+        console.error('FCM Init error:', e);
     }
 });
 
 function saveFcmTokenOnLogin(token) {
-    const lastSaved = localStorage.getItem('fcm_token_last_saved');
-    if (lastSaved === token) return; // avoid duplicate requests
-
     fetch('/user/fcm-token', {
         method: 'POST',
         headers: {
@@ -88,9 +94,11 @@ function saveFcmTokenOnLogin(token) {
         })
     }).then(res => res.json()).then(data => {
         if (data.success) {
-            localStorage.setItem('fcm_token_last_saved', token);
+            console.log('✅ FCM Token saved to database successfully.');
+        } else {
+            console.warn('⚠️ FCM Token save response:', data.message);
         }
-    }).catch(err => console.log('FCM token save error:', err));
+    }).catch(err => console.error('✕ FCM Token save fetch error:', err));
 }
 </script>
 @endif
