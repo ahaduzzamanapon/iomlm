@@ -238,10 +238,42 @@ class AdmissionController extends Controller
             $student = $admission->student;
             $batch   = Batch::findOrFail($request->input('batch_id'));
 
-            // Generate Student Code (e.g. STD-2026-005)
+            // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────
+            // Format: YY-BB-CC-G-RRRR (e.g. 25-13-01-2-0001)
             if (empty($student->student_code)) {
-                $nextId = Student::whereNotNull('student_code')->max('id') + 1;
-                $student->student_code = 'STD-' . date('Y') . '-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
+                // 1. Year Code (2 digits)
+                $yearCode = date('y');
+
+                // 2. Batch Code (2 digits)
+                $batchNum = 1;
+                if (!empty($batch->batch_code) && preg_match('/\d+/', $batch->batch_code, $m)) {
+                    $batchNum = (int) $m[0];
+                } elseif (!empty($batch->name) && preg_match('/\d+/', $batch->name, $m)) {
+                    $batchNum = (int) $m[0];
+                } else {
+                    $batchNum = $batch->id;
+                }
+                $batchCode = str_pad($batchNum % 100, 2, '0', STR_PAD_LEFT);
+
+                // 3. Course Code (2 digits)
+                $courseId = $batch->course_id ?: 1;
+                $courseCode = str_pad($courseId % 100, 2, '0', STR_PAD_LEFT);
+
+                // 4. Gender Code (1 digit: 1 = Male, 2 = Female)
+                $genderCode = '1';
+                if (!empty($student->gender)) {
+                    $g = strtolower(trim($student->gender));
+                    if (in_array($g, ['female', '2', 'f', 'নারি', 'মহিলা'])) {
+                        $genderCode = '2';
+                    }
+                }
+
+                // 5. Roll Sequence (4 digits - filtered per Year + Batch + Course)
+                $filterPrefix = "{$yearCode}-{$batchCode}-{$courseCode}-";
+                $existingCount = Student::where('student_code', 'like', "{$filterPrefix}%")->count();
+                $seqNo = str_pad($existingCount + 1, 4, '0', STR_PAD_LEFT);
+
+                $student->student_code = "{$yearCode}-{$batchCode}-{$courseCode}-{$genderCode}-{$seqNo}";
             }
 
             $student->status = 'ACTIVE';
@@ -302,20 +334,21 @@ class AdmissionController extends Controller
             if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
                 try {
                     $mailService = app(\App\Services\DynamicMailService::class);
-                    $subject = "🎉 Admission Approved! Welcome to IOM — Your Login Credentials";
+                    $subject = "🎉 Admission Approved! Welcome to IOM — Your Student ID & Login Credentials";
                     $displayPassword = $rawPassword ?: ($student->phone ?: 'Your registered phone number');
                     $courseName = $admission->interestedCourse->name ?? 'Islamic Online Madrasah';
 
                     $emailBody = "Assalamu Alaikum, {$student->name}!\n\n"
                         . "Alhamdulillah! Your admission application (App No: {$admission->application_no}) for \"{$courseName}\" has been APPROVED.\n\n"
-                        . "Here are your Student Portal login credentials:\n"
+                        . "Here are your Official Student Credentials:\n"
                         . "----------------------------------------\n"
-                        . "• Student Code: {$student->student_code}\n"
+                        . "• Official Student ID: {$student->student_code}\n"
                         . "• Batch Name: {$batch->name}\n"
-                        . "• Login Email: {$user->email}\n"
+                        . "• Login Email / ID: {$user->email} OR {$student->student_code}\n"
                         . "• Password: {$displayPassword}\n"
                         . "----------------------------------------\n\n"
-                        . "Please login to your Student Portal using the link below to access your class schedule, routine, and learning materials.";
+                        . "You can login to your Student Portal using EITHER your Login Email OR your Official Student ID ({$student->student_code}) along with your password.\n\n"
+                        . "Please login to access your class schedule, routine, and learning materials.";
 
                     $mailService->sendHtmlNotification(
                         $targetEmail,
@@ -329,11 +362,9 @@ class AdmissionController extends Controller
                 }
             }
 
-            $loginInfo = empty($student->email)
-                ? "Login: {$student->user?->email} | Password: {$student->phone}"
-                : "Login: {$student->email} | Password: {$student->phone}";
+            $loginInfo = "Student ID: {$student->student_code} | Login Email: {$user->email} | Password: " . ($rawPassword ?: $student->phone);
 
-            return back()->with('success', "Admission APPROVED! Student Code: {$student->student_code}, Batch: {$batch->name}. 🔑 {$loginInfo} 📧 Credentials email dispatched to student.");
+            return back()->with('success', "Admission APPROVED! Student ID Generated: {$student->student_code}, Batch: {$batch->name}. 🔑 {$loginInfo} 📧 Credentials email dispatched to student.");
         });
     }
 

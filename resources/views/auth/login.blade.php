@@ -153,15 +153,15 @@
         @csrf
 
         <div class="lf-group">
-            <label class="lf-label" for="email">Email Address</label>
+            <label class="lf-label" for="email">Email Address or Student ID</label>
             <input
                 id="email"
-                type="email"
+                type="text"
                 name="email"
                 class="lf-input"
                 value="{{ old('email') }}"
-                placeholder="admin@learningplus.com"
-                autocomplete="email"
+                placeholder="e.g. 26-15-01-1-0001 or email@domain.com"
+                autocomplete="username"
                 required
             >
         </div>
