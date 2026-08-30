@@ -275,7 +275,7 @@
         alert.style.display = 'none';
 
         try {
-            const res = await fetch('{{ route("admin.settings.notifications.test-mail") }}', {
+            const res = await fetch('{{ route("admin.settings.notifications.test-mail", [], false) }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
