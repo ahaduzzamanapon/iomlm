@@ -40,7 +40,25 @@
             border: 1px solid var(--card-border, #e2e8f0);
             box-shadow: 0 4px 20px rgba(0,0,0,0.03);
             overflow: hidden;
+            max-width: 100%;
         }
+        .survey-table-card .table-wrapper {
+            overflow-x: auto;
+        }
+        .survey-table-card table {
+            min-width: 700px;
+        }
+        .action-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e2e8f0;
+            background: #f8fafc; color: #475569; font-size: 15px; cursor: pointer;
+            text-decoration: none; transition: background .15s, border-color .15s;
+            flex-shrink: 0;
+        }
+        .action-btn:hover { background: #e2e8f0; border-color: #cbd5e1; }
+        .action-btn.primary { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+        .action-btn.primary:hover { background: #dbeafe; }
+        .action-btn.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
         .survey-link-pill {
             display: inline-flex;
             align-items: center;
@@ -182,18 +200,18 @@
                         <td class="td-muted" style="font-size:12px">
                             {{ $survey->created_at->format('d M Y, h:i A') }}
                         </td>
-                        <td style="text-align:right">
-                            <div style="display:flex; justify-content:flex-end; gap:6px">
-                                <a href="{{ route('admin.surveys.builder', $survey) }}" class="btn btn-primary btn-sm" style="font-weight:600" title="Form Builder">
-                                    ✏️ Form Builder
+                        <td style="text-align:right; white-space:nowrap">
+                            <div style="display:inline-flex; justify-content:flex-end; gap:6px; align-items:center">
+                                <a href="{{ route('admin.surveys.builder', $survey) }}" class="action-btn primary" title="Form Builder">
+                                    ✏️
                                 </a>
-                                <a href="{{ route('admin.surveys.responses', $survey) }}" class="btn btn-outline btn-sm" style="font-weight:600" title="View Responses">
-                                    📊 Responses
+                                <a href="{{ route('admin.surveys.responses', $survey) }}" class="action-btn" title="View Responses">
+                                    📊
                                 </a>
-                                <form method="POST" action="{{ route('admin.surveys.destroy', $survey) }}" onsubmit="return confirm('Are you sure you want to delete this survey form?')" style="display:inline">
+                                <form method="POST" action="{{ route('admin.surveys.destroy', $survey) }}" onsubmit="return confirm('Delete this survey?')" style="display:contents">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-outline btn-sm danger" title="Delete Survey">
+                                    <button type="submit" class="action-btn danger" title="Delete Survey">
                                         🗑️
                                     </button>
                                 </form>
