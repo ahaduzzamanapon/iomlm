@@ -224,7 +224,7 @@
         <div class="modal-card modal-card-premium" style="max-width:560px; margin:auto">
             <div class="modal-header-premium">
                 <h3>📋 Create New Survey Form</h3>
-                <button type="button" class="modal-close" style="color:#ffffff; opacity:0.8" onclick="closeModal('createSurveyModal')">&times;</button>
+                <button type="button" onclick="closeModal('createSurveyModal')" style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:#ffffff; width:32px; height:32px; border-radius:8px; font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.surveys.store') }}" enctype="multipart/form-data">
                 @csrf
