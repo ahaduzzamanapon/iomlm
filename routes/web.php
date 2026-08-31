@@ -48,6 +48,11 @@ Route::get('/online-support/messages/{uuid}', [\App\Http\Controllers\Public\Onli
 Route::post('/online-support/chat/{uuid}/message', [\App\Http\Controllers\Public\OnlineSupportController::class, 'sendMessage'])->name('online-support.chat.send');
 Route::post('/online-support/rate/{uuid}', [\App\Http\Controllers\Public\OnlineSupportController::class, 'submitRating'])->name('online-support.rate');
 
+// ── Public Dynamic Survey Forms (No Auth Required) ─────────────────────
+Route::get('/surveys/{slug}', [\App\Http\Controllers\Public\SurveyPublicController::class, 'show'])->name('public.survey.show');
+Route::post('/surveys/{slug}', [\App\Http\Controllers\Public\SurveyPublicController::class, 'submit'])->name('public.survey.submit');
+Route::get('/surveys/{slug}/success', [\App\Http\Controllers\Public\SurveyPublicController::class, 'success'])->name('public.survey.success');
+
 // ── Support Agent Panel Routes (Auth) ─────────────────────────────────
 Route::middleware(['auth', 'role:support,support_agent,admin,super_admin'])->prefix('support')->name('support.')->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\Support\SupportAgentController::class, 'dashboard'])->name('dashboard');

@@ -47,6 +47,16 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::patch('waiver-applications/{waiverApplication}/approve',       [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'approve'])->name('waiver-applications.approve');
     Route::patch('waiver-applications/{waiverApplication}/reject',        [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'reject'])->name('waiver-applications.reject');
 
+    // ── Survey & Dynamic Forms ─────────────────────────────────────────
+    Route::get('surveys',                               [\App\Http\Controllers\Admin\SurveyController::class, 'index'])->name('surveys.index');
+    Route::post('surveys',                              [\App\Http\Controllers\Admin\SurveyController::class, 'store'])->name('surveys.store');
+    Route::get('surveys/{survey}/builder',             [\App\Http\Controllers\Admin\SurveyController::class, 'builder'])->name('surveys.builder');
+    Route::put('surveys/{survey}/builder',             [\App\Http\Controllers\Admin\SurveyController::class, 'saveBuilder'])->name('surveys.builder.save');
+    Route::patch('surveys/{survey}/toggle-status',      [\App\Http\Controllers\Admin\SurveyController::class, 'toggleStatus'])->name('surveys.toggle-status');
+    Route::get('surveys/{survey}/responses',           [\App\Http\Controllers\Admin\SurveyController::class, 'responses'])->name('surveys.responses');
+    Route::get('surveys/{survey}/responses/csv',       [\App\Http\Controllers\Admin\SurveyController::class, 'exportCsv'])->name('surveys.responses.csv');
+    Route::delete('surveys/{survey}',                   [\App\Http\Controllers\Admin\SurveyController::class, 'destroy'])->name('surveys.destroy');
+
     // ── Support Setup (Departments & Agents) ──────────────────────────
     Route::get('support-tickets',                        [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'index'])->name('support-tickets.index');
     Route::patch('support-tickets/{ticket}/reassign',    [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'reassign'])->name('support-tickets.reassign');
