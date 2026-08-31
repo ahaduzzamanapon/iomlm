@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="title">Survey &amp; Dynamic Form Builder</x-slot>
 
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
@@ -175,4 +175,4 @@
     }
     </script>
     @endpush
-</x-app-layout>
+</x-admin-layout>

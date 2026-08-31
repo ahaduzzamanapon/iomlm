@@ -158,7 +158,7 @@
             <div class="tree-group">
                 <div class="tree-toggle {{ $classesActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-                    Classes & Batches
+                    Class & Batch
                     <svg class="tree-toggle-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                 </div>
                 <div class="tree-children {{ $classesActive ? 'open' : '' }}">

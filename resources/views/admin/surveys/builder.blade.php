@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="title">Form Builder — {{ $survey->title }}</x-slot>
 
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px">
@@ -244,4 +244,4 @@
     }
     </script>
     @endpush
-</x-app-layout>
+</x-admin-layout>

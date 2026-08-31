@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-admin-layout>
     <x-slot name="title">Survey Responses — {{ $survey->title }}</x-slot>
 
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px">
@@ -134,4 +134,4 @@
             </div>
         @endif
     </div>
-</x-app-layout>
+</x-admin-layout>
