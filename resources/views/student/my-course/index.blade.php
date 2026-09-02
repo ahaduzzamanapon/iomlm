@@ -229,49 +229,102 @@
             </div>
         </div>
 
-        {{-- Subjects Table --}}
+        {{-- Semester-wise Subject Cards --}}
         @if($course && $course->courseSubjectMaps->count() > 0)
-        <div class="subject-section">
-            <h4>
+        @php
+            $allMaps = $course->courseSubjectMaps()->with(['subject', 'semester'])->orderBy('semester_id')->orderBy('sort_order')->get();
+            // Group by semester (semester_id → collection)
+            $semesterGroups = $allMaps->groupBy(fn($m) => $m->semester_id ?? 0);
+            // Color palette for semesters
+            $semColors = [
+                '#2563eb','#7c3aed','#059669','#d97706','#dc2626',
+                '#0284c7','#9333ea','#16a34a','#ca8a04','#b91c1c',
+            ];
+            $semIdx = 0;
+        @endphp
+
+        <div style="padding:20px 24px">
+            <div style="font-size:14px; font-weight:700; color:#334155; margin-bottom:16px; display:flex; align-items:center; gap:8px">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="#2563eb"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                কোর্স সাবজেক্টসমূহ
-            </h4>
-            <div style="overflow-x:auto">
-                <table class="subject-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Subject Name</th>
-                            <th>Code</th>
-                            <th>Credit</th>
-                            <th>Full Marks</th>
-                            <th>Pass Marks</th>
-                            <th>Semester</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($course->courseSubjectMaps()->with(['subject', 'semester'])->orderBy('sort_order')->get() as $i => $map)
-                        <tr>
-                            <td style="font-weight:700; color:#94a3b8; font-size:12px">{{ $i + 1 }}</td>
-                            <td><strong>{{ $map->subject?->name ?? '—' }}</strong></td>
-                            <td style="font-family:monospace; font-size:12px; color:#64748b">{{ $map->subject?->code ?? '—' }}</td>
-                            <td style="text-align:center; font-weight:700; color:#2563eb">{{ $map->subject?->credit ?? '—' }}</td>
-                            <td style="text-align:center; font-weight:700">{{ $map->subject?->full_marks ?? '—' }}</td>
-                            <td style="text-align:center; font-weight:700; color:#dc2626">{{ $map->subject?->pass_marks ?? '—' }}</td>
-                            <td>
-                                @if($map->semester)
-                                    <span class="semester-badge">{{ $map->semester->name }}</span>
-                                @else
-                                    <span style="color:#cbd5e1; font-size:12px">—</span>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                সেমিস্টার অনুযায়ী সাবজেক্ট
             </div>
+
+            @foreach($semesterGroups as $semesterId => $maps)
+            @php
+                $semName  = $maps->first()->semester?->name ?? 'অন্যান্য সাবজেক্ট';
+                $semSeq   = $maps->first()->semester?->sequence_no ?? 0;
+                $color    = $semColors[$semIdx % count($semColors)];
+                $isActive = $currentSem && $semesterId == $currentSem->id;
+                $semIdx++;
+            @endphp
+
+            <div style="border:1.5px solid {{ $isActive ? $color : '#e2e8f0' }}; border-radius:12px; overflow:hidden; margin-bottom:16px; {{ $isActive ? 'box-shadow:0 4px 20px ' . $color . '22' : '' }}">
+
+                {{-- Semester Card Header --}}
+                <div style="background:{{ $color }}; padding:12px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px">
+                    <div style="display:flex; align-items:center; gap:10px">
+                        <div style="width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:13px">
+                            {{ $semSeq ?: $semIdx }}
+                        </div>
+                        <div>
+                            <div style="font-weight:800; font-size:14px; color:#fff">{{ $semName }}</div>
+                            <div style="font-size:11px; color:rgba(255,255,255,0.75)">{{ $maps->count() }} টি সাবজেক্ট</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center">
+                        @if($isActive)
+                            <span style="background:rgba(255,255,255,0.25); color:#fff; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; border:1px solid rgba(255,255,255,0.4)">
+                                📌 চলতি সেমিস্টার
+                            </span>
+                        @endif
+                        <span style="background:rgba(255,255,255,0.15); color:#fff; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600">
+                            {{ $maps->sum(fn($m) => $m->subject?->credit ?? 0) }} Credits
+                        </span>
+                    </div>
+                </div>
+
+                {{-- Subject Table --}}
+                <div style="overflow-x:auto; background:#fff">
+                    <table class="subject-table">
+                        <thead>
+                            <tr style="background:{{ $color }}11">
+                                <th style="width:36px; color:{{ $color }}">#</th>
+                                <th style="color:{{ $color }}">Subject Name</th>
+                                <th style="color:{{ $color }}">Code</th>
+                                <th style="text-align:center; color:{{ $color }}">Credit</th>
+                                <th style="text-align:center; color:{{ $color }}">Full Marks</th>
+                                <th style="text-align:center; color:{{ $color }}">Pass Marks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($maps as $j => $map)
+                            <tr>
+                                <td style="font-weight:700; color:#94a3b8; font-size:12px">{{ $j + 1 }}</td>
+                                <td>
+                                    <strong style="color:#1e293b">{{ $map->subject?->name ?? '—' }}</strong>
+                                    @if($map->subject?->description)
+                                        <div style="font-size:11px; color:#94a3b8; margin-top:2px">{{ Str::limit($map->subject->description, 60) }}</div>
+                                    @endif
+                                </td>
+                                <td style="font-family:monospace; font-size:12px; color:{{ $color }}; font-weight:700">{{ $map->subject?->code ?? '—' }}</td>
+                                <td style="text-align:center">
+                                    <span style="background:{{ $color }}15; color:{{ $color }}; padding:2px 8px; border-radius:20px; font-weight:700; font-size:12px">
+                                        {{ $map->subject?->credit ?? '—' }}
+                                    </span>
+                                </td>
+                                <td style="text-align:center; font-weight:700; color:#1e293b">{{ $map->subject?->full_marks ?? '—' }}</td>
+                                <td style="text-align:center; font-weight:700; color:#dc2626">{{ $map->subject?->pass_marks ?? '—' }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            @endforeach
         </div>
         @endif
+
 
         {{-- Final Marks Table (if generated) --}}
         @if($finalMarks->isNotEmpty())
