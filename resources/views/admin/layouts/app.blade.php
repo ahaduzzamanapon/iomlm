@@ -184,7 +184,7 @@
             </div>
 
             {{-- ── 5. Exams & Results ── --}}
-            @php $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.promotions*'); @endphp
+            @php $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.promotions*','admin.final-marks*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $examsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
@@ -207,6 +207,10 @@
                     <a href="{{ route('admin.promotions.index') }}" class="nav-item {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                         Promotions
+                    </a>
+                    <a href="{{ route('admin.final-marks.index') }}" class="nav-item {{ request()->routeIs('admin.final-marks*') ? 'active' : '' }}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+                        Final Mark Generator
                     </a>
                 </div>
             </div>

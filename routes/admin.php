@@ -171,5 +171,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::delete('app-settings/divisions/{division}',  [\App\Http\Controllers\Admin\AppSettingController::class, 'destroyDivision'])->name('app-settings.divisions.destroy');
     Route::post('app-settings/districts',               [\App\Http\Controllers\Admin\AppSettingController::class, 'storeDistrict'])->name('app-settings.districts.store');
     Route::delete('app-settings/districts/{district}',  [\App\Http\Controllers\Admin\AppSettingController::class, 'destroyDistrict'])->name('app-settings.districts.destroy');
+
+    // ── Final Mark Generator ───────────────────────────────────────────
+    Route::get('final-marks',          [\App\Http\Controllers\Admin\FinalMarkController::class, 'index'])->name('final-marks.index');
+    Route::post('final-marks/generate',[\App\Http\Controllers\Admin\FinalMarkController::class, 'generate'])->name('final-marks.generate');
+    Route::get('final-marks/export-csv',[\App\Http\Controllers\Admin\FinalMarkController::class, 'exportCsv'])->name('final-marks.export-csv');
 });
 
