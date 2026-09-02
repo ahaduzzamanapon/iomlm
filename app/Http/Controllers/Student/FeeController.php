@@ -115,9 +115,19 @@ class FeeController extends Controller
             }
         }
 
-        // 3. Sequentially assign remaining unassigned SEMESTER invoices to semesters (in ID order)
+        // 3. Sequentially assign remaining unassigned SEMESTER invoices to semesters
         if ($unassignedSemesterInvoices->isNotEmpty()) {
-            $sortedUnassigned = $unassignedSemesterInvoices->sortBy('id');
+            // Sort unassigned semester invoices: PAID first, then PARTIAL, then UNPAID (so Semester 1 gets PAID invoice first)
+            $sortedUnassigned = $unassignedSemesterInvoices->sort(function ($a, $b) {
+                $statusOrder = ['PAID' => 1, 'PARTIAL' => 2, 'UNPAID' => 3];
+                $orderA = $statusOrder[$a->status] ?? 4;
+                $orderB = $statusOrder[$b->status] ?? 4;
+
+                if ($orderA === $orderB) {
+                    return $a->id <=> $b->id;
+                }
+                return $orderA <=> $orderB;
+            })->values();
 
             foreach ($allSemesters as $sem) {
                 if ($sortedUnassigned->isEmpty()) {
@@ -127,19 +137,20 @@ class FeeController extends Controller
                 if (empty($invoicesBySemester[$sem->id])) {
                     $assignedInv = $sortedUnassigned->shift();
                     $invoicesBySemester[$sem->id][] = $assignedInv;
-                    // Auto-assign in DB
-                    if (empty($assignedInv->source_id)) {
+                    // Auto-assign in DB for clean future tracking
+                    try {
                         $assignedInv->update([
                             'source_type' => \App\Models\Semester::class,
                             'source_id'   => $sem->id,
                         ]);
-                    }
+                    } catch (\Throwable $e) {}
                 }
             }
 
-            // Any remaining unassigned go to otherInvoices
+            // Any remaining unassigned semester invoices get individual separate entries
             while ($sortedUnassigned->isNotEmpty()) {
-                $otherInvoices->push($sortedUnassigned->shift());
+                $extraInv = $sortedUnassigned->shift();
+                $otherInvoices->push($extraInv);
             }
         }
 
