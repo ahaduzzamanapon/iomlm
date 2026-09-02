@@ -176,14 +176,15 @@ class FeeController extends Controller
             ]);
         }
 
-        // 4. Other / unmatched invoices
-        if ($otherInvoices->isNotEmpty()) {
+        // 4. Other / unmatched invoices (each listed in its own individual row, never combined!)
+        foreach ($otherInvoices as $oInv) {
+            $label = $oInv->title ?: 'ফি ইনভয়েস (' . $oInv->invoice_no . ')';
             $semesterBreakdown->push([
-                'label'     => 'অন্যান্য ফি',
+                'label'     => $label,
                 'isRunning' => false,
-                'payable'   => $otherInvoices->sum('payable_amount'),
-                'paid'      => $otherInvoices->sum('paid_amount'),
-                'due'       => $otherInvoices->sum('due_amount'),
+                'payable'   => (float)$oInv->payable_amount,
+                'paid'      => (float)$oInv->paid_amount,
+                'due'       => (float)$oInv->due_amount,
                 'hasInvoice'=> true,
             ]);
         }
