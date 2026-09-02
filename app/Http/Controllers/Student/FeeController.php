@@ -18,8 +18,18 @@ class FeeController extends Controller
             'enrollments.semester'
         ])->where('user_id', auth()->id())->first();
 
-        $activeEnrollment = $student?->enrollments->where('status', 'ACTIVE')->first()
-            ?? $student?->enrollments->first();
+        $selectedCourseId = request('course_id');
+
+        $activeEnrollment = null;
+        if ($selectedCourseId) {
+            $activeEnrollment = $student?->enrollments->where('course_id', $selectedCourseId)->first();
+        }
+        if (!$activeEnrollment) {
+            $activeEnrollment = $student?->enrollments->where('status', 'ACTIVE')->first()
+                ?? $student?->enrollments->first();
+        }
+
+        $studentCourses = $student?->enrollments->map(fn($e) => $e->course)->filter()->unique('id') ?? collect();
 
         $course     = $activeEnrollment?->course;
         $courseType = $course?->type ?? 'SEMESTER_BASED';
@@ -29,13 +39,28 @@ class FeeController extends Controller
             ?? $activeEnrollment?->semester;
         $runningSemesterName = $runningSemester?->name ?? 'চলতি সেমিস্টার';
 
-        $invoices = Invoice::with(['enrollment.course'])
-            ->where('student_id', $student?->id)
-            ->latest()
-            ->get();
+        $invoicesQuery = Invoice::with(['enrollment.course'])
+            ->where('student_id', $student?->id);
+
+        if ($course) {
+            $invoicesQuery->where(function ($q) use ($course, $activeEnrollment) {
+                $q->where('enrollment_id', $activeEnrollment->id)
+                  ->orWhereHas('enrollment', fn($q2) => $q2->where('course_id', $course->id))
+                  ->orWhereNull('enrollment_id');
+            });
+        }
+
+        $invoices = $invoicesQuery->latest()->get();
 
         $payments = Payment::with('invoice')
             ->where('student_id', $student?->id)
+            ->whereHas('invoice', function ($q) use ($course, $activeEnrollment) {
+                if ($course) {
+                    $q->where('enrollment_id', $activeEnrollment->id)
+                      ->orWhereHas('enrollment', fn($q2) => $q2->where('course_id', $course->id))
+                      ->orWhereNull('enrollment_id');
+                }
+            })
             ->latest('paid_at')
             ->get();
 
@@ -140,60 +165,105 @@ class FeeController extends Controller
         // 1. All course semesters (whether invoiced or not)
         foreach ($allSemesters as $sem) {
             $semInvoices = collect($invoicesBySemester[$sem->id] ?? []);
+            $firstUnpaid = $semInvoices->where('due_amount', '>', 0)->first() ?? $semInvoices->first();
             $isRunning   = $runningSemester && $sem->id == $runningSemester->id;
 
             $semesterBreakdown->push([
-                'label'     => $sem->name . ($isRunning ? ' 🔵' : ''),
-                'isRunning' => $isRunning,
-                'payable'   => $semInvoices->sum('payable_amount'),
-                'paid'      => $semInvoices->sum('paid_amount'),
-                'due'       => $semInvoices->sum('due_amount'),
-                'hasInvoice'=> $semInvoices->isNotEmpty(),
+                'label'      => $sem->name . ($isRunning ? ' 🔵' : ''),
+                'category'   => 'SEMESTER',
+                'isRunning'  => $isRunning,
+                'payable'    => $semInvoices->sum('payable_amount'),
+                'paid'       => $semInvoices->sum('paid_amount'),
+                'due'        => $semInvoices->sum('due_amount'),
+                'hasInvoice' => $semInvoices->isNotEmpty(),
+                'invoice'    => $firstUnpaid,
             ]);
         }
 
         // 2. Admission fee row
         if ($admissionInvoices->isNotEmpty()) {
+            $firstUnpaid = $admissionInvoices->where('due_amount', '>', 0)->first() ?? $admissionInvoices->first();
             $semesterBreakdown->push([
-                'label'     => 'ভর্তি ফি (Admission Fee)',
-                'isRunning' => false,
-                'payable'   => $admissionInvoices->sum('payable_amount'),
-                'paid'      => $admissionInvoices->sum('paid_amount'),
-                'due'       => $admissionInvoices->sum('due_amount'),
-                'hasInvoice'=> true,
+                'label'      => 'ভর্তি ফি (Admission Fee)',
+                'category'   => 'ADMISSION',
+                'isRunning'  => false,
+                'payable'    => $admissionInvoices->sum('payable_amount'),
+                'paid'       => $admissionInvoices->sum('paid_amount'),
+                'due'        => $admissionInvoices->sum('due_amount'),
+                'hasInvoice' => true,
+                'invoice'    => $firstUnpaid,
             ]);
         }
 
-        // 3. Retake fee row
+        // 3. Retake / Exam fee row
         if ($retakeInvoices->isNotEmpty()) {
-            $semesterBreakdown->push([
-                'label'     => 'বিষয় রিটেক ফি (Retake Fee)',
-                'isRunning' => false,
-                'payable'   => $retakeInvoices->sum('payable_amount'),
-                'paid'      => $retakeInvoices->sum('paid_amount'),
-                'due'       => $retakeInvoices->sum('due_amount'),
-                'hasInvoice'=> true,
-            ]);
+            foreach ($retakeInvoices as $rInv) {
+                $semesterBreakdown->push([
+                    'label'      => $rInv->title ?: 'বিষয় রিটেক / পরীক্ষা ফি',
+                    'category'   => 'RETAKE',
+                    'isRunning'  => false,
+                    'payable'    => (float)$rInv->payable_amount,
+                    'paid'       => (float)$rInv->paid_amount,
+                    'due'        => (float)$rInv->due_amount,
+                    'hasInvoice' => true,
+                    'invoice'    => $rInv,
+                ]);
+            }
         }
 
-        // 4. Other / unmatched invoices (each listed in its own individual row, never combined!)
+        // 4. Other / unmatched / monthly fee invoices (each listed individually)
         foreach ($otherInvoices as $oInv) {
             $label = $oInv->title ?: 'ফি ইনভয়েস (' . $oInv->invoice_no . ')';
             $semesterBreakdown->push([
-                'label'     => $label,
-                'isRunning' => false,
-                'payable'   => (float)$oInv->payable_amount,
-                'paid'      => (float)$oInv->paid_amount,
-                'due'       => (float)$oInv->due_amount,
-                'hasInvoice'=> true,
+                'label'      => $label,
+                'category'   => $oInv->category ?: 'OTHER',
+                'isRunning'  => false,
+                'payable'    => (float)$oInv->payable_amount,
+                'paid'       => (float)$oInv->paid_amount,
+                'due'        => (float)$oInv->due_amount,
+                'hasInvoice' => true,
+                'invoice'    => $oInv,
             ]);
         }
 
         return view('student.fees.index', compact(
             'student', 'course', 'courseType', 'runningSemester', 'runningSemesterName',
             'invoices', 'payments', 'totalDue', 'totalPaid', 'runningSemesterDue',
-            'semesterBreakdown'
+            'semesterBreakdown', 'studentCourses'
         ));
+    }
+
+    /**
+     * Submit payment for an invoice from Student Portal.
+     */
+    public function payInvoice(Request $request, Invoice $invoice)
+    {
+        $student = Student::where('user_id', auth()->id())->firstOrFail();
+
+        if ($invoice->student_id !== $student->id) {
+            abort(403, 'Unauthorized access to invoice.');
+        }
+
+        if ($invoice->status === 'PAID' || $invoice->due_amount <= 0) {
+            return back()->with('error', 'এই ইনভয়েসটির সকল বকেয়া ইতিমধ্যে পরিশোধিত হয়েছে।');
+        }
+
+        $validated = $request->validate([
+            'amount'         => 'required|numeric|min:1|max:' . $invoice->due_amount,
+            'payment_method' => 'required|string|in:BKASH,NAGAD,ROCKET,ONLINE,BANK_TRANSFER,CASH',
+            'transaction_id' => 'nullable|string|max:100',
+            'remarks'        => 'nullable|string|max:255',
+        ]);
+
+        $payment = \App\Services\AccountingService::receivePayment(
+            $invoice,
+            (float) $validated['amount'],
+            $validated['payment_method'],
+            $validated['transaction_id'] ?? null,
+            $validated['remarks'] ?? 'Student Portal Online Payment'
+        );
+
+        return back()->with('success', "🎉 পেমেন্ট সফলভাবে সম্পন্ন হয়েছে! Receipt No: {$payment->payment_no} (পরিমাণ: ৳" . number_format($payment->amount, 2) . ")");
     }
 
     public function printReceipt(Payment $payment)

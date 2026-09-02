@@ -141,21 +141,43 @@
     </style>
 
     {{-- Page Header --}}
-    <div class="page-header" style="margin-bottom:24px">
+    <div class="page-header" style="margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
         <div class="page-header-left">
-            <h1>🎓 My Course</h1>
+            <h1>🎓 My Courses</h1>
             <p>আপনার ভর্তি হওয়া কোর্স, সাবজেক্ট, উপস্থিতি ও ফলাফলের বিবরণ</p>
         </div>
-        <div style="font-size:13px; color:var(--text-muted)">
-            মোট ভর্তি: <strong>{{ $enrollments->count() }}</strong>
+        <div style="display:flex; align-items:center; gap:12px">
+            <button onclick="document.getElementById('applyCourseModal').style.display='flex'"
+                style="background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; border:none; padding:10px 20px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(37,99,235,0.25)">
+                ➕ নতুন কোর্সে আবেদন করুন
+            </button>
+            <div style="font-size:13px; color:var(--text-muted); background:#f8fafc; padding:8px 14px; border-radius:10px; border:1px solid #e2e8f0">
+                মোট ভর্তি: <strong>{{ $enrollments->count() }}</strong>
+            </div>
         </div>
     </div>
+
+    {{-- Alert Messages --}}
+    @if(session('success'))
+        <div style="background:#dcfce7; color:#15803d; padding:14px 18px; border-radius:12px; border:1px solid #bbf7d0; margin-bottom:20px; font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px">
+            ✅ {{ session('success') }}
+        </div>
+    @endif
+    @if(session('error'))
+        <div style="background:#fee2e2; color:#b91c1c; padding:14px 18px; border-radius:12px; border:1px solid #fca5a5; margin-bottom:20px; font-weight:600; font-size:14px; display:flex; align-items:center; gap:8px">
+            ⚠️ {{ session('error') }}
+        </div>
+    @endif
 
     @if($enrollments->isEmpty())
         <div class="card" style="text-align:center; padding:60px 20px;">
             <div style="font-size:48px; margin-bottom:12px">📚</div>
             <strong style="font-size:16px; color:#1e293b">কোনো কোর্সে এখনো ভর্তি হননি।</strong><br>
-            <span style="font-size:13px; color:var(--text-muted)">অ্যাডমিশন সম্পন্ন হলে এখানে আপনার কোর্স দেখা যাবে।</span>
+            <span style="font-size:13px; color:var(--text-muted); display:block; margin:8px 0 16px">অন্য যেকোনো নতুন কোর্সে ভর্তি আবেদনের জন্য নিচের বাটনে ক্লিক করুন।</span>
+            <button onclick="document.getElementById('applyCourseModal').style.display='flex'"
+                style="background:#2563eb; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-weight:700; cursor:pointer">
+                ➕ নতুন কোর্সে ভর্তি আবেদন করুন
+            </button>
         </div>
     @endif
 
@@ -404,5 +426,53 @@
 
     </div>
     @endforeach
+
+    {{-- ── ➕ APPLY FOR NEW COURSE MODAL ── --}}
+    <div id="applyCourseModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:9999; justify-content:center; align-items:center; padding:20px; box-sizing:border-box">
+        <div style="background:#fff; border-radius:18px; max-width:540px; width:100%; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.25); animation:modalSlideUp .3s ease">
+            <div style="background:linear-gradient(135deg,#1e293b,#0f172a); color:#fff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center">
+                <div style="font-weight:800; font-size:16px; display:flex; align-items:center; gap:8px">
+                    🎓 নতুন কোর্সে ভর্তি আবেদন
+                </div>
+                <button onclick="document.getElementById('applyCourseModal').style.display='none'" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer; line-height:1">&times;</button>
+            </div>
+            @php
+                $allActiveCourses = \App\Models\Course::where('is_active', true)->orderBy('name')->get();
+                $allActiveBatches = \App\Models\Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+            @endphp
+            <form method="POST" action="{{ route('student.my-course.apply') }}" style="padding:24px">
+                @csrf
+                <div style="margin-bottom:16px">
+                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">কোর্স সিলেক্ট করুন <span style="color:#dc2626">*</span></label>
+                    <select name="interested_course_id" class="form-control" required style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px">
+                        <option value="">-- কোর্স বেছে নিন --</option>
+                        @foreach($allActiveCourses as $c)
+                            <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->type === 'SEMESTER_BASED' ? 'Semester Based' : 'Subject Based' }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="margin-bottom:16px">
+                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">পছন্দের ব্যাচ (ঐচ্ছিক)</label>
+                    <select name="batch_id" class="form-control" style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px">
+                        <option value="">-- ব্যাচ বেছে নিন (যদি থাকে) --</option>
+                        @foreach($allActiveBatches as $b)
+                            <option value="{{ $b->id }}">{{ $b->name }} — {{ $b->course?->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="margin-bottom:20px">
+                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">অতিরিক্ত নোট / মন্তব্য (ঐচ্ছিক)</label>
+                    <textarea name="notes" rows="2" class="form-control" placeholder="যেমন: কোনো পছন্দের সময় বা বিশেষ মন্তব্য থাকলে লিখুন..." style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:13px"></textarea>
+                </div>
+                <div style="background:#f8fafc; padding:12px 16px; border-radius:10px; font-size:12px; color:#64748b; margin-bottom:20px">
+                    ℹ️ আপনার বর্তমান স্টুডেন্ট প্রোফাইল (নাম, ফোন, ইমেইল, তথ্য) স্বয়ংক্রিয়ভাবে আবেদনের সাথে যুক্ত হবে। আবেদন জমা হলে অ্যাডমিন রিভিউ করে নতুন কোর্স অনুমোদন করবেন।
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px">
+                    <button type="button" onclick="document.getElementById('applyCourseModal').style.display='none'" style="padding:10px 18px; border-radius:9px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-weight:600; font-size:13px; cursor:pointer">বাতিল</button>
+                    <button type="submit" style="padding:10px 22px; border-radius:9px; border:none; background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.3)">আবেদন জমা দিন 🚀</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
 </x-student-layout>

@@ -25,7 +25,8 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
     Route::get('classes/{class}',  [\App\Http\Controllers\Student\ClassController::class, 'show'])->name('classes.show');
 
     // My Course
-    Route::get('my-course', [\App\Http\Controllers\Student\MyCourseController::class, 'index'])->name('my-course.index');
+    Route::get('my-course',       [\App\Http\Controllers\Student\MyCourseController::class, 'index'])->name('my-course.index');
+    Route::post('my-course/apply', [\App\Http\Controllers\Student\MyCourseController::class, 'applyStore'])->name('my-course.apply');
 
     // Subjects
     Route::get('subjects',           [\App\Http\Controllers\Student\SubjectController::class, 'index'])->name('subjects.index');
@@ -40,6 +41,7 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
     // Fees & Accounts Dues
     Route::get('fees', [\App\Http\Controllers\Student\FeeController::class, 'index'])->name('fees.index');
     Route::get('fees/payments/{payment}/receipt', [\App\Http\Controllers\Student\FeeController::class, 'printReceipt'])->name('fees.receipt');
+    Route::post('fees/invoices/{invoice}/pay', [\App\Http\Controllers\Student\FeeController::class, 'payInvoice'])->name('fees.pay');
 
     // Exams
     Route::get('exams',                       [\App\Http\Controllers\Student\ExamController::class, 'index'])->name('exams.index');

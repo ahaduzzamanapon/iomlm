@@ -78,4 +78,41 @@ class MyCourseController extends Controller
 
         return view('student.my-course.index', compact('enrollments', 'student'));
     }
+
+    /**
+     * Submit an application for an additional course from Student Portal.
+     */
+    public function applyStore(\Illuminate\Http\Request $request)
+    {
+        $student = Student::where('user_id', auth()->id())->firstOrFail();
+
+        $validated = $request->validate([
+            'interested_course_id' => 'required|exists:courses,id',
+            'batch_id'             => 'nullable|exists:batches,id',
+            'notes'                => 'nullable|string|max:500',
+        ]);
+
+        // Check if student already applied for this course and is PENDING
+        $existingApp = \App\Models\AdmissionForm::where('student_id', $student->id)
+            ->where('interested_course_id', $validated['interested_course_id'])
+            ->where('status', 'PENDING')
+            ->first();
+
+        if ($existingApp) {
+            return back()->with('error', 'আপনি ইতিমধ্যেই এই কোর্সটির জন্য আবেদন করেছেন (App No: ' . $existingApp->application_no . ')। আবেদনটি পর্যালোচনায় রয়েছে।');
+        }
+
+        $form = \App\Models\AdmissionForm::create([
+            'source'               => 'PUBLIC',
+            'application_no'       => \App\Models\AdmissionForm::generateApplicationNo(),
+            'student_id'           => $student->id,
+            'interested_course_id' => $validated['interested_course_id'],
+            'batch_id'             => $validated['batch_id'] ?? null,
+            'status'               => 'PENDING',
+            'notes'                => $validated['notes'] ?? 'Student applied for additional course via Student Portal',
+            'lead_source'          => 'Student Portal (Existing Student)',
+        ]);
+
+        return back()->with('success', '🎉 নতুন কোর্স ভর্তি আবেদন সফলভাবে জমা হয়েছে! (App No: ' . $form->application_no . ')। অ্যাডমিন অনুমোদনের পর কোর্সটি সক্রিয় হবে।');
+    }
 }
