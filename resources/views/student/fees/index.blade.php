@@ -298,6 +298,7 @@
                         <th>Invoice Purpose</th>
                         <th>Amount Paid</th>
                         <th>Payment Method</th>
+                        <th>Status</th>
                         <th>Date &amp; Time</th>
                         <th style="text-align:center">Action</th>
                     </tr>
@@ -309,16 +310,29 @@
                         <td class="td-primary">{{ $pay->invoice->title ?? '—' }}</td>
                         <td><strong style="color:#10b981">৳{{ number_format($pay->amount, 2) }}</strong></td>
                         <td><span class="badge badge-secondary no-dot">{{ $pay->payment_method }}</span></td>
-                        <td class="td-muted" style="font-size:12px">{{ $pay->paid_at->format('d M Y, h:i A') }}</td>
+                        <td>
+                            @if(($pay->status ?? 'APPROVED') === 'APPROVED')
+                                <span class="badge badge-success no-dot" style="font-size:11px">✓ Approved</span>
+                            @elseif(($pay->status ?? 'APPROVED') === 'PENDING')
+                                <span class="badge badge-warning no-dot" style="font-size:11px">⏳ Pending Approval</span>
+                            @else
+                                <span class="badge badge-danger no-dot" style="font-size:11px">❌ Rejected</span>
+                            @endif
+                        </td>
+                        <td class="td-muted" style="font-size:12px">{{ $pay->paid_at ? \Carbon\Carbon::parse($pay->paid_at)->format('d M Y, h:i A') : '—' }}</td>
                         <td style="text-align:center">
-                            <a href="{{ route('student.fees.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm">
-                                🖨️ Download Receipt
-                            </a>
+                            @if(($pay->status ?? 'APPROVED') === 'APPROVED')
+                                <a href="{{ route('student.fees.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm">
+                                    🖨️ Download Receipt
+                                </a>
+                            @else
+                                <span style="font-size:11px; color:#b45309; font-style:italic">⏳ Verification Pending</span>
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">No payment transactions recorded yet.</td>
+                        <td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No payment transactions recorded yet.</td>
                     </tr>
                     @endforelse
                 </tbody>

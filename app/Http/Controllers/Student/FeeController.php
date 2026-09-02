@@ -279,15 +279,15 @@ class FeeController extends Controller
             'remarks'        => 'nullable|string|max:255',
         ]);
 
-        $payment = \App\Services\AccountingService::receivePayment(
+        $payment = \App\Services\AccountingService::submitStudentPayment(
             $invoice,
             (float) $validated['amount'],
             $validated['payment_method'],
             $validated['transaction_id'] ?? null,
-            $validated['remarks'] ?? 'Student Portal Online Payment'
+            $validated['remarks'] ?? null
         );
 
-        return back()->with('success', "🎉 পেমেন্ট সফলভাবে সম্পন্ন হয়েছে! Receipt No: {$payment->payment_no} (পরিমাণ: ৳" . number_format($payment->amount, 2) . ")");
+        return back()->with('success', '⏳ পেমেন্ট ট্রানজেকশন সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন অনুমোদন করার সাথে সাথে ফি রসিদ ও বকেয়া আপডেট হয়ে যাবে।');
     }
 
     public function printReceipt(Payment $payment)

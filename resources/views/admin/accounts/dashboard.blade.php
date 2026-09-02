@@ -19,7 +19,7 @@
     @endif
 
     {{-- Stats Cards --}}
-    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); margin-bottom: 24px;">
         <div class="stat-card">
             <div class="stat-icon green">৳</div>
             <div class="stat-info">
@@ -101,6 +101,74 @@
         </div>
     </div>
 
+    {{-- Pending Online Payments Awaiting Admin Approval --}}
+    <div class="card" style="margin-bottom:24px; border-top:4px solid #f59e0b">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; background:#fffbeb">
+            <span class="card-title" style="color:#b45309; display:flex; align-items:center; gap:8px">
+                ⏳ অনলাইন পেমেন্ট ভেরিফিকেশন ও অনুমোদন (Pending Online Payments)
+                @if(isset($pendingPayments) && $pendingPayments->count() > 0)
+                    <span class="badge badge-warning" style="font-size:12px">{{ $pendingPayments->count() }} PENDING</span>
+                @endif
+            </span>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Trx ID / Ref</th>
+                        <th>Student Details</th>
+                        <th>Invoice Purpose</th>
+                        <th>Amount Submitted</th>
+                        <th>Method</th>
+                        <th>Date &amp; Time</th>
+                        <th style="text-align:center">Action / Verification</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($pendingPayments ?? [] as $pPay)
+                    <tr style="background:#fff">
+                        <td style="font-weight:700; color:#b45309; font-size:12px">
+                            {{ $pPay->transaction_id ?: $pPay->payment_no }}
+                        </td>
+                        <td>
+                            <strong>{{ $pPay->student->name }}</strong><br>
+                            <small style="color:#64748b">Code: {{ $pPay->student->student_code }} | {{ $pPay->student->phone }}</small>
+                        </td>
+                        <td class="td-primary" style="font-size:13px">
+                            {{ $pPay->invoice->title ?? '—' }}
+                            <br><small style="color:#94a3b8">Inv No: {{ $pPay->invoice->invoice_no ?? 'N/A' }}</small>
+                        </td>
+                        <td><strong style="color:#2563eb; font-size:15px">৳{{ number_format($pPay->amount, 2) }}</strong></td>
+                        <td><span class="badge badge-warning no-dot" style="font-weight:700">{{ $pPay->payment_method }}</span></td>
+                        <td class="td-muted" style="font-size:12px">{{ $pPay->paid_at ? $pPay->paid_at->format('d M Y, h:i A') : '—' }}</td>
+                        <td style="text-align:center">
+                            <div style="display:flex; justify-content:center; gap:6px">
+                                <form method="POST" action="{{ route('admin.accounts.payments.approve', $pPay) }}" onsubmit="return confirm('আপনি কি এই পেমেন্টটি এপ্রুভ করতে চান?')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success btn-sm" style="padding:5px 10px; font-size:11.5px">
+                                        ✓ Approve
+                                    </button>
+                                </form>
+
+                                <form method="POST" action="{{ route('admin.accounts.payments.reject', $pPay) }}" onsubmit="return confirm('আপনি কি এই পেমেন্টটি বাতিল করতে চান?')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-danger btn-sm" style="padding:5px 10px; font-size:11.5px">
+                                        ❌ Reject
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:20px; color:#94a3b8">কোনো অনলাইন পেমেন্ট পেন্ডিং নেই।</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     {{-- Recent Payment History --}}
     <div class="card">
         <div class="card-header">
@@ -115,6 +183,7 @@
                         <th>Invoice / Purpose</th>
                         <th>Amount Paid</th>
                         <th>Method</th>
+                        <th>Status</th>
                         <th>Date &amp; Time</th>
                         <th style="text-align:center">Action</th>
                     </tr>
@@ -130,6 +199,15 @@
                         <td class="td-primary">{{ $pay->invoice->title ?? '—' }}</td>
                         <td><strong style="color:#10b981">৳{{ number_format($pay->amount, 2) }}</strong></td>
                         <td><span class="badge badge-secondary no-dot">{{ $pay->payment_method }}</span></td>
+                        <td>
+                            @if($pay->status === 'APPROVED')
+                                <span class="badge badge-success no-dot" style="font-size:11px">✓ Approved</span>
+                            @elseif($pay->status === 'PENDING')
+                                <span class="badge badge-warning no-dot" style="font-size:11px">⏳ Pending</span>
+                            @else
+                                <span class="badge badge-danger no-dot" style="font-size:11px">❌ Rejected</span>
+                            @endif
+                        </td>
                         <td class="td-muted" style="font-size:12px">{{ $pay->paid_at->format('d M Y, h:i A') }}</td>
                         <td style="text-align:center">
                             <a href="{{ route('admin.accounts.payments.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm">

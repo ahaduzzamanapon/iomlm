@@ -204,7 +204,79 @@ class AccountingService
 
 
     /**
-     * Receive payment against an invoice and update due status.
+     * Submit payment request from Student Portal (Status: PENDING, awaiting Admin Approval).
+     */
+    public static function submitStudentPayment(Invoice $invoice, float $amount, string $method, ?string $trxId = null, ?string $remarks = null): Payment
+    {
+        $payNo = 'PAY-ONLINE-' . date('Ymd') . '-' . rand(1000, 9999);
+
+        return Payment::create([
+            'payment_no'     => $payNo,
+            'invoice_id'     => $invoice->id,
+            'student_id'     => $invoice->student_id,
+            'amount'         => $amount,
+            'payment_method' => $method,
+            'transaction_id' => $trxId,
+            'remarks'        => $remarks ?: 'Online Payment via Student Portal (Pending Approval)',
+            'received_by'    => null,
+            'status'         => 'PENDING',
+            'paid_at'        => now(),
+        ]);
+    }
+
+    /**
+     * Admin Approves a Pending Student Online Payment.
+     */
+    public static function approvePayment(Payment $payment): Payment
+    {
+        if ($payment->status === 'APPROVED') {
+            return $payment;
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($payment) {
+            $invoice = $payment->invoice;
+
+            $newPaidAmount = $invoice->paid_amount + $payment->amount;
+            $newDueAmount  = max(0, $invoice->payable_amount - $newPaidAmount);
+
+            $status = 'UNPAID';
+            if ($newDueAmount <= 0) {
+                $status = 'PAID';
+            } elseif ($newPaidAmount > 0) {
+                $status = 'PARTIAL';
+            }
+
+            $invoice->update([
+                'paid_amount' => $newPaidAmount,
+                'due_amount'  => $newDueAmount,
+                'status'      => $status,
+            ]);
+
+            $payment->update([
+                'status'      => 'APPROVED',
+                'approved_at' => now(),
+                'received_by' => auth()->id(),
+            ]);
+
+            return $payment;
+        });
+    }
+
+    /**
+     * Admin Rejects a Pending Student Online Payment.
+     */
+    public static function rejectPayment(Payment $payment, ?string $reason = null): Payment
+    {
+        $payment->update([
+            'status'  => 'REJECTED',
+            'remarks' => ($payment->remarks ? $payment->remarks . ' | ' : '') . 'Rejected: ' . ($reason ?: 'Invalid transaction details'),
+        ]);
+
+        return $payment;
+    }
+
+    /**
+     * Receive instant payment against an invoice (Admin Counter Collection).
      */
     public static function receivePayment(Invoice $invoice, float $amount, string $method = 'CASH', ?string $trxId = null, ?string $remarks = null): Payment
     {
@@ -219,6 +291,8 @@ class AccountingService
                 'payment_method' => $method,
                 'transaction_id' => $trxId,
                 'remarks'        => $remarks,
+                'status'         => 'APPROVED',
+                'approved_at'    => now(),
                 'received_by'    => auth()->id(),
                 'paid_at'        => now(),
             ]);

@@ -31,6 +31,12 @@ class AccountsController extends Controller
         // Recent Payments
         $recentPayments = Payment::with(['student', 'invoice'])->latest()->take(10)->get();
 
+        // Pending Student Online Payments awaiting verification
+        $pendingPayments = Payment::with(['student', 'invoice'])
+            ->where('status', 'PENDING')
+            ->latest()
+            ->get();
+
         // Search invoices for counter collection
         $search = $request->query('search');
         $counterInvoices = collect();
@@ -50,7 +56,35 @@ class AccountsController extends Controller
                 ->get();
         }
 
-        return view('admin.accounts.dashboard', compact('stats', 'recentPayments', 'counterInvoices', 'search'));
+        return view('admin.accounts.dashboard', compact('stats', 'recentPayments', 'pendingPayments', 'counterInvoices', 'search'));
+    }
+
+    /**
+     * Approve Pending Student Online Payment
+     */
+    public function approvePayment(Payment $payment)
+    {
+        if ($payment->status === 'APPROVED') {
+            return back()->with('info', 'পেমেন্টটি ইতিমধ্যে অনুমোদিত হয়েছে।');
+        }
+
+        AccountingService::approvePayment($payment);
+
+        return back()->with('success', "✓ পেমেন্ট (ID: {$payment->payment_no}) সফলভাবে অনুমোদিত হয়েছে! ইনভয়েস বকেয়া আপডেট করা হয়েছে।");
+    }
+
+    /**
+     * Reject Pending Student Online Payment
+     */
+    public function rejectPayment(Request $request, Payment $payment)
+    {
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        AccountingService::rejectPayment($payment, $validated['reason'] ?? 'Invalid Transaction Details');
+
+        return back()->with('success', "❌ পেমেন্টটি (ID: {$payment->payment_no}) বাতিল করা হয়েছে।");
     }
 
     /**

@@ -113,6 +113,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('accounts/fee-structures',            [\App\Http\Controllers\Admin\AccountsController::class, 'storeFeeStructure'])->name('accounts.fee-structures.store');
     Route::get('accounts/reports',                    [\App\Http\Controllers\Admin\AccountsController::class, 'reports'])->name('accounts.reports');
     Route::get('accounts/payments/{payment}/receipt', [\App\Http\Controllers\Admin\AccountsController::class, 'printReceipt'])->name('accounts.payments.receipt');
+    Route::post('accounts/payments/{payment}/approve', [\App\Http\Controllers\Admin\AccountsController::class, 'approvePayment'])->name('accounts.payments.approve');
+    Route::post('accounts/payments/{payment}/reject',  [\App\Http\Controllers\Admin\AccountsController::class, 'rejectPayment'])->name('accounts.payments.reject');
 
     // ── Notice Board ──────────────────────────────────────────────────
     Route::resource('notices', \App\Http\Controllers\Admin\NoticeController::class)->only(['index', 'store', 'destroy']);
