@@ -77,19 +77,21 @@
     <div class="card" style="margin-bottom:24px; border-top:3px solid #3b82f6">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center">
             <span class="card-title" style="display:flex; align-items:center; gap:8px">
-                📊 Semester &amp; Category Payment Breakdown
+                📊 {{ $courseType === 'SUBJECT_BASED' ? 'Course Fee & Particulars Breakdown' : 'Semester & Category Payment Breakdown' }}
             </span>
-            <span style="font-size:12px; color:var(--text-muted)">Summary by Semester</span>
+            <span style="font-size:12px; color:var(--text-muted)">
+                {{ $courseType === 'SUBJECT_BASED' ? 'Summary by Category' : 'Summary by Semester' }}
+            </span>
         </div>
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr style="background:#f8fafc">
-                        <th>Semester / Particulars</th>
+                        <th>{{ $courseType === 'SUBJECT_BASED' ? 'Particulars / Fee Item' : 'Semester / Particulars' }}</th>
                         <th style="text-align:right">Payable Amount</th>
                         <th style="text-align:right">Paid Amount</th>
                         <th style="text-align:right">Remaining Due</th>
-                        <th style="text-align:center">Semester Status</th>
+                        <th style="text-align:center">{{ $courseType === 'SUBJECT_BASED' ? 'Payment Status' : 'Semester Status' }}</th>
                     </tr>
                 </thead>
                 <tbody>
