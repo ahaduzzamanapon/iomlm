@@ -195,7 +195,8 @@ class AccountingService
         if ($approvedPackage) {
             $fullPackageTotal = (float) $approvedPackage->items()->sum('total_amount');
             $feeRate          = round($fullPackageTotal / $totalSemesters, 2);
-            $feeTitle         = "Semester Tuition Fee — {$course?->name} ({$approvedPackage->name})";
+            $feeLabel         = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
+            $feeTitle         = "{$feeLabel} — {$course?->name} ({$approvedPackage->name})";
             $discountAmount   = 0.00;
         } else {
             // Check if course has default fee package
@@ -203,10 +204,11 @@ class AccountingService
                 ?? $course?->feePackages()->first();
 
             $packageTotal = $defaultPackage ? (float) $defaultPackage->items()->sum('total_amount') : 0;
+            $feeLabel     = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
 
             if ($defaultPackage && $packageTotal > 0) {
                 $feeRate  = round($packageTotal / $totalSemesters, 2);
-                $feeTitle = "Semester Tuition Fee — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
+                $feeTitle = "{$feeLabel} — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
                 $discountAmount = 0.00;
             } else {
                 // Fallback: FeeStructure lookup
@@ -217,13 +219,15 @@ class AccountingService
                     })
                     ->where('is_active', true)
                     ->value('amount') ?? 7000.00);
-                $feeTitle       = "Semester Tuition Fee — {$course?->name}";
+                $feeTitle       = "{$feeLabel} — {$course?->name}";
                 $discountAmount = 0.00;
             }
         }
 
-        $semName = $semester?->name ?? 'Current Semester';
-        $invNo   = 'INV-SEM-' . date('Ymd') . '-' . rand(1000, 9999);
+        $semName = $semester?->name ?? 'Current Period';
+        // For subject-based courses, don't append semester name to avoid confusion
+        $titleSuffix = ($courseType === 'SUBJECT_BASED') ? '' : " ({$semName})";
+        $invNo   = 'INV-TUI-' . date('Ymd') . '-' . rand(1000, 9999);
 
         // ── SAFEGUARD 5: feeRate must be positive — never create a ৳0 semester invoice ──
         // If no fee configured, skip silently. Admin can manually create an invoice if needed.
@@ -234,7 +238,7 @@ class AccountingService
                 'student_id'     => $student->id,
                 'enrollment_id'  => $enrollment->id,
                 'category'       => 'SEMESTER',
-                'title'          => $feeTitle . " ({$semName})",
+                'title'          => $feeTitle . $titleSuffix,
                 'amount'         => 0,
                 'payable_amount' => 0,
                 'paid_amount'    => 0,
@@ -250,7 +254,7 @@ class AccountingService
             'student_id'     => $student->id,
             'enrollment_id'  => $enrollment->id,
             'category'       => 'SEMESTER',
-            'title'          => $feeTitle . " ({$semName})",
+            'title'          => $feeTitle . $titleSuffix,
             'amount'         => $feeRate,
             'discount'       => $discountAmount,
             'payable_amount' => $feeRate,

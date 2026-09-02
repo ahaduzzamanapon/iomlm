@@ -245,9 +245,18 @@
                         <td style="font-weight:700;color:#3b82f6;font-size:12px">{{ $inv->invoice_no }}</td>
                         <td>
                             <strong>{{ $inv->title }}</strong><br>
-                            <span class="badge badge-secondary no-dot" style="font-size:10px">{{ $inv->category }}</span>
+                            @php
+                                $catLabel = ($inv->category === 'SEMESTER' && $courseType === 'SUBJECT_BASED')
+                                    ? 'COURSE FEE'
+                                    : $inv->category;
+                            @endphp
+                            <span class="badge badge-secondary no-dot" style="font-size:10px">{{ $catLabel }}</span>
                             @if($inv->is_current_running_semester)
-                                <span class="badge badge-primary no-dot" style="font-size:10px; background:#3b82f6">⚡ Running Semester</span>
+                                @if($courseType === 'SUBJECT_BASED')
+                                    <span class="badge badge-primary no-dot" style="font-size:10px; background:#7c3aed">📖 Current Course</span>
+                                @else
+                                    <span class="badge badge-primary no-dot" style="font-size:10px; background:#3b82f6">⚡ Running Semester</span>
+                                @endif
                             @endif
                         </td>
                         <td>৳{{ number_format($inv->payable_amount, 2) }}</td>
