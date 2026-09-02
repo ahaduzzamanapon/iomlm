@@ -484,7 +484,7 @@
 
     {{-- Footer --}}
     <footer class="footer">
-        <p>&copy; {{ date('Y') }} Islamic Online Madrasah (IOM). सर्वाधिकार सुरक्षित।</p>
+        <p>&copy; {{ date('Y') }} Islamic Online Madrasah (IOM)</p>
         <p style="margin-top:4px;font-size:12px;color:#64748b">
             <a href="{{ route('online-support.index') }}">অনলাইন সাপোর্ট</a> &middot; 
             <a href="{{ route('poor_fund.show') }}">দরিদ্র তহবিল</a> &middot; 
