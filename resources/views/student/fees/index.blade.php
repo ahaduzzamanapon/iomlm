@@ -1,13 +1,6 @@
 <x-student-layout>
     <x-slot name="title">My Fees & Dues</x-slot>
 
-    <div class="page-header">
-        <div class="page-header-left">
-            <h1>💳 My Fees &amp; Payment Receipts</h1>
-            <p>Track your semester dues, admission fees, and download official payment receipts</p>
-        </div>
-    </div>
-
     <div class="page-header" style="margin-bottom:20px">
         <div class="page-header-left">
             <h1 style="display:flex;align-items:center;gap:10px">
@@ -102,14 +95,15 @@
                 <tbody>
                     @forelse($semesterBreakdown as $groupName => $groupInvoices)
                         @php
-                            $gPayable = $groupInvoices->sum('payable_amount');
-                            $gPaid    = $groupInvoices->sum('paid_amount');
-                            $gDue     = $groupInvoices->sum('due_amount');
-                            $isRunning = str_contains($groupName, 'রানিং সেমিস্টার');
+                            $gPayable  = $groupInvoices->sum('payable_amount');
+                            $gPaid     = $groupInvoices->sum('paid_amount');
+                            $gDue      = $groupInvoices->sum('due_amount');
+                            $isRunning = str_contains($groupName, '🔵');
+                            $cleanName = str_replace(' 🔵 (চলতি)', '', str_replace(' 🔵', '', $groupName));
                         @endphp
                         <tr style="{{ $isRunning ? 'background:#f0f9ff;' : '' }}">
                             <td>
-                                <strong style="font-size:13px; color:#1e293b">{{ $groupName }}</strong>
+                                <strong style="font-size:13px; color:#1e293b">{{ $cleanName }}</strong>
                                 @if($isRunning)
                                     <span class="badge badge-primary no-dot" style="font-size:10px; margin-left:6px">Current Running</span>
                                 @endif

@@ -13,7 +13,7 @@ class FeeController extends Controller
     public function index()
     {
         $student = Student::with([
-            'enrollments.course',
+            'enrollments.course.semesters',
             'enrollments.batch.semesterPosition.currentSemester',
             'enrollments.semester'
         ])->where('user_id', auth()->id())->first();
@@ -62,18 +62,38 @@ class FeeController extends Controller
             }
         }
 
-        // Group invoices by Semester / Category for Breakdown Summary Table
-        $semesterBreakdown = $invoices->where('status', '!=', 'CANCELLED')->groupBy(function($inv) use ($runningSemesterName) {
-            if ($inv->is_current_running_semester) {
-                return "রানিং সেমিস্টার ({$runningSemesterName})";
+        // ── Semester-wise Breakdown: group by actual semester ─────────────
+        // Preload all semesters for the course to map IDs to names
+        $semesterMap = $course
+            ? $course->semesters->pluck('name', 'id')->toArray()
+            : [];
+
+        $semesterBreakdown = $invoices->where('status', '!=', 'CANCELLED')->groupBy(function ($inv) use ($semesterMap, $runningSemester) {
+            // 1. source_type is Semester → use that semester's actual name
+            if ($inv->source_type === \App\Models\Semester::class && !empty($semesterMap[$inv->source_id])) {
+                $semName  = $semesterMap[$inv->source_id];
+                $isRunning = $runningSemester && $inv->source_id == $runningSemester->id;
+                return $semName . ($isRunning ? ' 🔵' : '');
             }
+            // 2. Admission fee
             if ($inv->category === 'ADMISSION') {
                 return 'ভর্তি ফি (Admission Fee)';
             }
+            // 3. Retake fee
             if ($inv->category === 'RETAKE') {
                 return 'বিষয় রিটেক ফি (Retake Fee)';
             }
-            return 'অন্যান্য / সেমিস্টার ফি';
+            // 4. Semester category — fallback to title-based name
+            if ($inv->category === 'SEMESTER') {
+                if ($runningSemester && (
+                    str_contains(mb_strtolower($inv->title), mb_strtolower($runningSemester->name))
+                    || str_contains(mb_strtolower($inv->title), 'current semester')
+                )) {
+                    return $runningSemester->name . ' 🔵';
+                }
+                return 'সেমিস্টার ফি';
+            }
+            return 'অন্যান্য ফি';
         });
 
         return view('student.fees.index', compact(
