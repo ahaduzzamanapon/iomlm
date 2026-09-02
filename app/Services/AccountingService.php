@@ -127,6 +127,9 @@ class AccountingService
      */
     public static function createSemesterInvoice(Student $student, Enrollment $enrollment, ?Semester $semester = null): Invoice
     {
+        $course = $enrollment->course ?? $enrollment->batch?->course;
+        $totalSemesters = max(1, $course?->semesters()->count() ?: 6);
+
         // Check if student has an active approved waiver with a tuition package
         $approvedPackage = null;
         // Find waiver code from admission form
@@ -148,20 +151,19 @@ class AccountingService
         }
 
         if ($approvedPackage) {
-            // Use the approved package items total (no column called 'total')
-            $feeRate    = (float) $approvedPackage->items()->sum('total_amount');
-            $feeTitle   = "Semester Tuition Fee — {$enrollment->course->name} ({$approvedPackage->name})";
-            $discountAmount = 0.00;
+            $fullPackageTotal = (float) $approvedPackage->items()->sum('total_amount');
+            $feeRate          = round($fullPackageTotal / $totalSemesters, 2);
+            $feeTitle         = "Semester Tuition Fee — {$course?->name} ({$approvedPackage->name})";
+            $discountAmount   = 0.00;
         } else {
             // Check if course has default fee package
-            $course = $enrollment->course ?? $enrollment->batch?->course;
             $defaultPackage = $course?->feePackages()->where('is_default', true)->first()
                 ?? $course?->feePackages()->first();
 
             $packageTotal = $defaultPackage ? (float) $defaultPackage->items()->sum('total_amount') : 0;
 
             if ($defaultPackage && $packageTotal > 0) {
-                $feeRate  = $packageTotal;
+                $feeRate  = round($packageTotal / $totalSemesters, 2);
                 $feeTitle = "Semester Tuition Fee — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
                 $discountAmount = 0.00;
             } else {
@@ -172,8 +174,8 @@ class AccountingService
                           ->orWhereNull('course_id');
                     })
                     ->where('is_active', true)
-                    ->value('amount') ?? 10000.00);
-                $feeTitle       = "Semester Tuition Fee — {$enrollment->course->name}";
+                    ->value('amount') ?? 7000.00);
+                $feeTitle       = "Semester Tuition Fee — {$course?->name}";
                 $discountAmount = 0.00;
             }
         }

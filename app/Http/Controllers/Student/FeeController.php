@@ -222,25 +222,38 @@ class FeeController extends Controller
             }
         }
 
-        // 4. Other / unmatched / monthly fee invoices (each listed individually)
-        foreach ($otherInvoices as $oInv) {
-            $label = $oInv->title ?: 'ফি ইনভয়েস (' . $oInv->invoice_no . ')';
-            $semesterBreakdown->push([
-                'label'      => $label,
-                'category'   => $oInv->category ?: 'OTHER',
-                'isRunning'  => false,
-                'payable'    => (float)$oInv->payable_amount,
-                'paid'       => (float)$oInv->paid_amount,
-                'due'        => (float)$oInv->due_amount,
-                'hasInvoice' => true,
-                'invoice'    => $oInv,
-            ]);
+        // Build itemized package fee breakdown per semester
+        $totalSems = max(1, $course?->semesters()->count() ?: 6);
+        $packageItemsBreakdown = collect();
+
+        if ($course) {
+            $defaultPkg = $course->feePackages()->where('is_default', true)->first()
+                ?? $course->feePackages()->first();
+
+            if ($defaultPkg) {
+                $pkgItems = $defaultPkg->items()->with('feeHead')->get();
+                foreach ($pkgItems as $pi) {
+                    $headName  = $pi->label ?: ($pi->feeHead?->name ?? 'Fee Item');
+                    $qty       = (int) $pi->quantity;
+                    $unitPrice = (float) $pi->amount_per_unit;
+                    $totalAmt  = (float) $pi->total_amount;
+
+                    $perSemAmt = round($totalAmt / $totalSems, 2);
+
+                    $packageItemsBreakdown->push([
+                        'name'            => $headName,
+                        'unit_price'      => $unitPrice,
+                        'total_package'   => $totalAmt,
+                        'per_semester_amt'=> $perSemAmt,
+                    ]);
+                }
+            }
         }
 
         return view('student.fees.index', compact(
             'student', 'course', 'courseType', 'runningSemester', 'runningSemesterName',
             'invoices', 'payments', 'totalDue', 'totalPaid', 'runningSemesterDue',
-            'semesterBreakdown', 'studentCourses'
+            'semesterBreakdown', 'studentCourses', 'packageItemsBreakdown'
         ));
     }
 

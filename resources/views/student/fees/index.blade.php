@@ -188,6 +188,29 @@
                 </tbody>
             </table>
         </div>
+
+        @if(isset($packageItemsBreakdown) && $packageItemsBreakdown->isNotEmpty())
+        <div style="background:#f8fafc; padding:16px 20px; border-top:1px solid #e2e8f0">
+            <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:10px; display:flex; align-items:center; gap:8px">
+                🔍 কোর্স ফি প্যাকেজের আইটেমভিত্তিক বিস্তারিত হিসেব (Itemized Package Fee Breakdown)
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px">
+                @foreach($packageItemsBreakdown as $pItem)
+                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px">
+                    <div style="font-size:12px; font-weight:700; color:#1e293b">{{ $pItem['name'] }}</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:#64748b">
+                        <span>প্রতি সেমিস্টারে অংশ:</span>
+                        <strong style="color:#2563eb">৳{{ number_format($pItem['per_semester_amt'], 2) }}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-top:2px; font-size:10.5px; color:#94a3b8">
+                        <span>মোট প্যাকেজ মূল্য:</span>
+                        <span>৳{{ number_format($pItem['total_package'], 2) }}</span>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
     </div>
 
     {{-- ── 📑 MY INVOICES & DETAILED FEE STATEMENTS ── --}}
@@ -234,7 +257,7 @@
                                 <span style="color:#10b981;font-weight:600">৳0.00</span>
                             @endif
                         </td>
-                        <td class="td-muted" style="font-size:12px">{{ $inv->due_date ? $inv->due_date->format('d M Y') : '—' }}</td>
+                        <td class="td-muted" style="font-size:12px">{{ $inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('d M Y') : '—' }}</td>
                         <td>
                             @php
                                 $badge = match($inv->status) { 'PAID'=>'badge-success', 'PARTIAL'=>'badge-warning', default=>'badge-danger' };
