@@ -62,39 +62,105 @@ class FeeController extends Controller
             }
         }
 
-        // ── Semester-wise Breakdown: group by actual semester ─────────────
-        // Preload all semesters for the course to map IDs to names
-        $semesterMap = $course
-            ? $course->semesters->pluck('name', 'id')->toArray()
-            : [];
+        // ── Semester-wise Breakdown: ALL semesters, whether invoiced or not ──
+        // Load all semesters of the course (ordered by sequence)
+        $allSemesters = $course ? $course->semesters : collect();
 
-        $semesterBreakdown = $invoices->where('status', '!=', 'CANCELLED')->groupBy(function ($inv) use ($semesterMap, $runningSemester) {
-            // 1. source_type is Semester → use that semester's actual name
-            if ($inv->source_type === \App\Models\Semester::class && !empty($semesterMap[$inv->source_id])) {
-                $semName  = $semesterMap[$inv->source_id];
-                $isRunning = $runningSemester && $inv->source_id == $runningSemester->id;
-                return $semName . ($isRunning ? ' 🔵' : '');
+        // Build a lookup: semester_id → [invoices]
+        $invoicesBySemester = [];
+        $admissionInvoices  = collect();
+        $retakeInvoices     = collect();
+        $otherInvoices      = collect();
+
+        foreach ($invoices->where('status', '!=', 'CANCELLED') as $inv) {
+            $matched = false;
+
+            // Match by source_type+source_id (most reliable)
+            if ($inv->source_type === \App\Models\Semester::class && $inv->source_id) {
+                $invoicesBySemester[$inv->source_id][] = $inv;
+                $matched = true;
             }
-            // 2. Admission fee
-            if ($inv->category === 'ADMISSION') {
-                return 'ভর্তি ফি (Admission Fee)';
-            }
-            // 3. Retake fee
-            if ($inv->category === 'RETAKE') {
-                return 'বিষয় রিটেক ফি (Retake Fee)';
-            }
-            // 4. Semester category — fallback to title-based name
-            if ($inv->category === 'SEMESTER') {
+            // Match by category SEMESTER — try to link to running semester
+            elseif ($inv->category === 'SEMESTER') {
                 if ($runningSemester && (
                     str_contains(mb_strtolower($inv->title), mb_strtolower($runningSemester->name))
                     || str_contains(mb_strtolower($inv->title), 'current semester')
                 )) {
-                    return $runningSemester->name . ' 🔵';
+                    $invoicesBySemester[$runningSemester->id][] = $inv;
+                    $matched = true;
                 }
-                return 'সেমিস্টার ফি';
+                if (!$matched) {
+                    $otherInvoices->push($inv);
+                }
             }
-            return 'অন্যান্য ফি';
-        });
+            // Admission
+            elseif ($inv->category === 'ADMISSION') {
+                $admissionInvoices->push($inv);
+                $matched = true;
+            }
+            // Retake
+            elseif ($inv->category === 'RETAKE') {
+                $retakeInvoices->push($inv);
+                $matched = true;
+            }
+            else {
+                $otherInvoices->push($inv);
+            }
+        }
+
+        // Build ordered breakdown rows
+        $semesterBreakdown = collect();
+
+        // 1. All course semesters (whether invoiced or not)
+        foreach ($allSemesters as $sem) {
+            $semInvoices = collect($invoicesBySemester[$sem->id] ?? []);
+            $isRunning   = $runningSemester && $sem->id == $runningSemester->id;
+
+            $semesterBreakdown->push([
+                'label'     => $sem->name . ($isRunning ? ' 🔵' : ''),
+                'isRunning' => $isRunning,
+                'payable'   => $semInvoices->sum('payable_amount'),
+                'paid'      => $semInvoices->sum('paid_amount'),
+                'due'       => $semInvoices->sum('due_amount'),
+                'hasInvoice'=> $semInvoices->isNotEmpty(),
+            ]);
+        }
+
+        // 2. Admission fee row
+        if ($admissionInvoices->isNotEmpty()) {
+            $semesterBreakdown->push([
+                'label'     => 'ভর্তি ফি (Admission Fee)',
+                'isRunning' => false,
+                'payable'   => $admissionInvoices->sum('payable_amount'),
+                'paid'      => $admissionInvoices->sum('paid_amount'),
+                'due'       => $admissionInvoices->sum('due_amount'),
+                'hasInvoice'=> true,
+            ]);
+        }
+
+        // 3. Retake fee row
+        if ($retakeInvoices->isNotEmpty()) {
+            $semesterBreakdown->push([
+                'label'     => 'বিষয় রিটেক ফি (Retake Fee)',
+                'isRunning' => false,
+                'payable'   => $retakeInvoices->sum('payable_amount'),
+                'paid'      => $retakeInvoices->sum('paid_amount'),
+                'due'       => $retakeInvoices->sum('due_amount'),
+                'hasInvoice'=> true,
+            ]);
+        }
+
+        // 4. Other / unmatched invoices
+        if ($otherInvoices->isNotEmpty()) {
+            $semesterBreakdown->push([
+                'label'     => 'অন্যান্য ফি',
+                'isRunning' => false,
+                'payable'   => $otherInvoices->sum('payable_amount'),
+                'paid'      => $otherInvoices->sum('paid_amount'),
+                'due'       => $otherInvoices->sum('due_amount'),
+                'hasInvoice'=> true,
+            ]);
+        }
 
         return view('student.fees.index', compact(
             'student', 'course', 'courseType', 'runningSemester', 'runningSemesterName',

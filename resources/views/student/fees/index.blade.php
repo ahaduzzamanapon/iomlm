@@ -93,32 +93,43 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($semesterBreakdown as $groupName => $groupInvoices)
+                    @forelse($semesterBreakdown as $row)
                         @php
-                            $gPayable  = $groupInvoices->sum('payable_amount');
-                            $gPaid     = $groupInvoices->sum('paid_amount');
-                            $gDue      = $groupInvoices->sum('due_amount');
-                            $isRunning = str_contains($groupName, '🔵');
-                            $cleanName = str_replace(' 🔵 (চলতি)', '', str_replace(' 🔵', '', $groupName));
+                            $gPayable   = $row['payable'];
+                            $gPaid      = $row['paid'];
+                            $gDue       = $row['due'];
+                            $isRunning  = $row['isRunning'];
+                            $hasInvoice = $row['hasInvoice'];
+                            $cleanName  = str_replace(' 🔵', '', $row['label']);
                         @endphp
-                        <tr style="{{ $isRunning ? 'background:#f0f9ff;' : '' }}">
+                        <tr style="{{ $isRunning ? 'background:#f0f9ff;' : (!$hasInvoice ? 'background:#fafafa; opacity:.75;' : '') }}">
                             <td>
                                 <strong style="font-size:13px; color:#1e293b">{{ $cleanName }}</strong>
                                 @if($isRunning)
                                     <span class="badge badge-primary no-dot" style="font-size:10px; margin-left:6px">Current Running</span>
+                                @elseif(!$hasInvoice)
+                                    <span style="font-size:10px; color:#94a3b8; margin-left:6px; font-style:italic">— upcoming</span>
                                 @endif
                             </td>
-                            <td style="text-align:right; font-weight:600">৳{{ number_format($gPayable, 2) }}</td>
-                            <td style="text-align:right; color:#10b981; font-weight:600">৳{{ number_format($gPaid, 2) }}</td>
+                            <td style="text-align:right; font-weight:600">
+                                {{ $hasInvoice ? '৳' . number_format($gPayable, 2) : '—' }}
+                            </td>
+                            <td style="text-align:right; color:#10b981; font-weight:600">
+                                {{ $hasInvoice ? '৳' . number_format($gPaid, 2) : '—' }}
+                            </td>
                             <td style="text-align:right">
-                                @if($gDue > 0)
+                                @if(!$hasInvoice)
+                                    <span style="color:#94a3b8; font-size:12px">—</span>
+                                @elseif($gDue > 0)
                                     <strong style="color:#e11d48; font-size:14px">৳{{ number_format($gDue, 2) }}</strong>
                                 @else
                                     <span style="color:#10b981; font-weight:700">৳0.00</span>
                                 @endif
                             </td>
                             <td style="text-align:center">
-                                @if($gDue <= 0)
+                                @if(!$hasInvoice)
+                                    <span class="badge badge-secondary no-dot" style="padding:4px 10px; font-size:11px">⏳ Upcoming</span>
+                                @elseif($gDue <= 0)
                                     <span class="badge badge-success no-dot" style="padding:4px 10px">✓ Cleared</span>
                                 @elseif($gPaid > 0)
                                     <span class="badge badge-warning no-dot" style="padding:4px 10px">Partial Paid</span>
