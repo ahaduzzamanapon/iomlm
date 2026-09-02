@@ -24,6 +24,9 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
     Route::get('calendar',     [\App\Http\Controllers\Student\ClassController::class, 'calendar'])->name('calendar');
     Route::get('classes/{class}',  [\App\Http\Controllers\Student\ClassController::class, 'show'])->name('classes.show');
 
+    // My Course
+    Route::get('my-course', [\App\Http\Controllers\Student\MyCourseController::class, 'index'])->name('my-course.index');
+
     // Subjects
     Route::get('subjects',           [\App\Http\Controllers\Student\SubjectController::class, 'index'])->name('subjects.index');
     Route::get('subjects/{subject}', [\App\Http\Controllers\Student\SubjectController::class, 'show'])->name('subjects.show');
