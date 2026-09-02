@@ -21,21 +21,39 @@ class AccountingService
      */
     public static function createAdmissionInvoice(Student $student, AdmissionForm $admission, Enrollment $enrollment): Invoice
     {
+        // ── SAFEGUARD 1: Prevent duplicate admission invoice for the same enrollment ──
+        $existing = Invoice::where('student_id', $student->id)
+            ->where('enrollment_id', $enrollment->id)
+            ->where('category', 'ADMISSION')
+            ->first();
+        if ($existing) {
+            return $existing; // Already created — return existing, don't duplicate
+        }
+
         $batch  = $enrollment->batch;
         $course = $enrollment->course ?? $batch?->course;
 
         // Priority 1: Batch admission fee, Priority 2: Course admission fee, Priority 3: FeeStructure fallback
-        $feeRate = ($batch && $batch->admission_fee > 0)
-            ? (float)$batch->admission_fee
-            : (($course && $course->admission_fee > 0)
-                ? (float)$course->admission_fee
-                : (float)(FeeStructure::where('category', 'ADMISSION')
-                    ->where(function ($q) use ($enrollment) {
-                        $q->where('course_id', $enrollment->course_id)
-                          ->orWhereNull('course_id');
-                    })
-                    ->where('is_active', true)
-                    ->value('amount') ?? 2000.00));
+        // IMPORTANT: if batch/course explicitly set to 0, honour that (don't fallback to FeeStructure)
+        $batchFee  = $batch  ? (float)$batch->admission_fee  : null;
+        $courseFee = $course ? (float)$course->admission_fee : null;
+
+        if ($batchFee !== null && $batchFee >= 0) {
+            // Batch admission_fee is explicitly configured — use it (even if 0)
+            $feeRate = $batchFee;
+        } elseif ($courseFee !== null && $courseFee >= 0) {
+            // Course admission_fee is explicitly configured — use it (even if 0)
+            $feeRate = $courseFee;
+        } else {
+            // No batch/course fee configured — fall back to FeeStructure
+            $feeRate = (float)(FeeStructure::where('category', 'ADMISSION')
+                ->where(function ($q) use ($enrollment) {
+                    $q->where('course_id', $enrollment->course_id)
+                      ->orWhereNull('course_id');
+                })
+                ->where('is_active', true)
+                ->value('amount') ?? 0.00);
+        }
 
         // Check if a waiver code is linked and has an approved_admission_fee set
         $waiverApp = null;
@@ -67,19 +85,23 @@ class AccountingService
 
         $invNo = 'INV-ADM-' . date('Ymd') . '-' . rand(1000, 9999);
 
+        // ── SAFEGUARD 2: If payable amount is 0, auto-mark as PAID immediately ──
+        // This ensures courses/batches with admission_fee=0 never show a pending due
+        $isFreAdmission = ($payableAmount <= 0);
+
         return Invoice::create([
             'invoice_no'     => $invNo,
             'student_id'     => $student->id,
             'enrollment_id'  => $enrollment->id,
             'category'       => 'ADMISSION',
-            'title'          => "Admission Fee — " . ($batch ? $batch->name : $enrollment->course->name),
+            'title'          => "Admission Fee — " . ($batch ? $batch->name : ($enrollment->course?->name ?? 'Course')),
             'amount'         => $feeRate,
             'discount'       => $discountAmount,
             'payable_amount' => $payableAmount,
-            'paid_amount'    => 0.00,
-            'due_amount'     => $payableAmount,
-            'status'         => $payableAmount <= 0 ? 'PAID' : 'UNPAID',
-            'due_date'       => Carbon::now()->addDays(7),
+            'paid_amount'    => $isFreAdmission ? 0.00 : 0.00,
+            'due_amount'     => $isFreAdmission ? 0.00 : $payableAmount,
+            'status'         => $isFreAdmission ? 'PAID' : 'UNPAID',
+            'due_date'       => $isFreAdmission ? null : Carbon::now()->addDays(7),
             'source_type'    => AdmissionForm::class,
             'source_id'      => $admission->id,
             'created_by'     => auth()->id(),
@@ -127,8 +149,28 @@ class AccountingService
      */
     public static function createSemesterInvoice(Student $student, Enrollment $enrollment, ?Semester $semester = null): Invoice
     {
+        // ── SAFEGUARD 3: Prevent duplicate semester invoice for same enrollment + semester ──
+        $dupQuery = Invoice::where('student_id', $student->id)
+            ->where('enrollment_id', $enrollment->id)
+            ->where('category', 'SEMESTER');
+        if ($semester) {
+            $dupQuery->where(function ($q) use ($semester) {
+                $q->where(function ($q2) use ($semester) {
+                    $q2->where('source_type', Semester::class)->where('source_id', $semester->id);
+                })->orWhere(fn($q3) => $q3->where('title', 'like', "%{$semester->name}%"));
+            });
+        }
+        $existingInv = $dupQuery->first();
+        if ($existingInv) {
+            return $existingInv; // Already exists for this semester — skip creation
+        }
+
         $course = $enrollment->course ?? $enrollment->batch?->course;
-        $totalSemesters = max(1, $course?->semesters()->count() ?: 6);
+        $courseType = $course?->type ?? 'SEMESTER_BASED';
+        // ── SAFEGUARD 4: Subject-based courses use full package total (no semester division) ──
+        $totalSemesters = ($courseType === 'SUBJECT_BASED')
+            ? 1
+            : max(1, $course?->semesters()->count() ?: 6);
 
         // Check if student has an active approved waiver with a tuition package
         $approvedPackage = null;
@@ -182,6 +224,26 @@ class AccountingService
 
         $semName = $semester?->name ?? 'Current Semester';
         $invNo   = 'INV-SEM-' . date('Ymd') . '-' . rand(1000, 9999);
+
+        // ── SAFEGUARD 5: feeRate must be positive — never create a ৳0 semester invoice ──
+        // If no fee configured, skip silently. Admin can manually create an invoice if needed.
+        if ($feeRate <= 0) {
+            // Return a dummy (unsaved) Invoice object with amount=0 to avoid breaking callers
+            $dummy = new Invoice([
+                'invoice_no'     => $invNo,
+                'student_id'     => $student->id,
+                'enrollment_id'  => $enrollment->id,
+                'category'       => 'SEMESTER',
+                'title'          => $feeTitle . " ({$semName})",
+                'amount'         => 0,
+                'payable_amount' => 0,
+                'paid_amount'    => 0,
+                'due_amount'     => 0,
+                'status'         => 'PAID',
+            ]);
+            $dummy->save();
+            return $dummy;
+        }
 
         return Invoice::create([
             'invoice_no'     => $invNo,

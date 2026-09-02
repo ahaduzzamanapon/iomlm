@@ -173,22 +173,44 @@ class FeeController extends Controller
         // Build ordered breakdown rows
         $semesterBreakdown = collect();
 
-        // 1. All course semesters (whether invoiced or not)
-        foreach ($allSemesters as $sem) {
-            $semInvoices = collect($invoicesBySemester[$sem->id] ?? []);
-            $firstUnpaid = $semInvoices->where('due_amount', '>', 0)->first() ?? $semInvoices->first();
-            $isRunning   = $runningSemester && $sem->id == $runningSemester->id;
+        if ($courseType === 'SEMESTER_BASED') {
+            // 1. All course semesters (whether invoiced or not)
+            foreach ($allSemesters as $sem) {
+                $semInvoices = collect($invoicesBySemester[$sem->id] ?? []);
+                $firstUnpaid = $semInvoices->where('due_amount', '>', 0)->first() ?? $semInvoices->first();
+                $isRunning   = $runningSemester && $sem->id == $runningSemester->id;
 
-            $semesterBreakdown->push([
-                'label'      => $sem->name . ($isRunning ? ' 🔵' : ''),
-                'category'   => 'SEMESTER',
-                'isRunning'  => $isRunning,
-                'payable'    => $semInvoices->sum('payable_amount'),
-                'paid'       => $semInvoices->sum('paid_amount'),
-                'due'        => $semInvoices->sum('due_amount'),
-                'hasInvoice' => $semInvoices->isNotEmpty(),
-                'invoice'    => $firstUnpaid,
-            ]);
+                $semesterBreakdown->push([
+                    'label'      => $sem->name . ($isRunning ? ' 🔵' : ''),
+                    'category'   => 'SEMESTER',
+                    'isRunning'  => $isRunning,
+                    'payable'    => $semInvoices->sum('payable_amount'),
+                    'paid'       => $semInvoices->sum('paid_amount'),
+                    'due'        => $semInvoices->sum('due_amount'),
+                    'hasInvoice' => $semInvoices->isNotEmpty(),
+                    'invoice'    => $firstUnpaid,
+                ]);
+            }
+        } else {
+            // SUBJECT_BASED: show SEMESTER invoices as flat "Course Tuition Fee" rows (no semester split)
+            $allSemInvoices = collect();
+            foreach ($invoicesBySemester as $semId => $semInvs) {
+                foreach ($semInvs as $si) $allSemInvoices->push($si);
+            }
+            foreach ($unassignedSemesterInvoices as $si) $allSemInvoices->push($si);
+
+            foreach ($allSemInvoices->unique('id') as $sInv) {
+                $semesterBreakdown->push([
+                    'label'      => $sInv->title ?: 'কোর্স টিউশন ফি',
+                    'category'   => 'SEMESTER',
+                    'isRunning'  => true,
+                    'payable'    => (float)$sInv->payable_amount,
+                    'paid'       => (float)$sInv->paid_amount,
+                    'due'        => (float)$sInv->due_amount,
+                    'hasInvoice' => true,
+                    'invoice'    => $sInv,
+                ]);
+            }
         }
 
         // 2. Admission fee row
@@ -223,7 +245,8 @@ class FeeController extends Controller
         }
 
         // Build itemized package fee breakdown per semester
-        $totalSems = max(1, $course?->semesters()->count() ?: 6);
+        // For SUBJECT_BASED courses, show full package item amounts (no per-semester division)
+        $totalSems = ($courseType === 'SUBJECT_BASED') ? 1 : max(1, $course?->semesters()->count() ?: 6);
         $packageItemsBreakdown = collect();
 
         if ($course) {

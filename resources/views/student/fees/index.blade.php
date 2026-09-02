@@ -199,13 +199,15 @@
                 <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px">
                     <div style="font-size:12px; font-weight:700; color:#1e293b">{{ $pItem['name'] }}</div>
                     <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:#64748b">
-                        <span>প্রতি সেমিস্টারে অংশ:</span>
+                        <span>{{ $courseType === 'SUBJECT_BASED' ? 'কোর্স ফি:' : 'প্রতি সেমিস্টারে অংশ:' }}</span>
                         <strong style="color:#2563eb">৳{{ number_format($pItem['per_semester_amt'], 2) }}</strong>
                     </div>
+                    @if($courseType !== 'SUBJECT_BASED')
                     <div style="display:flex; justify-content:space-between; margin-top:2px; font-size:10.5px; color:#94a3b8">
                         <span>মোট প্যাকেজ মূল্য:</span>
                         <span>৳{{ number_format($pItem['total_package'], 2) }}</span>
                     </div>
+                    @endif
                 </div>
                 @endforeach
             </div>
