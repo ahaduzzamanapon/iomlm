@@ -42,16 +42,88 @@ class FeeController extends Controller
         $totalDue  = $invoices->where('status', '!=', 'CANCELLED')->sum('due_amount');
         $totalPaid = $payments->sum('amount');
 
-        // Running semester dues computation
+        // ── Semester-wise Breakdown: ALL semesters, whether invoiced or not ──
+        $allSemesters = $course ? $course->semesters : collect();
+
+        $nonCancelledInvoices = $invoices->where('status', '!=', 'CANCELLED');
+
+        $invoicesBySemester          = [];
+        $admissionInvoices           = collect();
+        $retakeInvoices              = collect();
+        $otherInvoices               = collect();
+        $unassignedSemesterInvoices  = collect();
+
+        foreach ($nonCancelledInvoices as $inv) {
+            if ($inv->category === 'ADMISSION') {
+                $admissionInvoices->push($inv);
+            } elseif ($inv->category === 'RETAKE') {
+                $retakeInvoices->push($inv);
+            } elseif ($inv->category === 'SEMESTER' || $inv->source_type === \App\Models\Semester::class) {
+                // 1. Direct match by source_type + source_id
+                if ($inv->source_type === \App\Models\Semester::class && $inv->source_id && $allSemesters->pluck('id')->contains($inv->source_id)) {
+                    $invoicesBySemester[$inv->source_id][] = $inv;
+                } else {
+                    // 2. Try title matching with specific semester names (e.g. "Semester 1", "Semester 2", "সেমিস্টার ১")
+                    $matchedSemId = null;
+                    foreach ($allSemesters as $sem) {
+                        if ($sem->name && str_contains(mb_strtolower($inv->title), mb_strtolower($sem->name))
+                            && !str_contains(mb_strtolower($sem->name), 'current')
+                        ) {
+                            $matchedSemId = $sem->id;
+                            break;
+                        }
+                    }
+
+                    if ($matchedSemId) {
+                        $invoicesBySemester[$matchedSemId][] = $inv;
+                        // Auto-assign in DB for permanent clean tracking
+                        if (empty($inv->source_id)) {
+                            $inv->update(['source_type' => \App\Models\Semester::class, 'source_id' => $matchedSemId]);
+                        }
+                    } else {
+                        // Keep for sequential assignment below
+                        $unassignedSemesterInvoices->push($inv);
+                    }
+                }
+            } else {
+                $otherInvoices->push($inv);
+            }
+        }
+
+        // 3. Sequentially assign remaining unassigned SEMESTER invoices to semesters (in ID order)
+        if ($unassignedSemesterInvoices->isNotEmpty()) {
+            $sortedUnassigned = $unassignedSemesterInvoices->sortBy('id');
+
+            foreach ($allSemesters as $sem) {
+                if ($sortedUnassigned->isEmpty()) {
+                    break;
+                }
+                // If this semester doesn't have an invoice assigned yet
+                if (empty($invoicesBySemester[$sem->id])) {
+                    $assignedInv = $sortedUnassigned->shift();
+                    $invoicesBySemester[$sem->id][] = $assignedInv;
+                    // Auto-assign in DB
+                    if (empty($assignedInv->source_id)) {
+                        $assignedInv->update([
+                            'source_type' => \App\Models\Semester::class,
+                            'source_id'   => $sem->id,
+                        ]);
+                    }
+                }
+            }
+
+            // Any remaining unassigned go to otherInvoices
+            while ($sortedUnassigned->isNotEmpty()) {
+                $otherInvoices->push($sortedUnassigned->shift());
+            }
+        }
+
+        // Compute runningSemesterDue accurately based on running semester's assigned invoice
         $runningSemesterDue = 0.0;
         foreach ($invoices as $inv) {
             $isCurrentSemester = false;
 
             if ($runningSemester && $inv->source_id == $runningSemester->id && $inv->source_type === \App\Models\Semester::class) {
-                $isCurrentSemester = true;
-            } elseif ($runningSemester && str_contains(mb_strtolower($inv->title), mb_strtolower($runningSemester->name))) {
-                $isCurrentSemester = true;
-            } elseif (str_contains(mb_strtolower($inv->title), 'current semester')) {
                 $isCurrentSemester = true;
             }
 
@@ -59,52 +131,6 @@ class FeeController extends Controller
 
             if ($isCurrentSemester && $inv->status !== 'CANCELLED') {
                 $runningSemesterDue += $inv->due_amount;
-            }
-        }
-
-        // ── Semester-wise Breakdown: ALL semesters, whether invoiced or not ──
-        // Load all semesters of the course (ordered by sequence)
-        $allSemesters = $course ? $course->semesters : collect();
-
-        // Build a lookup: semester_id → [invoices]
-        $invoicesBySemester = [];
-        $admissionInvoices  = collect();
-        $retakeInvoices     = collect();
-        $otherInvoices      = collect();
-
-        foreach ($invoices->where('status', '!=', 'CANCELLED') as $inv) {
-            $matched = false;
-
-            // Match by source_type+source_id (most reliable)
-            if ($inv->source_type === \App\Models\Semester::class && $inv->source_id) {
-                $invoicesBySemester[$inv->source_id][] = $inv;
-                $matched = true;
-            }
-            // Match by category SEMESTER — try to link to running semester
-            elseif ($inv->category === 'SEMESTER') {
-                if ($runningSemester && (
-                    str_contains(mb_strtolower($inv->title), mb_strtolower($runningSemester->name))
-                    || str_contains(mb_strtolower($inv->title), 'current semester')
-                )) {
-                    $invoicesBySemester[$runningSemester->id][] = $inv;
-                    $matched = true;
-                }
-                if (!$matched) {
-                    $otherInvoices->push($inv);
-                }
-            }
-            // Admission
-            elseif ($inv->category === 'ADMISSION') {
-                $admissionInvoices->push($inv);
-                $matched = true;
-            }
-            // Retake
-            elseif ($inv->category === 'RETAKE') {
-                $retakeInvoices->push($inv);
-                $matched = true;
-            }
-            else {
-                $otherInvoices->push($inv);
             }
         }
 

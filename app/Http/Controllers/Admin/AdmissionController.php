@@ -326,8 +326,11 @@ class AdmissionController extends Controller
             ]);
 
             // Auto-generate Admission & Initial Semester Fee Invoices
+            $initialSemester = $batch->semesterPosition?->currentSemester
+                ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
+
             \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
-            \App\Services\AccountingService::createSemesterInvoice($student, $enrollment);
+            \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
 
             // ── DISPATCH ADMISSION APPROVAL EMAIL ────────────────────────
             $targetEmail = $student->email ?: ($user ? $user->email : null);

@@ -43,7 +43,8 @@ class PromotionController extends Controller
         ]);
 
         if (in_array($validated['decision'], ['PROMOTED', 'FORCE_PROMOTED']) && $enrollment) {
-            \App\Services\AccountingService::createSemesterInvoice($student, $enrollment);
+            $toSem = \App\Models\Semester::find($validated['to_semester_id'] ?? null);
+            \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $toSem);
         }
 
         return back()->with('success', 'Promotion decision recorded & Auto Semester Fee Invoice generated if promoted!');
