@@ -20,7 +20,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Hind Siliguri', 'Segoe UI', sans-serif;
+            font-family: 'Kalpurush', 'Poppins', Helvetica, sans-serif;
             background: #f8fafc;
             color: var(--text-main);
             line-height: 1.6;
