@@ -8,11 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         :root {
-            --primary: #0284c7;
-            --primary-dark: #0369a1;
+            --primary: #047857;
+            --primary-dark: #064e3b;
             --secondary: #10b981;
-            --warning: #f59e0b;
-            --dark-bg: #081726;
+            --warning: #fbbf24;
+            --dark-bg: #064e3b;
             --card-bg: #ffffff;
             --text-main: #0f172a;
             --text-muted: #64748b;
@@ -38,7 +38,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 20px rgba(2,44,34,0.25);
+            border-bottom: 2px solid #047857;
             position: sticky;
             top: 0;
             z-index: 100;
@@ -55,13 +56,13 @@
         .brand-icon {
             width: 44px;
             height: 44px;
-            background: linear-gradient(135deg, #0284c7, #0d9488);
+            background: linear-gradient(135deg, #047857, #064e3b);
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 22px;
-            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+            box-shadow: 0 4px 12px rgba(4, 120, 87, 0.4);
         }
 
         .brand-text h1 {
@@ -73,8 +74,8 @@
 
         .brand-text span {
             font-size: 12px;
-            color: #38bdf8;
-            font-weight: 500;
+            color: #fbbf24;
+            font-weight: 600;
             letter-spacing: 0.5px;
         }
 
@@ -108,19 +109,19 @@
         }
 
         .btn-top-primary {
-            background: #0284c7;
+            background: #047857;
             color: #fff;
-            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+            box-shadow: 0 4px 14px rgba(4, 120, 87, 0.4);
         }
 
         .btn-top-primary:hover {
-            background: #0369a1;
+            background: #064e3b;
             transform: translateY(-1px);
         }
 
         /* ── Hero Section ── */
         .hero {
-            background: linear-gradient(180deg, #081726 0%, #0f2942 100%);
+            background: linear-gradient(180deg, #022c22 0%, #064e3b 100%);
             color: #ffffff;
             padding: 60px 20px 80px;
             text-align: center;
@@ -136,7 +137,7 @@
             transform: translateX(-50%);
             width: 1000px;
             height: 1000px;
-            background: radial-gradient(circle, rgba(2, 132, 199, 0.15) 0%, rgba(8, 23, 38, 0) 70%);
+            background: radial-gradient(circle, rgba(4, 120, 87, 0.25) 0%, rgba(2, 44, 34, 0) 70%);
             pointer-events: none;
         }
 
@@ -144,9 +145,9 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(2, 132, 199, 0.2);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            color: #38bdf8;
+            background: rgba(4, 120, 87, 0.35);
+            border: 1px solid rgba(52, 211, 153, 0.4);
+            color: #a7f3d0;
             font-size: 13px;
             font-weight: 600;
             padding: 6px 16px;
@@ -252,33 +253,33 @@
             transition: all 0.2s ease;
         }
 
-        .btn-green { background: #10b981; color: #ffffff; }
-        .btn-green:hover { background: #059669; }
+        .btn-green { background: #047857; color: #ffffff; }
+        .btn-green:hover { background: #064e3b; }
 
-        .btn-blue { background: #0284c7; color: #ffffff; }
-        .btn-blue:hover { background: #0369a1; }
+        .btn-blue { background: #047857; color: #ffffff; }
+        .btn-blue:hover { background: #064e3b; }
 
-        .btn-amber { background: #f59e0b; color: #ffffff; }
-        .btn-amber:hover { background: #d97706; }
+        .btn-amber { background: #d97706; color: #ffffff; }
+        .btn-amber:hover { background: #b45309; }
 
-        .btn-purple { background: #8b5cf6; color: #ffffff; }
-        .btn-purple:hover { background: #7c3aed; }
+        .btn-purple { background: #065f46; color: #ffffff; }
+        .btn-purple:hover { background: #047857; }
 
         /* ── Info Features Banner ── */
         .features-banner {
             background: #ffffff;
             border-radius: 16px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #d1fae5;
             padding: 32px;
             margin-top: 36px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            box-shadow: 0 4px 15px rgba(6,78,59,0.04);
         }
 
         .banner-title {
             text-align: center;
             font-size: 20px;
             font-weight: 700;
-            color: #0f172a;
+            color: #064e3b;
             margin-bottom: 24px;
         }
 
@@ -293,7 +294,7 @@
             padding: 16px;
             background: #f8fafc;
             border-radius: 12px;
-            border: 1px solid #f1f5f9;
+            border: 1px solid #e2e8f0;
         }
 
         .feature-box-icon {
@@ -315,17 +316,17 @@
 
         /* ── Footer ── */
         .footer {
-            background: #081726;
-            color: #94a3b8;
+            background: #022c22;
+            color: #a7f3d0;
             text-align: center;
             padding: 24px;
             font-size: 13px;
             margin-top: auto;
-            border-top: 1px solid #1e293b;
+            border-top: 1px solid #064e3b;
         }
 
         .footer a {
-            color: #38bdf8;
+            color: #fbbf24;
             text-decoration: none;
         }
 

@@ -11,35 +11,36 @@
     html, body { width: 100%; max-width: 100vw; overflow-x: hidden; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-        --blue: #1a56db;
-        --blue-dark: #1e3a5f;
+        --blue: #047857;          /* IOM Brand Emerald Green */
+        --blue-dark: #064e3b;     /* IOM Deep Forest */
         --green: #057a55;
+        --gold: #fbbf24;          /* IOM Gold */
         --red: #e02424;
         --card-bg: #ffffff;
-        --border: #e2e8f0;
+        --border: #d1fae5;
         --bg: #f8fafc;
-        --text: #0f172a;
+        --text: #1e293b;
         --muted: #64748b;
     }
-    body { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+    body { font-family: 'Kalpurush', 'Inter', 'Noto Sans Bengali', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
 
     /* Top Nav */
-    .nav-bar { background: var(--blue-dark); color: #fff; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--blue); flex-wrap: wrap; gap: 10px; }
+    .nav-bar { background: #064e3b; color: #fff; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #047857; flex-wrap: wrap; gap: 10px; }
     .nav-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-    .btn-home { background: var(--blue); color: #fff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; transition: background .15s; white-space: nowrap; }
-    .btn-home:hover { background: #2563eb; }
+    .btn-home { background: #047857; color: #fff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; transition: background .15s; white-space: nowrap; }
+    .btn-home:hover { background: #064e3b; }
 
     .container { max-width: 920px; width: 100%; margin: 20px auto; padding: 0 14px 60px; }
 
     /* Instructions card */
-    .instruction-card { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-size: 13px; color: #0369a1; box-shadow: 0 1px 3px rgba(0,0,0,.03); word-break: break-word; }
+    .instruction-card { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-size: 13px; color: #065f46; box-shadow: 0 1px 3px rgba(0,0,0,.03); word-break: break-word; }
     .instruction-card p { margin-bottom: 10px; }
     .instruction-card p:last-child { margin-bottom: 0; }
-    .note-tag { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 8px; font-weight: 600; margin-top: 12px; font-size: 12px; }
+    .note-tag { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 8px; font-weight: 600; margin-top: 12px; font-size: 12px; }
 
     /* Form card */
     .form-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden; width: 100%; }
-    .form-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); text-align: center; }
+    .form-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); text-align: center; border-top: 4px solid #047857; }
     .form-header h1 { font-size: 20px; font-weight: 700; color: var(--blue-dark); margin-bottom: 4px; }
     .form-header p { font-size: 12px; color: var(--muted); }
 
@@ -67,8 +68,8 @@
     .radio-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
 
     .form-footer { padding: 16px 24px; background: #f8fafc; border-top: 1px solid var(--border); text-align: right; }
-    .btn-submit { background: var(--blue); color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; width: auto; }
-    .btn-submit:hover { background: #1d4ed8; }
+    .btn-submit { background: var(--blue); color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; width: auto; box-shadow: 0 4px 12px rgba(4,120,87,.25); }
+    .btn-submit:hover { background: var(--blue-dark); box-shadow: 0 6px 18px rgba(6,78,59,.35); }
 
     .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
 

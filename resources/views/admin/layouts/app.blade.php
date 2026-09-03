@@ -54,11 +54,13 @@
         letter-spacing: 1.2px;
     }
     .nav-group-label {
-        color: #6ee7b7 !important;
-        opacity: 0.9;
+        color: #ffffff !important;
+        opacity: 0.92;
+        font-weight: 700;
+        letter-spacing: 1.2px;
     }
 
-    /* ─── Tree Navigation & Items ──────────────────────────────── */
+    /* ─── Tree Navigation & Items: Pure White Text ─────────────── */
     .tree-group { margin-bottom: 2px; }
 
     .tree-toggle {
@@ -71,26 +73,32 @@
         font-weight: 600;
         letter-spacing: .03em;
         text-transform: uppercase;
-        color: #a7f3d0 !important;
+        color: #ffffff !important;
         cursor: pointer;
         user-select: none;
         transition: background .15s, color .15s;
     }
     .tree-toggle:hover {
-        background: rgba(255, 255, 255, 0.09) !important;
+        background: rgba(255, 255, 255, 0.12) !important;
         color: #ffffff !important;
     }
     .tree-toggle.has-active {
-        color: #34d399 !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
     }
 
     .tree-toggle-arrow {
         margin-left: auto;
         transition: transform .25s cubic-bezier(.4,0,.2,1);
-        opacity: .6;
+        opacity: 0.85;
         flex-shrink: 0;
+        color: #ffffff !important;
     }
-    .tree-toggle.open .tree-toggle-arrow { transform: rotate(90deg); opacity: 1; }
+    .tree-toggle.open .tree-toggle-arrow {
+        transform: rotate(90deg);
+        opacity: 1;
+        color: #ffffff !important;
+    }
 
     .tree-children {
         overflow: hidden;
@@ -106,34 +114,40 @@
         border-radius: 6px;
         margin-bottom: 1px;
         border-left: 2px solid transparent;
-        color: #9ca3af !important;
+        color: #ffffff !important;
+        opacity: 0.92;
     }
     .tree-children .nav-item:hover {
-        color: #ecfdf5 !important;
-        background: rgba(255, 255, 255, 0.07) !important;
+        color: #ffffff !important;
+        background: rgba(255, 255, 255, 0.12) !important;
+        opacity: 1;
     }
     .tree-children .nav-item.active {
         border-left-color: #34d399 !important;
-        background: rgba(4, 120, 87, 0.35) !important;
+        background: rgba(4, 120, 87, 0.5) !important;
         color: #ffffff !important;
         font-weight: 700 !important;
+        opacity: 1;
     }
 
     .nav-item {
-        color: #a7f3d0 !important;
+        color: #ffffff !important;
     }
     .nav-item:hover {
-        background: rgba(255, 255, 255, 0.08) !important;
+        background: rgba(255, 255, 255, 0.12) !important;
         color: #ffffff !important;
     }
     .nav-item.active {
-        background: linear-gradient(135deg, rgba(4, 120, 87, 0.75), rgba(5, 150, 105, 0.55)) !important;
+        background: linear-gradient(135deg, rgba(4, 120, 87, 0.85), rgba(5, 150, 105, 0.65)) !important;
         color: #ffffff !important;
-        border: 1px solid rgba(52, 211, 153, 0.45) !important;
+        border: 1px solid rgba(52, 211, 153, 0.5) !important;
         box-shadow: 0 4px 14px rgba(2, 44, 34, 0.35) !important;
     }
+    .nav-item i, .nav-item svg, .tree-toggle i, .tree-toggle svg {
+        color: #ffffff !important;
+    }
     .nav-item.active i, .nav-item.active svg {
-        color: #34d399 !important;
+        color: #ffffff !important;
     }
 
     /* ─── Admin Topbar ─────────────────────────────────────────── */
@@ -166,7 +180,7 @@
         background: radial-gradient(circle, rgba(251, 191, 36, 0.22) 0%, rgba(0,0,0,0) 70%) !important;
     }
     .banner-title { color: #ffffff !important; }
-    .banner-sub { color: #d1fae5 !important; }
+    .banner-sub { color: #ffffff !important; opacity: 0.98; }
     .banner-status {
         background: rgba(255, 255, 255, 0.15) !important;
         border-color: rgba(251, 191, 36, 0.35) !important;

@@ -8,17 +8,17 @@
     <style>
         * { box-sizing: border-box; }
         body {
-            font-family: 'Hind Siliguri', 'Segoe UI', sans-serif;
-            background: #f1f5f9; margin: 0; color: #0f172a;
+            font-family: 'Kalpurush', 'Hind Siliguri', 'Segoe UI', sans-serif;
+            background: #f8fafc; margin: 0; color: #0f172a;
         }
 
         .chat-header-bar {
-            background: #081726; color: #fff; height: 60px;
+            background: #064e3b; color: #fff; height: 60px;
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            padding: 0 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); border-bottom: 2px solid #047857;
         }
         .chat-header-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-        .chat-header-sub { font-size: 12px; color: #94a3b8; }
+        .chat-header-sub { font-size: 12px; color: #a7f3d0; }
 
         .chat-container {
             max-width: 900px; margin: 24px auto; padding: 0 16px;
@@ -26,8 +26,8 @@
         }
 
         .chat-box {
-            background: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.08); display: flex; flex-direction: column;
+            background: #ffffff; border-radius: 12px; border: 1px solid #d1fae5;
+            box-shadow: 0 10px 25px rgba(6,78,59,0.06); display: flex; flex-direction: column;
             flex: 1; overflow: hidden;
         }
 
@@ -41,11 +41,11 @@
         }
 
         .btn-send {
-            background: #0284c7; color: #fff; border: none; border-radius: 6px;
+            background: #047857; color: #fff; border: none; border-radius: 6px;
             padding: 0 20px; font-weight: 700; height: 44px; cursor: pointer;
-            display: inline-flex; align-items: center; gap: 6px;
+            display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s;
         }
-        .btn-send:hover { background: #0369a1; }
+        .btn-send:hover { background: #064e3b; }
 
         /* Rating Modal / Box */
         .rating-box {
@@ -88,7 +88,7 @@
 
         <div class="chat-box">
             {{-- Ticket Status Banner --}}
-            <div style="padding:12px 20px;background:#e0f2fe;border-bottom:1px solid #bae6fd;display:flex;justify-content:space-between;align-items:center;font-size:13px">
+            <div style="padding:12px 20px;background:#ecfdf5;border-bottom:1px solid #d1fae5;display:flex;justify-content:space-between;align-items:center;font-size:13px">
                 <div>
                     <strong>বিষয়:</strong> {{ $ticket->subject }}
                 </div>
@@ -192,7 +192,7 @@
         if (!url) return '';
         const cleanUrl = url.split('?')[0].split('#')[0];
         const isImg = /\.(jpg|jpeg|png|gif|webp|bmp|jfif)$/i.test(cleanUrl);
-        const linkColor = isUser ? '#ffffff' : '#0284c7';
+        const linkColor = isUser ? '#ffffff' : '#047857';
         if (isImg) {
             return `
                 <div style="margin-top:8px">
@@ -233,7 +233,7 @@
                 html += `
                     <div style="display:flex;flex-direction:column;align-items:flex-end;margin-bottom:8px">
                         <div style="font-size:11px;color:#64748b;margin-bottom:2px">You &middot; ${m.time}</div>
-                        <div style="background:#0284c7;color:#fff;padding:10px 14px;border-radius:12px 12px 0 12px;max-width:80%;font-size:14px;line-height:1.4">
+                        <div style="background:#047857;color:#fff;padding:10px 14px;border-radius:12px 12px 0 12px;max-width:80%;font-size:14px;line-height:1.4">
                             ${m.message}
                             ${getAttachmentHtml(m.attachment, true)}
                         </div>

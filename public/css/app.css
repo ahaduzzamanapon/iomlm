@@ -164,7 +164,8 @@ input, select, textarea { font-family: var(--font); }
   font-weight: 700;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: #64748b;
+  color: #ffffff;
+  opacity: 0.92;
   padding: 16px 20px 6px;
 }
 
@@ -181,17 +182,18 @@ input, select, textarea { font-family: var(--font); }
   border-radius: 10px;
   font-size: 14.5px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #ffffff;
   cursor: pointer;
   user-select: none;
   transition: all 0.2s ease;
 }
 .tree-toggle:hover {
-  background: rgba(255,255,255,0.06);
-  color: #f1f5f9;
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
 }
 .tree-toggle.has-active {
-  color: #60a5fa;
+  color: #ffffff;
+  font-weight: 700;
 }
 .tree-toggle svg:first-child {
   width: 20px !important;
@@ -204,12 +206,14 @@ input, select, textarea { font-family: var(--font); }
   width: 14px !important;
   height: 14px !important;
   transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-  opacity: 0.6;
+  opacity: 0.85;
+  color: #ffffff;
   flex-shrink: 0;
 }
 .tree-toggle.open .tree-toggle-arrow {
   transform: rotate(90deg);
   opacity: 1;
+  color: #ffffff;
 }
 
 .tree-children {
@@ -226,12 +230,15 @@ input, select, textarea { font-family: var(--font); }
   margin: 3px 12px 3px 18px;
   border-radius: 8px;
   border-left: 2px solid transparent;
+  color: #ffffff;
+  opacity: 0.92;
 }
 .tree-children .nav-item.active {
-  border-left-color: #60a5fa;
-  background: rgba(59, 130, 246, 0.14);
-  color: #60a5fa;
-  font-weight: 600;
+  border-left-color: #34d399;
+  background: rgba(4, 120, 87, 0.45);
+  color: #ffffff;
+  font-weight: 700;
+  opacity: 1;
 }
 
 .nav-item {
@@ -240,7 +247,7 @@ input, select, textarea { font-family: var(--font); }
   gap: 12px;
   padding: 11px 16px;
   margin: 3px 12px;
-  color: #94a3b8;
+  color: #ffffff;
   border-radius: 10px;
   font-size: 14.5px;
   font-weight: 500;
@@ -250,18 +257,19 @@ input, select, textarea { font-family: var(--font); }
   user-select: none;
 }
 .nav-item:hover {
-  background: rgba(255,255,255,0.06);
-  color: #f1f5f9;
+  background: rgba(255,255,255,0.12);
+  color: #ffffff;
   transform: translateX(2px);
 }
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.12));
-  color: #60a5fa;
-  font-weight: 600;
-  border: 1px solid rgba(96, 165, 250, 0.2);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, rgba(4, 120, 87, 0.85), rgba(5, 150, 105, 0.65));
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 .nav-item svg, .nav-item .nav-icon, .nav-item i {
+  color: #ffffff;
   width: 20px !important;
   height: 20px !important;
   font-size: 16px;

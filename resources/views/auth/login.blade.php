@@ -17,15 +17,15 @@
             align-items: center;
             justify-content: center;
             padding: 20px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Kalpurush', 'Inter', sans-serif;
             margin: 0;
         }
 
         .login-bg {
             position: fixed; inset: 0;
             background:
-                radial-gradient(ellipse at 15% 20%, rgba(59,130,246,.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 85% 80%, rgba(99,102,241,.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 15% 20%, rgba(4,120,87,.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 80%, rgba(6,78,59,.08) 0%, transparent 50%),
                 #f8fafc;
             z-index: 0;
         }
@@ -34,10 +34,11 @@
             position: relative; z-index: 1;
             background: #ffffff;
             border: 1px solid #e2e8f0;
+            border-top: 4px solid #047857;
             border-radius: 20px;
             padding: 36px;
             width: 100%; max-width: 450px;
-            box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.08), 0 0 1px rgba(15, 23, 42, 0.1);
+            box-shadow: 0 20px 40px -15px rgba(6, 78, 59, 0.12), 0 0 1px rgba(15, 23, 42, 0.1);
         }
 
         .login-logo {
@@ -49,7 +50,7 @@
             display: flex; align-items: center; justify-content: center;
         }
         .login-logo-text { line-height: 1.2; }
-        .login-logo-name { font-size: 20px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; }
+        .login-logo-name { font-size: 20px; font-weight: 800; color: #047857; letter-spacing: -0.5px; }
         .login-logo-sub  { font-size: 12px; color: #64748b; font-weight: 500; }
 
         .login-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 4px; letter-spacing: -0.5px; }
@@ -66,15 +67,15 @@
             border: 1px solid #cbd5e1;
             border-radius: 10px;
             color: #0f172a; font-size: 14px;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Kalpurush', 'Inter', sans-serif;
             outline: none;
             transition: all .2s;
             box-sizing: border-box;
         }
         .lf-input:focus {
-            border-color: #2563eb;
+            border-color: #047857;
             background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+            box-shadow: 0 0 0 3px rgba(4,120,87,.18);
         }
         .lf-input::placeholder { color: #94a3b8; }
 
@@ -82,19 +83,19 @@
             display: flex; align-items: center; gap: 8px;
             font-size: 13px; color: #475569; cursor: pointer; margin-top: 6px; font-weight: 500;
         }
-        .lf-check input { accent-color: #2563eb; width: 15px; height: 15px; }
+        .lf-check input { accent-color: #047857; width: 15px; height: 15px; }
 
         .btn-login {
             width: 100%; padding: 12px;
-            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
             color: #fff; font-size: 15px; font-weight: 700;
             border: none; border-radius: 10px; cursor: pointer;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Kalpurush', 'Inter', sans-serif;
             transition: all .2s;
             margin-top: 14px;
-            box-shadow: 0 4px 12px rgba(37,99,235,.25);
+            box-shadow: 0 4px 14px rgba(4,120,87,.3);
         }
-        .btn-login:hover { opacity: .95; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(37,99,235,.35); }
+        .btn-login:hover { opacity: .95; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(6,78,59,.4); }
 
         .btn-google {
             display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -103,16 +104,16 @@
             border: 1.5px solid #cbd5e1;
             border-radius: 10px;
             color: #0f172a; font-size: 14px; font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            transition: all .2s;
-            text-decoration: none;
+            font-family: 'Kalpurush', 'Inter', sans-serif;
+            text-decoration: none; transition: all .2s;
             box-shadow: 0 1px 2px rgba(0,0,0,0.04);
         }
         .btn-google:hover {
-            border-color: #4285F4;
-            background: #f8fafc;
+            border-color: #047857;
+            background: #ecfdf5;
+            color: #047857;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.15);
+            box-shadow: 0 4px 12px rgba(4, 120, 87, 0.15);
         }
 
         .error-msg {

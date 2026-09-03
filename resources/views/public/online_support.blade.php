@@ -8,8 +8,8 @@
     <style>
         * { box-sizing: border-box; }
         body {
-            font-family: 'Hind Siliguri', 'Segoe UI', sans-serif;
-            background: #0d2942 url('https://admission.iom.edu.bd/assets/public/images/bg.jpg') center top repeat;
+            font-family: 'Kalpurush', 'Hind Siliguri', 'Segoe UI', sans-serif;
+            background: #022c22 url('https://admission.iom.edu.bd/assets/public/images/bg.jpg') center top repeat;
             background-attachment: fixed;
             background-size: cover;
             margin: 0; padding: 0; color: #1e293b;
@@ -17,9 +17,9 @@
 
         /* Top Header Bar */
         .top-navbar {
-            background: #081726; color: #fff; height: 50px;
+            background: #064e3b; color: #fff; height: 50px;
             display: flex; align-items: center; padding: 0 40px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3); border-bottom: 1px solid #1e293b;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3); border-bottom: 2px solid #047857;
         }
         .top-navbar-brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: #fff; text-decoration: none; }
 
@@ -35,28 +35,28 @@
         /* Tabs Card */
         .tabs-header {
             background: #ffffff; border-radius: 8px 8px 0 0; padding: 16px 20px;
-            display: flex; gap: 12px; border: 1px solid #e2e8f0; border-bottom: none;
+            display: flex; gap: 12px; border: 1px solid #d1fae5; border-bottom: none;
         }
         .tab-btn {
             padding: 10px 20px; font-size: 14px; font-weight: 600; text-decoration: none;
-            border-radius: 4px; border: 1px solid #0284c7; color: #0284c7; background: #fff;
+            border-radius: 4px; border: 1px solid #047857; color: #047857; background: #fff;
             transition: all 0.2s;
         }
-        .tab-btn.active { background: #0284c7; color: #fff; }
-        .tab-btn.btn-inactive { background: #f8fafc; color: #0284c7; border-color: #cbd5e1; }
+        .tab-btn.active { background: #047857; color: #fff; }
+        .tab-btn.btn-inactive { background: #f8fafc; color: #047857; border-color: #cbd5e1; }
 
         /* Form Card */
         .form-card {
             background: #ffffff; border-radius: 0 0 8px 8px; padding: 30px;
-            border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            border: 1px solid #d1fae5; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
         .form-title {
-            text-align: center; font-size: 24px; font-weight: 700; color: #0f172a;
+            text-align: center; font-size: 24px; font-weight: 700; color: #064e3b;
             margin-bottom: 24px; position: relative; padding-bottom: 10px;
         }
         .form-title::after {
             content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-            width: 60px; height: 3px; background: #0284c7; border-radius: 2px;
+            width: 60px; height: 3px; background: #047857; border-radius: 2px;
         }
 
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
@@ -71,15 +71,15 @@
             border: 1px solid #cbd5e1; border-radius: 6px; background: #fff;
             outline: none; transition: border-color 0.2s; font-family: inherit;
         }
-        .form-control:focus { border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
+        .form-control:focus { border-color: #047857; box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.18); }
         textarea.form-control { height: 100px; resize: vertical; }
 
         .btn-submit-support {
-            background: #0266b3; color: #fff; border: none; border-radius: 6px;
+            background: linear-gradient(135deg, #047857 0%, #064e3b 100%); color: #fff; border: none; border-radius: 6px;
             padding: 12px 30px; font-size: 15px; font-weight: 700; cursor: pointer;
-            width: 100%; transition: background 0.2s; box-shadow: 0 4px 12px rgba(2, 102, 179, 0.3);
+            width: 100%; transition: all 0.2s; box-shadow: 0 4px 12px rgba(4, 120, 87, 0.3);
         }
-        .btn-submit-support:hover { background: #014d87; }
+        .btn-submit-support:hover { background: linear-gradient(135deg, #064e3b 0%, #022c22 100%); box-shadow: 0 6px 18px rgba(6, 78, 59, 0.4); }
 
         /* Right Guidance Box */
         .guidance-box {

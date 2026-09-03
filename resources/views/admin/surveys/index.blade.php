@@ -172,7 +172,7 @@
                                 <button type="button" class="btn btn-xs btn-outline" style="border-radius:6px; font-weight:600" onclick="copyPublicLink('{{ url('/surveys/' . $survey->slug) }}')">
                                     Copy Link
                                 </button>
-                                <a href="{{ url('/surveys/' . $survey->slug) }}" target="_blank" style="font-size:11.5px; color:#2563eb; text-decoration:none; font-weight:700">
+                                <a href="{{ url('/surveys/' . $survey->slug) }}" target="_blank" style="font-size:11.5px; color:#047857; text-decoration:none; font-weight:700">
                                     Preview Form <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                 </a>
                             </div>
@@ -183,7 +183,7 @@
                             </span>
                         </td>
                         <td style="text-align:center">
-                            <a href="{{ route('admin.surveys.responses', $survey) }}" class="badge badge-primary no-dot" style="font-weight:700; font-size:12px; padding:5px 12px; border-radius:20px; text-decoration:none; background:linear-gradient(135deg,#2563eb,#3b82f6)">
+                            <a href="{{ route('admin.surveys.responses', $survey) }}" class="badge badge-primary no-dot" style="font-weight:700; font-size:12px; padding:5px 12px; border-radius:20px; text-decoration:none; background:linear-gradient(135deg,#047857,#064e3b)">
                                 <i class="fa-solid fa-chart-pie"></i> {{ $survey->responses_count }} Responses
                             </a>
                         </td>
@@ -261,7 +261,7 @@
 
                     <div class="form-group" style="margin-bottom:6px">
                         <label style="display:flex; align-items:center; gap:10px; cursor:pointer; background:#f8fafc; padding:12px 16px; border-radius:10px; border:1px solid #e2e8f0">
-                            <input type="checkbox" name="allow_multiple_responses" value="1" style="width:16px; height:16px; accent-color:#2563eb">
+                            <input type="checkbox" name="allow_multiple_responses" value="1" style="width:16px; height:16px; accent-color:#047857">
                             <span style="font-weight:600; font-size:13px; color:#1e293b">Allow multiple submissions per user / IP</span>
                         </label>
                     </div>

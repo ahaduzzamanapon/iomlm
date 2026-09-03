@@ -5,7 +5,7 @@
     .nav-tabs-custom { display:flex; gap:8px; border-bottom:2px solid #e2e8f0; margin-bottom:24px; }
     .nav-tab-item { padding:12px 20px; font-weight:700; font-size:14px; color:#64748b; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; transition:all .2s; }
     .nav-tab-item:hover { color:#1e293b; }
-    .nav-tab-item.active { color:#2563eb; border-bottom-color:#2563eb; }
+    .nav-tab-item.active { color:#047857; border-bottom-color:#047857; }
     .tab-content-panel { display:none; }
     .tab-content-panel.active { display:block; }
     </style>

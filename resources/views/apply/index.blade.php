@@ -11,25 +11,25 @@
     <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-        --blue: #1a56db;
-        --blue-dark: #1e429f;
+        --blue: #047857;          /* IOM Brand Emerald Green */
+        --blue-dark: #064e3b;     /* IOM Deep Forest */
         --green: #057a55;
+        --gold: #fbbf24;          /* IOM Gold */
         --red: #e02424;
-        --yellow-bg: #fefce8;
-        --yellow-border: #fde047;
+        --yellow-bg: #ecfdf5;
+        --yellow-border: #a7f3d0;
         --card-bg: #fff;
-        --border: #e5e7eb;
-        --text: #111827;
-        --muted: #6b7280;
-        --bg: #f1f5f9;
+        --border: #e2e8f0;
+        --text: #1e293b;
+        --muted: #64748b;
+        --bg: #f8fafc;
     }
-    body { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body { font-family: 'Kalpurush', 'Inter', 'Noto Sans Bengali', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
     /* Header */
-    .site-header { background: #fff; border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .site-header { background: #fff; border-bottom: 1px solid #d1fae5; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .site-logo { display: flex; align-items: center; gap: 12px; }
-    .site-logo-icon { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #1a56db, #7c3aed); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; }
-    .site-logo-name { font-size: 15px; font-weight: 700; color: #1a56db; line-height: 1.2; }
+    .site-logo-name { font-size: 15px; font-weight: 700; color: #047857; line-height: 1.2; }
     .site-logo-sub  { font-size: 11px; color: var(--muted); }
     .header-actions { display: flex; gap: 8px; }
     .btn-outline-sm { padding: 6px 14px; border: 1.5px solid var(--blue); border-radius: 6px; color: var(--blue); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; background: #fff; transition: all .15s; }
@@ -38,18 +38,18 @@
     .btn-primary-sm:hover { background: var(--blue-dark); }
 
     /* Steps bar */
-    .steps-bar { background: #1e3a5f; padding: 0 24px; }
+    .steps-bar { background: #064e3b; padding: 0 24px; border-bottom: 2px solid #047857; }
     .steps-inner { display: flex; align-items: center; gap: 0; max-width: 900px; margin: 0 auto; }
-    .step-item { display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.5); position: relative; cursor: default; white-space: nowrap; }
+    .step-item { display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.6); position: relative; cursor: default; white-space: nowrap; }
     .step-item.active { color: #fff; }
     .step-item.done { color: #34d399; }
     .step-num { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-    .step-item.active .step-num { background: var(--blue); border-color: var(--blue); color: #fff; }
-    .step-item.done .step-num { background: #059669; border-color: #059669; color: #fff; }
+    .step-item.active .step-num { background: #047857; border-color: #34d399; color: #fff; }
+    .step-item.done .step-num { background: #047857; border-color: #047857; color: #fff; }
     .step-sep { color: rgba(255,255,255,.2); font-size: 16px; margin: 0 4px; }
 
     /* Notice banner */
-    .notice-banner { background: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: 0; padding: 12px 24px; font-size: 13px; line-height: 1.7; color: #713f12; }
+    .notice-banner { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 0; padding: 12px 24px; font-size: 13px; line-height: 1.7; color: #065f46; }
 
     /* Main container */
     .apply-container { max-width: 780px; margin: 0 auto; padding: 24px 16px 60px; }
@@ -109,7 +109,7 @@
     .copy-btn { font-size: 12px; color: var(--blue); cursor: pointer; text-decoration: underline; }
 
     /* Footer */
-    .site-footer { background: #1e3a5f; color: rgba(255,255,255,.7); text-align: center; padding: 18px; font-size: 12px; margin-top: 32px; }
+    .site-footer { background: #064e3b; border-top: 1px solid #047857; color: rgba(255,255,255,.8); text-align: center; padding: 18px; font-size: 12px; margin-top: 32px; }
     </style>
 </head>
 <body>
