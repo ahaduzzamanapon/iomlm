@@ -9,10 +9,56 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
+    /* ═══ Official IOM Brand Color Theme (derived from https://iom.edu.bd/) ═══ */
+    :root {
+        --iom-green:     #047857;   /* Official IOM Primary Brand Emerald Green */
+        --iom-dark:      #064e3b;   /* Official IOM Deep Forest Green */
+        --iom-deep-dark: #022c22;   /* Islamic Dark Midnight Background */
+        --iom-light:     #ecfdf5;   /* Official IOM Mint Light */
+        --iom-mint:      #d1fae5;   /* Mint Border Line */
+        --iom-gold:      #fbbf24;   /* Official IOM Accent Gold */
+        --iom-ink:       #1e293b;   /* Dark Ink */
+        --iom-muted:     #64748b;   /* Muted Slate */
+        --iom-line:      #dbe7e2;   /* Border Line */
+
+        /* Override App Theme Variables for Admin Panel */
+        --blue: #047857;
+        --blue-dark: #064e3b;
+        --primary: #047857;
+        --primary-dark: #064e3b;
+        --sidebar-bg: #064e3b;
+        --sidebar-active-bg: rgba(4, 120, 87, 0.45);
+        --sidebar-active: #34d399;
+        --topbar-border: #d1fae5;
+    }
+
     body, input, select, textarea, button, .tree-toggle, .nav-item, .table, .card, h1, h2, h3, h4, h5, h6 {
         font-family: 'Kalpurush', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    /* ── Tree Nav ─────────────────────────────────────── */
+
+    /* ─── Admin Sidebar: IOM Deep Forest Green Gradient ────────── */
+    .sidebar {
+        background: linear-gradient(180deg, #022c22 0%, #064e3b 50%, #032b21 100%) !important;
+        border-right: 1px solid rgba(52, 211, 153, 0.18) !important;
+    }
+    .sidebar-logo {
+        background: rgba(0, 0, 0, 0.22) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .sidebar-logo-name {
+        color: #ffffff !important;
+    }
+    .sidebar-logo-sub {
+        color: #fbbf24 !important; /* IOM Brand Gold */
+        font-weight: 800 !important;
+        letter-spacing: 1.2px;
+    }
+    .nav-group-label {
+        color: #6ee7b7 !important;
+        opacity: 0.9;
+    }
+
+    /* ─── Tree Navigation & Items ──────────────────────────────── */
     .tree-group { margin-bottom: 2px; }
 
     .tree-toggle {
@@ -25,21 +71,26 @@
         font-weight: 600;
         letter-spacing: .03em;
         text-transform: uppercase;
-        color: var(--text-muted);
+        color: #a7f3d0 !important;
         cursor: pointer;
         user-select: none;
         transition: background .15s, color .15s;
     }
-    .tree-toggle:hover { background: var(--nav-hover); color: var(--text-secondary); }
-    .tree-toggle.has-active { color: var(--blue); }
+    .tree-toggle:hover {
+        background: rgba(255, 255, 255, 0.09) !important;
+        color: #ffffff !important;
+    }
+    .tree-toggle.has-active {
+        color: #34d399 !important;
+    }
 
     .tree-toggle-arrow {
         margin-left: auto;
         transition: transform .25s cubic-bezier(.4,0,.2,1);
-        opacity: .5;
+        opacity: .6;
         flex-shrink: 0;
     }
-    .tree-toggle.open .tree-toggle-arrow { transform: rotate(90deg); opacity: .9; }
+    .tree-toggle.open .tree-toggle-arrow { transform: rotate(90deg); opacity: 1; }
 
     .tree-children {
         overflow: hidden;
@@ -55,10 +106,134 @@
         border-radius: 6px;
         margin-bottom: 1px;
         border-left: 2px solid transparent;
+        color: #9ca3af !important;
+    }
+    .tree-children .nav-item:hover {
+        color: #ecfdf5 !important;
+        background: rgba(255, 255, 255, 0.07) !important;
     }
     .tree-children .nav-item.active {
-        border-left-color: var(--blue);
-        background: rgba(59,130,246,.08);
+        border-left-color: #34d399 !important;
+        background: rgba(4, 120, 87, 0.35) !important;
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+
+    .nav-item {
+        color: #a7f3d0 !important;
+    }
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: #ffffff !important;
+    }
+    .nav-item.active {
+        background: linear-gradient(135deg, rgba(4, 120, 87, 0.75), rgba(5, 150, 105, 0.55)) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(52, 211, 153, 0.45) !important;
+        box-shadow: 0 4px 14px rgba(2, 44, 34, 0.35) !important;
+    }
+    .nav-item.active i, .nav-item.active svg {
+        color: #34d399 !important;
+    }
+
+    /* ─── Admin Topbar ─────────────────────────────────────────── */
+    .topbar {
+        background: rgba(255, 255, 255, 0.96) !important;
+        border-bottom: 1px solid #d1fae5 !important;
+    }
+    .topbar-btn:hover {
+        background: #ecfdf5 !important;
+        color: #047857 !important;
+    }
+    .topbar-breadcrumb a:hover {
+        color: #047857 !important;
+    }
+    .notif-dot {
+        background: #fbbf24 !important; /* IOM Gold */
+        box-shadow: 0 0 0 2px #fff;
+    }
+    .user-name {
+        color: #1e293b !important;
+    }
+
+    /* ─── Admin Dashboard Banner: Forest Gradient & Gold Glow ──── */
+    .dashboard-banner {
+        background: linear-gradient(135deg, #064e3b 0%, #047857 55%, #065f46 100%) !important;
+        border: 1px solid rgba(251, 191, 36, 0.25) !important;
+        box-shadow: 0 10px 30px -5px rgba(6, 78, 59, 0.3) !important;
+    }
+    .dashboard-banner::after {
+        background: radial-gradient(circle, rgba(251, 191, 36, 0.22) 0%, rgba(0,0,0,0) 70%) !important;
+    }
+    .banner-title { color: #ffffff !important; }
+    .banner-sub { color: #d1fae5 !important; }
+    .banner-status {
+        background: rgba(255, 255, 255, 0.15) !important;
+        border-color: rgba(251, 191, 36, 0.35) !important;
+        color: #fbbf24 !important;
+    }
+
+    /* ─── Buttons & Controls in IOM Brand Theme ────────────────── */
+    .btn-primary, button.btn-primary, a.btn-primary, .btn.btn-primary {
+        background: linear-gradient(135deg, #047857 0%, #064e3b 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(4, 120, 87, 0.3) !important;
+    }
+    .btn-primary:hover, button.btn-primary:hover, a.btn-primary:hover, .btn.btn-primary:hover {
+        background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+        box-shadow: 0 6px 20px rgba(6, 78, 59, 0.45) !important;
+        color: #ffffff !important;
+    }
+
+    .btn-outline:hover {
+        border-color: #047857 !important;
+        color: #047857 !important;
+        background: #ecfdf5 !important;
+    }
+
+    .quick-tile:hover {
+        border-color: #047857 !important;
+        color: #047857 !important;
+        box-shadow: 0 6px 16px -2px rgba(4, 120, 87, 0.15) !important;
+    }
+    .stat-card:hover {
+        border-color: #a7f3d0 !important;
+        box-shadow: 0 10px 25px -5px rgba(6, 78, 59, 0.12) !important;
+    }
+
+    /* Form Focus */
+    input:focus, select:focus, textarea:focus {
+        border-color: #047857 !important;
+        box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.18) !important;
+        outline: none !important;
+    }
+
+    /* Loader Top Bar */
+    .loader-top-bar {
+        background: linear-gradient(90deg, #047857, #34d399, #fbbf24) !important;
+    }
+    .loader-ring {
+        border-top-color: #047857 !important;
+    }
+
+    /* Pagination */
+    .pagination .page-item.active .page-link, .page-item.active .page-link {
+        background-color: #047857 !important;
+        border-color: #047857 !important;
+        color: #ffffff !important;
+    }
+    .page-link:hover {
+        color: #047857 !important;
+        background-color: #ecfdf5 !important;
+    }
+
+    /* Tables */
+    thead th {
+        border-bottom: 2px solid #d1fae5 !important;
+    }
+    tbody tr:hover td {
+        background: #f0fdf4 !important;
     }
     </style>
     @stack('styles')
@@ -379,12 +554,12 @@
                 </div>
                 <div class="dropdown">
                     <div class="user-menu" onclick="toggleDropdown('adminUserMenu')" style="cursor:pointer">
-                        <div class="user-avatar" style="background:linear-gradient(135deg,#3b82f6,#8b5cf6)">
+                        <div class="user-avatar" style="background:linear-gradient(135deg,#047857,#064e3b);border:2px solid #a7f3d0">
                             {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}
                         </div>
                         <div>
                             <div class="user-name">{{ auth()->user()->name ?? 'Admin' }}</div>
-                            <div class="user-role" style="color:#3b82f6">
+                            <div class="user-role" style="color:#047857">
                                 {{ match(strtoupper(auth()->user()->role ?? 'ADMIN')) {
                                     'SUPER_ADMIN' => 'Super Admin',
                                     'ADMIN'       => 'Administrator',

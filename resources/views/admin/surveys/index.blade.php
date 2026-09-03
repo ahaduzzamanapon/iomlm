@@ -16,13 +16,13 @@
             gap: 16px;
         }
         .btn-gradient-primary {
-            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+            background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
             color: #ffffff !important;
             font-weight: 700;
             border: none;
             padding: 11px 24px;
             border-radius: 10px;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+            box-shadow: 0 4px 14px rgba(4, 120, 87, 0.35);
             transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
             display: inline-flex;
             align-items: center;
@@ -56,20 +56,20 @@
             flex-shrink: 0;
         }
         .action-btn:hover { background: #e2e8f0; border-color: #cbd5e1; }
-        .action-btn.primary { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
-        .action-btn.primary:hover { background: #dbeafe; }
+        .action-btn.primary { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+        .action-btn.primary:hover { background: #d1fae5; }
         .action-btn.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
         .survey-link-pill {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             padding: 3px 10px;
-            background: rgba(59, 130, 246, 0.08);
-            color: #2563eb;
+            background: rgba(4, 120, 87, 0.08);
+            color: #047857;
             border-radius: 20px;
             font-size: 11px;
             font-weight: 600;
-            border: 1px solid rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(4, 120, 87, 0.2);
         }
         /* Glassmorphism Modal */
         .modal-overlay {

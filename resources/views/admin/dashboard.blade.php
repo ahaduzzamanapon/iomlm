@@ -162,7 +162,7 @@
             <div style="padding:0">
                 @forelse($activeBatches as $batch)
                 <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid #f1f5f9">
-                    <div style="width:40px;height:40px;background:linear-gradient(135deg,#2563eb,#6366f1);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;flex-shrink:0;box-shadow:0 2px 8px rgba(37,99,235,0.2)">
+                    <div style="width:40px;height:40px;background:linear-gradient(135deg,#047857,#064e3b);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:800;flex-shrink:0;box-shadow:0 2px 8px rgba(4,120,87,0.25)">
                         {{ strtoupper(substr($batch->name,0,2)) }}
                     </div>
                     <div style="flex:1">
@@ -184,13 +184,13 @@
         <div class="card">
             <div class="card-header">
                 <div style="display:flex;align-items:center;gap:10px">
-                    <i class="fa-solid fa-gears" style="font-size:16px;color:#3b82f6"></i>
+                    <i class="fa-solid fa-gears" style="font-size:16px;color:#047857"></i>
                     <span class="card-title">Quick Academic Setup</span>
                 </div>
             </div>
             <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <a href="{{ route('admin.subjects.index') }}" class="quick-tile">
-                    <div class="quick-tile-icon" style="background:#eff6ff;color:#2563eb"><i class="fa-solid fa-book"></i></div>
+                    <div class="quick-tile-icon" style="background:#ecfdf5;color:#047857"><i class="fa-solid fa-book"></i></div>
                     <div>Subjects &amp; Modules</div>
                 </a>
                 <a href="{{ route('admin.courses.index') }}" class="quick-tile">
