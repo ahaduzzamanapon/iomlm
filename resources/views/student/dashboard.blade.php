@@ -42,7 +42,7 @@
 
     {{-- Central Notice Board Widget --}}
     @if(isset($notices) && $notices->count() > 0)
-    <div class="card" style="margin-bottom:24px;border-top:4px solid #3b82f6">
+    <div class="card" style="margin-bottom:24px;border-top:4px solid #047857">
         <div class="card-header">
             <span class="card-title">Notice Board &amp; Announcements</span>
         </div>

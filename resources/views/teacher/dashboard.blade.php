@@ -50,8 +50,8 @@
             <div style="padding:0">
                 @forelse($todayClasses as $cs)
                 <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--card-border)">
-                    <div style="width:36px;height:36px;background:{{ $cs->routineEntry?->color ?? '#3b82f6' }}22;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid {{ $cs->routineEntry?->color ?? '#3b82f6' }}">
-                        <i class="fa-solid fa-video" style="font-size:14px;color:{{ $cs->routineEntry?->color ?? '#3b82f6' }}"></i>
+                    <div style="width:36px;height:36px;background:{{ $cs->routineEntry?->color ?? '#047857' }}22;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid {{ $cs->routineEntry?->color ?? '#047857' }}">
+                        <i class="fa-solid fa-video" style="font-size:14px;color:{{ $cs->routineEntry?->color ?? '#047857' }}"></i>
                     </div>
                     <div style="flex:1;min-width:0">
                         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $cs->subject?->name ?? '—' }}</div>

@@ -9,11 +9,112 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
-        /* Student-specific accent: violet */
-        .sidebar { --sidebar-active-bg: #2e1065; --sidebar-active: #a78bfa; }
-        .sidebar-logo-icon { background: linear-gradient(135deg, #8b5cf6, #ec4899) !important; }
-        .user-avatar { background: linear-gradient(135deg, #8b5cf6, #ec4899) !important; }
-        .user-role { color: #8b5cf6 !important; }
+    /* ═══ Official IOM Brand Color Theme (Student Portal) ═══ */
+    :root {
+        --iom-green:     #047857;   /* Official IOM Primary Brand Emerald Green */
+        --iom-dark:      #064e3b;   /* Official IOM Deep Forest Green */
+        --iom-deep-dark: #022c22;   /* Islamic Dark Midnight Background */
+        --iom-light:     #ecfdf5;   /* Official IOM Mint Light */
+        --iom-mint:      #d1fae5;   /* Mint Border Line */
+        --iom-gold:      #fbbf24;   /* Official IOM Accent Gold */
+
+        --blue: #047857;
+        --blue-dark: #064e3b;
+        --primary: #047857;
+        --primary-dark: #064e3b;
+        --sidebar-bg: #064e3b;
+        --sidebar-active-bg: rgba(4, 120, 87, 0.45);
+        --sidebar-active: #34d399;
+    }
+
+    body, input, select, textarea, button, .tree-toggle, .nav-item, .table, .card, h1, h2, h3, h4, h5, h6 {
+        font-family: 'Kalpurush', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* ─── Student Sidebar: IOM Deep Forest Green Gradient ────────── */
+    .sidebar {
+        background: linear-gradient(180deg, #022c22 0%, #064e3b 50%, #032b21 100%) !important;
+        border-right: 1px solid rgba(52, 211, 153, 0.18) !important;
+    }
+    .sidebar-logo {
+        background: rgba(0, 0, 0, 0.22) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .sidebar-logo-name {
+        color: #ffffff !important;
+    }
+    .sidebar-logo-sub {
+        color: #fbbf24 !important; /* IOM Brand Gold */
+        font-weight: 800 !important;
+        letter-spacing: 1.2px;
+    }
+    .sidebar-logo-icon {
+        background: linear-gradient(135deg, #047857, #064e3b) !important;
+    }
+    .nav-group-label {
+        color: #ffffff !important;
+        opacity: 0.92;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+    }
+
+    /* ─── Navigation Items: Pure White Text ────────────────────── */
+    .nav-item {
+        color: #ffffff !important;
+    }
+    .nav-item:hover {
+        background: rgba(255, 255, 255, 0.12) !important;
+        color: #ffffff !important;
+    }
+    .nav-item.active {
+        background: linear-gradient(135deg, rgba(4, 120, 87, 0.85), rgba(5, 150, 105, 0.65)) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(52, 211, 153, 0.5) !important;
+        box-shadow: 0 4px 14px rgba(2, 44, 34, 0.35) !important;
+    }
+    .nav-item i, .nav-item svg {
+        color: #ffffff !important;
+    }
+    .nav-item.active i, .nav-item.active svg {
+        color: #ffffff !important;
+    }
+
+    /* ─── Student Topbar & Profile ─────────────────────────────── */
+    .topbar {
+        background: rgba(255, 255, 255, 0.96) !important;
+        border-bottom: 1px solid #d1fae5 !important;
+    }
+    .user-avatar {
+        background: linear-gradient(135deg, #047857, #064e3b) !important;
+        border: 2px solid #a7f3d0 !important;
+        color: #ffffff !important;
+    }
+    .user-role {
+        color: #047857 !important;
+        font-weight: 700 !important;
+    }
+
+    /* ─── Buttons & Controls in IOM Brand Theme ────────────────── */
+    .btn-primary, button.btn-primary, a.btn-primary {
+        background: linear-gradient(135deg, #047857 0%, #064e3b 100%) !important;
+        border: none !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 14px rgba(4, 120, 87, 0.3) !important;
+    }
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+        color: #ffffff !important;
+    }
+    .badge-primary {
+        background: #047857 !important;
+        color: #fff !important;
+    }
+    .loader-top-bar {
+        background: linear-gradient(90deg, #047857, #34d399, #fbbf24) !important;
+    }
+    .loader-ring {
+        border-top-color: #047857 !important;
+    }
     </style>
     @stack('styles')
 </head>

@@ -9,42 +9,48 @@
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <style>
         :root {
-            --sidebar-bg: #0f172a;
-            --sidebar-hover: #1e293b;
-            --sidebar-active: #0284c7;
-            --sidebar-text: #94a3b8;
+            --sidebar-bg: #064e3b;
+            --sidebar-hover: rgba(255, 255, 255, 0.12);
+            --sidebar-active: #047857;
+            --sidebar-text: #ffffff;
             --sidebar-text-active: #ffffff;
         }
-        body { background: #f8fafc; color: #0f172a; margin: 0; }
+        body { font-family: 'Kalpurush', 'Plus Jakarta Sans', 'Inter', sans-serif; background: #f8fafc; color: #0f172a; margin: 0; }
         .support-wrapper { display: flex; min-height: 100vh; }
         .support-sidebar {
-            width: 250px; background: var(--sidebar-bg); color: #fff;
+            width: 250px; background: linear-gradient(180deg, #022c22 0%, #064e3b 50%, #032b21 100%) !important; color: #fff;
             display: flex; flex-direction: column; flex-shrink: 0;
+            border-right: 1px solid rgba(52, 211, 153, 0.18);
             transition: all 0.3s ease; z-index: 100;
         }
         .sidebar-brand {
             height: 64px; padding: 0 20px; display: flex; align-items: center; gap: 12px;
-            border-bottom: 1px solid #1e293b; text-decoration: none; color: #fff;
+            background: rgba(0, 0, 0, 0.22);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08); text-decoration: none; color: #fff;
         }
         .sidebar-brand-icon {
-            width: 36px; height: 36px; background: #0284c7; border-radius: 8px;
+            width: 36px; height: 36px; background: linear-gradient(135deg, #047857, #064e3b); border-radius: 8px;
             display: flex; align-items: center; justify-content: center; font-size: 16px;
         }
-        .sidebar-brand-text h2 { font-size: 15px; font-weight: 700; margin: 0; line-height: 1.2; }
-        .sidebar-brand-text span { font-size: 11px; color: #0284c7; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sidebar-brand-text h2 { font-size: 15px; font-weight: 700; margin: 0; line-height: 1.2; color: #ffffff; }
+        .sidebar-brand-text span { font-size: 11px; color: #fbbf24; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .sidebar-menu { padding: 16px 12px; flex: 1; overflow-y: auto; }
         .menu-section-title {
             font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-            color: #64748b; padding: 12px 10px 6px; margin-top: 6px;
+            color: #ffffff; opacity: 0.92; padding: 12px 10px 6px; margin-top: 6px;
         }
         .menu-item {
             display: flex; align-items: center; gap: 12px; padding: 10px 14px;
-            color: var(--sidebar-text); text-decoration: none; border-radius: 8px;
+            color: #ffffff; text-decoration: none; border-radius: 8px;
             font-size: 13px; font-weight: 600; margin-bottom: 4px; transition: all 0.2s;
         }
-        .menu-item:hover { background: var(--sidebar-hover); color: #f1f5f9; }
-        .menu-item.active { background: var(--sidebar-active); color: var(--sidebar-text-active); }
+        .menu-item:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+        .menu-item.active {
+            background: linear-gradient(135deg, rgba(4, 120, 87, 0.85), rgba(5, 150, 105, 0.65)) !important;
+            border: 1px solid rgba(52, 211, 153, 0.5) !important;
+            color: #ffffff !important;
+        }
         .menu-item .menu-badge {
             margin-left: auto; background: #334155; color: #f8fafc; font-size: 11px;
             padding: 2px 7px; border-radius: 12px; font-weight: 700;
