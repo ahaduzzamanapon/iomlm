@@ -115,14 +115,13 @@
     <div class="survey-header-card">
         <div>
             <h1 style="margin:0 0 6px; font-size:24px; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:10px">
-                <i class="fa-solid fa-clipboard-question"></i> Survey &amp; Dynamic Form Builder
+                Survey &amp; Dynamic Form Builder
             </h1>
             <p style="margin:0; font-size:13.5px; color:#94a3b8">
                 Build Google Forms-like custom surveys, share public links, and view automated dynamic response tables
             </p>
         </div>
         <button class="btn-gradient-primary" onclick="openModal('createSurveyModal')">
-            <i class="fa-solid fa-plus"></i>
             Create New Survey Form
         </button>
     </div>
@@ -133,7 +132,7 @@
             <div style="flex:1; min-width:260px; position:relative">
                 <input type="text" name="search" class="form-control" placeholder="Search survey forms by title or description..." value="{{ request('search') }}" style="padding-left:14px">
             </div>
-            <button type="submit" class="btn btn-primary" style="font-weight:600"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+            <button type="submit" class="btn btn-primary" style="font-weight:600">Search</button>
             @if(request('search'))
                 <a href="{{ route('admin.surveys.index') }}" class="btn btn-outline">Reset Filter</a>
             @endif
@@ -171,7 +170,7 @@
                                     <i class="fa-solid fa-link"></i> /surveys/{{ $survey->slug }}
                                 </span>
                                 <button type="button" class="btn btn-xs btn-outline" style="border-radius:6px; font-weight:600" onclick="copyPublicLink('{{ url('/surveys/' . $survey->slug) }}')">
-                                    <i class="fa-solid fa-copy"></i> Copy Link
+                                    Copy Link
                                 </button>
                                 <a href="{{ url('/surveys/' . $survey->slug) }}" target="_blank" style="font-size:11.5px; color:#2563eb; text-decoration:none; font-weight:700">
                                     Preview Form <i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -203,17 +202,14 @@
                         <td style="text-align:right; white-space:nowrap">
                             <div style="display:inline-flex; justify-content:flex-end; gap:6px; align-items:center">
                                 <a href="{{ route('admin.surveys.builder', $survey) }}" class="action-btn primary" title="Form Builder">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </a>
+                                    </a>
                                 <a href="{{ route('admin.surveys.responses', $survey) }}" class="action-btn" title="View Responses">
-                                    <i class="fa-solid fa-chart-pie"></i>
-                                </a>
+                                    </a>
                                 <form method="POST" action="{{ route('admin.surveys.destroy', $survey) }}" onsubmit="return confirm('Delete this survey?')" style="display:contents">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="action-btn danger" title="Delete Survey">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
+                                        </button>
                                 </form>
                             </div>
                         </td>
@@ -241,7 +237,7 @@
     <div class="modal-overlay" id="createSurveyModal">
         <div class="modal-card modal-card-premium" style="max-width:560px; margin:auto">
             <div class="modal-header-premium">
-                <h3>📋 Create New Survey Form</h3>
+                <h3>Create New Survey Form</h3>
                 <button type="button" onclick="closeModal('createSurveyModal')" style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); color:#ffffff; width:32px; height:32px; border-radius:8px; font-size:18px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .15s; flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.22)'" onmouseout="this.style.background='rgba(255,255,255,0.12)'">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.surveys.store') }}" enctype="multipart/form-data">

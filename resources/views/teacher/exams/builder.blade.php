@@ -6,7 +6,7 @@
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
                 <a href="{{ route('teacher.exams.index') }}">← Back to Exams</a>
             </div>
-            <h1>📝 Exam Question Paper Builder</h1>
+            <h1>Exam Question Paper Builder</h1>
             <p>
                 {{ $exam->title }} &middot;
                 Subject: <strong>{{ $exam->subject?->name }} ({{ $exam->subject?->code }})</strong> &middot;
@@ -16,7 +16,7 @@
         <div class="page-header-actions">
             @if($exam->examQuestions->where('question.question_type', 'WRITTEN')->count() > 0)
                 <a href="{{ route('teacher.exams.grade', $exam) }}" class="btn btn-outline" style="color:#9d174d;border-color:#f9a8d4">
-                    ✏️ Grade Written Answers
+                    Grade Written Answers
                 </a>
             @endif
         </div>
@@ -24,7 +24,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -44,7 +44,7 @@
         {{-- Attached Question Paper --}}
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📜 Configured Exam Paper</span>
+                <span class="card-title">Configured Exam Paper</span>
                 <span class="badge badge-primary no-dot">{{ $exam->examQuestions->count() }} Questions Attached</span>
             </div>
             <div style="padding:0">
@@ -55,9 +55,9 @@
                         <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px">
                             <span style="font-weight:700;color:#64748b;font-size:13px">{{ $i + 1 }}.</span>
                             @if($q?->question_type === 'WRITTEN')
-                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d">✏️ WRITTEN</span>
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d">WRITTEN</span>
                             @else
-                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e0e7ff;color:#4338ca">🔵 MCQ</span>
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e0e7ff;color:#4338ca">MCQ</span>
                             @endif
                         </div>
                         <div style="font-weight:600;font-size:14px;color:#0f172a;margin-bottom:6px">
@@ -76,7 +76,7 @@
                         <form method="POST" action="{{ route('teacher.exams.questions.detach', [$exam, $eq]) }}">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444" title="Remove question">
-                                ✕ Remove
+                                <i class="fa-solid fa-trash"></i> Remove
                             </button>
                         </form>
                     </div>
@@ -92,7 +92,7 @@
         {{-- Available Question Bank Selector --}}
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📚 Question Bank Pool</span>
+                <span class="card-title">Question Bank Pool</span>
             </div>
             <div style="padding:16px">
                 <p style="font-size:12px;color:#64748b;margin-bottom:12px">
@@ -103,9 +103,9 @@
                     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
                         <div style="margin-bottom:6px">
                             @if($q->question_type === 'WRITTEN')
-                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d">✏️ WRITTEN</span>
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d">WRITTEN</span>
                             @else
-                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e0e7ff;color:#4338ca">🔵 MCQ</span>
+                                <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e0e7ff;color:#4338ca">MCQ</span>
                             @endif
                         </div>
                         <div style="font-weight:600;font-size:13px;color:#1e293b;margin-bottom:8px;line-height:1.4">

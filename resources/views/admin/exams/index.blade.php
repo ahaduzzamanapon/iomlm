@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addExamModal')">
-                <i class="fa-solid fa-plus"></i>
                 Schedule Exam
             </button>
         </div>
@@ -38,7 +37,7 @@
                         <td>{{ $exam->full_marks }} / {{ $exam->pass_marks }}</td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right">
-                            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-file-lines"></i> Inspect Exam</a>
+                            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline btn-sm">Inspect Exam</a>
                         </td>
                     </tr>
                     @empty

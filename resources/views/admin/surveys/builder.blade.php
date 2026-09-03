@@ -4,7 +4,7 @@
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px">
         <div class="page-header-left">
             <h1 style="display:flex; align-items:center; gap:10px">
-                ✏️ Form Builder: {{ $survey->title }}
+                Form Builder: {{ $survey->title }}
             </h1>
             <p>Design questions, add field types (text, choices, file upload), set requirements, and build your survey form</p>
         </div>
@@ -17,10 +17,10 @@
                 </button>
             </form>
             <button type="button" class="btn btn-outline" onclick="copyPublicLink('{{ url('/surveys/' . $survey->slug) }}')">
-                📋 Copy Link
+                Copy Link
             </button>
             <a href="{{ url('/surveys/' . $survey->slug) }}" target="_blank" class="btn btn-outline" style="color:#2563eb">
-                👁️ Preview Form ↗
+                Preview Form ↗
             </a>
             <a href="{{ route('admin.surveys.index') }}" class="btn btn-secondary">
                 ← Back to Surveys
@@ -70,10 +70,10 @@
         {{-- Add Question Floating Action Bar --}}
         <div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; padding:16px 24px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.06); border:1px solid #e2e8f0; margin-top:20px">
             <button type="button" class="btn btn-outline" style="border-style:dashed; border-width:2px; font-weight:700; font-size:14px" onclick="addQuestion()">
-                ➕ Add New Question
+                Add New Question
             </button>
             <button type="submit" class="btn btn-primary" style="font-size:15px; font-weight:700; padding:10px 28px">
-                💾 Save Form Structure
+                Save Form Structure
             </button>
         </div>
     </form>
@@ -125,15 +125,15 @@
                 </div>
                 <div style="width:200px">
                     <select name="fields[${qId}][field_type]" class="form-control" onchange="toggleFieldOptions('${qId}', this.value)" style="font-weight:600">
-                        <option value="text" ${fieldType === 'text' ? 'selected' : ''}>📝 Short Text Answer</option>
-                        <option value="textarea" ${fieldType === 'textarea' ? 'selected' : ''}>📄 Paragraph / Textarea</option>
-                        <option value="number" ${fieldType === 'number' ? 'selected' : ''}>🔢 Number</option>
+                        <option value="text" ${fieldType === 'text' ? 'selected' : ''}>Short Text Answer</option>
+                        <option value="textarea" ${fieldType === 'textarea' ? 'selected' : ''}>Paragraph / Textarea</option>
+                        <option value="number" ${fieldType === 'number' ? 'selected' : ''}>Number</option>
                         <option value="select" ${fieldType === 'select' ? 'selected' : ''}>▼ Dropdown Select</option>
-                        <option value="radio" ${fieldType === 'radio' ? 'selected' : ''}>🔘 Radio (Single Choice)</option>
-                        <option value="checkbox" ${fieldType === 'checkbox' ? 'selected' : ''}>☑ Checkbox (Multi Choice)</option>
-                        <option value="date" ${fieldType === 'date' ? 'selected' : ''}>📅 Date Picker</option>
-                        <option value="file" ${fieldType === 'file' ? 'selected' : ''}>📎 File Upload</option>
-                        <option value="image" ${fieldType === 'image' ? 'selected' : ''}>🖼️ Image Upload</option>
+                        <option value="radio" ${fieldType === 'radio' ? 'selected' : ''}>Radio (Single Choice)</option>
+                        <option value="checkbox" ${fieldType === 'checkbox' ? 'selected' : ''}>Checkbox (Multi Choice)</option>
+                        <option value="date" ${fieldType === 'date' ? 'selected' : ''}>Date Picker</option>
+                        <option value="file" ${fieldType === 'file' ? 'selected' : ''}>File Upload</option>
+                        <option value="image" ${fieldType === 'image' ? 'selected' : ''}>Image Upload</option>
                     </select>
                 </div>
             </div>
@@ -149,7 +149,7 @@
                     ${options.map((opt, i) => renderOptionRow(qId, i, opt)).join('')}
                 </div>
                 <button type="button" class="btn btn-xs btn-outline" style="margin-top:8px" onclick="addOptionRow('${qId}')">
-                    ➕ Add Option
+                    Add Option
                 </button>
             </div>
 
@@ -163,7 +163,7 @@
                 <div style="display:flex; gap:6px">
                     <button type="button" class="btn btn-xs btn-outline" title="Move Up" onclick="moveQuestionUp('${qId}')">▲ Up</button>
                     <button type="button" class="btn btn-xs btn-outline" title="Move Down" onclick="moveQuestionDown('${qId}')">▼ Down</button>
-                    <button type="button" class="btn btn-xs btn-outline danger" title="Delete Question" onclick="deleteQuestion('${qId}')">🗑️ Remove</button>
+                    <button type="button" class="btn btn-xs btn-outline danger" title="Delete Question" onclick="deleteQuestion('${qId}')"><i class="fa-solid fa-trash"></i> Remove</button>
                 </div>
             </div>
         `;

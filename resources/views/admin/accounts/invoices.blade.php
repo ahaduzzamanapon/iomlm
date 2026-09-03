@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📑 Student Invoices &amp; Dues</h1>
+            <h1>Student Invoices &amp; Dues</h1>
             <p>Manage auto-generated &amp; manual student invoices, track due payments</p>
         </div>
         <div class="page-header-actions">
@@ -15,7 +15,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -99,10 +99,10 @@
                         <td style="text-align:center">
                             @if($inv->due_amount > 0)
                                 <button class="btn btn-success btn-sm" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_no }}', {{ $inv->due_amount }})">
-                                    💵 Collect
+                                    Collect
                                 </button>
                             @else
-                                <span style="color:#10b981;font-size:12px;font-weight:600">✓ Cleared</span>
+                                <span style="color:#10b981;font-size:12px;font-weight:600">Cleared</span>
                             @endif
                         </td>
                     </tr>
@@ -174,7 +174,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('createInvoiceModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">💾 Issue Invoice</button>
+                    <button type="submit" class="btn btn-primary">Issue Invoice</button>
                 </div>
             </form>
         </div>
@@ -184,7 +184,7 @@
     <div class="modal-overlay" id="collectModal">
         <div class="modal" style="max-width:500px">
             <div class="modal-header">
-                <span class="modal-title">💵 Receive Fee Payment</span>
+                <span class="modal-title">Receive Fee Payment</span>
                 <button class="modal-close" onclick="closeModal('collectModal')">&times;</button>
             </div>
             <form id="collectForm" method="POST" action="">
@@ -218,7 +218,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('collectModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success">✓ Save Payment</button>
+                    <button type="submit" class="btn btn-success">Save Payment</button>
                 </div>
             </form>
         </div>

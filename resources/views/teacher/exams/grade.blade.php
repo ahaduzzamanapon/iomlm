@@ -6,7 +6,7 @@
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
                 <a href="{{ route('teacher.exams.show', $exam) }}">← Back to Exam Builder</a>
             </div>
-            <h1>✏️ Written Answer Grading</h1>
+            <h1>Written Answer Grading</h1>
             <p>
                 {{ $exam->title }} &middot;
                 Subject: <strong>{{ $exam->subject?->name }}</strong> &middot;
@@ -17,7 +17,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -40,7 +40,7 @@
             {{-- Student Header --}}
             <div class="card-header" style="background:#f8fafc;border-radius:12px 12px 0 0">
                 <div>
-                    <span class="card-title">👤 {{ $submission->student?->name }}</span>
+                    <span class="card-title">{{ $submission->student?->name }}</span>
                     <div style="font-size:12px;color:#64748b;margin-top:2px">
                         ID: {{ $submission->student?->student_id ?? '—' }} &middot;
                         Submitted: {{ $submission->submitted_at?->format('d M Y, h:i A') ?? '—' }} &middot;
@@ -62,7 +62,7 @@
                 @endphp
                 <div style="background:#fdf2f8;border:1px solid #fbcfe8;border-radius:10px;padding:16px">
                     <div style="font-weight:700;font-size:14px;color:#0f172a;margin-bottom:4px">
-                        <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d;margin-right:8px">✏️ Written</span>
+                        <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d;margin-right:8px">Written</span>
                         {!! e($q->question_text) !!}
                     </div>
                     <div style="font-size:12px;color:#64748b;margin-bottom:12px">সর্বোচ্চ নম্বর: <strong>{{ $eq->marks }}</strong></div>
@@ -74,8 +74,8 @@
                         @endphp
                         <div style="margin-bottom:12px">
                             <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
-                                <span>📷 ছাত্রের উত্তর:</span>
-                                <a href="{{ $imgUrl }}" target="_blank" style="font-size:11px;color:#2563eb;text-decoration:underline">🔎 পূর্ণআকারে দেখুন (Open Full Image) ↗</a>
+                                <span>ছাত্রের উত্তর:</span>
+                                <a href="{{ $imgUrl }}" target="_blank" style="font-size:11px;color:#2563eb;text-decoration:underline">পূর্ণআকারে দেখুন (Open Full Image) ↗</a>
                             </div>
                             <img src="{{ $imgUrl }}"
                                  alt="Student Answer"
@@ -84,7 +84,7 @@
                                  onerror="this.onerror=null;this.style.display='none';document.getElementById('t-ans-fallback-{{ $answer->id }}').style.display='block';"
                                  title="Click to expand/collapse">
                             <div id="t-ans-fallback-{{ $answer->id }}" style="display:none;padding:10px;background:#fff1f2;border:1px solid #fecdd3;border-radius:6px;font-size:12px;color:#9f1239;margin-top:6px">
-                                📷 ছাত্রের উত্তর ছবি পাওয়া গেছে — <a href="{{ $imgUrl }}" target="_blank" style="color:#9f1239;font-weight:700;text-decoration:underline">নতুন ট্যাবে সরাসরি দেখুন ↗</a>
+                                ছাত্রের উত্তর ছবি পাওয়া গেছে — <a href="{{ $imgUrl }}" target="_blank" style="color:#9f1239;font-weight:700;text-decoration:underline">নতুন ট্যাবে সরাসরি দেখুন ↗</a>
                             </div>
                         </div>
 
@@ -101,15 +101,15 @@
                                 <span style="font-size:13px;color:#64748b">/ {{ $eq->marks }}</span>
                             </div>
                             <button type="submit" class="btn btn-primary btn-sm">
-                                💾 নম্বর সেভ করুন
+                                নম্বর সেভ করুন
                             </button>
                             @if($answer->teacher_marks !== null)
-                                <span style="color:#10b981;font-weight:700;font-size:13px">✓ দেওয়া নম্বর: {{ $answer->teacher_marks }}</span>
+                                <span style="color:#10b981;font-weight:700;font-size:13px">দেওয়া নম্বর: {{ $answer->teacher_marks }}</span>
                             @endif
                         </form>
                     @else
                         <div style="color:#94a3b8;font-size:13px;padding:12px;background:#fff;border-radius:6px;border:1px solid #f1f5f9">
-                            ⚪ এই ছাত্র এই প্রশ্নের উত্তর Upload করেনি।
+                            এই ছাত্র এই প্রশ্নের উত্তর Upload করেনি।
                         </div>
                     @endif
                 </div>

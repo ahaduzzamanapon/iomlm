@@ -162,12 +162,12 @@
             <main class="support-content">
                 @if(session('success'))
                     <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-                        ✓ {{ session('success') }}
+                        {{ session('success') }}
                     </div>
                 @endif
                 @if(session('error'))
                     <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-                        ✕ {{ session('error') }}
+                        {{ session('error') }}
                     </div>
                 @endif
 

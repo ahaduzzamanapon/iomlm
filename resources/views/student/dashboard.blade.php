@@ -11,36 +11,28 @@
     <!-- Student Stats -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon violet">
-                <i class="fa-solid fa-graduation-cap"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['enrolled_courses'] }}</div>
                 <div class="stat-label">Enrolled Courses</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon teal">
-                <i class="fa-solid fa-video"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['upcoming_classes'] }}</div>
                 <div class="stat-label">Upcoming Classes</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon green">
-                <i class="fa-solid fa-clipboard-check"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['attendance_percent'] }}%</div>
                 <div class="stat-label">Attendance Rate</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon orange">
-                <i class="fa-solid fa-file-pen"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['upcoming_exams'] }}</div>
                 <div class="stat-label">Upcoming Exams</div>
@@ -52,7 +44,7 @@
     @if(isset($notices) && $notices->count() > 0)
     <div class="card" style="margin-bottom:24px;border-top:4px solid #3b82f6">
         <div class="card-header">
-            <span class="card-title"><i class="fa-solid fa-bullhorn" style="color:#3b82f6"></i> Notice Board &amp; Announcements</span>
+            <span class="card-title">Notice Board &amp; Announcements</span>
         </div>
         <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
             @foreach($notices as $n)
@@ -79,7 +71,7 @@
         <!-- Recent Sessions / Covered Modules -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title"><i class="fa-solid fa-book-bookmark text-primary"></i> Subjects & Coverage</span>
+                <span class="card-title">Subjects & Coverage</span>
                 <a href="{{ route('student.classes.index') }}" class="btn btn-ghost btn-sm">All Classes</a>
             </div>
             <div style="padding:0">
@@ -104,7 +96,7 @@
         <!-- Upcoming Classes -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title"><i class="fa-solid fa-calendar-days text-primary"></i> Upcoming Classes</span>
+                <span class="card-title">Upcoming Classes</span>
                 <a href="{{ route('student.classes.index') }}" class="btn btn-ghost btn-sm">All →</a>
             </div>
             <div style="padding:0">

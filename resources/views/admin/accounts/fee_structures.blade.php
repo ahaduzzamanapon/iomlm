@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>⚙️ Fee Structure Setup</h1>
+            <h1>Fee Structure Setup</h1>
             <p>Configure default rate templates for Admission, Semester Tuition, Subject Retakes &amp; Certificates</p>
         </div>
         <div class="page-header-actions">
@@ -15,7 +15,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -113,7 +113,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('createRateModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">💾 Save Fee Rate</button>
+                    <button type="submit" class="btn btn-primary">Save Fee Rate</button>
                 </div>
             </form>
         </div>

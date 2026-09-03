@@ -130,12 +130,12 @@
     {{-- Fixed Top Bar --}}
     <div class="exam-bar">
         <div class="exam-bar-left">
-            <div class="exam-bar-title">✍️ {{ $exam->title }}</div>
+            <div class="exam-bar-title">{{ $exam->title }}</div>
             <div class="exam-bar-sub">{{ $exam->subject?->name }} ({{ $exam->subject?->code }}) &middot; {{ $exam->type }}</div>
         </div>
         <div class="exam-bar-right">
             @if($exam->is_anti_cheating)
-                <span style="font-size:11px;background:#334155;color:#cbd5e1;padding:4px 10px;border-radius:6px">🔒 Anti-Cheating</span>
+                <span style="font-size:11px;background:#334155;color:#cbd5e1;padding:4px 10px;border-radius:6px">Anti-Cheating</span>
             @endif
             <div class="timer-pill" id="timer">{{ $exam->duration_minutes }}:00</div>
         </div>
@@ -151,12 +151,12 @@
                 <strong>{{ $exam->title }}</strong>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
-                <div class="stat-pill">📋 {{ $exam->examQuestions->count() }} প্রশ্ন</div>
-                <div class="stat-pill">⏱️ {{ $exam->duration_minutes }} মিনিট</div>
-                <div class="stat-pill">🎯 {{ $exam->full_marks }} নম্বর</div>
+                <div class="stat-pill">{{ $exam->examQuestions->count() }} প্রশ্ন</div>
+                <div class="stat-pill">{{ $exam->duration_minutes }} মিনিট</div>
+                <div class="stat-pill">{{ $exam->full_marks }} নম্বর</div>
                 @php $writtenCount = $exam->examQuestions->filter(fn($eq) => $eq->question?->question_type === 'WRITTEN')->count(); @endphp
                 @if($writtenCount > 0)
-                    <div class="stat-pill" style="background:#fdf2f8;border-color:#f9a8d4;color:#9d174d">✏️ {{ $writtenCount }} Written</div>
+                    <div class="stat-pill" style="background:#fdf2f8;border-color:#f9a8d4;color:#9d174d">{{ $writtenCount }} Written</div>
                 @endif
             </div>
         </div>
@@ -187,7 +187,7 @@
 
             {{-- MCQ Section --}}
             @if($mcqQuestions->count() > 0)
-                <div class="section-label">🔵 বহুনির্বাচনী প্রশ্ন (MCQ) — {{ $mcqQuestions->count() }}টি</div>
+                <div class="section-label">বহুনির্বাচনী প্রশ্ন (MCQ) — {{ $mcqQuestions->count() }}টি</div>
 
                 @foreach($mcqQuestions as $eq)
                 @php $q = $eq->question; $qSerial++; $savedAns = $savedAnswers[$q->id] ?? null; @endphp
@@ -215,9 +215,9 @@
 
             {{-- Written Section --}}
             @if($writtenQuestions->count() > 0)
-                <div class="section-label written-section">✏️ রচনামূলক প্রশ্ন (Written) — {{ $writtenQuestions->count() }}টি</div>
+                <div class="section-label written-section">রচনামূলক প্রশ্ন (Written) — {{ $writtenQuestions->count() }}টি</div>
                 <div style="background:#fdf2f8;border:1px solid #fbcfe8;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#9d174d">
-                    💡 <strong>নির্দেশনা:</strong> নিচের প্রশ্নগুলোর উত্তর কাগজে লিখুন এবং ছবি তুলে প্রতিটি প্রশ্নের নিচে Upload করুন।
+                    <strong>নির্দেশনা:</strong> নিচের প্রশ্নগুলোর উত্তর কাগজে লিখুন এবং ছবি তুলে প্রতিটি প্রশ্নের নিচে Upload করুন।
                 </div>
 
                 @foreach($writtenQuestions as $eq)
@@ -238,7 +238,7 @@
                                onchange="previewImage({{ $q->id }}, this)"
                                style="display:none">
                         <div id="zone-placeholder-{{ $q->id }}">
-                            <div style="font-size:28px;margin-bottom:6px">📷</div>
+                            <div style="font-size:28px;margin-bottom:6px"></div>
                             <div style="font-weight:600;font-size:14px;color:#9d174d">উত্তরের ছবি Upload করুন</div>
                             <div style="font-size:12px;color:#be185d;margin-top:4px">Click করুন বা ছবি Drag করুন</div>
                         </div>
@@ -253,7 +253,7 @@
                             $savedImgUrl = asset('storage/' . ltrim(str_replace('public/', '', $savedAns->answer_image_path), '/'));
                         @endphp
                         <div style="margin-top:10px;font-size:12px;color:#10b981;font-weight:600">
-                            ✓ আগে Upload করা ছবি আছে (<a href="{{ $savedImgUrl }}" target="_blank" style="color:#10b981;text-decoration:underline">ছবিটি দেখুন ↗</a>)। নতুন ছবি Upload করলে replace হবে।
+                            আগে Upload করা ছবি আছে (<a href="{{ $savedImgUrl }}" target="_blank" style="color:#10b981;text-decoration:underline">ছবিটি দেখুন ↗</a>)। নতুন ছবি Upload করলে replace হবে।
                         </div>
                     @endif
                 </div>
@@ -267,7 +267,7 @@
                     <strong>একবার Submit করলে আর পরিবর্তন করা যাবে না।</strong>
                 </div>
                 <button type="button" class="btn-submit" onclick="confirmSubmit()">
-                    ✅ প্রশ্নপত্র জমা দিন (Submit Paper)
+                    প্রশ্নপত্র জমা দিন (Submit Paper)
                 </button>
             </div>
         </form>
@@ -276,7 +276,7 @@
     {{-- Anti-Cheat Warning Modal --}}
     <div class="warning-overlay" id="warningModal">
         <div class="warning-box">
-            <div style="font-size:48px;margin-bottom:10px">⚠️</div>
+            <div style="font-size:48px;margin-bottom:10px"></div>
             <h2 style="color:#e11d48;margin:0 0 10px">সতর্কতা!</h2>
             <p style="font-size:14px;color:#475569;margin-bottom:20px">
                 পরীক্ষা চলাকালীন অন্য tab বা window-এ যাওয়া নিষিদ্ধ।<br>
@@ -360,7 +360,7 @@
         const reader = new FileReader();
         reader.onload = e => {
             document.getElementById('preview-img-' + qId).src = e.target.result;
-            document.getElementById('preview-name-' + qId).innerText = '📎 ' + file.name;
+            document.getElementById('preview-name-' + qId).innerText = '' + file.name;
             document.getElementById('zone-placeholder-' + qId).style.display = 'none';
             document.getElementById('preview-' + qId).style.display = 'block';
             // Mark written as answered too

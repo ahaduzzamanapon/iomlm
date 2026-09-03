@@ -7,6 +7,7 @@
     <title>Online Admission Form — IOM</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -124,8 +125,8 @@
         </div>
     </div>
     <div class="header-actions">
-        <a href="/" class="btn-outline-sm">🏠 Home</a>
-        <a href="#" class="btn-primary-sm">🌐 Website</a>
+        <a href="/" class="btn-outline-sm">Home</a>
+        <a href="#" class="btn-primary-sm">Website</a>
     </div>
 </header>
 
@@ -145,7 +146,7 @@
 {{-- Notice banner --}}
 @php $terms = \App\Models\AppSetting::get('admission_terms', ''); @endphp
 <div class="notice-banner" style="text-align:center;font-weight:500">
-    📋 ফর্ম পূরণ করার আগে নির্দেশিকা মনোযোগ দিয়ে পড়ুন। সকল তারকা চিহ্নিত (<span style="color:#dc2626">*</span>) তথ্য পূরণ বাধ্যতামূলক।
+    ফর্ম পূরণ করার আগে নির্দেশিকা মনোযোগ দিয়ে পড়ুন। সকল তারকা চিহ্নিত (<span style="color:#dc2626">*</span>) তথ্য পূরণ বাধ্যতামূলক।
 </div>
 
 <div class="apply-container">
@@ -172,14 +173,14 @@
                     </div>
                     @endif
 
-                    {{-- 🎁 Poor Fund / Waiver Code Box --}}
+                    {{-- Poor Fund / Waiver Code Box --}}
                     <div style="background:#f0f9ff;border:1px solid #bae6fd;padding:16px;border-radius:10px;margin-bottom:24px">
                         <label style="color:#0369a1;font-weight:700;margin-bottom:6px;display:block">
-                            🎁 Have a Poor Fund / Waiver Code? (পুওর ফান্ড কোড আছে?)
+                            Have a Poor Fund / Waiver Code? (পুওর ফান্ড কোড আছে?)
                         </label>
                         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
                             <input type="text" id="waiver_code_input" name="waiver_code" value="{{ old('waiver_code') }}" placeholder="e.g. POOR-2026-0001" style="text-transform:uppercase;max-width:240px">
-                            <button type="button" class="btn btn-primary" onclick="applyWaiverCode()" style="padding:10px 18px;white-space:nowrap;font-weight:700">Apply Waiver Code ⚡</button>
+                            <button type="button" class="btn btn-primary" onclick="applyWaiverCode()" style="padding:10px 18px;white-space:nowrap;font-weight:700">Apply Waiver Code</button>
                             <a href="/poor-fund" target="_blank" style="font-size:12px;color:#0284c7;text-decoration:underline">আবেদন করুন (Apply Poor Fund) ↗</a>
                         </div>
                         <div id="waiver-status-msg" style="font-size:13px;margin-top:8px;font-weight:600"></div>
@@ -204,7 +205,7 @@
                             @foreach($activeBatches as $batch)
                                 @if($batch->is_admission_open)
                                     <option value="{{ $batch->id }}" data-course-id="{{ $batch->course_id }}" {{ old('batch_id') == $batch->id ? 'selected' : '' }}>
-                                        🟢 {{ $batch->name }} ({{ $batch->batch_code }})
+                                        {{ $batch->name }} ({{ $batch->batch_code }})
                                     </option>
                                 @endif
                             @endforeach
@@ -504,7 +505,7 @@
                 </div>
                 <div class="form-card-footer">
                     <button type="button" class="btn btn-secondary" onclick="goStep(2)">← Back</button>
-                    <button type="submit" class="btn btn-primary">Submit Application ✓</button>
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
                 </div>
             </div>
         </div>
@@ -545,11 +546,11 @@ function applyWaiverCode() {
     const msgDiv = document.getElementById('waiver-status-msg');
     if (!code) {
         msgDiv.style.color = '#dc2626';
-        msgDiv.innerHTML = '✕ অনুগ্রহ করে আপনার পুওর ফান্ড কোডটি লিখুন।';
+        msgDiv.innerHTML = 'অনুগ্রহ করে আপনার পুওর ফান্ড কোডটি লিখুন।';
         return;
     }
     msgDiv.style.color = '#0284c7';
-    msgDiv.innerHTML = '⏳ Searching waiver code...';
+    msgDiv.innerHTML = 'Searching waiver code...';
 
     fetch('/api/waiver-lookup?code=' + encodeURIComponent(code))
         .then(r => r.json())
@@ -609,7 +610,7 @@ function applyWaiverCode() {
         })
         .catch(err => {
             msgDiv.style.color = '#dc2626';
-            msgDiv.innerHTML = '✕ কোড সার্চ করতে ত্রুটি হয়েছে।';
+            msgDiv.innerHTML = 'কোড সার্চ করতে ত্রুটি হয়েছে।';
         });
 }
 

@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <a href="{{ route('admin.admissions.create') }}" class="btn btn-primary">
-                <i class="fa-solid fa-user-plus"></i>
                 New Admission
             </a>
         </div>

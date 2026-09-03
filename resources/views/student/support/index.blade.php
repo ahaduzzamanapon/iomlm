@@ -3,14 +3,14 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>🎧 অনলাইন সাপোর্ট (Online Support)</h1>
+            <h1>অনলাইন সাপোর্ট (Online Support)</h1>
             <p>আপনার যেকোনো শিক্ষা বা টেকনিক্যাল সহায়তার জন্য সাপোর্ট টিকিট জমা দিন বা মেসেজ করুন</p>
         </div>
     </div>
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -18,7 +18,7 @@
         {{-- Student Support Form --}}
         <div class="card">
             <div class="card-header" style="background:#0f172a;color:#fff;border-radius:12px 12px 0 0">
-                <span class="card-title">✍️ নতুন সাপোর্ট টিকিট খুলুন</span>
+                <span class="card-title">নতুন সাপোর্ট টিকিট খুলুন</span>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ route('online-support.store') }}">
@@ -75,7 +75,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-lg" style="width:100%">
-                        ✉️ সাপোর্ট অনুরোধ জমা দিন ও চ্যাট শুরু করুন
+                        সাপোর্ট অনুরোধ জমা দিন ও চ্যাট শুরু করুন
                     </button>
                 </form>
             </div>
@@ -84,7 +84,7 @@
         {{-- My Support Tickets History --}}
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📋 আমার পূর্বের সাপোর্ট টিকিটসমূহ ({{ $myTickets->count() }})</span>
+                <span class="card-title">আমার পূর্বের সাপোর্ট টিকিটসমূহ ({{ $myTickets->count() }})</span>
             </div>
             <div class="table-wrapper">
                 <table>
@@ -105,20 +105,20 @@
                             </td>
                             <td>
                                 <strong>{{ $t->subject }}</strong>
-                                <div style="font-size:11px;color:#64748b">🏢 {{ $t->department->name ?? '—' }}</div>
+                                <div style="font-size:11px;color:#64748b">{{ $t->department->name ?? '—' }}</div>
                             </td>
                             <td>
                                 @if($t->status === 'PENDING')
                                     <span class="badge badge-pending">⏳ Pending Queue</span>
                                 @elseif($t->status === 'IN_PROGRESS')
-                                    <span class="badge badge-running">🟢 Live Chat Active</span>
+                                    <span class="badge badge-running">Live Chat Active</span>
                                 @else
-                                    <span class="badge badge-secondary">🔒 Closed</span>
+                                    <span class="badge badge-secondary">Closed</span>
                                 @endif
                             </td>
                             <td style="text-align:right">
                                 <a href="{{ route('online-support.chat', $t->uuid) }}" class="btn btn-outline btn-sm">
-                                    💬 চ্যাট খুলুন →
+                                    চ্যাট খুলুন →
                                 </a>
                             </td>
                         </tr>

@@ -3,18 +3,18 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>💳 Counter &amp; Fee Collection</h1>
+            <h1>Counter &amp; Fee Collection</h1>
             <p>Real-time financial summary, instant student search, and quick fee collection counter</p>
         </div>
         <div class="page-header-actions">
-            <a href="{{ route('admin.accounts.invoices') }}" class="btn btn-outline">📑 All Invoices</a>
-            <a href="{{ route('admin.accounts.reports') }}" class="btn btn-primary">📊 Collection Reports</a>
+            <a href="{{ route('admin.accounts.invoices') }}" class="btn btn-outline">All Invoices</a>
+            <a href="{{ route('admin.accounts.reports') }}" class="btn btn-primary">Collection Reports</a>
         </div>
     </div>
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -28,21 +28,21 @@
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon blue">📅</div>
+            
             <div class="stat-info">
                 <div class="stat-value">৳{{ number_format($stats['month_collected'], 2) }}</div>
                 <div class="stat-label">This Month</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon violet">🏛️</div>
+            
             <div class="stat-info">
                 <div class="stat-value">৳{{ number_format($stats['total_collected'], 2) }}</div>
                 <div class="stat-label">Total Revenue</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon orange">⚠️</div>
+            
             <div class="stat-info">
                 <div class="stat-value" style="color:#e11d48">৳{{ number_format($stats['total_due'], 2) }}</div>
                 <div class="stat-label">Total Outstanding Dues</div>
@@ -53,7 +53,7 @@
     {{-- Instant Student Search Counter --}}
     <div class="card" style="margin-bottom:24px;border-top:4px solid #6366f1">
         <div class="card-header">
-            <span class="card-title">🔍 Quick Fee Collection Counter</span>
+            <span class="card-title">Quick Fee Collection Counter</span>
         </div>
         <div class="card-body">
             <form method="GET" action="{{ route('admin.accounts.dashboard') }}" style="display:flex;gap:12px;align-items:center">
@@ -77,7 +77,7 @@
                                     <span class="badge badge-info" style="margin-left:6px">{{ $inv->invoice_no }}</span>
                                 </div>
                                 <div style="font-size:13px;color:#64748b;margin-top:4px">
-                                    👤 Student: <strong>{{ $inv->student->name }}</strong> (ID: <span style="color:#2563eb;font-weight:600">{{ $inv->student->student_code }}</span>, Phone: {{ $inv->student->phone }})
+                                    Student: <strong>{{ $inv->student->name }}</strong> (ID: <span style="color:#2563eb;font-weight:600">{{ $inv->student->student_code }}</span>, Phone: {{ $inv->student->phone }})
                                 </div>
                                 <div style="font-size:12px;color:#475569;margin-top:2px">
                                     Total: ৳{{ number_format($inv->payable_amount, 2) }} &middot;
@@ -87,7 +87,7 @@
                             </div>
                             <div>
                                 <button class="btn btn-success btn-sm" onclick="openPaymentModal({{ $inv->id }}, '{{ $inv->invoice_no }}', {{ $inv->due_amount }})">
-                                    💵 Receive ৳{{ number_format($inv->due_amount, 2) }}
+                                    Receive ৳{{ number_format($inv->due_amount, 2) }}
                                 </button>
                             </div>
                         </div>
@@ -146,14 +146,14 @@
                                 <form method="POST" action="{{ route('admin.accounts.payments.approve', $pPay) }}" onsubmit="return confirm('আপনি কি এই পেমেন্টটি এপ্রুভ করতে চান?')">
                                     @csrf
                                     <button type="submit" class="btn btn-success btn-sm" style="padding:5px 10px; font-size:11.5px">
-                                        ✓ Approve
+                                        Approve
                                     </button>
                                 </form>
 
                                 <form method="POST" action="{{ route('admin.accounts.payments.reject', $pPay) }}" onsubmit="return confirm('আপনি কি এই পেমেন্টটি বাতিল করতে চান?')">
                                     @csrf
                                     <button type="submit" class="btn btn-danger btn-sm" style="padding:5px 10px; font-size:11.5px">
-                                        ❌ Reject
+                                        Reject
                                     </button>
                                 </form>
                             </div>
@@ -172,7 +172,7 @@
     {{-- Recent Payment History --}}
     <div class="card">
         <div class="card-header">
-            <span class="card-title">🧾 Recent Payment Transactions</span>
+            <span class="card-title">Recent Payment Transactions</span>
         </div>
         <div class="table-wrapper">
             <table>
@@ -201,17 +201,17 @@
                         <td><span class="badge badge-secondary no-dot">{{ $pay->payment_method }}</span></td>
                         <td>
                             @if($pay->status === 'APPROVED')
-                                <span class="badge badge-success no-dot" style="font-size:11px">✓ Approved</span>
+                                <span class="badge badge-success no-dot" style="font-size:11px">Approved</span>
                             @elseif($pay->status === 'PENDING')
                                 <span class="badge badge-warning no-dot" style="font-size:11px">⏳ Pending</span>
                             @else
-                                <span class="badge badge-danger no-dot" style="font-size:11px">❌ Rejected</span>
+                                <span class="badge badge-danger no-dot" style="font-size:11px">Rejected</span>
                             @endif
                         </td>
                         <td class="td-muted" style="font-size:12px">{{ $pay->paid_at->format('d M Y, h:i A') }}</td>
                         <td style="text-align:center">
                             <a href="{{ route('admin.accounts.payments.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm">
-                                🖨️ Receipt
+                                Receipt
                             </a>
                         </td>
                     </tr>
@@ -229,7 +229,7 @@
     <div class="modal-overlay" id="collectModal">
         <div class="modal" style="max-width:500px">
             <div class="modal-header">
-                <span class="modal-title">💵 Collect Payment</span>
+                <span class="modal-title">Collect Payment</span>
                 <button class="modal-close" onclick="closeModal('collectModal')">&times;</button>
             </div>
             <form id="collectForm" method="POST" action="">
@@ -268,7 +268,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('collectModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success">✓ Confirm &amp; Save Payment</button>
+                    <button type="submit" class="btn btn-success">Confirm &amp; Save Payment</button>
                 </div>
             </form>
         </div>

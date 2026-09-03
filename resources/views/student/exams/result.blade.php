@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📊 পরীক্ষার ফলাফল</h1>
+            <h1>পরীক্ষার ফলাফল</h1>
             <p>{{ $exam->title }} &middot; {{ $exam->subject?->name }} ({{ $exam->subject?->code }})</p>
         </div>
         <div class="page-header-actions">
@@ -13,41 +13,41 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
     @if($submission->status === 'AUTO_SUBMITTED_VIOLATION')
         <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:14px 18px;border-radius:10px;margin-bottom:20px;font-size:13px">
-            <strong>⚠️ Anti-Cheating Notice:</strong> This exam was automatically submitted due to tab switching ({{ $submission->tab_switch_count }} times).
+            <strong>Anti-Cheating Notice:</strong> This exam was automatically submitted due to tab switching ({{ $submission->tab_switch_count }} times).
         </div>
     @endif
 
     {{-- Score Summary --}}
     <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
         <div class="stat-card">
-            <div class="stat-icon blue">🏆</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ number_format($submission->total_score, 1) }} / {{ $exam->full_marks }}</div>
                 <div class="stat-label">মোট নম্বর</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon green">✓</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $submission->correct_count }}</div>
                 <div class="stat-label">সঠিক উত্তর (MCQ)</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon orange">✕</div>
+            
             <div class="stat-info">
                 <div class="stat-value" style="color:#e11d48">{{ $submission->wrong_count }}</div>
                 <div class="stat-label">ভুল উত্তর (MCQ)</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon violet">⚠️</div>
+            
             <div class="stat-info">
                 <div class="stat-value" style="color:#e11d48">-{{ $submission->negative_marks_deducted }}</div>
                 <div class="stat-label">Negative Mark Penalty</div>
@@ -58,7 +58,7 @@
     {{-- Question Breakdown --}}
     <div class="card">
         <div class="card-header">
-            <span class="card-title">📖 প্রশ্ন বিশ্লেষণ</span>
+            <span class="card-title">প্রশ্ন বিশ্লেষণ</span>
         </div>
         <div style="padding:20px">
 
@@ -75,15 +75,15 @@
                     <div style="display:flex;align-items:center;gap:10px">
                         <span style="font-weight:700;color:#64748b;font-size:13px">{{ $i + 1 }}.</span>
                         @if($q->question_type === 'WRITTEN')
-                            <span style="padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d">✏️ WRITTEN</span>
+                            <span style="padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#fce7f3;color:#9d174d">WRITTEN</span>
                         @else
-                            <span style="padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e0e7ff;color:#4338ca">🔵 MCQ</span>
+                            <span style="padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e0e7ff;color:#4338ca">MCQ</span>
                         @endif
                     </div>
                     <div>
                         @if($q->question_type === 'WRITTEN')
                             @if($answer?->teacher_marks !== null)
-                                <span class="badge badge-success no-dot">✓ Teacher নম্বর: {{ $answer->teacher_marks }}/{{ $eq->marks }}</span>
+                                <span class="badge badge-success no-dot">Teacher নম্বর: {{ $answer->teacher_marks }}/{{ $eq->marks }}</span>
                             @else
                                 <span class="badge badge-secondary no-dot">⏳ Teacher Grading Pending</span>
                             @endif
@@ -93,9 +93,9 @@
                                 $isRight  = $answer?->is_correct;
                             @endphp
                             @if($isRight)
-                                <span class="badge badge-success no-dot">✓ সঠিক (+{{ $eq->marks }})</span>
+                                <span class="badge badge-success no-dot">সঠিক (+{{ $eq->marks }})</span>
                             @elseif($userOpt)
-                                <span class="badge badge-danger no-dot">✕ ভুল (-{{ $exam->negative_marking }})</span>
+                                <span class="badge badge-danger no-dot">ভুল (-{{ $exam->negative_marking }})</span>
                             @else
                                 <span class="badge badge-secondary no-dot">Skip (0)</span>
                             @endif
@@ -126,7 +126,7 @@
                     @endphp
                     <div style="background:{{ $bg }};border:1px solid {{ $border }};padding:8px 12px;border-radius:6px">
                         <strong>{{ strtoupper($optId) }}:</strong> {{ $opt['text'] ?? '' }}
-                        @if($isCorr) <span style="color:#166534;font-weight:700"> ✓ সঠিক উত্তর</span> @endif
+                        @if($isCorr) <span style="color:#166534;font-weight:700"> (সঠিক উত্তর)</span> @endif
                         @if($isUser) <span style="color:#991b1b;font-weight:700"> (আপনার উত্তর)</span> @endif
                     </div>
                     @endforeach
@@ -142,19 +142,19 @@
                         @endphp
                         <div style="margin-top:10px">
                             <div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between">
-                                <span>📷 আপনার উত্তর:</span>
-                                <a href="{{ $imgUrl }}" target="_blank" style="font-size:11px;color:#2563eb;text-decoration:underline">🔎 পূর্ণআকারে দেখুন (Open Image) ↗</a>
+                                <span>আপনার উত্তর:</span>
+                                <a href="{{ $imgUrl }}" target="_blank" style="font-size:11px;color:#2563eb;text-decoration:underline">পূর্ণআকারে দেখুন (Open Image) ↗</a>
                             </div>
                             <img src="{{ $imgUrl }}"
                                  alt="Your Answer"
                                  style="max-width:100%;max-height:400px;border-radius:8px;border:1px solid #f9a8d4;display:block"
                                  onerror="this.onerror=null;this.style.display='none';document.getElementById('ans-fallback-{{ $answer->id }}').style.display='block';">
                             <div id="ans-fallback-{{ $answer->id }}" style="display:none;padding:10px;background:#fff1f2;border:1px solid #fecdd3;border-radius:6px;font-size:12px;color:#9f1239;margin-top:6px">
-                                📷 আপনার উত্তরের ছবি পাওয়া গেছে — <a href="{{ $imgUrl }}" target="_blank" style="color:#9f1239;font-weight:700;text-decoration:underline">সরাসরি নতুন ট্যাবে দেখুন ↗</a>
+                                আপনার উত্তরের ছবি পাওয়া গেছে — <a href="{{ $imgUrl }}" target="_blank" style="color:#9f1239;font-weight:700;text-decoration:underline">সরাসরি নতুন ট্যাবে দেখুন ↗</a>
                             </div>
                         </div>
                     @else
-                        <div style="color:#94a3b8;font-size:13px;font-style:italic;margin-top:8px">⚪ কোনো উত্তর Upload করা হয়নি।</div>
+                        <div style="color:#94a3b8;font-size:13px;font-style:italic;margin-top:8px">কোনো উত্তর Upload করা হয়নি।</div>
                     @endif
                 @endif
 

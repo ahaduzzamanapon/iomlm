@@ -16,16 +16,16 @@
         </div>
         <div class="page-header-actions">
             @if($class->meeting_link)
-                <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-outline btn-sm">🔗 Join Meeting</a>
+                <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-outline btn-sm">Join Meeting</a>
             @elseif($meetingProvider === 'zoom')
                 <form method="POST" action="{{ route('teacher.classes.setLink', $class) }}">
                     @csrf
-                    <button class="btn btn-outline btn-sm">⚡ Generate Zoom Meeting</button>
+                    <button class="btn btn-outline btn-sm">Generate Zoom Meeting</button>
                 </form>
             @else
                 <button class="btn btn-outline btn-sm" style="color:#f59e0b"
                     onclick="document.getElementById('linkFormTop').style.display='flex'">
-                    🔗 Add Meeting Link
+                    Add Meeting Link
                 </button>
                 <form id="linkFormTop" method="POST" action="{{ route('teacher.classes.setLink', $class) }}"
                     style="display:none;gap:6px;align-items:center">
@@ -38,7 +38,7 @@
             @endif
             <form method="POST" action="{{ route('teacher.classes.cancel', $class) }}" onsubmit="return confirm('Cancel this class?')">
                 @csrf
-                <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444">✕ Cancel Session</button>
+                <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444">Cancel Session</button>
             </form>
         </div>
     </div>
@@ -57,12 +57,12 @@
             <div class="card">
                 <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
                     <div>
-                        <span class="card-title">👥 Attendance Roster</span>
+                        <span class="card-title">Attendance Roster</span>
                         <span class="badge badge-info no-dot">{{ $batchStudents->count() }} Students</span>
                     </div>
                     @if($class->meeting_link || $class->zoom_meeting_id)
                         <button type="submit" form="syncZoomForm" class="btn btn-sm btn-outline" style="color:#2563eb;font-weight:600" title="Fetch attendance report from Zoom">
-                            ⚡ Sync Zoom Attendance
+                            Sync Zoom Attendance
                         </button>
                     @endif
                 </div>
@@ -77,10 +77,10 @@
                                 <th>#</th>
                                 <th>Student Code</th>
                                 <th>Name</th>
-                                <th style="text-align:center">Present ✅</th>
-                                <th style="text-align:center">Absent ❌</th>
-                                <th style="text-align:center">Late ⏰</th>
-                                <th style="text-align:center">Excused 📝</th>
+                                <th style="text-align:center">Present</th>
+                                <th style="text-align:center">Absent</th>
+                                <th style="text-align:center">Late</th>
+                                <th style="text-align:center">Excused</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -110,7 +110,7 @@
             <div style="display:flex;flex-direction:column;gap:16px">
                 {{-- Module Covered --}}
                 <div class="card">
-                    <div class="card-header"><span class="card-title">📖 Module Covered</span></div>
+                    <div class="card-header"><span class="card-title">Module Covered</span></div>
                     <div style="padding:12px">
                         <p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Optional — which module did you cover today?</p>
                         <select name="module_covered_id" class="form-control">
@@ -126,7 +126,7 @@
 
                 {{-- Notes --}}
                 <div class="card">
-                    <div class="card-header"><span class="card-title">📝 Session Notes</span></div>
+                    <div class="card-header"><span class="card-title">Session Notes</span></div>
                     <div style="padding:12px">
                         <textarea name="notes" class="form-control" rows="4"
                             placeholder="Topics covered, student questions, announcements...">{{ $class->notes }}</textarea>
@@ -135,7 +135,7 @@
 
                 {{-- Submit --}}
                 <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:15px">
-                    ✅ Complete Class & Save Attendance
+                    Complete Class & Save Attendance
                 </button>
             </div>
         </div>

@@ -10,21 +10,21 @@
 
     <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);margin-bottom:24px">
         <div class="stat-card">
-            <div class="stat-icon blue">📊</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $percentage }}%</div>
                 <div class="stat-label">Overall Attendance</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon green">✓</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $present }}</div>
                 <div class="stat-label">Classes Attended</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon orange">📅</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $total }}</div>
                 <div class="stat-label">Total Conducted Sessions</div>
@@ -48,7 +48,7 @@
                         <td class="td-primary">
                             <strong>{{ $att->classSession?->subject?->name ?? '—' }}</strong><br>
                             @if($att->classSession?->moduleCovered)
-                                <span class="td-muted">📖 {{ $att->classSession->moduleCovered->title }}</span>
+                                <span class="td-muted">{{ $att->classSession->moduleCovered->title }}</span>
                             @endif
                         </td>
                         <td class="td-muted">{{ $att->classSession?->session_date?->format('d M Y (D)') ?? 'TBA' }}</td>

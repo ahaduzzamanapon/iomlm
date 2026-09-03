@@ -11,8 +11,8 @@
         </div>
         <div class="page-header-actions">
             <a href="{{ route('admin.students.id-card', $student) }}" target="_blank" class="btn btn-outline" style="color:#4338ca">🆔 Print ID Card</a>
-            <a href="{{ route('admin.students.grade-sheet', $student) }}" target="_blank" class="btn btn-outline">📊 Grade Sheet</a>
-            <a href="{{ route('admin.students.certificate', $student) }}" target="_blank" class="btn btn-outline" style="color:#d97706">🎓 Certificate</a>
+            <a href="{{ route('admin.students.grade-sheet', $student) }}" target="_blank" class="btn btn-outline">Grade Sheet</a>
+            <a href="{{ route('admin.students.certificate', $student) }}" target="_blank" class="btn btn-outline" style="color:#d97706">Certificate</a>
             <a href="{{ route('admin.students.edit', $student) }}" class="btn btn-primary">Edit Profile</a>
         </div>
     </div>
@@ -25,7 +25,7 @@
             {{-- Personal & Contact --}}
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">👤 Personal & Contact Info</span>
+                    <span class="card-title">Personal & Contact Info</span>
                 </div>
                 <div style="padding:0">
                     @php
@@ -63,7 +63,7 @@
 
             {{-- Family Info --}}
             <div class="card">
-                <div class="card-header"><span class="card-title">👨‍👩‍👧 Family Information</span></div>
+                <div class="card-header"><span class="card-title">Family Information</span></div>
                 <div style="padding:0">
                     @php
                         $fatherName = $student->father_name ?: ($adm?->father_name ?? '—');
@@ -89,7 +89,7 @@
 
             {{-- Academic Background --}}
             <div class="card">
-                <div class="card-header"><span class="card-title">🎓 Academic Background & Address</span></div>
+                <div class="card-header"><span class="card-title">Academic Background & Address</span></div>
                 <div style="padding:0">
                     @php
                         $sscInfo = ($student->ssc_gpa ? ('GPA: ' . $student->ssc_gpa) : '') 
@@ -125,7 +125,7 @@
             {{-- Course Enrollments --}}
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">📚 Course Enrollments</span>
+                    <span class="card-title">Course Enrollments</span>
                     <span class="badge badge-secondary no-dot">{{ $student->enrollments->count() }} Total</span>
                 </div>
                 <div style="padding:0">
@@ -151,14 +151,14 @@
             {{-- Admission Info --}}
             @if($student->admissions && $student->admissions->count())
             <div class="card">
-                <div class="card-header"><span class="card-title">📋 Admission History</span></div>
+                <div class="card-header"><span class="card-title">Admission History</span></div>
                 <div style="padding:0">
                     @foreach($student->admissions as $adm)
                     <div style="padding:12px 20px;border-bottom:1px solid var(--card-border);font-size:13px">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
                             <div>
                                 <span class="badge no-dot" style="{{ $adm->source === 'PUBLIC' ? 'background:rgba(139,92,246,.1);color:#7c3aed' : 'background:rgba(59,130,246,.1);color:#1d4ed8' }};font-size:11px">
-                                    {{ $adm->source === 'PUBLIC' ? '🌐 Public' : '🏫 Admin' }}
+                                    {{ $adm->source === 'PUBLIC' ? 'Public' : 'Admin' }}
                                 </span>
                                 @if($adm->application_no)
                                 <span style="margin-left:8px;color:var(--text-muted);font-size:12px">{{ $adm->application_no }}</span>
@@ -179,7 +179,7 @@
             @if($student->invoices && $student->invoices->count())
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">💳 Fee Invoices</span>
+                    <span class="card-title">Fee Invoices</span>
                     <span class="badge badge-secondary no-dot">{{ $student->invoices->count() }} Invoices</span>
                 </div>
                 <div style="padding:0">

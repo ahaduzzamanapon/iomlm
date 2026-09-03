@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
+    body, input, select, textarea, button, .tree-toggle, .nav-item, .table, .card, h1, h2, h3, h4, h5, h6 {
+        font-family: 'Kalpurush', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
     /* ── Tree Nav ─────────────────────────────────────── */
     .tree-group { margin-bottom: 2px; }
 
@@ -415,12 +418,12 @@
 
         @if(session('success'))
         <div style="padding:12px 24px 0">
-            <div class="alert alert-success" id="lp-flash">✓ {{ session('success') }}</div>
+            <div class="alert alert-success" id="lp-flash">{{ session('success') }}</div>
         </div>
         @endif
         @if(session('error'))
         <div style="padding:12px 24px 0">
-            <div class="alert alert-danger" id="lp-flash">✕ {{ session('error') }}</div>
+            <div class="alert alert-danger" id="lp-flash">{{ session('error') }}</div>
         </div>
         @endif
 

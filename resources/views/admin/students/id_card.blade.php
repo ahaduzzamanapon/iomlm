@@ -37,7 +37,7 @@
 
     <div style="margin-bottom:20px" class="btn-print">
         <button onclick="window.print()" style="background:#4338ca;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer">
-            🖨️ Print Digital Student ID Card
+            Print Digital Student ID Card
         </button>
     </div>
 
@@ -51,7 +51,7 @@
             </div>
 
             <div class="card-body">
-                <div class="photo-placeholder">👤</div>
+                <div class="photo-placeholder"></div>
                 <h2 class="student-name">{{ $student->name }}</h2>
                 <div class="student-code">{{ $student->student_code ?? 'STD-2026-000' }}</div>
 

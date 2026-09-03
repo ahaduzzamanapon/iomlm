@@ -143,16 +143,16 @@
     {{-- Page Header --}}
     <div class="page-header" style="margin-bottom:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
         <div class="page-header-left">
-            <h1><i class="fa-solid fa-graduation-cap"></i> My Courses</h1>
-            <p>আপনার ভর্তি হওয়া কোর্স, সাবজেক্ট, উপস্থিতি ও ফলাফলের বিবরণ</p>
+            <h1>My Courses</h1>
+            <p>Overview of your enrolled courses, subjects, attendance and results</p>
         </div>
         <div style="display:flex; align-items:center; gap:12px">
             <button onclick="document.getElementById('applyCourseModal').style.display='flex'"
                 style="background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; border:none; padding:10px 20px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(37,99,235,0.25)">
-                <i class="fa-solid fa-plus"></i> নতুন কোর্সে আবেদন করুন
+                Apply for New Course
             </button>
             <div style="font-size:13px; color:var(--text-muted); background:#f8fafc; padding:8px 14px; border-radius:10px; border:1px solid #e2e8f0">
-                মোট ভর্তি: <strong>{{ $enrollments->count() }}</strong>
+                Total Enrolled: <strong>{{ $enrollments->count() }}</strong>
             </div>
         </div>
     </div>
@@ -172,11 +172,11 @@
     @if($enrollments->isEmpty())
         <div class="card" style="text-align:center; padding:60px 20px;">
             <div style="font-size:48px; margin-bottom:12px; color:#94a3b8"><i class="fa-solid fa-book-open"></i></div>
-            <strong style="font-size:16px; color:#1e293b">কোনো কোর্সে এখনো ভর্তি হননি।</strong><br>
-            <span style="font-size:13px; color:var(--text-muted); display:block; margin:8px 0 16px">অন্য যেকোনো নতুন কোর্সে ভর্তি আবেদনের জন্য নিচের বাটনে ক্লিক করুন।</span>
+            <strong style="font-size:16px; color:#1e293b">You are not enrolled in any courses yet.</strong><br>
+            <span style="font-size:13px; color:var(--text-muted); display:block; margin:8px 0 16px">Click the button below to apply for course admission.</span>
             <button onclick="document.getElementById('applyCourseModal').style.display='flex'"
                 style="background:#2563eb; color:#fff; border:none; padding:10px 22px; border-radius:9px; font-weight:700; cursor:pointer">
-                <i class="fa-solid fa-plus"></i> নতুন কোর্সে ভর্তি আবেদন করুন
+                Apply for Course Admission
             </button>
         </div>
     @endif
@@ -213,40 +213,40 @@
         {{-- Info Grid --}}
         <div class="info-grid">
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-building-columns"></i> ব্যাচ</div>
+                <div class="info-label"><i class="fa-solid fa-building-columns"></i> Batch</div>
                 <div class="info-value">{{ $batch?->name ?? '—' }}</div>
             </div>
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-book"></i> কোর্সের ধরন</div>
+                <div class="info-label"><i class="fa-solid fa-book"></i> Course Type</div>
                 <div class="info-value">{{ $course?->type === 'SEMESTER_BASED' ? 'Semester Based' : 'Subject Based' }}</div>
             </div>
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-calendar"></i> ভর্তির তারিখ</div>
+                <div class="info-label"><i class="fa-solid fa-calendar"></i> Admission Date</div>
                 <div class="info-value">{{ $enrollment->enrolled_at ? \Carbon\Carbon::parse($enrollment->enrolled_at)->format('d M Y') : '—' }}</div>
             </div>
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-calendar-days"></i> ব্যাচ শুরু</div>
+                <div class="info-label"><i class="fa-solid fa-calendar-days"></i> Batch Start</div>
                 <div class="info-value">{{ $batch?->start_date ? \Carbon\Carbon::parse($batch->start_date)->format('d M Y') : '—' }}</div>
             </div>
             @if($currentSem)
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-thumbtack"></i> বর্তমান সেমিস্টার</div>
+                <div class="info-label"><i class="fa-solid fa-thumbtack"></i> Current Semester</div>
                 <div class="info-value accent">{{ $currentSem->name }}</div>
             </div>
             @endif
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-clock"></i> কোর্সের মেয়াদ</div>
+                <div class="info-label"><i class="fa-solid fa-clock"></i> Course Duration</div>
                 <div class="info-value">{{ $course?->duration_value ?? '—' }} {{ $course?->duration_unit }}</div>
             </div>
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-chart-pie"></i> উপস্থিতি ({{ $enrollment->_present_count }}/{{ $enrollment->_total_sessions }} ক্লাস)</div>
+                <div class="info-label"><i class="fa-solid fa-chart-pie"></i> Attendance ({{ $enrollment->_present_count }}/{{ $enrollment->_total_sessions }} Classes)</div>
                 <div class="info-value" style="color:{{ $attColor }}">{{ $attPct }}%</div>
                 <div class="attendance-bar-bg">
                     <div class="attendance-bar-fill" style="width:{{ $attPct }}%; background:{{ $attColor }}"></div>
                 </div>
             </div>
             <div class="info-item">
-                <div class="info-label"><i class="fa-solid fa-book-bookmark"></i> মোট সাবজেক্ট</div>
+                <div class="info-label"><i class="fa-solid fa-book-bookmark"></i> Total Subjects</div>
                 <div class="info-value accent">{{ $enrollment->_total_subjects }}</div>
             </div>
         </div>
@@ -268,12 +268,12 @@
         <div style="padding:20px 24px">
             <div style="font-size:14px; font-weight:700; color:#334155; margin-bottom:16px; display:flex; align-items:center; gap:8px">
                 <i class="fa-solid fa-book-open" style="color:#2563eb"></i>
-                {{ $course->type === 'SUBJECT_BASED' ? 'কোর্সের সাবজেক্টসমূহ' : 'সেমিস্টার অনুযায়ী সাবজেক্ট' }}
+                {{ $course->type === 'SUBJECT_BASED' ? 'Course Subjects' : 'Semester-wise Subjects' }}
             </div>
 
             @foreach($semesterGroups as $semesterId => $maps)
             @php
-                $semName  = $maps->first()->semester?->name ?? ($course->type === 'SUBJECT_BASED' ? 'কোর্সের সকল সাবজেক্ট (All Course Subjects)' : 'অন্যান্য সাবজেক্ট');
+                $semName  = $maps->first()->semester?->name ?? ($course->type === 'SUBJECT_BASED' ? 'All Course Subjects' : 'Other Subjects');
                 $semSeq   = $maps->first()->semester?->sequence_no ?? 0;
                 $color    = $semColors[$semIdx % count($semColors)];
                 $isActive = $currentSem && $semesterId == $currentSem->id;
@@ -290,13 +290,13 @@
                         </div>
                         <div>
                             <div style="font-weight:800; font-size:14px; color:#fff">{{ $semName }}</div>
-                            <div style="font-size:11px; color:rgba(255,255,255,0.75)">{{ $maps->count() }} টি সাবজেক্ট</div>
+                            <div style="font-size:11px; color:rgba(255,255,255,0.75)">{{ $maps->count() }} Subjects</div>
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; align-items:center">
                         @if($isActive)
                             <span style="background:rgba(255,255,255,0.25); color:#fff; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; border:1px solid rgba(255,255,255,0.4)">
-                                <i class="fa-solid fa-thumbtack"></i> চলতি সেমিস্টার
+                                <i class="fa-solid fa-thumbtack"></i> Current Running Semester
                             </span>
                         @endif
                         <span style="background:rgba(255,255,255,0.15); color:#fff; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600">
@@ -352,8 +352,7 @@
         @if($finalMarks->isNotEmpty())
         <div class="final-mark-section">
             <h4 style="font-size:14px; font-weight:700; color:#334155; margin:16px 0 12px; display:flex; align-items:center; gap:8px">
-                <i class="fa-solid fa-chart-pie" style="color:#16a34a"></i>
-                আমার চূড়ান্ত মার্ক (IOM Conversion)
+                Final Marks &amp; Grades (IOM Conversion)
             </h4>
             <div style="overflow-x:auto">
                 <table class="subject-table" style="min-width:750px">
@@ -427,12 +426,12 @@
     </div>
     @endforeach
 
-    {{-- ── ➕ APPLY FOR NEW COURSE MODAL ── --}}
+    {{-- ── APPLY FOR NEW COURSE MODAL ── --}}
     <div id="applyCourseModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:9999; justify-content:center; align-items:center; padding:20px; box-sizing:border-box">
         <div style="background:#fff; border-radius:18px; max-width:540px; width:100%; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.25); animation:modalSlideUp .3s ease">
             <div style="background:linear-gradient(135deg,#1e293b,#0f172a); color:#fff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center">
                 <div style="font-weight:800; font-size:16px; display:flex; align-items:center; gap:8px">
-                    <i class="fa-solid fa-graduation-cap"></i> নতুন কোর্সে ভর্তি আবেদন
+                    <i class="fa-solid fa-graduation-cap"></i> Apply for New Course Admission
                 </div>
                 <button onclick="document.getElementById('applyCourseModal').style.display='none'" style="background:none; border:none; color:#94a3b8; font-size:24px; cursor:pointer; line-height:1">&times;</button>
             </div>
@@ -443,33 +442,33 @@
             <form method="POST" action="{{ route('student.my-course.apply') }}" style="padding:24px">
                 @csrf
                 <div style="margin-bottom:16px">
-                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">কোর্স সিলেক্ট করুন <span style="color:#dc2626">*</span></label>
+                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">Select Course <span style="color:#dc2626">*</span></label>
                     <select name="interested_course_id" class="form-control" required style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px">
-                        <option value="">-- কোর্স বেছে নিন --</option>
+                        <option value="">-- Select Course --</option>
                         @foreach($allActiveCourses as $c)
                             <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->type === 'SEMESTER_BASED' ? 'Semester Based' : 'Subject Based' }})</option>
                         @endforeach
                     </select>
                 </div>
                 <div style="margin-bottom:16px">
-                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">পছন্দের ব্যাচ (ঐচ্ছিক)</label>
+                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">Preferred Batch (Optional)</label>
                     <select name="batch_id" class="form-control" style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px">
-                        <option value="">-- ব্যাচ বেছে নিন (যদি থাকে) --</option>
+                        <option value="">-- Select Batch (if available) --</option>
                         @foreach($allActiveBatches as $b)
                             <option value="{{ $b->id }}">{{ $b->name }} — {{ $b->course?->name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div style="margin-bottom:20px">
-                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">অতিরিক্ত নোট / মন্তব্য (ঐচ্ছিক)</label>
-                    <textarea name="notes" rows="2" class="form-control" placeholder="যেমন: কোনো পছন্দের সময় বা বিশেষ মন্তব্য থাকলে লিখুন..." style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:13px"></textarea>
+                    <label style="display:block; font-size:13px; font-weight:700; color:#334155; margin-bottom:6px">Additional Notes / Comments (Optional)</label>
+                    <textarea name="notes" rows="2" class="form-control" placeholder="e.g. Any preferred timing, queries or special notes..." style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:13px"></textarea>
                 </div>
                 <div style="background:#f8fafc; padding:12px 16px; border-radius:10px; font-size:12px; color:#64748b; margin-bottom:20px">
-                    <i class="fa-solid fa-circle-info"></i> আপনার বর্তমান স্টুডেন্ট প্রোফাইল (নাম, ফোন, ইমেইল, তথ্য) স্বয়ংক্রিয়ভাবে আবেদনের সাথে যুক্ত হবে। আবেদন জমা হলে অ্যাডমিন রিভিউ করে নতুন কোর্স অনুমোদন করবেন।
+                    <i class="fa-solid fa-circle-info"></i> Your student profile details (name, phone, email) will automatically be linked to this application. The administration will review and approve your enrollment.
                 </div>
                 <div style="display:flex; justify-content:flex-end; gap:10px">
-                    <button type="button" onclick="document.getElementById('applyCourseModal').style.display='none'" style="padding:10px 18px; border-radius:9px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-weight:600; font-size:13px; cursor:pointer">বাতিল</button>
-                    <button type="submit" style="padding:10px 22px; border-radius:9px; border:none; background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.3)">আবেদন জমা দিন <i class="fa-solid fa-paper-plane"></i></button>
+                    <button type="button" onclick="document.getElementById('applyCourseModal').style.display='none'" style="padding:10px 18px; border-radius:9px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-weight:600; font-size:13px; cursor:pointer">Cancel</button>
+                    <button type="submit" style="padding:10px 22px; border-radius:9px; border:none; background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 4px 12px rgba(37,99,235,0.3)">Submit Application</button>
                 </div>
             </form>
         </div>

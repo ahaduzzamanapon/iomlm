@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addFeeHeadModal')">
-                <i class="fa-solid fa-plus"></i>
                 Add Fee Head
             </button>
         </div>

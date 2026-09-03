@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📣 Notice Board & Announcements</h1>
+            <h1>Notice Board & Announcements</h1>
             <p>Official notices, schedules, exam circulars, and announcements for teachers</p>
         </div>
     </div>
@@ -51,7 +51,7 @@
         </div>
         @empty
         <div class="card" style="padding:40px;text-align:center;color:#94a3b8">
-            <div style="font-size:32px;margin-bottom:8px">📭</div>
+            <div style="font-size:32px;margin-bottom:8px"></div>
             কোনো নোটিশ পাওয়া যায়নি।
         </div>
         @endforelse

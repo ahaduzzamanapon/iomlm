@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📣 Central Notice Board &amp; Announcements</h1>
+            <h1>Central Notice Board &amp; Announcements</h1>
             <p>Publish announcements, exam notices, and emergency alerts for students &amp; teachers</p>
         </div>
         <div class="page-header-actions">
@@ -15,7 +15,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -58,7 +58,7 @@
                         <form method="POST" action="{{ route('admin.notices.destroy', $n) }}" onsubmit="return confirm('Delete this notice?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444">
-                                🗑️ Delete
+                                <i class="fa-solid fa-trash"></i> Delete
                             </button>
                         </form>
                     </div>
@@ -141,7 +141,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('createNoticeModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">📢 Publish Notice</button>
+                    <button type="submit" class="btn btn-primary">Publish Notice</button>
                 </div>
             </form>
         </div>

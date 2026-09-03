@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addPromotionModal')">
-                <i class="fa-solid fa-graduation-cap"></i>
                 Promote Student
             </button>
         </div>
@@ -40,7 +39,7 @@
                             @if($prom->decision === 'PROMOTED')
                                 <span class="badge badge-active">Promoted</span>
                             @elseif($prom->decision === 'FORCE_PROMOTED')
-                                <span class="badge badge-rescheduled">⚡ Force Promoted</span>
+                                <span class="badge badge-rescheduled">Force Promoted</span>
                             @else
                                 <span class="badge badge-cancelled">Held Back</span>
                             @endif

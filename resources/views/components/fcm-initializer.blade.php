@@ -94,11 +94,11 @@ function saveFcmTokenOnLogin(token) {
         })
     }).then(res => res.json()).then(data => {
         if (data.success) {
-            console.log('✅ FCM Token saved to database successfully.');
+            console.log('FCM Token saved to database successfully.');
         } else {
-            console.warn('⚠️ FCM Token save response:', data.message);
+            console.warn('FCM Token save response:', data.message);
         }
-    }).catch(err => console.error('✕ FCM Token save fetch error:', err));
+    }).catch(err => console.error('FCM Token save fetch error:', err));
 }
 </script>
 @endif

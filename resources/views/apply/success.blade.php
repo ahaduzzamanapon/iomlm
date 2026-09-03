@@ -52,9 +52,9 @@
     </div>
 
     <div class="actions">
-        <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Application</button>
-        <a href="{{ route('apply.show') }}" class="btn btn-secondary"><i class="fa-solid fa-plus"></i> New Application</a>
-        <a href="/" class="btn btn-secondary"><i class="fa-solid fa-house"></i> Home</a>
+        <button class="btn btn-primary" onclick="window.print()">Print Application</button>
+        <a href="{{ route('apply.show') }}" class="btn btn-secondary">New Application</a>
+        <a href="/" class="btn btn-secondary">Home</a>
     </div>
 </div>
 </body>

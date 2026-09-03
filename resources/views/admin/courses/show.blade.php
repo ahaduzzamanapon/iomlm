@@ -14,10 +14,9 @@
         </div>
         <div class="page-header-actions">
             @if($course->type === 'SEMESTER_BASED')
-                <button class="btn btn-outline" onclick="openModal('addSemesterModal')"><i class="fa-solid fa-plus"></i> New Semester</button>
+                <button class="btn btn-outline" onclick="openModal('addSemesterModal')">New Semester</button>
             @endif
             <button class="btn btn-primary" onclick="openModal('mapSubjectModal')">
-                <i class="fa-solid fa-plus"></i>
                 Map Subject to Course
             </button>
         </div>
@@ -41,7 +40,7 @@
         <div class="course-academic-col">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                 <h3 style="font-size:14px;font-weight:600;margin:0;display:flex;align-items:center;gap:6px;color:var(--text-secondary)">
-                    📚 Semesters & Subjects
+                    Semesters & Subjects
                 </h3>
                 <div style="font-size:12px;color:var(--text-muted)">
                     {{ $course->semesters->count() }} Semesters · {{ $course->courseSubjectMaps->count() }} Subjects
@@ -170,7 +169,7 @@
         <div class="course-financial-col">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
                 <h3 style="font-size:14px;font-weight:600;margin:0;display:flex;align-items:center;gap:6px;color:var(--text-secondary)">
-                    💰 Fee Packages & Pricing
+                    Fee Packages & Pricing
                 </h3>
             </div>
 
@@ -184,7 +183,7 @@
                     </div>
                     <div style="display:flex;gap:6px;align-items:center">
                         <button class="btn btn-outline btn-sm" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1);font-size:11px;padding:3px 8px" onclick="openModal('templateModal')">
-                            📋 Template
+                            Template
                         </button>
                         <button class="btn btn-primary btn-sm" style="font-size:11px;padding:3px 8px" onclick="openModal('addPackageModal')">+ Package</button>
                     </div>
@@ -260,11 +259,11 @@
                     </div>
                     @empty
                     <div style="padding:24px;text-align:center;color:var(--text-muted)">
-                        <div style="font-size:24px;margin-bottom:6px">💰</div>
+                        <div style="font-size:24px;margin-bottom:6px"></div>
                         <div style="font-weight:600;font-size:13px;margin-bottom:2px">কোনো Fee Package নেই</div>
                         <div style="font-size:11px;margin-bottom:12px">Template ব্যবহার করুন অথবা নতুন প্যাকেজ তৈরি করুন।</div>
                         <div style="display:flex;gap:6px;justify-content:center">
-                            <button class="btn btn-outline btn-sm" onclick="openModal('templateModal')" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1)">📋 Template</button>
+                            <button class="btn btn-outline btn-sm" onclick="openModal('templateModal')" style="border-color:var(--indigo,#6366f1);color:var(--indigo,#6366f1)">Template</button>
                             <button class="btn btn-primary btn-sm" onclick="openModal('addPackageModal')">+ New Package</button>
                         </div>
                     </div>
@@ -382,7 +381,7 @@
         <div class="modal" style="max-width:500px">
             <div class="modal-header" style="background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(59,130,246,.05))">
                 <div>
-                    <span class="modal-title">📋 Template থেকে Package তৈরি করুন</span>
+                    <span class="modal-title">Template থেকে Package তৈরি করুন</span>
                     <div style="font-size:12px;color:var(--text-muted);margin-top:2px">সব active fee heads সহ package auto-তৈরি হবে</div>
                 </div>
                 <button class="modal-close" onclick="closeModal('templateModal')">&times;</button>
@@ -406,7 +405,7 @@
                         </div>
                         @endforeach
                         <div style="font-size:11px;color:var(--text-muted);margin-top:8px">
-                            ⚠️ সব amount ৳0 দিয়ে তৈরি হবে — পরে edit করুন।
+                            সব amount ৳0 দিয়ে তৈরি হবে — পরে edit করুন।
                         </div>
                     </div>
 
@@ -423,7 +422,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('templateModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary" style="background:linear-gradient(135deg,#6366f1,#3b82f6)">
-                        📋 Create from Template
+                        Create from Template
                     </button>
                 </div>
             </form>
@@ -442,7 +441,7 @@
                 <div class="modal-body">
                     {{-- Course duration info badge --}}
                     <div style="background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:8px 14px;margin-bottom:14px;font-size:12px;color:var(--text-secondary)">
-                        📐 Course Duration: <strong>{{ $course->duration_value }} {{ ucfirst(strtolower($course->duration_unit)) }}(s)</strong>
+                        Course Duration: <strong>{{ $course->duration_value }} {{ ucfirst(strtolower($course->duration_unit)) }}(s)</strong>
                         &nbsp;→&nbsp; Total months: <strong id="course_total_months">{{ $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value }}</strong>
                     </div>
 

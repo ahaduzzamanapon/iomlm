@@ -74,7 +74,7 @@
                         readonly
                         style="background:#f1f5f9;cursor:not-allowed"
                     >
-                    <button type="button" class="btn btn-outline" onclick="copyRedirectUri()"><i class="fa-solid fa-copy"></i> Copy</button>
+                    <button type="button" class="btn btn-outline" onclick="copyRedirectUri()">Copy</button>
                 </div>
                 <div class="form-help">Copy this Redirect URI and add it under <b>Authorized redirect URIs</b> in Google Cloud Console.</div>
             </div>

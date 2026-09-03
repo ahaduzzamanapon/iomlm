@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>🎧 Support Setup</h1>
+            <h1>Support Setup</h1>
             <p>Manage Support Departments and Assign Support Agents</p>
         </div>
         <div class="page-header-actions">
@@ -14,7 +14,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -22,7 +22,7 @@
         {{-- Departments List --}}
         <div class="card">
             <div class="card-header">
-                <span class="card-title">🏢 Support Departments ({{ $departments->count() }})</span>
+                <span class="card-title">Support Departments ({{ $departments->count() }})</span>
             </div>
             <div class="table-wrapper">
                 <table>
@@ -77,7 +77,7 @@
         {{-- Support Agents List --}}
         <div class="card">
             <div class="card-header">
-                <span class="card-title">👥 Support Agents & Users ({{ $supportUsers->count() }})</span>
+                <span class="card-title">Support Agents & Users ({{ $supportUsers->count() }})</span>
             </div>
             <div class="table-wrapper">
                 <table>

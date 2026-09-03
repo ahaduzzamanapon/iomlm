@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addYearModal')">
-                <i class="fa-solid fa-plus"></i>
                 New Academic Year
             </button>
         </div>
@@ -16,7 +15,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -47,7 +46,7 @@
                                     <span class="badge badge-secondary no-dot" style="margin-right:2px">{{ $sess->name }}</span>
                                     <form method="POST" action="{{ route('admin.academic-years.session.destroy', $sess) }}" style="display:inline" onsubmit="return confirm('Remove session {{ $sess->name }}?')">
                                         @csrf @method('DELETE')
-                                        <button type="submit" title="Remove Session" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:11px;padding:0 2px"><i class="fa-solid fa-xmark"></i></button>
+                                        <button type="submit" title="Remove Session" style="border:none;background:none;color:var(--red);cursor:pointer;font-size:11px;padding:0 2px"></button>
                                     </form>
                                 </div>
                             @empty
@@ -71,7 +70,7 @@
                             </form>
                         </td>
                         <td style="text-align:right">
-                            <button class="btn btn-outline btn-sm" onclick="openSessionModal({{ $year->id }}, '{{ $year->name }}')"><i class="fa-solid fa-plus"></i> Session</button>
+                            <button class="btn btn-outline btn-sm" onclick="openSessionModal({{ $year->id }}, '{{ $year->name }}')">Session</button>
                             <button class="btn btn-outline btn-sm" onclick='openEditYearModal(@json($year))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
                             <form method="POST" action="{{ route('admin.academic-years.destroy', $year) }}" style="display:inline" onsubmit="return confirm('Delete this academic year?')">
                                 @csrf @method('DELETE')

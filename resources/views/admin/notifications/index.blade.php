@@ -3,19 +3,19 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📡 Notification Broadcast Center</h1>
+            <h1>Notification Broadcast Center</h1>
             <p>Send and manage Push Notifications &amp; Email broadcasts to students and faculty</p>
         </div>
         <div>
             <a href="{{ route('admin.notifications.create') }}" class="btn btn-primary btn-lg">
-                📣 Send New Notification
+                Send New Notification
             </a>
         </div>
     </div>
 
     @if(session('success'))
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;padding:14px 18px;border-radius:10px;margin-bottom:20px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -50,22 +50,22 @@
                                     </div>
                                     @if($n->image_url)
                                         <div style="margin-top:4px">
-                                            <a href="{{ $n->image_url }}" target="_blank" style="font-size:11px;color:#2563eb;font-weight:600">🖼 View Image Banner</a>
+                                            <a href="{{ $n->image_url }}" target="_blank" style="font-size:11px;color:#2563eb;font-weight:600">View Image Banner</a>
                                         </div>
                                     @endif
                                 </td>
                                 <td>
                                     @if($n->channel === 'BOTH')
                                         <span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">
-                                            🔥 PUSH + 📧 EMAIL
+                                            PUSH + EMAIL
                                         </span>
                                     @elseif($n->channel === 'PUSH')
                                         <span class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a">
-                                            🔥 PUSH ONLY
+                                            PUSH ONLY
                                         </span>
                                     @else
                                         <span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">
-                                            📧 EMAIL ONLY
+                                            EMAIL ONLY
                                         </span>
                                     @endif
                                 </td>

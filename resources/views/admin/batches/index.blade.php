@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addBatchModal')">
-                <i class="fa-solid fa-plus"></i>
                 New Batch
             </button>
         </div>
@@ -55,8 +54,7 @@
                             <div class="dropdown" style="display:inline-block">
                                 <button class="btn btn-outline btn-sm" onclick="toggleDropdown('bact-{{ $batch->id }}')" style="gap:4px">
                                     Actions
-                                    <i class="fa-solid fa-chevron-down" style="font-size:10px"></i>
-                                </button>
+                                    </button>
                                 <div class="dropdown-menu" id="bact-{{ $batch->id }}" style="right:0;min-width:165px">
                                     <a href="{{ route('admin.batches.show', $batch) }}" class="dropdown-item">
                                         <i class="fa-solid fa-eye" style="margin-right:6px"></i>
@@ -69,7 +67,6 @@
                                     <form method="POST" action="{{ route('admin.batches.generateTimeline', $batch) }}">
                                         @csrf
                                         <button type="submit" class="dropdown-item" style="width:100%;border:none;background:none;text-align:left">
-                                            <i class="fa-solid fa-bolt" style="margin-right:6px"></i>
                                             Gen Sessions
                                         </button>
                                     </form>
@@ -136,12 +133,12 @@
 
                     <div class="form-group" style="margin-top:10px">
                         <label class="form-check" style="cursor:pointer;font-weight:600">
-                            <input type="checkbox" name="is_admission_open" value="1" checked> 🟢 Open for Admission
+                            <input type="checkbox" name="is_admission_open" value="1" checked> Open for Admission
                         </label>
                     </div>
 
                     <div class="alert alert-info" style="margin-top:8px">
-                        💡 <strong>Auto Sessions:</strong> After creating the batch, set up the Routine for this batch — sessions will be auto-generated daily from the routine schedule.
+                        <strong>Auto Sessions:</strong> After creating the batch, set up the Routine for this batch — sessions will be auto-generated daily from the routine schedule.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -205,7 +202,7 @@
 
                     <div class="form-group" style="margin-top:14px">
                         <label class="form-check" style="cursor:pointer;font-weight:600">
-                            <input type="checkbox" name="is_admission_open" id="eb_is_admission_open" value="1"> 🟢 Open for Admission
+                            <input type="checkbox" name="is_admission_open" id="eb_is_admission_open" value="1"> Open for Admission
                         </label>
                     </div>
                 </div>

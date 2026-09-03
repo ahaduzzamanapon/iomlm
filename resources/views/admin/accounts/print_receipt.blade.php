@@ -28,7 +28,7 @@
 
     <div style="text-align:center;margin-bottom:16px" class="btn-print">
         <button onclick="window.print()" style="background:#6366f1;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-weight:700;cursor:pointer">
-            🖨️ Print Money Receipt
+            Print Money Receipt
         </button>
     </div>
 

@@ -13,7 +13,7 @@
 </head>
 <body>
     <div class="card">
-        <div style="font-size:48px; margin-bottom:12px">🔒</div>
+        <div style="font-size:48px; margin-bottom:12px"></div>
         <h2 style="margin:0 0 10px; color:#0f172a; font-size:22px; font-weight:800">{{ $survey->title }}</h2>
         <p style="color:#64748b; font-size:14px; line-height:1.5; margin-bottom:24px">
             This survey form is no longer accepting responses. Thank you for your interest!

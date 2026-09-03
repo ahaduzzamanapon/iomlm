@@ -4,7 +4,7 @@
     <div class="page-header">
         <div class="page-header-left">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><a href="{{ route('admin.routine.index') }}">← Back to Routine</a></div>
-            <h1>📋 Assign Classes to Routine</h1>
+            <h1>Assign Classes to Routine</h1>
             <p>Select a batch to see unassigned class sessions, then assign them to a routine slot</p>
         </div>
     </div>
@@ -25,7 +25,7 @@
     @if($batchId)
         @if($unassigned->isEmpty())
             <div class="card" style="padding:30px;text-align:center;color:var(--text-muted)">
-                ✅ All scheduled classes for this batch are already assigned to routine slots.
+                All scheduled classes for this batch are already assigned to routine slots.
             </div>
         @else
         <div class="card">

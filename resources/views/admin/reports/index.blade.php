@@ -10,7 +10,7 @@
 
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon blue">🎓</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['active_students'] }}</div>
                 <div class="stat-label">Active Enrolled Students</div>
@@ -24,14 +24,14 @@
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon green">👨‍🏫</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['active_teachers'] }}</div>
                 <div class="stat-label">Faculty Members</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon purple">📚</div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['total_courses'] }}</div>
                 <div class="stat-label">Active Courses</div>
@@ -53,9 +53,9 @@
         <div class="card">
             <div class="card-header"><span class="card-title">Quick Export Actions</span></div>
             <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
-                <button class="btn btn-outline" onclick="alert('Exporting student roster to CSV...')">📥 Export Active Students Roster (CSV)</button>
-                <button class="btn btn-outline" onclick="alert('Exporting attendance report...')">📥 Export Class Attendance Report (PDF)</button>
-                <button class="btn btn-outline" onclick="alert('Exporting exam results...')">📥 Export Examination Results Summary</button>
+                <button class="btn btn-outline" onclick="alert('Exporting student roster to CSV...')">Export Active Students Roster (CSV)</button>
+                <button class="btn btn-outline" onclick="alert('Exporting attendance report...')">Export Class Attendance Report (PDF)</button>
+                <button class="btn btn-outline" onclick="alert('Exporting exam results...')">Export Examination Results Summary</button>
             </div>
         </div>
     </div>

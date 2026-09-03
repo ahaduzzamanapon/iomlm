@@ -67,16 +67,16 @@
         </div>
         <div class="qb-actions">
             <a href="{{ route('admin.questions.template-download') }}" class="btn-teal">
-                <i class="fa-solid fa-download"></i> CSV Template
+                CSV Template
             </a>
             <button class="btn-ghost-purple" onclick="openModal('bulkUploadModal')">
-                <i class="fa-solid fa-file-arrow-up"></i> Bulk CSV Upload
+                Bulk CSV Upload
             </button>
             <button class="btn-green" onclick="openModal('createWrittenModal')">
-                <i class="fa-solid fa-pen-nib"></i> Written প্রশ্ন
+                Written প্রশ্ন
             </button>
             <button class="btn-purple" onclick="openModal('createMcqModal')">
-                <i class="fa-solid fa-plus"></i> MCQ প্রশ্ন
+                MCQ প্রশ্ন
             </button>
         </div>
     </div>
@@ -84,12 +84,12 @@
     {{-- Alerts --}}
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
         <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✕ {{ session('error') }}
+            {{ session('error') }}
         </div>
     @endif
 
@@ -184,8 +184,7 @@
                     <form method="POST" action="{{ route('admin.questions.destroy', $q) }}" onsubmit="return confirm('প্রশ্নটি মুছে ফেলতে চান?')">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn-delete" title="Delete">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                            </button>
                     </form>
                 </td>
             </tr>
@@ -270,7 +269,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-ghost-purple" onclick="closeModal('createMcqModal')">বাতিল</button>
-                    <button type="submit" class="btn-purple"><i class="fa-solid fa-floppy-disk"></i> MCQ সেভ করুন</button>
+                    <button type="submit" class="btn-purple">MCQ সেভ করুন</button>
                 </div>
             </form>
         </div>
@@ -318,7 +317,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-ghost-purple" onclick="closeModal('createWrittenModal')">বাতিল</button>
-                    <button type="submit" class="btn-green"><i class="fa-solid fa-floppy-disk"></i> Written প্রশ্ন সেভ করুন</button>
+                    <button type="submit" class="btn-green">Written প্রশ্ন সেভ করুন</button>
                 </div>
             </form>
         </div>
@@ -343,7 +342,7 @@
 
                     <div style="text-align:center">
                         <a href="{{ route('admin.questions.template-download') }}" class="btn-teal" style="font-size:12px">
-                            <i class="fa-solid fa-download"></i> Template Download করুন
+                            Template Download করুন
                         </a>
                     </div>
 
@@ -354,7 +353,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-ghost-purple" onclick="closeModal('bulkUploadModal')">বাতিল</button>
-                    <button type="submit" class="btn-purple"><i class="fa-solid fa-bolt"></i> আপলোড ও Import করুন</button>
+                    <button type="submit" class="btn-purple">আপলোড ও Import করুন</button>
                 </div>
             </form>
         </div>

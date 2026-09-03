@@ -32,11 +32,11 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📅 Class Routine</h1>
+            <h1>Class Routine</h1>
             <p>Weekly class schedule grid — manage time slots, assign classes, detect teacher conflicts</p>
         </div>
         <div class="page-header-actions" style="gap:8px">
-            <a href="{{ route('admin.routine.unassigned') }}" class="btn btn-outline btn-sm">📋 Assign Class</a>
+            <a href="{{ route('admin.routine.unassigned') }}" class="btn btn-outline btn-sm">Assign Class</a>
             <button class="btn btn-outline btn-sm" onclick="openModal('addSlotModal')">+ Add Time Slot</button>
         </div>
     </div>
@@ -55,7 +55,7 @@
             @if($selectedBatchId)
             <form method="POST" action="{{ route('admin.routine.auto-generate', $selectedBatchId) }}">
                 @csrf
-                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Auto-generate routine for this batch? Existing entries will be kept.')">⚡ Auto-Generate Routine</button>
+                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Auto-generate routine for this batch? Existing entries will be kept.')">Auto-Generate Routine</button>
             </form>
             @endif
             <a href="{{ route('admin.routine.index') }}" class="btn btn-ghost btn-sm">Clear Filter</a>
@@ -66,7 +66,7 @@
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;font-size:12px;align-items:center">
         <span style="color:#64748b">Legend:</span>
         <span style="background:#3b82f6;color:#fff;border-radius:4px;padding:2px 8px">Normal Entry</span>
-        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444">🔴 Overlap Conflict (Batch / Teacher)</span>
+        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444">Overlap Conflict (Batch / Teacher)</span>
         <span style="background:repeating-linear-gradient(45deg,#fef9c3,#fef9c3 4px,#fefce8 4px,#fefce8 8px);padding:2px 8px;border-radius:4px;border:1px solid #f59e0b">Weekend</span>
     </div>
 
@@ -113,7 +113,7 @@
                                     <div class="entry-pill {{ $entry->is_override ? 'override' : '' }}"
                                          id="pill-{{ $entry->id }}"
                                          style="background:{{ $entry->is_override ? '#ef4444' : $color }}"
-                                         title="{{ $entry->is_override ? '⚠️ OVERLAP CONFLICT: ' . ($entry->conflict_type ?? 'Batch or Teacher schedule overlap in this slot!') : '' }}"
+                                         title="{{ $entry->is_override ? 'OVERLAP CONFLICT: ' . ($entry->conflict_type ?? 'Batch or Teacher schedule overlap in this slot!') : '' }}"
                                          draggable="true"
                                          data-entry-id="{{ $entry->id }}"
                                          data-batch-id="{{ $entry->batch_id }}"
@@ -123,13 +123,13 @@
                                          data-original-color="{{ $color }}"
                                          onclick="openEditModal({{ $entry->id }}, '{{ addslashes($entry->batch->name ?? '') }}', '{{ $entry->day_of_week }}', {{ $slot->id }}, {{ $entry->batch_id }}, {{ $entry->subject_id ?? 'null' }}, {{ $entry->teacher_id ?? 'null' }}, '{{ addslashes($entry->title ?? '') }}')">
                                         @if($entry->is_override)
-                                            <span class="override-badge">⚠</span>
+                                            <span class="override-badge"></span>
                                         @endif
                                         <span class="drag-handle">⠿</span>
                                         <div class="pill-title">{{ $entry->title ?: ($entry->subject?->code ?? $entry->batch?->name ?? '—') }}</div>
                                         <div class="pill-sub">{{ $entry->batch?->name ?? '' }}</div>
                                         @if($entry->teacher)
-                                        <div class="pill-sub">👤 {{ $entry->teacher->name }}</div>
+                                        <div class="pill-sub">{{ $entry->teacher->name }}</div>
                                         @endif
                                     </div>
                                 @empty
@@ -144,7 +144,7 @@
                         </td>
                     @endforeach
                     <td style="text-align:center;vertical-align:middle">
-                        <button class="btn btn-ghost btn-sm" onclick="openEditSlotModal({{ $slot->id }}, '{{ addslashes($slot->name) }}', '{{ $slot->start_time }}', '{{ $slot->end_time }}', {{ $slot->sort_order }})" title="Edit Slot">✏️</button>
+                        <button class="btn btn-ghost btn-sm" onclick="openEditSlotModal({{ $slot->id }}, '{{ addslashes($slot->name) }}', '{{ $slot->start_time }}', '{{ $slot->end_time }}', {{ $slot->sort_order }})" title="Edit Slot"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 </tr>
                 @endforeach
@@ -280,7 +280,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline btn-sm text-red" id="editDeleteBtn">🗑 Delete</button>
+                    <button type="button" class="btn btn-outline btn-sm text-red" id="editDeleteBtn"><i class="fa-solid fa-trash"></i> Delete</button>
                     <button type="button" class="btn btn-outline" onclick="closeModal('editEntryModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
@@ -355,7 +355,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline btn-sm text-red" id="deleteSlotBtn">🗑 Delete Slot</button>
+                    <button type="button" class="btn btn-outline btn-sm text-red" id="deleteSlotBtn"><i class="fa-solid fa-trash"></i> Delete Slot</button>
                     <button type="button" class="btn btn-outline" onclick="closeModal('editSlotModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
@@ -573,7 +573,7 @@
                 cell.classList.remove('drag-over', 'drop-reject');
                 if (!draggingPill || cell === sourceCell) return;
                 if (cell.dataset.isWeekend === '1') {
-                    toast('❌ Cannot drop on weekend!', '#ef4444');
+                    toast('Cannot drop on weekend!', '#ef4444');
                     return;
                 }
 
@@ -624,16 +624,16 @@
                         if (!draggingPill.querySelector('.override-badge')) {
                             const badge = document.createElement('span');
                             badge.className = 'override-badge';
-                            badge.textContent = '⚠';
+                            badge.textContent = '';
                             draggingPill.prepend(badge);
                         }
-                        toast('⚠️ Moved — teacher conflict detected! Shown in red.', '#f59e0b');
+                        toast('Moved — teacher conflict detected! Shown in red.', '#f59e0b');
                     } else {
                         const origColor = draggingPill.dataset.originalColor || '#3b82f6';
                         draggingPill.style.background = origColor;
                         draggingPill.classList.remove('override');
                         draggingPill.querySelector('.override-badge')?.remove();
-                        toast('✅ Entry moved to ' + newDay + ' — conflict resolved!');
+                        toast('Entry moved to ' + newDay + ' — conflict resolved!');
                     }
                     draggingPill.setAttribute('onclick',
                         draggingPill.getAttribute('onclick')
@@ -643,7 +643,7 @@
                     const origAddBtn = sourceCell.querySelector('.add-btn');
                     if (origAddBtn) sourceCell.insertBefore(draggingPill, origAddBtn);
                     else sourceCell.appendChild(draggingPill);
-                    toast('❌ Failed to save. Please try again.', '#ef4444');
+                    toast('Failed to save. Please try again.', '#ef4444');
                 }
             });
         });

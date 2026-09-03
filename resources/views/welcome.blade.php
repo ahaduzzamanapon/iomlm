@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Islamic Online Madrasah (IOM) — উচ্চতর অনলাইন ইসলামিক শিক্ষা ও সহায়তা পোর্টাল</title>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         :root {
             --primary: #0284c7;
@@ -340,7 +341,6 @@
     {{-- Top Navigation Bar --}}
     <header class="topbar">
         <a href="{{ url('/') }}" class="brand-logo">
-            <div class="brand-icon">🕌</div>
             <div class="brand-text">
                 <h1>IOM Learning Plus</h1>
                 <span>Islamic Online Madrasah</span>
@@ -360,14 +360,14 @@
                     };
                 @endphp
                 <a href="{{ $dashboardRoute }}" class="btn-top btn-top-primary">
-                    📊 My Dashboard
+                    My Dashboard
                 </a>
             @else
                 <a href="{{ route('login') }}" class="btn-top btn-top-outline">
-                    🔑 Portal Login
+                    Portal Login
                 </a>
                 <a href="{{ route('apply.show') }}" class="btn-top btn-top-primary">
-                    📝 Online Admission
+                    Online Admission
                 </a>
             @endif
         </div>
@@ -376,7 +376,7 @@
     {{-- Hero Section --}}
     <section class="hero">
         <div class="hero-badge">
-            🌿 আসসালামু আলাইকুম — আইওএম সেবা পোর্টালে আপনাকে স্বাগতম
+            আসসালামু আলাইকুম — আইওএম সেবা পোর্টালে আপনাকে স্বাগতম
         </div>
         <h2 class="hero-title">ইসলামিক অনলাইন মাদ্রাসা (IOM) সহায়তা কেন্দ্র</h2>
         <p class="hero-subtitle">
@@ -391,9 +391,6 @@
             {{-- Card 1: Poor Fund / Waiver Application --}}
             <div class="action-card">
                 <div class="card-top">
-                    <div class="card-icon-wrapper card-icon-green">
-                        💳
-                    </div>
                     <h3 class="card-title">দরিদ্র তহবিল ও ফি মওকুফ আবেদন</h3>
                     <p class="card-desc">
                         দরিদ্র, অসচ্ছল ও মেধাবী শিক্ষার্থীদের জন্য কোর্স ফি বিশেষ মওকুফ বা আল-ইহসান দরিদ্র তহবিলের সহায়তার আবেদন করুন।
@@ -407,9 +404,6 @@
             {{-- Card 2: Online Support & Live Chat --}}
             <div class="action-card">
                 <div class="card-top">
-                    <div class="card-icon-wrapper card-icon-blue">
-                        🎧
-                    </div>
                     <h3 class="card-title">অনলাইন সাপোর্ট ও লাইভ চ্যাট</h3>
                     <p class="card-desc">
                         ভর্তি, ক্লাস, কোর্স কনটেন্ট বা কারিগরি যেকোনো প্রয়োজনে সরাসরি আমাদের সাপোর্ট প্রতিনিধির সাথে লাইভ চ্যাট করুন।
@@ -423,9 +417,6 @@
             {{-- Card 3: Online Admission Form --}}
             <div class="action-card">
                 <div class="card-top">
-                    <div class="card-icon-wrapper card-icon-amber">
-                        📝
-                    </div>
                     <h3 class="card-title">নতুন ভর্তি আবেদন</h3>
                     <p class="card-desc">
                         আইওএম-এর বিভিন্ন ডিপ্লোমা, ডিগ্রি ও সার্টিফিকেট কোর্সে অনলাইন রেজিস্ট্রেশন ও ভর্তি ফরম পূরণ করুন।
@@ -439,9 +430,6 @@
             {{-- Card 4: Portal Login --}}
             <div class="action-card">
                 <div class="card-top">
-                    <div class="card-icon-wrapper card-icon-purple">
-                        🔑
-                    </div>
                     <h3 class="card-title">স্টুডেন্ট ও শিক্ষক পোর্টাল</h3>
                     <p class="card-desc">
                         শিক্ষার্থী, শিক্ষক, সাপোর্ট এজেন্ট ও এডমিন প্যানেলে প্রবেশের জন্য আপনার অ্যাকাউন্ট পাসওয়ার্ড দিয়ে লগইন করুন।
@@ -456,25 +444,21 @@
 
         {{-- Features & Guidance Banner --}}
         <div class="features-banner">
-            <h3 class="banner-title">✨ আইওএম অনলাইন পোর্টালের সুবিধাসমূহ</h3>
+            <h3 class="banner-title">আইওএম অনলাইন পোর্টালের সুবিধাসমূহ</h3>
             <div class="feature-items">
                 <div class="feature-box">
-                    <div class="feature-box-icon">⚡</div>
                     <h4>দ্রুত রেসপন্স টাইম</h4>
                     <p>সাপোর্ট টিমের সরাসরি লাইভ চ্যাট সহায়তা</p>
                 </div>
                 <div class="feature-box">
-                    <div class="feature-box-icon">🤝</div>
                     <h4>আল-ইহসান দরিদ্র তহবিল</h4>
                     <p>অসচ্ছলদের জন্য শিক্ষা ফি রিবেট সুবিধা</p>
                 </div>
                 <div class="feature-box">
-                    <div class="feature-box-icon">🔍</div>
                     <h4>টিকিট ট্র্যাকিং সিস্টেম</h4>
                     <p>ফোন বা ইমেইল দিয়ে সহজে আবেদনের অবস্থা জানুন</p>
                 </div>
                 <div class="feature-box">
-                    <div class="feature-box-icon">📱</div>
                     <h4>ইউজার ফ্রেন্ডলি ইন্টারফেস</h4>
                     <p>যেকোনো ডিভাইস থেকে সহজে ব্যবহারযোগ্য</p>
                 </div>

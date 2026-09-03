@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addResourceModal')">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
                 Upload Resource
             </button>
         </div>
@@ -16,7 +15,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -92,7 +91,7 @@
                         <select name="module_id" class="form-control" required>
                             <option value="">-- Choose Module --</option>
                             @foreach($modules->groupBy(fn($m) => ($m->subject?->name ?? 'Other Subjects') . ' (' . ($m->subject?->code ?? '') . ')') as $subjectGroup => $subModules)
-                                <optgroup label="📚 {{ $subjectGroup }}">
+                                <optgroup label="{{ $subjectGroup }}">
                                     @foreach($subModules as $m)
                                         <option value="{{ $m->id }}">{{ $m->sequence_no ? 'Module ' . $m->sequence_no . ': ' : '' }}{{ $m->title }}</option>
                                     @endforeach

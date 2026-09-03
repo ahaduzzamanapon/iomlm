@@ -32,7 +32,7 @@
 
     <div style="text-align:center;margin-bottom:20px" class="btn-print">
         <button onclick="window.print()" style="background:#6366f1;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer">
-            🖨️ Print Official Academic Transcript &amp; Grade Sheet
+            Print Official Academic Transcript &amp; Grade Sheet
         </button>
     </div>
 

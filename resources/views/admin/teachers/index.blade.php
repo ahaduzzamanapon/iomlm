@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addTeacherModal')">
-                <i class="fa-solid fa-plus"></i>
                 New Teacher
             </button>
         </div>
@@ -99,8 +98,7 @@
                             <div class="dropdown" style="display:inline-block">
                                 <button class="btn btn-outline btn-sm" onclick="toggleDropdown('tact-{{ $teacher->id }}')" style="gap:4px">
                                     Actions
-                                    <i class="fa-solid fa-chevron-down" style="font-size:10px"></i>
-                                </button>
+                                    </button>
                                 <div class="dropdown-menu" id="tact-{{ $teacher->id }}" style="right:0;min-width:160px">
                                     <a href="{{ route('admin.teachers.id-card', $teacher) }}" target="_blank" class="dropdown-item">
                                         <i class="fa-solid fa-id-card" style="margin-right:6px"></i>
@@ -111,7 +109,6 @@
                                         Edit
                                     </button>
                                     <button class="dropdown-item" onclick="openAssignModal({{ $teacher->id }}, '{{ $teacher->name }}');toggleDropdown('tact-{{ $teacher->id }}')">
-                                        <i class="fa-solid fa-plus" style="margin-right:6px"></i>
                                         Assign Subject
                                     </button>
                                     <div class="dropdown-divider"></div>
@@ -146,7 +143,7 @@
                 <div class="modal-body">
 
                     {{-- Basic Info --}}
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">👤 Basic Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">Basic Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name <span class="required">*</span></label>
@@ -211,7 +208,7 @@
                     </div>
 
                     {{-- Job Info --}}
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">💼 Job Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">Job Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Designation</label>
@@ -271,7 +268,7 @@
                     </div>
 
                     {{-- Present Address --}}
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">🏠 Present Address</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">Present Address</div>
                     <div class="form-group">
                         <label>House / Street / Village</label>
                         <input type="text" name="present_house" class="form-control" placeholder="House, Street, Village">
@@ -306,7 +303,7 @@
 
                     {{-- Permanent Address --}}
                     <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px;display:flex;align-items:center;justify-content:space-between">
-                        🏡 Permanent Address
+                        Permanent Address
                         <label class="form-check" style="text-transform:none;font-size:12px;font-weight:400;letter-spacing:0">
                             <input type="checkbox" id="teacher_same_address" onchange="teacherSameAddress(this)">
                             Same as Present
@@ -399,7 +396,7 @@
                 @csrf @method('PUT')
                 <div class="modal-body">
 
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">👤 Basic Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">Basic Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name <span class="required">*</span></label>
@@ -463,7 +460,7 @@
                         </div>
                     </div>
 
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">💼 Job Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">Job Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Designation</label>

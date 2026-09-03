@@ -53,13 +53,13 @@
     {{-- Header --}}
     <div class="fm-header">
         <div>
-            <h1 style="margin:0 0 5px; font-size:22px; font-weight:800">📊 Final Mark Generator</h1>
+            <h1 style="margin:0 0 5px; font-size:22px; font-weight:800">Final Mark Generator</h1>
             <p style="margin:0; font-size:13px; color:#94a3b8">IOM Marks Conversion — Class Test + Mid Term + Final + Attendance → 100</p>
         </div>
         @if(request('batch_id') && request('subject_id') && $finalMarks->isNotEmpty())
             <a href="{{ route('admin.final-marks.export-csv', ['batch_id' => request('batch_id'), 'subject_id' => request('subject_id')]) }}"
                style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:#fff; padding:9px 18px; border-radius:9px; font-weight:700; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:6px">
-                📥 Export CSV
+                Export CSV
             </a>
         @endif
     </div>
@@ -131,7 +131,7 @@
                     <input type="hidden" name="subject_id" value="{{ request('subject_id') }}">
                     <button type="submit" style="background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; border:none; padding:0 20px; height:42px; border-radius:9px; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap; box-shadow:0 4px 12px rgba(22,163,74,0.3)"
                         onclick="return confirm('Generate / regenerate final marks for all active students?')">
-                        ⚙️ Generate / Regenerate Marks
+                        Generate / Regenerate Marks
                     </button>
                 </form>
             @endif
@@ -162,7 +162,7 @@
 
             @if($finalMarks->isEmpty())
                 <div style="text-align:center; padding:50px 20px; color:#64748b">
-                    <div style="font-size:36px; margin-bottom:12px">📊</div>
+                    <div style="font-size:36px; margin-bottom:12px"></div>
                     <strong style="font-size:15px; color:#1e293b">No marks generated yet.</strong><br>
                     <span style="font-size:13px">Click <em>"Generate / Regenerate Marks"</em> button above to compute final marks.</span>
                 </div>
@@ -274,17 +274,17 @@
                         $failCount = $finalMarks->where('status', 'FAIL')->count();
                         $avgTotal  = round($finalMarks->avg('total_mark'), 2);
                     @endphp
-                    <span>📊 <strong>{{ $finalMarks->count() }}</strong> Total Students</span>
-                    <span>✅ <strong style="color:#16a34a">{{ $passCount }}</strong> Passed</span>
-                    <span>❌ <strong style="color:#dc2626">{{ $failCount }}</strong> Failed</span>
-                    <span>📈 Average: <strong style="color:#2563eb">{{ $avgTotal }}/100</strong></span>
-                    <span>📅 Pass Rate: <strong>{{ $finalMarks->count() > 0 ? round(($passCount / $finalMarks->count()) * 100, 1) : 0 }}%</strong></span>
+                    <span><strong>{{ $finalMarks->count() }}</strong> Total Students</span>
+                    <span><strong style="color:#16a34a">{{ $passCount }}</strong> Passed</span>
+                    <span><strong style="color:#dc2626">{{ $failCount }}</strong> Failed</span>
+                    <span>Average: <strong style="color:#2563eb">{{ $avgTotal }}/100</strong></span>
+                    <span>Pass Rate: <strong>{{ $finalMarks->count() > 0 ? round(($passCount / $finalMarks->count()) * 100, 1) : 0 }}%</strong></span>
                 </div>
             @endif
         </div>
     @elseif(!request('batch_id'))
         <div class="card" style="text-align:center; padding:50px 20px; border-radius:16px; color:#64748b">
-            <div style="font-size:40px; margin-bottom:12px">📊</div>
+            <div style="font-size:40px; margin-bottom:12px"></div>
             <strong style="font-size:16px; color:#1e293b">Select a Batch and Subject to view or generate final marks.</strong>
         </div>
     @endif

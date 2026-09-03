@@ -3,14 +3,14 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>⚡ Artisan Command Runner</h1>
+            <h1>Artisan Command Runner</h1>
             <p>Hidden Console & Preset Command Manager (Restricted to Super Admin)</p>
         </div>
     </div>
 
     @if(session('error'))
         <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✕ {{ session('error') }}
+            {{ session('error') }}
         </div>
     @endif
 
@@ -20,7 +20,7 @@
         <div style="display:flex;flex-direction:column;gap:16px">
             <div class="card">
                 <div class="card-header" style="background:#0f172a;color:#fff;border-radius:12px 12px 0 0">
-                    <span class="card-title">📌 Preset Commands</span>
+                    <span class="card-title">Preset Commands</span>
                 </div>
                 <div class="card-body">
                     <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
@@ -63,7 +63,7 @@
                                value="{{ old('command', session('command_executed') ? str_replace('php artisan ', '', session('command_executed')) : '') }}"
                                style="font-family:monospace;font-size:14px;flex:1" required autocomplete="off">
                         <button type="submit" class="btn btn-primary">
-                            ⚡ Run Command
+                            Run Command
                         </button>
                     </form>
                 </div>

@@ -4,16 +4,16 @@
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px">
         <div class="page-header-left">
             <h1 style="display:flex; align-items:center; gap:10px">
-                📊 Responses: {{ $survey->title }}
+                Responses: {{ $survey->title }}
             </h1>
             <p>Automated response analytics table with dynamic question columns and CSV export</p>
         </div>
         <div style="display:flex; gap:8px; align-items:center">
             <a href="{{ route('admin.surveys.responses.csv', $survey) }}" class="btn btn-primary">
-                📥 Export CSV / Excel
+                Export CSV / Excel
             </a>
             <a href="{{ route('admin.surveys.builder', $survey) }}" class="btn btn-outline">
-                ✏️ Edit Form Builder
+                <i class="fa-solid fa-pen-to-square"></i> Edit Form Builder
             </a>
             <a href="{{ route('admin.surveys.index') }}" class="btn btn-secondary">
                 ← Back to Surveys
@@ -24,14 +24,14 @@
     {{-- Response Stats Cards --}}
     <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
         <div class="stat-card">
-            <div class="stat-icon green">📊</div>
+            
             <div class="stat-info">
                 <div class="stat-value" style="font-weight:800; font-size:22px">{{ $survey->responses()->count() }}</div>
                 <div class="stat-label">Total Responses Received</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon blue">📝</div>
+            
             <div class="stat-info">
                 <div class="stat-value" style="font-weight:800; font-size:22px">{{ $fields->count() }}</div>
                 <div class="stat-label">Questions / Form Fields</div>
@@ -53,7 +53,7 @@
     {{-- AUTOMATED DYNAMIC RESPONSES TABLE --}}
     <div class="card">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center">
-            <span class="card-title">📑 All Submitted Responses</span>
+            <span class="card-title">All Submitted Responses</span>
             <span style="font-size:12px; color:var(--text-muted)">Columns auto-generated from survey questions</span>
         </div>
         <div class="table-wrapper">
@@ -106,7 +106,7 @@
                                         <span style="color:var(--text-muted)">—</span>
                                     @elseif(in_array($field->field_type, ['file', 'image']))
                                         <a href="{{ asset($rawVal) }}" target="_blank" class="btn btn-xs btn-outline" style="font-size:11px">
-                                            {{ $field->field_type === 'image' ? '🖼️ View Image' : '📎 Download File' }}
+                                            {{ $field->field_type === 'image' ? 'View Image' : 'Download File' }}
                                         </a>
                                     @else
                                         <span style="font-size:13px; color:#1e293b">
@@ -119,7 +119,7 @@
                     @empty
                         <tr>
                             <td colspan="{{ 3 + $fields->count() }}" style="text-align:center; padding:40px; color:var(--text-muted)">
-                                <div style="font-size:24px; margin-bottom:8px">📥</div>
+                                <div style="font-size:24px; margin-bottom:8px"></div>
                                 <strong>No responses submitted yet for this survey.</strong><br>
                                 Share the public link to start receiving responses.
                             </td>

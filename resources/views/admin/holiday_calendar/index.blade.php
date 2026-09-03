@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addHolidayModal')">
-                <i class="fa-solid fa-calendar-plus"></i>
                 New Holiday
             </button>
         </div>

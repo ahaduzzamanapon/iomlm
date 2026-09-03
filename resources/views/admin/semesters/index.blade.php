@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addSemesterModal')">
-                <i class="fa-solid fa-plus"></i>
                 New Semester
             </button>
         </div>

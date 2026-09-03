@@ -36,7 +36,7 @@
             <!-- 2. Meeting Platform -->
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">2. <i class="fa-solid fa-video" style="color:#2563eb"></i> Meeting Platform Configuration</span>
+                    <span class="card-title">2. Meeting Platform Configuration</span>
                     <span style="font-size:11px;color:var(--text-muted)">Used when teacher clicks "Generate Link"</span>
                 </div>
                 <div class="card-body">
@@ -92,7 +92,7 @@
                                 value="{{ $settings['zoom_client_secret']->value ?? 'yGFSWGCvfWCyce5J17pkqyZcggePRDBC' }}"
                                 placeholder="Enter Client Secret"
                                 autocomplete="new-password">
-                            <span class="form-help" style="color:#059669">✓ Client Secret is configured</span>
+                            <span class="form-help" style="color:#059669">Client Secret is configured</span>
                         </div>
                         <div class="form-group">
                             <label>Default Meeting Duration (minutes)</label>
@@ -170,7 +170,7 @@
                     </div>
                 </div>
                 <div class="card-footer" style="text-align:right">
-                    <button type="submit" class="btn btn-primary btn-lg"><i class="fa-solid fa-floppy-disk"></i> Save All Settings</button>
+                    <button type="submit" class="btn btn-primary btn-lg">Save All Settings</button>
                 </div>
             </div>
 

@@ -103,7 +103,7 @@
     {{-- Top Navbar --}}
     <div class="top-navbar">
         <a href="/" class="top-navbar-brand">
-            ☑️ Online Support Application
+            Online Support Application
         </a>
     </div>
 
@@ -124,7 +124,7 @@
 
                     @if(session('success'))
                         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px;border-radius:6px;margin-bottom:16px;font-size:13px;font-weight:600">
-                            ✓ {{ session('success') }}
+                            {{ session('success') }}
                         </div>
                     @endif
 
@@ -236,7 +236,7 @@
                                     </div>
                                     <div>
                                         <a href="{{ route('online-support.chat', $t->uuid) }}" class="tab-btn active" style="font-size:12px;padding:6px 14px">
-                                            💬 চ্যাট খুলুন →
+                                            চ্যাট খুলুন →
                                         </a>
                                     </div>
                                 </div>

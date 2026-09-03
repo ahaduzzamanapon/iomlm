@@ -202,7 +202,6 @@
     </div>
 
     <a href="{{ route('auth.google.redirect') }}" class="btn-google">
-        <i class="fa-brands fa-google" style="color:#ea4335;font-size:18px"></i>
         <span>Sign in with Google</span>
     </a>
     @endif

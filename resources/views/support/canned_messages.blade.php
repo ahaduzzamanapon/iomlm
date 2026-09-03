@@ -3,7 +3,7 @@
 
     <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <div>
-            <h1 style="font-size:20px;font-weight:700">⚡ My Custom Quick Replies (কাস্টম মেসেজ)</h1>
+            <h1 style="font-size:20px;font-weight:700">My Custom Quick Replies (কাস্টম মেসেজ)</h1>
             <p style="font-size:13px;color:#64748b">তৈরি করে রাখুন আপনার প্রতিদিনের প্রয়োজনীয় রেসপন্স বার্তাগুলো</p>
         </div>
         <div>
@@ -13,7 +13,7 @@
 
     <div class="card">
         <div class="card-header">
-            <span class="card-title">📝 My Saved Quick Replies ({{ $cannedMessages->count() }})</span>
+            <span class="card-title">My Saved Quick Replies ({{ $cannedMessages->count() }})</span>
         </div>
         <div class="table-wrapper">
             <table>
@@ -28,7 +28,7 @@
                     @forelse($cannedMessages as $cm)
                     <tr>
                         <td>
-                            <strong style="color:#0284c7">⚡ {{ $cm->title }}</strong>
+                            <strong style="color:#0284c7">{{ $cm->title }}</strong>
                         </td>
                         <td>
                             <div style="font-size:13px;color:#334155;white-space:pre-line">{{ $cm->message }}</div>

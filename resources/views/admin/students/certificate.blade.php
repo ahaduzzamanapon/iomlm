@@ -33,7 +33,7 @@
 
     <div style="text-align:center;margin-bottom:20px" class="btn-print">
         <button onclick="window.print()" style="background:#d97706;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer">
-            🎓 Print Official Certificate of Completion
+            Print Official Certificate of Completion
         </button>
     </div>
 

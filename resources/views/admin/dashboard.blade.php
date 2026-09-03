@@ -4,7 +4,7 @@
     <!-- Welcome Banner -->
     <div class="dashboard-banner">
         <div>
-            <h2 class="banner-title">Assalamu Alaikum, {{ auth()->user()->name ?? 'Admin' }} 👋</h2>
+            <h2 class="banner-title">Assalamu Alaikum, {{ auth()->user()->name ?? 'Admin' }}</h2>
             <p class="banner-sub">Here is your live academic overview — {{ now()->format('l, d M Y') }}</p>
         </div>
     </div>
@@ -16,7 +16,7 @@
         </div>
         <div class="page-header-actions">
             <a href="{{ route('admin.admissions.create') }}" class="btn btn-primary">
-                <i class="fa-solid fa-user-plus"></i> New Admission
+                New Admission
             </a>
         </div>
     </div>
@@ -24,54 +24,42 @@
     <!-- Stat Cards Grid -->
     <div class="stats-grid">
         <a href="{{ route('admin.students.index') }}" class="stat-card">
-            <div class="stat-icon blue">
-                <i class="fa-solid fa-user-graduate"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['total_students'] }}</div>
                 <div class="stat-label">Total Students</div>
             </div>
         </a>
         <a href="{{ route('admin.teachers.index') }}" class="stat-card">
-            <div class="stat-icon green">
-                <i class="fa-solid fa-chalkboard-user"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['total_teachers'] }}</div>
                 <div class="stat-label">Teachers</div>
             </div>
         </a>
         <a href="{{ route('admin.courses.index') }}" class="stat-card">
-            <div class="stat-icon violet">
-                <i class="fa-solid fa-book-open"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['total_courses'] }}</div>
                 <div class="stat-label">Courses</div>
             </div>
         </a>
         <a href="{{ route('admin.batches.index') }}" class="stat-card">
-            <div class="stat-icon orange">
-                <i class="fa-solid fa-layer-group"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['active_batches'] }}</div>
                 <div class="stat-label">Active Batches</div>
             </div>
         </a>
         <a href="{{ route('admin.admissions.index') }}" class="stat-card">
-            <div class="stat-icon red">
-                <i class="fa-solid fa-user-clock"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['pending_admissions'] }}</div>
                 <div class="stat-label">Pending Admissions</div>
             </div>
         </a>
         <a href="{{ route('admin.classes.index', ['date' => now()->toDateString()]) }}" class="stat-card">
-            <div class="stat-icon teal">
-                <i class="fa-solid fa-video"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['today_classes'] }}</div>
                 <div class="stat-label">Today's Classes</div>
@@ -151,7 +139,7 @@
                             <form method="POST" action="{{ route('admin.classes.updateSchedule', $cs) }}">
                                 @csrf @method('PUT')
                                 <input type="hidden" name="session_date" value="{{ $cs->session_date?->toDateString() ?? now()->toDateString() }}">
-                                <button class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px;color:#d97706;border-color:#fde68a"><i class="fa-solid fa-bolt"></i> Auto-Link</button>
+                                <button class="btn btn-outline btn-sm" style="font-size:11px;padding:4px 10px;color:#d97706;border-color:#fde68a">Auto-Link</button>
                             </form>
                         @endif
                         <a href="{{ route('admin.classes.show', $cs) }}" style="font-size:11px;color:#4f46e5;font-weight:600">Manage →</a>

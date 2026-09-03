@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📅 My Classes</h1>
+            <h1>My Classes</h1>
             <p>All scheduled sessions for your enrolled batches</p>
         </div>
     </div>
@@ -29,7 +29,7 @@
                         <td class="td-primary">
                             <strong>{{ $c->subject?->name ?? '—' }}</strong>
                             @if($c->moduleCovered)
-                                <br><span class="td-muted">📖 {{ $c->moduleCovered->title }}</span>
+                                <br><span class="td-muted">{{ $c->moduleCovered->title }}</span>
                             @endif
                         </td>
                         <td class="td-muted">{{ $c->batch?->name ?? '—' }}</td>
@@ -38,7 +38,7 @@
                                 <strong style="font-size:12px">{{ $c->session_date->format('d M Y (D)') }}</strong>
                                 @if($isToday)<br><span class="badge badge-success no-dot" style="font-size:9px">TODAY</span>@endif
                                 @if($c->start_time)
-                                    <br><span style="font-size:11px;color:#3b82f6;font-weight:600">🕒 {{ \Carbon\Carbon::parse($c->start_time)->format('h:i A') }}</span>
+                                    <br><span style="font-size:11px;color:#3b82f6;font-weight:600">{{ \Carbon\Carbon::parse($c->start_time)->format('h:i A') }}</span>
                                 @endif
                             @else
                                 <span class="badge badge-secondary no-dot">Date TBA</span>
@@ -52,7 +52,7 @@
                         </td>
                         <td style="text-align:right">
                             @if($c->meeting_link && in_array($c->status, ['SCHEDULED','RUNNING']))
-                                <a href="{{ $c->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">🎥 Join</a>
+                                <a href="{{ $c->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">Join</a>
                             @elseif($c->status === 'COMPLETED')
                                 <a href="{{ route('student.classes.show', $c) }}" class="btn btn-ghost btn-sm">View →</a>
                             @else

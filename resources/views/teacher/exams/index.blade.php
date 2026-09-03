@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📝 Examinations &amp; Question Builder</h1>
+            <h1>Examinations &amp; Question Builder</h1>
             <p>Create &amp; manage 4 types of exams: Class Quiz, Class Test, Half-Term, &amp; Final Exam</p>
         </div>
         <div class="page-header-actions">
@@ -15,13 +15,13 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
     @if($errors->any())
         <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">
-            <strong>⚠️ কিছু ত্রুটি পাওয়া গেছে:</strong>
+            <strong>কিছু ত্রুটি পাওয়া গেছে:</strong>
             <ul style="margin:6px 0 0 16px;padding:0">
                 @foreach($errors->all() as $err)
                     <li>{{ $err }}</li>
@@ -59,7 +59,7 @@
                     <tr>
                         <td class="td-primary">
                             <strong>{{ $ex->title }}</strong><br>
-                            <span style="color:#64748b;font-size:12px">🎯 {{ $ex->subject?->name ?? '—' }} ({{ $ex->subject?->code }})</span>
+                            <span style="color:#64748b;font-size:12px">{{ $ex->subject?->name ?? '—' }} ({{ $ex->subject?->code }})</span>
                         </td>
                         <td>
                             <span class="badge {{ $typeBadge }} no-dot">{{ $ex->type }}</span>
@@ -79,15 +79,15 @@
                         <td style="text-align:center">
                             <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
                                 <a href="{{ route('teacher.exams.show', $ex) }}" class="btn btn-outline btn-sm">
-                                    🛠️ Paper Builder
+                                    Paper Builder
                                 </a>
                                 <button type="button" class="btn btn-outline btn-sm"
                                     onclick="openEditExamModal({{ json_encode($ex) }})">
-                                    ✏️ Edit
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit
                                 </button>
                                 @if($ex->examQuestions->contains(fn($eq) => $eq->question?->question_type === 'WRITTEN'))
                                     <a href="{{ route('teacher.exams.grade', $ex) }}" class="btn btn-outline btn-sm" style="color:#9d174d;border-color:#f9a8d4">
-                                        ✏️ Grade
+                                        Grade
                                     </a>
                                 @endif
                             </div>
@@ -174,14 +174,14 @@
                         <div class="form-group" style="display:flex;align-items:center;margin-top:24px">
                             <label class="form-check">
                                 <input type="checkbox" name="is_anti_cheating" value="1" checked>
-                                Enable Live Anti-Cheating 🔒
+                                Enable Live Anti-Cheating
                             </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('createExamModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">💾 Create Exam &amp; Build Paper</button>
+                    <button type="submit" class="btn btn-primary">Create Exam &amp; Build Paper</button>
                 </div>
             </form>
         </div>
@@ -191,7 +191,7 @@
     <div class="modal-overlay" id="editExamModal">
         <div class="modal" style="max-width:600px">
             <div class="modal-header">
-                <span class="modal-title">✏️ Edit Examination Details</span>
+                <span class="modal-title"><i class="fa-solid fa-pen-to-square"></i> Edit Examination Details</span>
                 <button class="modal-close" onclick="closeModal('editExamModal')">&times;</button>
             </div>
             <form method="POST" id="editExamForm">
@@ -268,14 +268,14 @@
                         <div class="form-group" style="display:flex;align-items:center;margin-top:24px">
                             <label class="form-check">
                                 <input type="checkbox" name="is_anti_cheating" id="edit_exam_anti_cheating" value="1">
-                                Anti-Cheating 🔒
+                                Anti-Cheating
                             </label>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('editExamModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>

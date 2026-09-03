@@ -3,11 +3,11 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>🎥 My Classes</h1>
+            <h1>My Classes</h1>
             <p>Routine-based weekly schedule — add meeting links & take attendance</p>
         </div>
         <div class="page-header-actions">
-            <a href="{{ route('teacher.classes.today') }}" class="btn btn-primary btn-sm">📅 Today's Classes</a>
+            <a href="{{ route('teacher.classes.today') }}" class="btn btn-primary btn-sm">Today's Classes</a>
         </div>
     </div>
 
@@ -24,7 +24,7 @@
     @endphp
     <div class="card" style="margin-bottom:16px">
         <div class="card-header" style="background:#f8fafc">
-            <span class="card-title" style="font-size:13px;color:#64748b">📅 {{ $weekLabel }}</span>
+            <span class="card-title" style="font-size:13px;color:#64748b">{{ $weekLabel }}</span>
         </div>
         <div class="table-wrapper">
             <table>
@@ -55,7 +55,7 @@
                         </td>
                         <td class="td-primary">
                             {{ $cs->subject?->name ?? '—' }}
-                            @if($cs->teacher)<div style="font-size:11px;color:var(--text-muted)">👨‍🏫 {{ $cs->teacher->name }}</div>@endif
+                            @if($cs->teacher)<div style="font-size:11px;color:var(--text-muted)">{{ $cs->teacher->name }}</div>@endif
                         </td>
                         <td class="td-muted" style="font-size:11px">{{ $cs->batch?->name ?? '—' }}</td>
                         <td class="td-muted" style="font-size:11px">
@@ -64,17 +64,17 @@
                         </td>
                         <td>
                             @if($cs->meeting_link)
-                                <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-outline" style="font-size:11px">🔗 Join</a>
+                                <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-outline" style="font-size:11px">Join</a>
                             @elseif($cs->status !== 'COMPLETED' && $cs->status !== 'CANCELLED')
                                 @if($meetingProvider === 'zoom')
                                     <form method="POST" action="{{ route('teacher.classes.setLink', $cs) }}">
                                         @csrf
-                                        <button type="submit" class="btn btn-sm btn-outline" style="font-size:11px;color:#2563eb">⚡ Zoom</button>
+                                        <button type="submit" class="btn btn-sm btn-outline" style="font-size:11px;color:#2563eb">Zoom</button>
                                     </form>
                                 @else
                                     <button class="btn btn-sm btn-outline" style="font-size:11px;color:#f59e0b"
                                         onclick="document.getElementById('lf{{$cs->id}}').style.display='flex'">
-                                        🔗 Add Link
+                                        Add Link
                                     </button>
                                     <form id="lf{{$cs->id}}" method="POST"
                                         action="{{ route('teacher.classes.setLink', $cs) }}"

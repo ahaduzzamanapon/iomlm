@@ -70,7 +70,7 @@
             </div>
             <div class="modal-footer" id="m_footer_action">
                 <button type="button" class="btn btn-outline" onclick="closeModal('eventDetailModal')">Close</button>
-                <a id="m_join_btn" href="#" target="_blank" class="btn btn-primary">🎥 Join Live Class</a>
+                <a id="m_join_btn" href="#" target="_blank" class="btn btn-primary">Join Live Class</a>
             </div>
         </div>
     </div>
@@ -119,7 +119,7 @@
                     const pillClass = evt.status === 'COMPLETED' ? 'event-completed' : (evt.status === 'SCHEDULED' ? 'event-scheduled' : 'event-upcoming');
                     html += `
                         <div class="event-pill ${pillClass}" onclick='openEventModal(${JSON.stringify(evt)})'>
-                            🕒 ${evt.start_time} — ${evt.subject_name}
+                            ${evt.start_time} — ${evt.subject_name}
                         </div>
                     `;
                 });

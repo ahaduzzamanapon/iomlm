@@ -17,14 +17,14 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📅 My Weekly Class Routine</h1>
+            <h1>My Weekly Class Routine</h1>
             <p>Your batch's scheduled weekly classes at a glance</p>
         </div>
     </div>
 
     @if($slots->isEmpty())
         <div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">
-            <p>📋 No routine has been set up by admin yet. Check back soon!</p>
+            <p>No routine has been set up by admin yet. Check back soon!</p>
         </div>
     @else
     @php $todayDow = strtoupper(substr(now()->format('D'), 0, 3)); @endphp
@@ -62,10 +62,10 @@
                                         @php $color = $entry->color ?: '#8b5cf6'; @endphp
                                         <div class="entry-pill" style="background:{{ $color }}">
                                             <div class="pill-title">{{ $entry->title ?: ($entry->subject?->code ?? '—') }}</div>
-                                            <div class="pill-sub">👤 {{ $entry->teacher?->name ?? 'TBA' }}</div>
+                                            <div class="pill-sub">{{ $entry->teacher?->name ?? 'TBA' }}</div>
                                             @if($isToday && isset($todaySessions[$entry->id]))
                                             <div class="pill-sub" style="margin-top:4px">
-                                                <a href="{{ $todaySessions[$entry->id]->meeting_link }}" target="_blank" style="color:#fff;background:rgba(255,255,255,.2);border-radius:3px;padding:2px 6px;text-decoration:none;font-size:10px">🎥 Join Class</a>
+                                                <a href="{{ $todaySessions[$entry->id]->meeting_link }}" target="_blank" style="color:#fff;background:rgba(255,255,255,.2);border-radius:3px;padding:2px 6px;text-decoration:none;font-size:10px">Join Class</a>
                                             </div>
                                             @endif
                                         </div>

@@ -117,7 +117,7 @@
                     const pillClass = evt.status === 'COMPLETED' ? 'event-completed' : (evt.status === 'SCHEDULED' ? 'event-scheduled' : 'event-upcoming');
                     html += `
                         <div class="event-pill ${pillClass}" onclick='openEventModal(${JSON.stringify(evt)})'>
-                            🕒 ${evt.start_time} — ${evt.subject_name}
+                            ${evt.start_time} — ${evt.subject_name}
                         </div>
                     `;
                 });

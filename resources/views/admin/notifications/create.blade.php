@@ -4,14 +4,14 @@
     <div class="page-header">
         <div class="page-header-left">
             <a href="{{ route('admin.notifications.index') }}" style="color:#64748b;text-decoration:none;font-weight:600;font-size:13px">← Back to History</a>
-            <h1 style="margin-top:4px">📣 Compose &amp; Send Broadcast Notification</h1>
+            <h1 style="margin-top:4px">Compose &amp; Send Broadcast Notification</h1>
             <p>Target specific students, batches, or semesters via Firebase Push Notification and Email</p>
         </div>
     </div>
 
     @if(session('error'))
         <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:14px 18px;border-radius:10px;margin-bottom:20px;font-weight:600">
-            ✕ {{ session('error') }}
+            {{ session('error') }}
         </div>
     @endif
 
@@ -34,21 +34,21 @@
                                 <label style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;flex:1">
                                     <input type="radio" name="channel" value="BOTH" checked>
                                     <div>
-                                        <div style="font-weight:700;color:#0f172a">🔥 Push + 📧 Email</div>
+                                        <div style="font-weight:700;color:#0f172a">Push + Email</div>
                                         <div style="font-size:11px;color:#64748b">Send to both devices &amp; inbox</div>
                                     </div>
                                 </label>
                                 <label style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;flex:1">
                                     <input type="radio" name="channel" value="PUSH">
                                     <div>
-                                        <div style="font-weight:700;color:#0f172a">🔥 Push Only</div>
+                                        <div style="font-weight:700;color:#0f172a">Push Only</div>
                                         <div style="font-size:11px;color:#64748b">Firebase Push Notification</div>
                                     </div>
                                 </label>
                                 <label style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;flex:1">
                                     <input type="radio" name="channel" value="EMAIL">
                                     <div>
-                                        <div style="font-weight:700;color:#0f172a">📧 Email Only</div>
+                                        <div style="font-weight:700;color:#0f172a">Email Only</div>
                                         <div style="font-size:11px;color:#64748b">SMTP Email Broadcast</div>
                                     </div>
                                 </label>
@@ -58,11 +58,11 @@
                         <div class="form-group">
                             <label>Target Audience Filter <span class="required">*</span></label>
                             <select name="recipient_type" id="recipient_type" class="form-control" onchange="toggleRecipientFilters(this.value)">
-                                <option value="ALL_STUDENTS">👨‍🎓 All Active Students</option>
-                                <option value="ALL_TEACHERS">👨‍🏫 All Faculty Members / Teachers</option>
-                                <option value="SPECIFIC_STUDENT">🎯 Specific Student (Select individual student)</option>
-                                <option value="BATCH_WISE">📚 Batch Wise (Select specific batch)</option>
-                                <option value="SEMESTER_WISE">🎓 Semester Wise (Select course &amp; semester)</option>
+                                <option value="ALL_STUDENTS">All Active Students</option>
+                                <option value="ALL_TEACHERS">All Faculty Members / Teachers</option>
+                                <option value="SPECIFIC_STUDENT">Specific Student (Select individual student)</option>
+                                <option value="BATCH_WISE">Batch Wise (Select specific batch)</option>
+                                <option value="SEMESTER_WISE">Semester Wise (Select course &amp; semester)</option>
                             </select>
                         </div>
 
@@ -120,7 +120,7 @@
                         <div class="form-group">
                             <label>Message Title / Subject <span class="required">*</span></label>
                             <input type="text" name="title" id="title_input" class="form-control"
-                                placeholder="e.g. 📢 Important Notice: Mid-Term Examination Schedule Released"
+                                placeholder="e.g. Important Notice: Mid-Term Examination Schedule Released"
                                 required oninput="updateLivePreview()">
                         </div>
 
@@ -153,7 +153,7 @@
                     </div>
                     <div class="card-footer" style="text-align:right">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            🚀 Dispatch Notification Broadcast
+                            Dispatch Notification Broadcast
                         </button>
                     </div>
                 </div>
@@ -165,7 +165,7 @@
                 <div style="position:sticky;top:20px">
                     <div class="card">
                         <div class="card-header">
-                            <span class="card-title">📱 Live Notification Preview</span>
+                            <span class="card-title">Live Notification Preview</span>
                         </div>
                         <div class="card-body" style="background:#f8fafc">
                             <div style="background:#ffffff;border-radius:12px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);border:1px solid #e2e8f0">

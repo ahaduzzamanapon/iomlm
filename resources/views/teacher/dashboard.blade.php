@@ -11,36 +11,28 @@
     <!-- Teacher Stats -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon teal">
-                <i class="fa-solid fa-video"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['today_classes'] }}</div>
                 <div class="stat-label">Today's Classes</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon blue">
-                <i class="fa-solid fa-clipboard-user"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['attendance_todo'] }}</div>
                 <div class="stat-label">Attendance Pending</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon green">
-                <i class="fa-solid fa-book-open"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['total_subjects'] }}</div>
                 <div class="stat-label">Subjects Assigned</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon orange">
-                <i class="fa-solid fa-square-poll-vertical"></i>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['pending_results'] }}</div>
                 <div class="stat-label">Results Pending</div>
@@ -52,7 +44,7 @@
         <!-- Today's Classes -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title"><i class="fa-solid fa-calendar-day" style="color:var(--primary)"></i> Today's Classes</span>
+                <span class="card-title">Today's Classes</span>
                 <a href="{{ route('teacher.classes.today') }}" class="btn btn-ghost btn-sm">View All Today →</a>
             </div>
             <div style="padding:0">
@@ -75,7 +67,7 @@
                         @else
                             <form method="POST" action="{{ route('teacher.classes.setLink', $cs) }}">
                                 @csrf
-                                <button class="btn btn-outline btn-sm" style="font-size:11px;color:#f59e0b"><i class="fa-solid fa-bolt"></i> Generate Link</button>
+                                <button class="btn btn-outline btn-sm" style="font-size:11px;color:#f59e0b">Generate Link</button>
                             </form>
                         @endif
                         @if($cs->status !== 'COMPLETED' && $cs->status !== 'CANCELLED')
@@ -119,7 +111,7 @@
         <!-- Attendance Pending -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b"></i> Attendance Not Marked</span>
+                <span class="card-title">Attendance Not Marked</span>
                 <span class="badge badge-pending no-dot" style="font-size:11px">Action Required</span>
             </div>
             <div style="padding:0">
@@ -153,7 +145,7 @@
                         <div style="font-size:13px;font-weight:600">{{ $exam->subject->name ?? '—' }} — {{ $exam->title }}</div>
                         <div style="font-size:11px;color:var(--text-muted)">{{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }}</div>
                     </div>
-                    <a href="{{ route('teacher.results.enter', $exam) }}" class="btn btn-primary btn-sm"><i class="fa-solid fa-pen-to-square"></i> Enter Marks</a>
+                    <a href="{{ route('teacher.results.enter', $exam) }}" class="btn btn-primary btn-sm">Enter Marks</a>
                 </div>
                 @empty
                 <div class="empty-state"><p>No pending results</p></div>

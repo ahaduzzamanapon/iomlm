@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addCourseModal')">
-                <i class="fa-solid fa-plus"></i>
                 New Course
             </button>
         </div>
@@ -61,7 +60,7 @@
                         </td>
                         <td style="text-align:right">
                             <button class="btn btn-outline btn-sm" onclick='openEditCourseModal(@json($course))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-                            <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-sliders"></i> Configure</a>
+                            <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm">Configure</a>
                         </td>
                     </tr>
                     @empty

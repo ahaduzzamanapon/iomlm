@@ -11,14 +11,14 @@
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #0284c7">
-            <div class="stat-icon" style="background:#e0f2fe;color:#0369a1">💬</div>
+            
             <div class="stat-info">
                 <div class="stat-value" id="statActiveVal" style="color:#0369a1">{{ $myActiveCount }}</div>
                 <div class="stat-label">My Active Live Chats</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #10b981">
-            <div class="stat-icon" style="background:#d1fae5;color:#047857">✅</div>
+            
             <div class="stat-info">
                 <div class="stat-value" id="statResolvedVal" style="color:#047857">{{ $myResolvedCount }}</div>
                 <div class="stat-label">My Resolved Tickets</div>
@@ -29,7 +29,7 @@
     {{-- Ticket List Table --}}
     <div class="card">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <span class="card-title">🎧 Support Tickets Queue <span id="liveIndicator" style="font-size:11px;color:#10b981;margin-left:8px">🟢 Auto Live</span></span>
+            <span class="card-title">Support Tickets Queue <span id="liveIndicator" style="font-size:11px;color:#10b981;margin-left:8px">Auto Live</span></span>
 
             {{-- Filter Tabs --}}
             <div style="display:flex;gap:6px">
@@ -63,14 +63,14 @@
                         <td>
                             <strong style="font-size:14px">{{ $t->name }}</strong>
                             <div style="font-size:12px;color:#64748b">
-                                📞 {{ $t->phone }} &middot; ✉️ {{ $t->email }}
+                                {{ $t->phone }} &middot; {{ $t->email }}
                                 @if($t->student_id)
                                     &middot; Roll: <strong>{{ $t->student_id }}</strong>
                                 @endif
                             </div>
                         </td>
                         <td>
-                            <span class="badge badge-secondary no-dot">🏢 {{ $t->department->name ?? '—' }}</span>
+                            <span class="badge badge-secondary no-dot">{{ $t->department->name ?? '—' }}</span>
                         </td>
                         <td>
                             <div style="font-weight:700;font-size:13px;color:#0f172a">{{ $t->subject }}</div>
@@ -85,9 +85,9 @@
                             @if($t->status === 'PENDING')
                                 <span class="badge badge-pending">⏳ Pending Queue</span>
                             @elseif($t->status === 'IN_PROGRESS')
-                                <span class="badge badge-running">🟢 Live Chat Active</span>
+                                <span class="badge badge-running">Live Chat Active</span>
                             @else
-                                <span class="badge badge-secondary">🔒 Closed</span>
+                                <span class="badge badge-secondary">Closed</span>
                             @endif
                         </td>
                         <td style="font-size:12px">
@@ -102,12 +102,12 @@
                                 <form method="POST" action="{{ route('support.tickets.accept', $t->uuid) }}" style="display:inline">
                                     @csrf
                                     <button type="submit" class="btn btn-success btn-sm">
-                                        ⚡ Accept & Chat
+                                        Accept & Chat
                                     </button>
                                 </form>
                             @else
                                 <a href="{{ route('support.chat', $t->uuid) }}" class="btn btn-primary btn-sm">
-                                    💬 Open Chat Window
+                                    Open Chat Window
                                 </a>
                             @endif
                         </td>
@@ -163,9 +163,9 @@
                     if (t.status === 'PENDING') {
                         statusBadge = '<span class="badge badge-pending">⏳ Pending Queue</span>';
                     } else if (t.status === 'IN_PROGRESS') {
-                        statusBadge = '<span class="badge badge-running">🟢 Live Chat Active</span>';
+                        statusBadge = '<span class="badge badge-running">Live Chat Active</span>';
                     } else {
-                        statusBadge = '<span class="badge badge-secondary">🔒 Closed</span>';
+                        statusBadge = '<span class="badge badge-secondary">Closed</span>';
                     }
 
                     let agentLabel = t.agent_name ? `<strong>${t.agent_name}</strong>` : '<span style="color:#94a3b8;font-style:italic">Unassigned</span>';
@@ -176,14 +176,14 @@
                             <form method="POST" action="/support/tickets/${t.uuid}/accept" style="display:inline">
                                 <input type="hidden" name="_token" value="${csrfToken}">
                                 <button type="submit" class="btn btn-success btn-sm">
-                                    ⚡ Accept &amp; Chat
+                                    Accept &amp; Chat
                                 </button>
                             </form>
                         `;
                     } else {
                         actionBtn = `
                             <a href="/support/chat/${t.uuid}" class="btn btn-primary btn-sm">
-                                💬 Open Chat Window
+                                Open Chat Window
                             </a>
                         `;
                     }
@@ -194,11 +194,11 @@
                             <td>
                                 <strong style="font-size:14px">${t.name}</strong>
                                 <div style="font-size:12px;color:#64748b">
-                                    📞 ${t.phone} &middot; ✉️ ${t.email}
+                                    ${t.phone} &middot; ${t.email}
                                     ${t.student_id ? `&middot; Roll: <strong>${t.student_id}</strong>` : ''}
                                 </div>
                             </td>
-                            <td><span class="badge badge-secondary no-dot">🏢 ${t.department_name}</span></td>
+                            <td><span class="badge badge-secondary no-dot">${t.department_name}</span></td>
                             <td>
                                 <div style="font-weight:700;font-size:13px;color:#0f172a">${t.subject}</div>
                                 <div style="font-size:12px;color:#64748b;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">

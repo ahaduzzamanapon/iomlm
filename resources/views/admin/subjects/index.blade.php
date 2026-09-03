@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addSubjectModal')">
-                <i class="fa-solid fa-plus"></i>
                 New Subject
             </button>
         </div>
@@ -49,7 +48,7 @@
                         </td>
                         <td style="text-align:right">
                             <button class="btn btn-outline btn-sm" onclick='openEditSubjectModal(@json($subj))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-                            <a href="{{ route('admin.subjects.show', $subj) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-cubes"></i> Manage Modules</a>
+                            <a href="{{ route('admin.subjects.show', $subj) }}" class="btn btn-outline btn-sm">Manage Modules</a>
                             <form method="POST" action="{{ route('admin.subjects.destroy', $subj) }}" style="display:inline" onsubmit="return confirm('Delete this subject?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-ghost btn-sm text-red"><i class="fa-solid fa-trash"></i> Delete</button>

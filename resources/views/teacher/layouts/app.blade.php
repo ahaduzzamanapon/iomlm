@@ -167,10 +167,10 @@
         </header>
 
         @if(session('success'))
-        <div style="padding:12px 24px 0"><div class="alert alert-success" id="lp-flash">✓ {{ session('success') }}</div></div>
+        <div style="padding:12px 24px 0"><div class="alert alert-success" id="lp-flash">{{ session('success') }}</div></div>
         @endif
         @if(session('error'))
-        <div style="padding:12px 24px 0"><div class="alert alert-danger" id="lp-flash">✕ {{ session('error') }}</div></div>
+        <div style="padding:12px 24px 0"><div class="alert alert-danger" id="lp-flash">{{ session('error') }}</div></div>
         @endif
 
         <main class="page-content">{{ $slot }}</main>

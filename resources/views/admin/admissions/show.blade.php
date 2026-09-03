@@ -11,8 +11,8 @@
         </div>
         <div class="page-header-actions">
             @if($admission->status === 'PENDING')
-                <button class="btn btn-success btn-lg" onclick="openModal('approveModal')">✓ Approve & Activate Student</button>
-                <button class="btn btn-danger btn-lg" onclick="openModal('rejectModal')">✕ Reject Application</button>
+                <button class="btn btn-success btn-lg" onclick="openModal('approveModal')">Approve & Activate Student</button>
+                <button class="btn btn-danger btn-lg" onclick="openModal('rejectModal')">Reject Application</button>
             @else
                 <span class="badge badge-{{ strtolower($admission->status) }}" style="font-size:14px;padding:8px 16px">
                     Status: {{ ucfirst(strtolower($admission->status)) }}
@@ -52,7 +52,7 @@
                 @php $waiverApp = \App\Models\WaiverApplication::where('application_no', $admission->waiver_code)->first(); @endphp
                 <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:14px 16px;border-radius:10px;margin-bottom:16px">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-                        <strong style="color:#166534;font-size:14px">🎁 Applied Poor Fund Waiver Code: {{ $admission->waiver_code }}</strong>
+                        <strong style="color:#166534;font-size:14px">Applied Poor Fund Waiver Code: {{ $admission->waiver_code }}</strong>
                         <span class="badge badge-active no-dot">
                             {{ $admission->discount_type === 'FIXED' ? ('৳'.$admission->discount_amount.' Fixed Discount') : (($admission->discount_percent ?? 0).'% Approved Discount') }}
                         </span>
@@ -62,7 +62,7 @@
                             Applied by {{ $waiverApp->full_name }} · Convenient Adm Fee: ৳{{ $waiverApp->convenient_admission_fee }} · Monthly: ৳{{ $waiverApp->convenient_monthly_fee }}
                         </div>
                         <a href="{{ route('admin.waiver-applications.show', $waiverApp) }}" target="_blank" class="btn btn-outline btn-sm" style="font-size:12px">
-                            📋 View Full Poor Fund Application Details ↗
+                            View Full Poor Fund Application Details ↗
                         </a>
                     @endif
                 </div>
@@ -117,11 +117,11 @@
                         <td>
                             @if($invoice)
                                 @if($invoice->status === 'PAID')
-                                    <span class="badge badge-active">🟢 PAID (Invoice: {{ $invoice->invoice_no }})</span>
+                                    <span class="badge badge-active">PAID (Invoice: {{ $invoice->invoice_no }})</span>
                                 @elseif($invoice->status === 'PARTIAL')
-                                    <span class="badge badge-pending">🟡 PARTIAL (Paid: ৳{{ number_format($invoice->paid_amount,0) }}, Due: ৳{{ number_format($invoice->due_amount,0) }})</span>
+                                    <span class="badge badge-pending">PARTIAL (Paid: ৳{{ number_format($invoice->paid_amount,0) }}, Due: ৳{{ number_format($invoice->due_amount,0) }})</span>
                                 @else
-                                    <span class="badge badge-danger">🔴 UNPAID DUE (Due Amount: ৳{{ number_format($invoice->due_amount,0) }})</span>
+                                    <span class="badge badge-danger">UNPAID DUE (Due Amount: ৳{{ number_format($invoice->due_amount,0) }})</span>
                                 @endif
                             @else
                                 <span class="badge badge-pending">⏳ Invoice generated upon Approval</span>
@@ -188,25 +188,25 @@
             <div class="card-body">
                 @if($admission->status === 'APPROVED')
                     <div class="alert alert-success">
-                        <strong>✓ Application Approved</strong><br>
+                        <strong>Application Approved</strong><br>
                         Reviewed by {{ $admission->reviewer->name ?? 'Admin' }} on {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}.
                     </div>
                     @php $studentUser = $admission->student->user; @endphp
                     @if($studentUser)
                         <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px 14px;border-radius:8px;font-size:13px;margin-top:10px">
-                            <strong style="color:#166534">🔑 Student Login Account</strong><br>
+                            <strong style="color:#166534">Student Login Account</strong><br>
                             <span style="color:#15803d">Login Email:</span> <code>{{ $studentUser->email }}</code><br>
                             <span style="color:#15803d">Role:</span> <span class="badge badge-active no-dot">{{ ucfirst($studentUser->role) }}</span>
                             <div style="margin-top:6px;font-size:11px;color:#6b7280">Password was auto-generated at account creation. Student can reset via admin if needed.</div>
                         </div>
                     @else
                         <div style="background:#fef9c3;border:1px solid #fde047;padding:10px 14px;border-radius:8px;font-size:12px;margin-top:10px;color:#713f12">
-                            ⚠️ No user account linked yet. Re-run approval or contact admin.
+                            No user account linked yet. Re-run approval or contact admin.
                         </div>
                     @endif
                 @elseif($admission->status === 'REJECTED')
                     <div class="alert alert-danger">
-                        <strong>✕ Application Rejected</strong><br>
+                        <strong>Application Rejected</strong><br>
                         Reason: {{ $admission->rejection_reason ?? 'Not specified' }}<br>
                         <small>Reviewed by {{ $admission->reviewer->name ?? 'Admin' }} on {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}.</small>
                     </div>
@@ -245,7 +245,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('approveModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success">✓ Approve & Activate Student</button>
+                    <button type="submit" class="btn btn-success">Approve & Activate Student</button>
                 </div>
             </form>
         </div>

@@ -7,7 +7,7 @@
             <p>Review financial assistance requests and poor fund applications submitted by applicants</p>
         </div>
         <div class="page-header-actions">
-            <a href="/poor-fund" target="_blank" class="btn btn-outline">🌐 View Public Form ↗</a>
+            <a href="/poor-fund" target="_blank" class="btn btn-outline">View Public Form ↗</a>
         </div>
     </div>
 
@@ -102,9 +102,9 @@
                                 }
                                 $discDisplay = implode(' | ', $parts) ?: '—';
                             @endphp
-                            <span class="badge badge-active">✓ Approved ({{ $discDisplay }})</span>
+                            <span class="badge badge-active">Approved ({{ $discDisplay }})</span>
                         @else
-                            <span class="badge badge-danger">✕ Rejected</span>
+                            <span class="badge badge-danger">Rejected</span>
                         @endif
                     </td>
                     <td style="text-align:right">

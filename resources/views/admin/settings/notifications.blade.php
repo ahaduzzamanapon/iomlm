@@ -12,19 +12,19 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1><i class="fa-solid fa-bell text-primary"></i> Notification & Communication Settings</h1>
+            <h1>Notification & Communication Settings</h1>
             <p>Manage Firebase Push Notification credentials and SMTP Mail Server configuration</p>
         </div>
     </div>
 
     @if(session('success'))
         <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;padding:14px 18px;border-radius:10px;margin-bottom:20px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
         <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:14px 18px;border-radius:10px;margin-bottom:20px;font-weight:600">
-            ✕ {{ session('error') }}
+            {{ session('error') }}
         </div>
     @endif
 
@@ -45,7 +45,7 @@
             <div style="display:flex;flex-direction:column;gap:20px;max-width:960px">
                 <div class="card">
                     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-                        <span class="card-title"><i class="fa-solid fa-fire text-orange"></i> Firebase Cloud Messaging (FCM) Credentials</span>
+                        <span class="card-title">Firebase Cloud Messaging (FCM) Credentials</span>
                         <label class="form-check" style="margin:0;font-weight:700;color:#2563eb">
                             <input type="checkbox" name="firebase_enabled" value="1"
                                 {{ ($settings['firebase_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
@@ -126,7 +126,7 @@
                         </div>
                     </div>
                     <div class="card-footer" style="text-align:right">
-                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Firebase Credentials</button>
+                        <button type="submit" class="btn btn-primary">Save Firebase Credentials</button>
                     </div>
                 </div>
             </div>
@@ -140,7 +140,7 @@
             <div style="display:flex;flex-direction:column;gap:20px;max-width:960px">
                 <div class="card">
                     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-                        <span class="card-title"><i class="fa-solid fa-envelope text-blue"></i> SMTP Mail Server Configuration</span>
+                        <span class="card-title">SMTP Mail Server Configuration</span>
                         <label class="form-check" style="margin:0;font-weight:700;color:#2563eb">
                             <input type="checkbox" name="smtp_enabled" value="1"
                                 {{ ($settings['smtp_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
@@ -213,9 +213,9 @@
                     </div>
                     <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center">
                         <button type="button" class="btn btn-outline" onclick="openTestMailModal()">
-                            <i class="fa-solid fa-paper-plane"></i> Send Test Email
+                            Send Test Email
                         </button>
-                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save SMTP Settings</button>
+                        <button type="submit" class="btn btn-primary">Save SMTP Settings</button>
                     </div>
                 </div>
             </div>
@@ -245,7 +245,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('testMailModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="testMailSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Send Test Mail</button>
+                    <button type="submit" class="btn btn-primary" id="testMailSubmitBtn">Send Test Mail</button>
                 </div>
             </form>
         </div>
@@ -291,19 +291,19 @@
                 alert.style.background = '#f0fdf4';
                 alert.style.color = '#15803d';
                 alert.style.border = '1px solid #bbf7d0';
-                alert.textContent = '✓ ' + data.message;
+                alert.textContent = data.message;
             } else {
                 alert.style.background = '#fef2f2';
                 alert.style.color = '#b91c1c';
                 alert.style.border = '1px solid #fecaca';
-                alert.textContent = '✕ ' + data.message;
+                alert.textContent = data.message;
             }
         } catch (err) {
             alert.style.display = 'block';
             alert.style.background = '#fef2f2';
             alert.style.color = '#b91c1c';
             alert.style.border = '1px solid #fecaca';
-            alert.textContent = '✕ Error connecting to server: ' + err.message;
+            alert.textContent = 'Error connecting to server: ' + err.message;
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Test Mail';

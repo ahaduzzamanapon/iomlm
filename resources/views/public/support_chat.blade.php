@@ -66,7 +66,7 @@
     <div class="chat-header-bar">
         <div>
             <div class="chat-header-title">
-                💬 IOM Live Support
+                IOM Live Support
             </div>
             <div class="chat-header-sub">
                 Ticket #{{ $ticket->ticket_no }} &middot; Dept: {{ $ticket->department->name }}
@@ -82,7 +82,7 @@
     <div class="chat-container">
         @if(session('success'))
             <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px;border-radius:6px;margin-bottom:12px;font-size:13px;font-weight:600">
-                ✓ {{ session('success') }}
+                {{ session('success') }}
             </div>
         @endif
 
@@ -94,9 +94,9 @@
                 </div>
                 <div id="agentStatusBadge">
                     @if($ticket->status === 'CLOSED')
-                        <span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:12px;font-weight:700">🔒 সার্ভিস সম্পন্ন (Closed)</span>
+                        <span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:12px;font-weight:700">সার্ভিস সম্পন্ন (Closed)</span>
                     @elseif($ticket->assignedAgent)
-                        <span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:12px;font-weight:700">🟢 প্রতিনিধি {{ $ticket->assignedAgent->name }} সংযুক্ত আছেন</span>
+                        <span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:12px;font-weight:700">প্রতিনিধি {{ $ticket->assignedAgent->name }} সংযুক্ত আছেন</span>
                     @else
                         <span style="background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:12px;font-weight:700">⏳ প্রতিনিধি অপেক্ষায় আছে...</span>
                     @endif
@@ -114,7 +114,7 @@
                     <form id="userMessageForm" onsubmit="sendUserMessage(event)" style="display:flex;gap:10px">
                         <input type="text" id="userMsgInput" class="form-control" placeholder="আপনার মেসেজ লিখুন..." autocomplete="off" style="flex:1;height:44px;font-size:14px;border:1px solid #cbd5e1;border-radius:6px;padding:0 14px">
                         <label style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 14px;display:inline-flex;align-items:center;cursor:pointer" title="ফাইল/ছবি যোগ করুন">
-                            📷 <input type="file" id="userAttachmentInput" accept="image/*,.pdf" style="display:none" onchange="previewUserFile(this)">
+                            <input type="file" id="userAttachmentInput" accept="image/*,.pdf" style="display:none" onchange="previewUserFile(this)">
                         </label>
                         <button type="submit" class="btn-send">
                             পাঠান ↗
@@ -129,7 +129,7 @@
                     @if($ticket->rating)
                         <div style="color:#f59e0b;font-size:24px;margin-bottom:6px">
                             @for($i=1; $i<=5; $i++)
-                                {{ $i <= $ticket->rating ? '★' : '☆' }}
+                                {{ $i <= $ticket->rating ? '' : '' }}
                             @endfor
                         </div>
                         <div style="font-size:13px">আপনার মূল্যায়নের জন্য ধন্যবাদ! ({{ $ticket->rating }}/5)</div>
@@ -137,11 +137,11 @@
                         <form method="POST" action="{{ route('online-support.rate', $ticket->uuid) }}">
                             @csrf
                             <div class="star-rating">
-                                <input type="radio" id="star5" name="rating" value="5" required/><label for="star5" title="5 stars">★</label>
-                                <input type="radio" id="star4" name="rating" value="4"/><label for="star4" title="4 stars">★</label>
-                                <input type="radio" id="star3" name="rating" value="3"/><label for="star3" title="3 stars">★</label>
-                                <input type="radio" id="star2" name="rating" value="2"/><label for="star2" title="2 stars">★</label>
-                                <input type="radio" id="star1" name="rating" value="1"/><label for="star1" title="1 star">★</label>
+                                <input type="radio" id="star5" name="rating" value="5" required/><label for="star5" title="5 stars"></label>
+                                <input type="radio" id="star4" name="rating" value="4"/><label for="star4" title="4 stars"></label>
+                                <input type="radio" id="star3" name="rating" value="3"/><label for="star3" title="3 stars"></label>
+                                <input type="radio" id="star2" name="rating" value="2"/><label for="star2" title="2 stars"></label>
+                                <input type="radio" id="star1" name="rating" value="1"/><label for="star1" title="1 star"></label>
                             </div>
                             <div style="margin-top:10px">
                                 <input type="text" name="feedback" placeholder="মতামত লিখুন (ঐচ্ছিক)..." style="width:100%;max-width:400px;height:36px;padding:0 12px;border:1px solid #fde68a;border-radius:6px;font-size:13px">
@@ -176,13 +176,13 @@
         if (!badge) return;
 
         if (data.status === 'CLOSED') {
-            badge.innerHTML = `<span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:12px;font-weight:700">🔒 সার্ভিস সম্পন্ন (Closed)</span>`;
+            badge.innerHTML = `<span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:12px;font-weight:700">সার্ভিস সম্পন্ন (Closed)</span>`;
             if (currentTicketStatus !== 'CLOSED') {
                 currentTicketStatus = 'CLOSED';
                 setTimeout(() => location.reload(), 800);
             }
         } else if (data.agent_name && data.agent_name !== 'অপেক্ষা করা হচ্ছে...') {
-            badge.innerHTML = `<span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:12px;font-weight:700">🟢 প্রতিনিধি ${data.agent_name} সংযুক্ত আছেন</span>`;
+            badge.innerHTML = `<span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:12px;font-weight:700">প্রতিনিধি ${data.agent_name} সংযুক্ত আছেন</span>`;
         } else {
             badge.innerHTML = `<span style="background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:12px;font-weight:700">⏳ প্রতিনিধি অপেক্ষায় আছে...</span>`;
         }
@@ -200,12 +200,12 @@
                         <img src="${url}" 
                              style="max-width:260px;max-height:240px;border-radius:8px;border:1px solid rgba(0,0,0,0.15);display:block;object-fit:cover;background:#e2e8f0" 
                              alt="Chat Image Attachment"
-                             onerror="this.onerror=null; this.parentNode.innerHTML='<a href=\\'${url}\\' target=\\'_blank\\' style=\\'color:${linkColor};text-decoration:underline;font-weight:600\\'>📄 চিত্র/ফাইল দেখুন ↗</a>';">
+                             onerror="this.onerror=null; this.parentNode.innerHTML='<a href=\\'${url}\\' target=\\'_blank\\' style=\\'color:${linkColor};text-decoration:underline;font-weight:600\\'>চিত্র/ফাইল দেখুন ↗</a>';">
                     </a>
                 </div>
             `;
         }
-        return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${linkColor};text-decoration:underline;font-weight:600">📄 ডকুমেন্ট/ফাইল দেখুন ↗</a></div>`;
+        return `<div style="margin-top:6px"><a href="${url}" target="_blank" style="color:${linkColor};text-decoration:underline;font-weight:600">ডকুমেন্ট/ফাইল দেখুন ↗</a></div>`;
     }
 
     let lastUserMessageFingerprint = '';
@@ -225,7 +225,7 @@
                 html += `
                     <div style="text-align:center;margin:8px 0">
                         <span style="background:#e2e8f0;color:#475569;font-size:11px;padding:4px 12px;border-radius:12px;display:inline-block">
-                            ⚙️ ${m.message} &middot; ${m.time}
+                            ${m.message} &middot; ${m.time}
                         </span>
                     </div>
                 `;
@@ -302,7 +302,7 @@
                         <div style="display:inline-flex;align-items:center;gap:10px;background:#f1f5f9;padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;margin-top:6px">
                             <img src="${e.target.result}" style="width:55px;height:55px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1" alt="Preview">
                             <div>
-                                <div style="font-size:12px;color:#0284c7;font-weight:700">📷 ${file.name}</div>
+                                <div style="font-size:12px;color:#0284c7;font-weight:700">${file.name}</div>
                                 <div style="font-size:10px;color:#64748b">${(file.size/1024).toFixed(1)} KB &middot; ছবি রেডি আছে</div>
                             </div>
                             <button type="button" onclick="clearUserFile()" style="border:none;background:#ef4444;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;margin-left:8px;font-size:13px;font-weight:700" title="ফাইল মুছুন">&times;</button>
@@ -313,7 +313,7 @@
             } else {
                 p.innerHTML = `
                     <div style="display:inline-flex;align-items:center;gap:10px;background:#f1f5f9;padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;margin-top:6px">
-                        <span style="font-size:22px">📄</span>
+                        <span style="font-size:22px"></span>
                         <div>
                             <div style="font-size:12px;color:#0284c7;font-weight:700">${file.name}</div>
                             <div style="font-size:10px;color:#64748b">${(file.size/1024).toFixed(1)} KB</div>
