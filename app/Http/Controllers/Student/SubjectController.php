@@ -11,7 +11,7 @@ class SubjectController extends Controller
 {
     public function index()
     {
-        $student = Student::where('email', auth()->user()->email)->first();
+        $student = Student::where('user_id', auth()->id())->first();
         $enrollments = Enrollment::with(['course.subjects.modules' => fn($q) => $q->orderBy('sequence_no')])
             ->where('student_id', $student?->id)
             ->where('status', 'ACTIVE')

@@ -30,7 +30,7 @@
                         <td>{{ $exam->full_marks }} / {{ $exam->pass_marks }}</td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right">
-                            <a href="{{ route('teacher.results.enter', $exam) }}" class="btn btn-primary btn-sm">📝 Enter / View Results →</a>
+                            <a href="{{ route('teacher.results.enter', $exam) }}" class="btn btn-primary btn-sm">Enter / View Results →</a>
                         </td>
                     </tr>
                     @empty

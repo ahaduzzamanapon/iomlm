@@ -79,4 +79,24 @@ class AcademicYearController extends Controller
 
         return back()->with('success', 'Academic Session added.');
     }
+
+    public function toggleStatus(AcademicYear $academicYear)
+    {
+        $newStatus = !$academicYear->is_active;
+
+        if ($newStatus) {
+            AcademicYear::where('id', '!=', $academicYear->id)->update(['is_active' => false]);
+        }
+
+        $academicYear->update(['is_active' => $newStatus]);
+
+        $statusText = $newStatus ? 'Active' : 'Inactive';
+        return back()->with('success', "Academic Year status changed to {$statusText}.");
+    }
+
+    public function destroySession(AcademicSession $academicSession)
+    {
+        $academicSession->delete();
+        return back()->with('success', 'Academic session removed.');
+    }
 }

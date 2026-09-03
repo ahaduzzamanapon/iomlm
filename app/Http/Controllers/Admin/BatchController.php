@@ -47,7 +47,7 @@ class BatchController extends Controller
             'admission_fee'            => $validated['admission_fee'] ?? 0.00,
             'monthly_fee'              => $validated['monthly_fee'] ?? 0.00,
             'status'                   => 'ACTIVE',
-            'is_admission_open'        => $request->boolean('is_admission_open', true),
+            'is_admission_open'        => $request->boolean('is_admission_open'),
             'subject_version_snapshot' => 1,
         ]);
 
@@ -66,7 +66,7 @@ class BatchController extends Controller
             'start_date'        => 'required|date',
             'admission_fee'     => 'nullable|numeric|min:0',
             'monthly_fee'       => 'nullable|numeric|min:0',
-            'status'            => 'required|in:ACTIVE,COMPLETED,SUSPENDED',
+            'status'            => 'required|in:PLANNED,ACTIVE,COMPLETED,CANCELLED,SUSPENDED',
         ]);
 
         $batch->update(array_merge($validated, [
@@ -122,7 +122,21 @@ class BatchController extends Controller
     // ─────────────────────────────────────────────────────────────
     public function generateSessionsFromRoutine(Batch $batch, int $weeks = 4): int
     {
-        $holidays = HolidayCalendar::pluck('date')->map(fn($d) => Carbon::parse($d)->toDateString())->toArray();
+        $holidays = HolidayCalendar::all();
+
+        // Check if a given date is a holiday (exact date OR yearly recurring)
+        $isHoliday = function(Carbon $date) use ($holidays) {
+            foreach ($holidays as $h) {
+                $hDate = Carbon::parse($h->date);
+                if ($hDate->isSameDay($date)) {
+                    return true;
+                }
+                if ($h->is_recurring_yearly && $hDate->month === $date->month && $hDate->day === $date->day) {
+                    return true;
+                }
+            }
+            return false;
+        };
 
         // Day string → Carbon dayOfWeek (Sun=0 ... Sat=6)
         $dayMap = ['SUN' => 0, 'MON' => 1, 'TUE' => 2, 'WED' => 3, 'THU' => 4, 'FRI' => 5, 'SAT' => 6];
@@ -155,8 +169,8 @@ class BatchController extends Controller
             while ($sessionDate <= $endDate) {
                 $dateStr = $sessionDate->toDateString();
 
-                // Skip holidays
-                if (!in_array($dateStr, $holidays)) {
+                // Skip holidays (both exact and yearly recurring)
+                if (!$isHoliday($sessionDate)) {
                     // Don't duplicate
                     $exists = ClassSession::where('routine_entry_id', $entry->id)
                         ->where('session_date', $dateStr)

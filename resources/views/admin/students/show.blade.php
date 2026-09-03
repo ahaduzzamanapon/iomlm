@@ -11,8 +11,8 @@
         </div>
         <div class="page-header-actions">
             <a href="{{ route('admin.students.id-card', $student) }}" target="_blank" class="btn btn-outline" style="color:#4338ca">🆔 Print ID Card</a>
-            <a href="{{ route('admin.students.grade-sheet', $student) }}" target="_blank" class="btn btn-outline">📊 Grade Sheet</a>
-            <a href="{{ route('admin.students.certificate', $student) }}" target="_blank" class="btn btn-outline" style="color:#d97706">🎓 Certificate</a>
+            <a href="{{ route('admin.students.grade-sheet', $student) }}" target="_blank" class="btn btn-outline">Grade Sheet</a>
+            <a href="{{ route('admin.students.certificate', $student) }}" target="_blank" class="btn btn-outline" style="color:#d97706">Certificate</a>
             <a href="{{ route('admin.students.edit', $student) }}" class="btn btn-primary">Edit Profile</a>
         </div>
     </div>
@@ -25,20 +25,31 @@
             {{-- Personal & Contact --}}
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">👤 Personal & Contact Info</span>
+                    <span class="card-title">Personal & Contact Info</span>
                 </div>
                 <div style="padding:0">
                     @php
+                        $adm = $student->admissionForms()->latest()->first();
+                        $studentCode = $student->student_code ?? '—';
+                        $phone = $student->phone ?: ($adm?->phone ?? '—');
+                        $email = $student->email ?: ($adm?->email ?? ($student->user?->email ?? '—'));
+                        $dob = ($student->date_of_birth ?: $adm?->date_of_birth) ? \Carbon\Carbon::parse($student->date_of_birth ?: $adm?->date_of_birth)->format('d M Y') : '—';
+                        $gender = $student->gender ?: ($adm?->gender ?? '—');
+                        $bloodGroup = $student->blood_group ?: ($adm?->bloodGroup?->name ?? ($adm?->blood_group ?? '—'));
+                        $nationalId = $student->national_id ?: ($adm?->national_id ?? '—');
+                        $nationality = $student->nationality ?? ($adm?->nationality ?? 'Bangladeshi');
+                        $religion = $student->religion ?? ($adm?->religion?->name ?? ($adm?->religion ?? '—'));
+
                         $rows = [
-                            ['Student Code',  $student->student_code ?? '—'],
-                            ['Phone',         $student->phone ?? '—'],
-                            ['Email',         $student->email ?? '—'],
-                            ['Date of Birth', $student->date_of_birth ? \Carbon\Carbon::parse($student->date_of_birth)->format('d M Y') : '—'],
-                            ['Gender',        $student->gender ?? '—'],
-                            ['Blood Group',   $student->blood_group ?? '—'],
-                            ['National ID',   $student->national_id ?? '—'],
-                            ['Nationality',   $student->nationality ?? '—'],
-                            ['Religion',      $student->religion ?? '—'],
+                            ['Student Code',  $studentCode],
+                            ['Phone',         $phone],
+                            ['Email',         $email],
+                            ['Date of Birth', $dob],
+                            ['Gender',        $gender],
+                            ['Blood Group',   $bloodGroup],
+                            ['National ID',   $nationalId],
+                            ['Nationality',   $nationality],
+                            ['Religion',      $religion],
                         ];
                     @endphp
                     @foreach($rows as [$label, $value])
@@ -52,14 +63,19 @@
 
             {{-- Family Info --}}
             <div class="card">
-                <div class="card-header"><span class="card-title">👨‍👩‍👧 Family Information</span></div>
+                <div class="card-header"><span class="card-title">Family Information</span></div>
                 <div style="padding:0">
                     @php
+                        $fatherName = $student->father_name ?: ($adm?->father_name ?? '—');
+                        $motherName = $student->mother_name ?: ($adm?->mother_name ?? '—');
+                        $guardianName = $student->guardian_name ?: ($adm?->guardian_name ?? '—');
+                        $guardianPhone = $student->guardian_phone ?: ($adm?->guardian_phone ?? '—');
+
                         $family = [
-                            ['Father Name',   $student->father_name ?? '—'],
-                            ['Mother Name',   $student->mother_name ?? '—'],
-                            ['Guardian Name', $student->guardian_name ?? '—'],
-                            ['Guardian Phone',$student->guardian_phone ?? '—'],
+                            ['Father Name',    $fatherName],
+                            ['Mother Name',    $motherName],
+                            ['Guardian Name',  $guardianName],
+                            ['Guardian Phone', $guardianPhone],
                         ];
                     @endphp
                     @foreach($family as [$label, $value])
@@ -73,13 +89,23 @@
 
             {{-- Academic Background --}}
             <div class="card">
-                <div class="card-header"><span class="card-title">🎓 Academic Background</span></div>
+                <div class="card-header"><span class="card-title">Academic Background & Address</span></div>
                 <div style="padding:0">
                     @php
+                        $sscInfo = ($student->ssc_gpa ? ('GPA: ' . $student->ssc_gpa) : '') 
+                            ?: ($adm?->ssc_school ? ($adm->ssc_school . ($adm->ssc_year ? " ({$adm->ssc_year})" : '')) : '—');
+                        $hscInfo = ($student->hsc_gpa ? ('GPA: ' . $student->hsc_gpa) : '') 
+                            ?: ($adm?->hsc_college ? ($adm->hsc_college . ($adm->hsc_year ? " ({$adm->hsc_year})" : '')) : '—');
+                        $qualification = $adm?->education_qualification ?? '—';
+                        $presentAddress = $student->address ?: ($adm?->present_house ?: '—');
+                        $permanentAddress = $adm ? ($adm->same_as_present ? 'Same as present address' : ($adm->permanent_house ?: '—')) : '—';
+
                         $academic = [
-                            ['SSC GPA', $student->ssc_gpa ?? '—'],
-                            ['HSC GPA', $student->hsc_gpa ?? '—'],
-                            ['Address', $student->address ?? '—'],
+                            ['SSC Record',        $sscInfo],
+                            ['HSC Record',        $hscInfo],
+                            ['Qualification',     $qualification],
+                            ['Present Address',   $presentAddress],
+                            ['Permanent Address', $permanentAddress],
                         ];
                     @endphp
                     @foreach($academic as [$label, $value])
@@ -99,7 +125,7 @@
             {{-- Course Enrollments --}}
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">📚 Course Enrollments</span>
+                    <span class="card-title">Course Enrollments</span>
                     <span class="badge badge-secondary no-dot">{{ $student->enrollments->count() }} Total</span>
                 </div>
                 <div style="padding:0">
@@ -125,14 +151,14 @@
             {{-- Admission Info --}}
             @if($student->admissions && $student->admissions->count())
             <div class="card">
-                <div class="card-header"><span class="card-title">📋 Admission History</span></div>
+                <div class="card-header"><span class="card-title">Admission History</span></div>
                 <div style="padding:0">
                     @foreach($student->admissions as $adm)
                     <div style="padding:12px 20px;border-bottom:1px solid var(--card-border);font-size:13px">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
                             <div>
                                 <span class="badge no-dot" style="{{ $adm->source === 'PUBLIC' ? 'background:rgba(139,92,246,.1);color:#7c3aed' : 'background:rgba(59,130,246,.1);color:#1d4ed8' }};font-size:11px">
-                                    {{ $adm->source === 'PUBLIC' ? '🌐 Public' : '🏫 Admin' }}
+                                    {{ $adm->source === 'PUBLIC' ? 'Public' : 'Admin' }}
                                 </span>
                                 @if($adm->application_no)
                                 <span style="margin-left:8px;color:var(--text-muted);font-size:12px">{{ $adm->application_no }}</span>
@@ -153,7 +179,7 @@
             @if($student->invoices && $student->invoices->count())
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">💳 Fee Invoices</span>
+                    <span class="card-title">Fee Invoices</span>
                     <span class="badge badge-secondary no-dot">{{ $student->invoices->count() }} Invoices</span>
                 </div>
                 <div style="padding:0">

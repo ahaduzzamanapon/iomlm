@@ -8,11 +8,27 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addResourceModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 Upload Resource
             </button>
         </div>
     </div>
+
+    @if(session('success'))
+        <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px">
+            <strong><i class="fa-solid fa-triangle-exclamation"></i> কিছু ত্রুটি পাওয়া গেছে:</strong>
+            <ul style="margin:6px 0 0 16px;padding:0">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <div class="card">
         <div class="table-wrapper">
@@ -24,6 +40,7 @@
                         <th>Type</th>
                         <th>Link / Preview</th>
                         <th>Uploaded On</th>
+                        <th style="text-align:center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -36,16 +53,23 @@
                         </td>
                         <td><span class="badge badge-secondary no-dot">{{ $res->type }}</span></td>
                         <td>
-                            @if($res->url)
-                                <a href="{{ $res->url }}" target="_blank" style="color:var(--blue);font-weight:600">Open Material ↗</a>
+                            @if($res->url && $res->url !== '#')
+                                <a href="{{ $res->url }}" target="_blank" style="color:var(--blue);font-weight:600">Open Material <i class="fa-solid fa-arrow-up-right-from-square"></i></a>
                             @else
-                                <span class="td-muted">Text Content</span>
+                                <span class="td-muted">Text / Attached</span>
                             @endif
                         </td>
                         <td class="td-muted">{{ $res->created_at->format('d M Y') }}</td>
+                        <td style="text-align:center">
+                            <form method="POST" action="{{ route('teacher.resources.destroy', $res) }}" onsubmit="return confirm('Delete this learning resource?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fca5a5;padding:4px 8px;font-size:11px"><i class="fa-solid fa-trash"></i> Delete</button>
+                            </form>
+                        </td>
                     </tr>
                     @empty
-                    <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">No learning resources uploaded yet.</td></tr>
+                    <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">No learning resources uploaded yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -63,11 +87,15 @@
                 @csrf
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Select Module <span class="required">*</span></label>
-                        <select name="subject_module_id" class="form-control" required>
+                        <label>Select Subject Module <span class="required">*</span></label>
+                        <select name="module_id" class="form-control" required>
                             <option value="">-- Choose Module --</option>
-                            @foreach($modules as $m)
-                                <option value="{{ $m->id }}">{{ $m->subject->code ?? '' }}: {{ $m->title }}</option>
+                            @foreach($modules->groupBy(fn($m) => ($m->subject?->name ?? 'Other Subjects') . ' (' . ($m->subject?->code ?? '') . ')') as $subjectGroup => $subModules)
+                                <optgroup label="{{ $subjectGroup }}">
+                                    @foreach($subModules as $m)
+                                        <option value="{{ $m->id }}">{{ $m->sequence_no ? 'Module ' . $m->sequence_no . ': ' : '' }}{{ $m->title }}</option>
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                     </div>
@@ -83,11 +111,10 @@
                             <select name="type" class="form-control" required>
                                 <option value="PDF">PDF Document</option>
                                 <option value="VIDEO">Video Link</option>
-                                <option value="RECORDING">Class Recording</option>
-                                <option value="NOTES">Lecture Notes</option>
-                                <option value="ASSIGNMENT">Assignment</option>
-                                <option value="QUIZ">Quiz</option>
-                                <option value="PRACTICAL">Practical Lab</option>
+                                <option value="NOTES">Lecture Notes / Summary</option>
+                                <option value="SLIDES">Slides</option>
+                                <option value="AUDIO">Audio</option>
+                                <option value="LINK">External Resource Link</option>
                             </select>
                         </div>
                         <div class="form-group">

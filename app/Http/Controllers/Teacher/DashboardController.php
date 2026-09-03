@@ -14,12 +14,32 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
-        $teacher   = Teacher::where('email', auth()->user()->email)->first();
-        $teacherId = $teacher?->id;
+        $teacher   = Teacher::where('user_id', auth()->id())->first();
+
+        if (!$teacher) {
+            $stats = [
+                'today_classes'    => 0,
+                'attendance_todo'  => 0,
+                'total_subjects'   => 0,
+                'pending_results'  => 0,
+            ];
+            $todayClasses      = collect();
+            $upcomingSessions  = collect();
+            $attendancePending = collect();
+            $upcomingExams     = collect();
+            $pendingResults    = collect();
+
+            return view('teacher.dashboard', compact(
+                'stats', 'todayClasses', 'upcomingSessions',
+                'attendancePending', 'upcomingExams', 'pendingResults'
+            ));
+        }
+
+        $teacherId = $teacher->id;
         $today     = Carbon::today();
 
         // Today's classes for this teacher (by session_date)
-        $todayClasses = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'attendances'])
+        $todayClasses = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'attendances', 'teacher'])
             ->where('teacher_id', $teacherId)
             ->whereDate('session_date', $today)
             ->orderBy('start_time')

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+    html, body { width: 100%; max-width: 100vw; overflow-x: hidden; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
         --blue: #1a56db;
@@ -23,60 +24,77 @@
     body { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
 
     /* Top Nav */
-    .nav-bar { background: var(--blue-dark); color: #fff; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--blue); }
-    .nav-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-    .btn-home { background: var(--blue); color: #fff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; transition: background .15s; }
+    .nav-bar { background: var(--blue-dark); color: #fff; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid var(--blue); flex-wrap: wrap; gap: 10px; }
+    .nav-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .btn-home { background: var(--blue); color: #fff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; transition: background .15s; white-space: nowrap; }
     .btn-home:hover { background: #2563eb; }
 
-    .container { max-width: 920px; margin: 28px auto; padding: 0 16px 60px; }
+    .container { max-width: 920px; width: 100%; margin: 20px auto; padding: 0 14px 60px; }
 
     /* Instructions card */
-    .instruction-card { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 24px; margin-bottom: 24px; font-size: 14px; color: #0369a1; box-shadow: 0 1px 3px rgba(0,0,0,.03); }
-    .instruction-card p { margin-bottom: 12px; }
+    .instruction-card { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; margin-bottom: 20px; font-size: 13px; color: #0369a1; box-shadow: 0 1px 3px rgba(0,0,0,.03); word-break: break-word; }
+    .instruction-card p { margin-bottom: 10px; }
     .instruction-card p:last-child { margin-bottom: 0; }
-    .note-tag { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 8px; font-weight: 600; margin-top: 14px; }
+    .note-tag { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 8px; font-weight: 600; margin-top: 12px; font-size: 12px; }
 
     /* Form card */
-    .form-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden; }
-    .form-header { background: #fff; padding: 24px 32px 18px; border-bottom: 1px solid var(--border); text-align: center; }
-    .form-header h1 { font-size: 22px; font-weight: 700; color: var(--blue-dark); margin-bottom: 6px; }
-    .form-header p { font-size: 13px; color: var(--muted); }
+    .form-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden; width: 100%; }
+    .form-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); text-align: center; }
+    .form-header h1 { font-size: 20px; font-weight: 700; color: var(--blue-dark); margin-bottom: 4px; }
+    .form-header p { font-size: 12px; color: var(--muted); }
 
-    .form-body { padding: 32px; }
+    .form-body { padding: 24px; }
 
     /* Section Fieldset */
-    .fieldset-sec { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px 24px 16px; margin-bottom: 24px; background: #fff; }
-    .legend-title { font-size: 14px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .03em; padding: 0 8px; }
+    .fieldset-sec { border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 20px 14px; margin-bottom: 20px; background: #fff; }
+    .legend-title { font-size: 13px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: .03em; padding: 0 6px; }
 
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    @media(max-width:640px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 4px; word-break: break-word; }
     label .req { color: var(--red); margin-left: 2px; }
     input[type="text"], input[type="email"], input[type="date"], input[type="number"], select, textarea {
-        width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+        width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px;
         font-size: 13px; color: var(--text); background: #fff; outline: none; transition: border-color .15s; font-family: inherit;
+        box-sizing: border-box;
     }
     input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,.08); }
-    textarea { resize: vertical; min-height: 85px; }
+    textarea { resize: vertical; min-height: 80px; }
 
-    .radio-group { display: flex; align-items: center; gap: 16px; padding: 6px 0; }
+    .radio-group { display: flex; align-items: center; gap: 14px; padding: 4px 0; flex-wrap: wrap; }
     .radio-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
 
-    .form-footer { padding: 20px 32px; background: #f8fafc; border-top: 1px solid var(--border); text-align: right; }
-    .btn-submit { background: var(--blue); color: #fff; padding: 12px 28px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; }
+    .form-footer { padding: 16px 24px; background: #f8fafc; border-top: 1px solid var(--border); text-align: right; }
+    .btn-submit { background: var(--blue); color: #fff; padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; width: auto; }
     .btn-submit:hover { background: #1d4ed8; }
 
-    .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+    .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+
+    /* MOBILE RESPONSIVE OVERRIDES */
+    @media(max-width:640px) {
+        .form-row, .form-row-3 { grid-template-columns: 1fr !important; gap: 10px; }
+        .form-body { padding: 14px 12px; }
+        .form-header { padding: 16px 12px 12px; }
+        .form-header h1 { font-size: 17px; }
+        .fieldset-sec { padding: 14px 10px 10px; margin-bottom: 14px; }
+        .form-footer { padding: 14px 12px; text-align: center; }
+        .btn-submit { width: 100%; padding: 12px 16px; font-size: 13px; }
+        .nav-bar { padding: 10px 12px; }
+        .nav-title { font-size: 13px; }
+        .btn-home { font-size: 11px; padding: 4px 10px; }
+        .container { padding: 0 8px 40px; margin: 12px auto; }
+    }
     </style>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 </head>
 <body>
 
 <nav class="nav-bar">
-    <div class="nav-title">
-        <span>📋</span> Online Poor Fund Application — IOM
+    <div class="nav-title" style="display:flex;align-items:center;gap:10px">
+        <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:34px;width:auto;object-fit:contain">
+        <span>Online Poor Fund Application — IOM</span>
     </div>
     <a href="/apply" class="btn-home">← Online Admission Form</a>
 </nav>
@@ -88,7 +106,7 @@
         <p>তবে আপনি যদি আর্থিকভাবে অসচ্ছল হওয়ায় ফি প্রদানে সক্ষম না হন, সেমিস্টার ফি / ভর্তি ফি পুওরফান্ডের (Waiver) জন্য আবেদন করলে ইনশাআল্লাহ আপনার বিষয়টি বিবেচনা করা হবে।</p>
         <p><em>উল্লেখ্য যে, পুওরফান্ডের সুবিধা বজায় রাখতে ক্লাসে ৯০% উপস্থিতি এবং সেমিস্টার পরীক্ষায় ৫০% মার্ক বজায় রাখা আবশ্যক।</em></p>
         <div class="note-tag">
-            📌 Note: পুওর ফান্ড শুধুমাত্র আলিম কোর্স ও স্কুল মক্তব কোর্সের জন্য প্রযোজ্য।
+            Note: পুওর ফান্ড শুধুমাত্র আলিম কোর্স ও স্কুল মক্তব কোর্সের জন্য প্রযোজ্য।
         </div>
     </div>
 

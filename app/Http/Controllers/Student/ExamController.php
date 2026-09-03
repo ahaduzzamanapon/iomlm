@@ -10,12 +10,13 @@ use App\Models\ExamSubmission;
 use App\Models\ExamAnswer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ExamController extends Controller
 {
     private function student(): ?Student
     {
-        return Student::where('email', auth()->user()->email)->first();
+        return Student::where('user_id', auth()->id())->first();
     }
 
     public function index()
@@ -26,7 +27,6 @@ class ExamController extends Controller
             ->where('status', 'ACTIVE')
             ->pluck('batch_id');
 
-        // Get exams for courses of these batches
         $exams = Exam::with(['subject', 'examQuestions', 'submissions' => function ($q) use ($student) {
                 $q->where('student_id', $student?->id);
             }])
@@ -38,7 +38,8 @@ class ExamController extends Controller
     }
 
     /**
-     * Take Online Exam with Anti-Cheating Protection & Timer
+     * Show full question paper — all questions on one scrollable page.
+     * Timer displayed for reference only; no forced auto-submit.
      */
     public function take(Exam $exam)
     {
@@ -73,11 +74,16 @@ class ExamController extends Controller
             ['status' => 'IN_PROGRESS', 'started_at' => now()]
         );
 
-        return view('student.exams.take', compact('exam', 'submission'));
+        // Load any already-saved answers
+        $savedAnswers = ExamAnswer::where('submission_id', $submission->id)
+            ->get()
+            ->keyBy('question_id');
+
+        return view('student.exams.take', compact('exam', 'submission', 'savedAnswers'));
     }
 
     /**
-     * Submit Exam Answers with Auto-Grading & Negative Marking
+     * Submit full paper: MCQ auto-graded; Written images stored.
      */
     public function submit(Request $request, Exam $exam)
     {
@@ -87,9 +93,9 @@ class ExamController extends Controller
             ->where('student_id', $student->id)
             ->firstOrFail();
 
-        $answersInput    = $request->input('answers', []);
-        $tabSwitchCount  = (int) $request->input('tab_switch_count', 0);
-        $isViolation     = $request->boolean('is_violation', false);
+        $answersInput   = $request->input('answers', []);
+        $tabSwitchCount = (int) $request->input('tab_switch_count', 0);
+        $isViolation    = $request->boolean('is_violation', false);
 
         $exam->load('examQuestions.question');
 
@@ -99,37 +105,60 @@ class ExamController extends Controller
 
         foreach ($exam->examQuestions as $eq) {
             $q = $eq->question;
-            $selectedOpt = strtolower($answersInput[$q->id] ?? '');
 
-            $isCorrect = false;
-            $marksAwarded = 0.00;
+            if ($q->question_type === 'WRITTEN') {
+                // Handle image upload for written questions
+                $imagePath = null;
+                $fileKey   = 'answer_image_' . $q->id;
 
-            if ($selectedOpt !== '') {
-                if ($selectedOpt === strtolower($q->correct_option_id)) {
-                    $isCorrect = true;
-                    $correctCount++;
-                    $marksAwarded = $eq->marks;
-                } else {
-                    $wrongCount++;
+                if ($request->hasFile($fileKey)) {
+                    $imagePath = $request->file($fileKey)
+                        ->store('exam_answers/' . $exam->id, 'public');
                 }
+
+                ExamAnswer::updateOrCreate(
+                    ['submission_id' => $submission->id, 'question_id' => $q->id],
+                    [
+                        'selected_option_id' => null,
+                        'is_correct'         => 0,   // Written — teacher grades manually
+                        'marks_awarded'      => 0.00,
+                        'answer_image_path'  => $imagePath,
+                    ]
+                );
+
+            } else {
+                // MCQ — auto-grade
+                $selectedOpt = strtolower($answersInput[$q->id] ?? '');
+                $isCorrect   = false;
+                $marksAwarded = 0.00;
+
+                if ($selectedOpt !== '') {
+                    if ($selectedOpt === strtolower($q->correct_option_id)) {
+                        $isCorrect    = true;
+                        $correctCount++;
+                        $marksAwarded = $eq->marks;
+                    } else {
+                        $wrongCount++;
+                    }
+                }
+
+                ExamAnswer::updateOrCreate(
+                    ['submission_id' => $submission->id, 'question_id' => $q->id],
+                    [
+                        'selected_option_id' => $selectedOpt,
+                        'is_correct'         => $isCorrect,
+                        'marks_awarded'      => $marksAwarded,
+                    ]
+                );
+
+                $totalEarned += $marksAwarded;
             }
-
-            ExamAnswer::updateOrCreate(
-                ['submission_id' => $submission->id, 'question_id' => $q->id],
-                [
-                    'selected_option_id' => $selectedOpt,
-                    'is_correct'         => $isCorrect,
-                    'marks_awarded'      => $marksAwarded,
-                ]
-            );
-
-            $totalEarned += $marksAwarded;
         }
 
-        // Calculate Negative Marks
-        $negativeRate = (float) ($exam->negative_marking ?? 0.00);
+        // Negative marking only applies to MCQ
+        $negativeRate     = (float) ($exam->negative_marking ?? 0.00);
         $negativeDeducted = $wrongCount * $negativeRate;
-        $finalScore = max(0, $totalEarned - $negativeDeducted);
+        $finalScore       = max(0, $totalEarned - $negativeDeducted);
 
         $submission->update([
             'total_score'             => $finalScore,
@@ -142,11 +171,11 @@ class ExamController extends Controller
         ]);
 
         return redirect()->route('student.exams.result', [$exam, $submission])
-            ->with('success', 'Exam submitted successfully!');
+            ->with('success', 'প্রশ্নপত্র সফলভাবে জমা দেওয়া হয়েছে!');
     }
 
     /**
-     * View Exam Result & Explanation Feedback
+     * View Exam Result
      */
     public function result(Exam $exam, ExamSubmission $submission)
     {

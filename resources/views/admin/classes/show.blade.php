@@ -16,14 +16,14 @@
         </div>
         <div class="page-header-actions" style="gap:6px;display:flex">
             @if($class->status !== 'COMPLETED' && $class->status !== 'CANCELLED')
-            <button class="btn btn-outline btn-sm" onclick="openModal('scheduleModal')">📅 Edit Schedule</button>
+            <button class="btn btn-outline btn-sm" onclick="openModal('scheduleModal')">Edit Schedule</button>
             <form method="POST" action="{{ route('admin.classes.cancel', $class) }}" onsubmit="return confirm('Cancel this session?')">
                 @csrf
-                <button class="btn btn-outline btn-sm" style="color:#ef4444">✕ Cancel Session</button>
+                <button class="btn btn-outline btn-sm" style="color:#ef4444">Cancel Session</button>
             </form>
             @endif
             @if($class->status === 'SCHEDULED' || $class->status === 'RUNNING')
-            <button class="btn btn-primary btn-sm" onclick="openModal('completeModal')">✅ Mark Complete</button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('completeModal')">Mark Complete</button>
             @endif
         </div>
     </div>
@@ -50,7 +50,7 @@
                     </div>
                     @if($class->meeting_link)
                     <div style="grid-column:span 2"><div style="color:var(--text-muted);font-size:11px">Meeting Link</div>
-                        <a href="{{ $class->meeting_link }}" target="_blank" style="color:#3b82f6;font-size:12px">🔗 {{ $class->meeting_link }}</a>
+                        <a href="{{ $class->meeting_link }}" target="_blank" style="color:#3b82f6;font-size:12px">{{ $class->meeting_link }}</a>
                     </div>
                     @endif
                     @if($class->notes)
@@ -62,7 +62,7 @@
             {{-- Attendance Table --}}
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">👥 Attendance</span>
+                    <span class="card-title">Attendance</span>
                     @php $present = $class->attendances->where('status','PRESENT')->count(); $total = $class->attendances->count(); @endphp
                     @if($total > 0)
                     <span class="badge badge-info no-dot">{{ $present }}/{{ $total }} Present</span>
@@ -100,20 +100,20 @@
         {{-- RIGHT: Quick Actions --}}
         <div>
             <div class="card">
-                <div class="card-header"><span class="card-title">⚡ Quick Actions</span></div>
+                <div class="card-header"><span class="card-title">Quick Actions</span></div>
                 <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
                     @if(!$class->meeting_link)
                     <form method="POST" action="{{ route('admin.classes.updateSchedule', $class) }}">
                         @csrf @method('PUT')
                         <input type="hidden" name="session_date" value="{{ $class->session_date?->toDateString() ?? now()->toDateString() }}">
-                        <button class="btn btn-outline" style="width:100%">⚡ Auto-Generate Meeting Link</button>
+                        <button class="btn btn-outline" style="width:100%">Auto-Generate Meeting Link</button>
                     </form>
                     @else
-                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary" style="width:100%;text-align:center">🔗 Join Class</a>
+                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary" style="width:100%;text-align:center">Join Class</a>
                     @endif
 
                     @if($class->status !== 'COMPLETED' && $class->status !== 'CANCELLED')
-                    <button class="btn btn-outline" style="width:100%" onclick="openModal('scheduleModal')">📅 Edit Date / Link</button>
+                    <button class="btn btn-outline" style="width:100%" onclick="openModal('scheduleModal')">Edit Date / Link</button>
                     @endif
                 </div>
             </div>
@@ -172,7 +172,7 @@
     <div class="modal-overlay" id="completeModal">
         <div class="modal" style="max-width:500px">
             <div class="modal-header">
-                <span class="modal-title">✅ Mark Class Complete</span>
+                <span class="modal-title">Mark Class Complete</span>
                 <button class="modal-close" onclick="closeModal('completeModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.classes.complete', $class) }}">
@@ -210,7 +210,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('completeModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">✅ Mark as Completed</button>
+                    <button type="submit" class="btn btn-primary">Mark as Completed</button>
                 </div>
             </form>
         </div>

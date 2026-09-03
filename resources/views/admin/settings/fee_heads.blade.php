@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addFeeHeadModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 Add Fee Head
             </button>
         </div>
@@ -55,11 +54,11 @@
                         @if(!$head->is_static)
                             <button class="btn btn-outline btn-sm"
                                 onclick="openEditFeeHead({{ $head->id }}, @json($head->name), {{ $head->is_active ? 1 : 0 }})">
-                                Edit
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
                             </button>
                             <form method="POST" action="{{ route('admin.fee-heads.destroy', $head) }}" style="display:inline" onsubmit="return confirm('Delete this fee head?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red)">Delete</button>
+                                <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red)"><i class="fa-solid fa-trash"></i> Delete</button>
                             </form>
                         @else
                             <span class="td-muted" style="font-size:12px">Protected</span>

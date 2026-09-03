@@ -44,16 +44,20 @@ class ResultController extends Controller
 
             $attemptNo = $prevResult ? $prevResult->attempt_no + 1 : 1;
 
-            Result::create([
-                'exam_id'     => $exam->id,
-                'student_id'  => $studentId,
-                'subject_id'  => $exam->subject_id,
-                'attempt_no'  => $attemptNo,
-                'marks'       => $mark,
-                'grade'       => $grade,
-                'status'      => $status,
-                'recorded_by' => auth()->id(),
-            ]);
+            Result::updateOrCreate(
+                [
+                    'exam_id'    => $exam->id,
+                    'student_id' => $studentId,
+                ],
+                [
+                    'subject_id'  => $exam->subject_id,
+                    'attempt_no'  => $attemptNo,
+                    'marks'       => $mark,
+                    'grade'       => $grade,
+                    'status'      => $status,
+                    'recorded_by' => auth()->id(),
+                ]
+            );
         }
 
         $exam->update(['status' => 'COMPLETED']);

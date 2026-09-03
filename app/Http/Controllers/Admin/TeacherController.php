@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Teacher;
+use App\Models\User;
 use App\Models\Subject;
 use App\Models\SubjectTeacherAssignment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class TeacherController extends Controller
 {
@@ -23,6 +25,7 @@ class TeacherController extends Controller
             'name'                      => 'required|string|max:200',
             'email'                     => 'nullable|email|unique:teachers,email',
             'phone'                     => 'nullable|string|max:30',
+            'password'                  => 'nullable|string|min:6',
             'date_of_birth'             => 'nullable|date',
             'gender'                    => 'nullable|string|max:20',
             'marital_status'            => 'nullable|string|max:20',
@@ -53,20 +56,41 @@ class TeacherController extends Controller
         $maxId    = Teacher::max('id') ?? 0;
         $nextEmpId = 'EMP-' . str_pad($maxId + 1, 3, '0', STR_PAD_LEFT);
 
-        Teacher::create(array_merge($validated, [
+        $teacher = Teacher::create(array_merge($validated, [
             'employee_id' => $nextEmpId,
-            'is_active'   => $request->boolean('is_active', true),
+            'is_active'   => $request->boolean('is_active'),
         ]));
 
-        return back()->with('success', 'Teacher added successfully.');
+        // ── AUTO-CREATE USER ACCOUNT FOR TEACHER ─────────────────────────
+        $loginEmail   = !empty($validated['email']) ? $validated['email'] : ($nextEmpId . '@iom.teacher');
+        $customPass   = $request->input('password');
+        $tempPassword = !empty($customPass) ? $customPass : (!empty($validated['phone']) ? $validated['phone'] : 'iom@1234');
+
+        if (User::where('email', $loginEmail)->exists()) {
+            $loginEmail = strtolower(str_replace([' ', '-'], '.', $nextEmpId)) . '@iom.teacher';
+        }
+
+        $user = User::create([
+            'name'     => $teacher->name,
+            'email'    => $loginEmail,
+            'password' => Hash::make($tempPassword),
+            'role'     => 'teacher',
+        ]);
+
+        $teacher->update(['user_id' => $user->id]);
+        // ─────────────────────────────────────────────────────────────────
+
+        return back()->with('success', "Teacher added successfully. 🔑 Login: {$loginEmail} | Password: {$tempPassword}");
     }
 
     public function update(Request $request, Teacher $teacher)
     {
+        $userId = $teacher->user_id ?? 0;
         $validated = $request->validate([
             'name'                       => 'required|string|max:200',
-            'email'                      => 'nullable|email|unique:teachers,email,' . $teacher->id,
+            'email'                      => 'nullable|email|unique:teachers,email,' . $teacher->id . '|unique:users,email,' . $userId,
             'phone'                      => 'nullable|string|max:30',
+            'password'                   => 'nullable|string|min:6',
             'date_of_birth'              => 'nullable|date',
             'gender'                     => 'nullable|string|max:20',
             'marital_status'             => 'nullable|string|max:20',
@@ -88,7 +112,22 @@ class TeacherController extends Controller
             'is_active' => $request->boolean('is_active'),
         ]));
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Teacher updated successfully.');
+        if ($teacher->user) {
+            $userUpdate = ['name' => $teacher->name];
+            if (!empty($validated['email'])) {
+                $userUpdate['email'] = $validated['email'];
+            }
+            if ($request->filled('password')) {
+                $userUpdate['password'] = Hash::make($request->input('password'));
+            }
+            try {
+                $teacher->user->update($userUpdate);
+            } catch (\Exception $e) {
+                // Ignore silent duplicate email errors on user table if fallback
+            }
+        }
+
+        return redirect()->route('admin.teachers.index')->with('success', 'Teacher profile updated successfully.');
     }
 
     public function assignSubject(Request $request, Teacher $teacher)

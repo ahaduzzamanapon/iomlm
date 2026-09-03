@@ -49,7 +49,7 @@
                             @foreach($activeBatches as $b)
                                 @if($b->is_admission_open)
                                     <option value="{{ $b->id }}" {{ old('batch_id') == $b->id ? 'selected' : '' }}>
-                                        🟢 {{ $b->name }} ({{ $b->batch_code }})
+                                        {{ $b->name }} ({{ $b->batch_code }})
                                     </option>
                                 @endif
                             @endforeach

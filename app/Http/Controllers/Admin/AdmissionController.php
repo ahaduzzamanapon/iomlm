@@ -8,7 +8,10 @@ use App\Models\Student;
 use App\Models\Course;
 use App\Models\Batch;
 use App\Models\Enrollment;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class AdmissionController extends Controller
 {
@@ -231,18 +234,91 @@ class AdmissionController extends Controller
             'batch_id' => 'required|exists:batches,id',
         ]);
 
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($admission, $request) {
+        return DB::transaction(function () use ($admission, $request) {
             $student = $admission->student;
-            $batch = Batch::findOrFail($request->input('batch_id'));
+            $batch   = Batch::findOrFail($request->input('batch_id'));
 
-            // Generate Student Code (e.g. STD-2026-005)
+            // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────
+            // Format: YY-BB-CC-G-RRRR (e.g. 25-13-01-2-0001)
             if (empty($student->student_code)) {
-                $nextId = Student::whereNotNull('student_code')->max('id') + 1;
-                $student->student_code = 'STD-' . date('Y') . '-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
+                // 1. Year Code (2 digits)
+                $yearCode = date('y');
+
+                // 2. Batch Code (2 digits)
+                $batchNum = 1;
+                if (!empty($batch->batch_code) && preg_match('/\d+/', $batch->batch_code, $m)) {
+                    $batchNum = (int) $m[0];
+                } elseif (!empty($batch->name) && preg_match('/\d+/', $batch->name, $m)) {
+                    $batchNum = (int) $m[0];
+                } else {
+                    $batchNum = $batch->id;
+                }
+                $batchCode = str_pad($batchNum % 100, 2, '0', STR_PAD_LEFT);
+
+                // 3. Course Code (2 digits)
+                $courseId = $batch->course_id ?: 1;
+                $courseCode = str_pad($courseId % 100, 2, '0', STR_PAD_LEFT);
+
+                // 4. Gender Code (1 digit: 1 = Male, 2 = Female)
+                $genderCode = '1';
+                if (!empty($student->gender)) {
+                    $g = strtolower(trim($student->gender));
+                    if (in_array($g, ['female', '2', 'f', 'নারি', 'মহিলা'])) {
+                        $genderCode = '2';
+                    }
+                }
+
+                // 5. Roll Sequence (4 digits - filtered per Year + Batch + Course)
+                $filterPrefix = "{$yearCode}-{$batchCode}-{$courseCode}-";
+                $existingCount = Student::where('student_code', 'like', "{$filterPrefix}%")->count();
+                $seqNo = str_pad($existingCount + 1, 4, '0', STR_PAD_LEFT);
+
+                $student->student_code = "{$yearCode}-{$batchCode}-{$courseCode}-{$genderCode}-{$seqNo}";
             }
+
+            // Sync all profile details from admission form into student
+            $student->blood_group    = $student->blood_group ?: ($admission->bloodGroup?->name ?? $admission->blood_group);
+            $student->father_name    = $student->father_name ?: $admission->father_name;
+            $student->mother_name    = $student->mother_name ?: $admission->mother_name;
+            $student->guardian_name  = $student->guardian_name ?: $admission->guardian_name;
+            $student->guardian_phone = $student->guardian_phone ?: $admission->guardian_phone;
+            $student->national_id    = $student->national_id ?: $admission->national_id;
+            $student->address        = $student->address ?: ($admission->present_house ?: $admission->permanent_house);
+            $student->email          = $student->email ?: $admission->email;
+            $student->phone          = $student->phone ?: $admission->phone;
+            $student->gender         = $student->gender ?: $admission->gender;
+            $student->date_of_birth  = $student->date_of_birth ?: $admission->date_of_birth;
 
             $student->status = 'ACTIVE';
             $student->save();
+
+            // ── AUTO-CREATE USER ACCOUNT ──────────────────────────────────
+            // Only create if not already linked to a user account
+            $rawPassword = null;
+            if (empty($student->user_id)) {
+                $loginEmail    = $student->email ?: ($student->student_code . '@iom.student');
+                $tempPassword  = $student->phone ?: 'iom@1234';
+                $rawPassword   = $tempPassword;
+
+                // If email already taken by another user, use student_code based email
+                if (User::where('email', $loginEmail)->exists()) {
+                    $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code)) . '@iom.student';
+                }
+
+                $user = User::create([
+                    'name'     => $student->name,
+                    'email'    => $loginEmail,
+                    'password' => Hash::make($tempPassword),
+                    'role'     => 'student',
+                ]);
+
+                // Link User to Student
+                $student->user_id = $user->id;
+                $student->save();
+            } else {
+                $user = $student->user;
+            }
+            // ─────────────────────────────────────────────────────────────
 
             // Update Admission Form
             $admission->update([
@@ -263,10 +339,48 @@ class AdmissionController extends Controller
             ]);
 
             // Auto-generate Admission & Initial Semester Fee Invoices
-            \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
-            \App\Services\AccountingService::createSemesterInvoice($student, $enrollment);
+            $initialSemester = $batch->semesterPosition?->currentSemester
+                ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
 
-            return back()->with('success', "Admission APPROVED! Student activated with Code: {$student->student_code}, enrolled into {$batch->name}, and Auto-Invoices generated.");
+            \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
+            \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
+
+            // ── DISPATCH ADMISSION APPROVAL EMAIL ────────────────────────
+            $targetEmail = $student->email ?: ($user ? $user->email : null);
+            if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+                try {
+                    $mailService = app(\App\Services\DynamicMailService::class);
+                    $subject = "🎉 Admission Approved! Welcome to IOM — Your Student ID & Login Credentials";
+                    $displayPassword = $rawPassword ?: ($student->phone ?: 'Your registered phone number');
+                    $courseName = $admission->interestedCourse->name ?? 'Islamic Online Madrasah';
+
+                    $emailBody = "Assalamu Alaikum, {$student->name}!\n\n"
+                        . "Alhamdulillah! Your admission application (App No: {$admission->application_no}) for \"{$courseName}\" has been APPROVED.\n\n"
+                        . "Here are your Official Student Credentials:\n"
+                        . "----------------------------------------\n"
+                        . "• Official Student ID: {$student->student_code}\n"
+                        . "• Batch Name: {$batch->name}\n"
+                        . "• Login Email / ID: {$user->email} OR {$student->student_code}\n"
+                        . "• Password: {$displayPassword}\n"
+                        . "----------------------------------------\n\n"
+                        . "You can login to your Student Portal using EITHER your Login Email OR your Official Student ID ({$student->student_code}) along with your password.\n\n"
+                        . "Please login to access your class schedule, routine, and learning materials.";
+
+                    $mailService->sendHtmlNotification(
+                        $targetEmail,
+                        $subject,
+                        $emailBody,
+                        null,
+                        url('/login')
+                    );
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Admission Approval Email Exception: ' . $e->getMessage());
+                }
+            }
+
+            $loginInfo = "Student ID: {$student->student_code} | Login Email: {$user->email} | Password: " . ($rawPassword ?: $student->phone);
+
+            return back()->with('success', "Admission APPROVED! Student ID Generated: {$student->student_code}, Batch: {$batch->name}. 🔑 {$loginInfo} 📧 Credentials email dispatched to student.");
         });
     }
 

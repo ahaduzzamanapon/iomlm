@@ -14,19 +14,19 @@
         <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
             <form method="POST" action="{{ route('student.documents.generate', 'certificate') }}">
                 @csrf
-                <button type="submit" class="btn btn-outline">📜 Course Certificate</button>
+                <button type="submit" class="btn btn-outline">Course Certificate</button>
             </form>
             <form method="POST" action="{{ route('student.documents.generate', 'transcript') }}">
                 @csrf
-                <button type="submit" class="btn btn-outline">📑 Academic Transcript</button>
+                <button type="submit" class="btn btn-outline">Academic Transcript</button>
             </form>
             <form method="POST" action="{{ route('student.documents.generate', 'marksheet') }}">
                 @csrf
-                <button type="submit" class="btn btn-outline">📊 Semester Marksheet</button>
+                <button type="submit" class="btn btn-outline">Semester Marksheet</button>
             </form>
             <form method="POST" action="{{ route('student.documents.generate', 'completion_letter') }}">
                 @csrf
-                <button type="submit" class="btn btn-outline">✉️ Completion Letter</button>
+                <button type="submit" class="btn btn-outline">Completion Letter</button>
             </form>
         </div>
     </div>
@@ -50,7 +50,7 @@
                         <td>{{ str_replace('_', ' ', $doc->type) }}</td>
                         <td class="td-muted">{{ \Carbon\Carbon::parse($doc->generated_at)->format('d M Y, h:i A') }}</td>
                         <td>
-                            <button class="btn btn-outline btn-sm" onclick="alert('Viewing document preview for {{ $doc->document_number }}')">👁️ View PDF</button>
+                            <button class="btn btn-outline btn-sm" onclick="alert('Viewing document preview for {{ $doc->document_number }}')">View PDF</button>
                         </td>
                     </tr>
                     @empty

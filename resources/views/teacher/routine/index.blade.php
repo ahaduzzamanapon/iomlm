@@ -17,7 +17,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📅 My Weekly Routine</h1>
+            <h1>My Weekly Routine</h1>
             <p>Your personal class schedule for the week</p>
         </div>
     </div>
@@ -54,11 +54,11 @@
                                 <div class="cell-wrapper {{ $isWeekend ? 'cell-weekend' : '' }}">
                                     @forelse($cellEntries as $entry)
                                         <div class="entry-pill {{ $entry->is_override ? 'override' : '' }}">
-                                            @if($entry->is_override)<span style="font-size:10px">⚠️ Override &nbsp;</span>@endif
+                                            @if($entry->is_override)<span style="font-size:10px">Override &nbsp;</span>@endif
                                             <div class="pill-title">{{ $entry->title ?: ($entry->subject?->code ?? '—') }}</div>
-                                            <div class="pill-sub">📦 {{ $entry->batch?->name ?? '—' }}</div>
+                                            <div class="pill-sub">{{ $entry->batch?->name ?? '—' }}</div>
                                             @if(isset($todaySessions[$entry->id]))
-                                            <div class="pill-sub"><a href="{{ $todaySessions[$entry->id]->meeting_link }}" target="_blank" style="color:#a7f3d0;text-decoration:none">🎥 Join Meet</a></div>
+                                            <div class="pill-sub"><a href="{{ $todaySessions[$entry->id]->meeting_link }}" target="_blank" style="color:#a7f3d0;text-decoration:none">Join Meet</a></div>
                                             @endif
                                         </div>
                                     @empty

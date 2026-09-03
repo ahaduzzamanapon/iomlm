@@ -11,36 +11,28 @@
     <!-- Teacher Stats -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon teal">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['today_classes'] }}</div>
                 <div class="stat-label">Today's Classes</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon blue">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['attendance_todo'] }}</div>
                 <div class="stat-label">Attendance Pending</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon green">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['total_subjects'] }}</div>
                 <div class="stat-label">Subjects Assigned</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon orange">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['pending_results'] }}</div>
                 <div class="stat-label">Results Pending</div>
@@ -52,14 +44,14 @@
         <!-- Today's Classes -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📅 Today's Classes</span>
+                <span class="card-title">Today's Classes</span>
                 <a href="{{ route('teacher.classes.today') }}" class="btn btn-ghost btn-sm">View All Today →</a>
             </div>
             <div style="padding:0">
                 @forelse($todayClasses as $cs)
                 <div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--card-border)">
                     <div style="width:36px;height:36px;background:{{ $cs->routineEntry?->color ?? '#3b82f6' }}22;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid {{ $cs->routineEntry?->color ?? '#3b82f6' }}">
-                        <span style="font-size:14px">🎥</span>
+                        <i class="fa-solid fa-video" style="font-size:14px;color:{{ $cs->routineEntry?->color ?? '#3b82f6' }}"></i>
                     </div>
                     <div style="flex:1;min-width:0">
                         <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $cs->subject?->name ?? '—' }}</div>
@@ -71,11 +63,11 @@
                     </div>
                     <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
                         @if($cs->meeting_link)
-                            <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:11px">🔗 Join</a>
+                            <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-primary btn-sm" style="font-size:11px"><i class="fa-solid fa-video"></i> Join</a>
                         @else
                             <form method="POST" action="{{ route('teacher.classes.setLink', $cs) }}">
                                 @csrf
-                                <button class="btn btn-outline btn-sm" style="font-size:11px;color:#f59e0b">⚡ Generate Link</button>
+                                <button class="btn btn-outline btn-sm" style="font-size:11px;color:#f59e0b">Generate Link</button>
                             </form>
                         @endif
                         @if($cs->status !== 'COMPLETED' && $cs->status !== 'CANCELLED')
@@ -86,7 +78,7 @@
                     </div>
                 </div>
                 @empty
-                <div class="empty-state"><p>No classes today 🎉</p></div>
+                <div class="empty-state"><p>No classes today</p></div>
                 @endforelse
             </div>
         </div>
@@ -119,7 +111,7 @@
         <!-- Attendance Pending -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">⚠️ Attendance Not Marked</span>
+                <span class="card-title">Attendance Not Marked</span>
                 <span class="badge badge-pending no-dot" style="font-size:11px">Action Required</span>
             </div>
             <div style="padding:0">
@@ -135,7 +127,7 @@
                     <a href="{{ route('teacher.attendance.mark', $cs) }}" class="btn btn-outline btn-sm">Mark Now</a>
                 </div>
                 @empty
-                <div class="empty-state"><p>All attendance marked ✓</p></div>
+                <div class="empty-state"><p>All attendance marked <i class="fa-solid fa-circle-check" style="color:#10b981"></i></p></div>
                 @endforelse
             </div>
         </div>

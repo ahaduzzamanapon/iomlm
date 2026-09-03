@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📣 Central Notice Board &amp; Announcements</h1>
+            <h1>Central Notice Board &amp; Announcements</h1>
             <p>Publish announcements, exam notices, and emergency alerts for students &amp; teachers</p>
         </div>
         <div class="page-header-actions">
@@ -15,7 +15,7 @@
 
     @if(session('success'))
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
-            ✓ {{ session('success') }}
+            {{ session('success') }}
         </div>
     @endif
 
@@ -44,6 +44,11 @@
                                 Batch: {{ $n->batch->name }}
                             </span>
                         @endif
+                        @if($n->semester)
+                            <span class="badge badge-active no-dot" style="font-size:10px;margin-left:4px;background:#10b981">
+                                Semester: {{ $n->semester->name }}
+                            </span>
+                        @endif
                         <h3 style="font-size:16px;font-weight:700;margin:6px 0 2px;color:#0f172a">{{ $n->title }}</h3>
                         <div style="font-size:11px;color:#64748b">
                             Published {{ $n->created_at->diffForHumans() }} ({{ $n->created_at->format('d M Y, h:i A') }}) by {{ $n->creator->name ?? 'Admin' }}
@@ -53,7 +58,7 @@
                         <form method="POST" action="{{ route('admin.notices.destroy', $n) }}" onsubmit="return confirm('Delete this notice?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444">
-                                🗑️ Delete
+                                <i class="fa-solid fa-trash"></i> Delete
                             </button>
                         </form>
                     </div>
@@ -76,7 +81,7 @@
 
     {{-- Create Notice Modal --}}
     <div class="modal-overlay" id="createNoticeModal">
-        <div class="modal" style="max-width:600px">
+        <div class="modal" style="max-width:650px">
             <div class="modal-header">
                 <span class="modal-title">+ Publish Announcement Notice</span>
                 <button class="modal-close" onclick="closeModal('createNoticeModal')">&times;</button>
@@ -89,7 +94,7 @@
                         <input type="text" name="title" class="form-control" placeholder="e.g. Midterm Examination Schedule & Guidelines" required>
                     </div>
 
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
                             <label>Target Audience <span class="required">*</span></label>
                             <select name="target_audience" class="form-control" required>
@@ -106,12 +111,24 @@
                                 <option value="URGENT">URGENT (জরুরি)</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
-                            <label>Specific Batch</label>
+                            <label>Specific Batch (ঐচ্ছিক)</label>
                             <select name="batch_id" class="form-control">
-                                <option value="">All Batches</option>
+                                <option value="">All Batches (সকল ব্যাচ)</option>
                                 @foreach($batches as $b)
                                     <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Specific Semester (সেমিস্টার)</label>
+                            <select name="semester_id" class="form-control">
+                                <option value="">All Semesters (সকল সেমিস্টার)</option>
+                                @foreach($semesters as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -124,7 +141,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('createNoticeModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">📢 Publish Notice</button>
+                    <button type="submit" class="btn btn-primary">Publish Notice</button>
                 </div>
             </form>
         </div>

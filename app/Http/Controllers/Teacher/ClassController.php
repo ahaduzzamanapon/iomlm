@@ -17,7 +17,7 @@ class ClassController extends Controller
 {
     private function teacher(): ?Teacher
     {
-        return Teacher::where('email', auth()->user()->email)->first();
+        return Teacher::where('user_id', auth()->id())->first();
     }
 
     /**
@@ -27,14 +27,18 @@ class ClassController extends Controller
     {
         $teacher = $this->teacher();
         $meetingProvider = (new MeetingService())->provider();
+        $today = Carbon::today()->toDateString();
 
-        $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'moduleCovered', 'attendances'])
-            ->where('teacher_id', $teacher?->id)
+        if (!$teacher) {
+            $sessions = collect();
+            return view('teacher.classes.index', compact('sessions', 'today', 'meetingProvider'));
+        }
+
+        $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'moduleCovered', 'attendances', 'teacher'])
+            ->where('teacher_id', $teacher->id)
             ->orderBy('session_date', 'desc')
             ->get()
             ->groupBy(fn($s) => $s->session_date?->format('Y-W'));
-
-        $today = Carbon::today()->toDateString();
 
         return view('teacher.classes.index', compact('sessions', 'today', 'meetingProvider'));
     }
@@ -48,8 +52,13 @@ class ClassController extends Controller
         $today   = Carbon::today();
         $meetingProvider = (new MeetingService())->provider();
 
-        $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'moduleCovered'])
-            ->where('teacher_id', $teacher?->id)
+        if (!$teacher) {
+            $sessions = collect();
+            return view('teacher.classes.today', compact('sessions', 'today', 'meetingProvider'));
+        }
+
+        $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'moduleCovered', 'teacher'])
+            ->where('teacher_id', $teacher->id)
             ->where('session_date', $today->toDateString())
             ->orderBy('start_time')
             ->get();
@@ -57,11 +66,23 @@ class ClassController extends Controller
         return view('teacher.classes.today', compact('sessions', 'today', 'meetingProvider'));
     }
 
+    private function authorizeSession(ClassSession $class): ?Teacher
+    {
+        $teacher = $this->teacher();
+        if (!$teacher || ($class->teacher_id && $class->teacher_id !== $teacher->id)) {
+            if (!auth()->user()->isAdmin()) {
+                abort(403, 'Unauthorized access to this class session.');
+            }
+        }
+        return $teacher;
+    }
+
     /**
      * Conduct a specific session: add meeting link, log module, take attendance.
      */
     public function conduct(ClassSession $class)
     {
+        $this->authorizeSession($class);
         $class->load(['subject', 'batch', 'routineEntry.slot', 'teacher', 'attendances.student', 'moduleCovered']);
         $meetingProvider = (new MeetingService())->provider();
 
@@ -82,6 +103,8 @@ class ClassController extends Controller
      */
     public function setLink(Request $request, ClassSession $class)
     {
+        $this->authorizeSession($class);
+
         $validated = $request->validate([
             'session_date' => 'nullable|date',
             'start_time'   => 'nullable|string',
@@ -260,6 +283,8 @@ class ClassController extends Controller
      */
     public function markCancelled(Request $request, ClassSession $class)
     {
+        $this->authorizeSession($class);
+
         $class->update([
             'teacher_present' => false,
             'class_conducted' => false,
@@ -278,8 +303,14 @@ class ClassController extends Controller
     {
         $teacher = $this->teacher();
 
-        $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot'])
-            ->where('teacher_id', $teacher?->id)
+        if (!$teacher) {
+            $events   = collect();
+            $sessions = collect();
+            return view('teacher.calendar.index', compact('events', 'sessions'));
+        }
+
+        $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'teacher'])
+            ->where('teacher_id', $teacher->id)
             ->whereNotNull('session_date')
             ->get();
 

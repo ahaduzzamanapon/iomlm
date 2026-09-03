@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addCourseModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 New Course
             </button>
         </div>
@@ -60,7 +59,8 @@
                             @endif
                         </td>
                         <td style="text-align:right">
-                            <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm">Configure →</a>
+                            <button class="btn btn-outline btn-sm" onclick='openEditCourseModal(@json($course))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                            <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm">Configure</a>
                         </td>
                     </tr>
                     @empty
@@ -91,13 +91,13 @@
                         <div class="type-selector">
                             <label class="type-option selected" id="opt-semester" onclick="selectType('SEMESTER_BASED')">
                                 <input type="radio" name="type" value="SEMESTER_BASED" checked>
-                                <div class="type-option-icon">🎓</div>
+                                <div class="type-option-icon"><i class="fa-solid fa-graduation-cap"></i></div>
                                 <div class="type-option-label">Semester Based</div>
                                 <div class="type-option-desc">Subjects are bound to semesters</div>
                             </label>
                             <label class="type-option" id="opt-subject" onclick="selectType('SUBJECT_BASED')">
                                 <input type="radio" name="type" value="SUBJECT_BASED">
-                                <div class="type-option-icon">📖</div>
+                                <div class="type-option-icon"><i class="fa-solid fa-book"></i></div>
                                 <div class="type-option-label">Subject Based</div>
                                 <div class="type-option-desc">Direct subject selection</div>
                             </label>
@@ -142,6 +142,60 @@
         </div>
     </div>
 
+    <!-- Edit Course Modal -->
+    <div class="modal-overlay" id="editCourseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Academic Course</span>
+                <button class="modal-close" onclick="closeModal('editCourseModal')">&times;</button>
+            </div>
+            <form method="POST" id="editCourseForm">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Course Name <span class="required">*</span></label>
+                        <input type="text" name="name" id="edit_course_name" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Course Type <span class="required">*</span></label>
+                        <select name="type" id="edit_course_type" class="form-control" required>
+                            <option value="SEMESTER_BASED">Semester Based</option>
+                            <option value="SUBJECT_BASED">Subject Based</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Duration Value <span class="required">*</span></label>
+                            <input type="number" name="duration_value" id="edit_course_duration_value" class="form-control" min="0.5" step="0.5" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Duration Unit <span class="required">*</span></label>
+                            <select name="duration_unit" id="edit_course_duration_unit" class="form-control" required>
+                                <option value="YEAR">Years</option>
+                                <option value="MONTH">Months</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Admission Fee (৳)</label>
+                        <input type="number" name="admission_fee" id="edit_course_admission_fee" class="form-control" min="0" step="0.01">
+                    </div>
+
+                    <label class="form-check">
+                        <input type="checkbox" name="is_active" id="edit_course_is_active" value="1"> Active Course
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editCourseModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
     function selectType(type) {
@@ -153,6 +207,17 @@
             document.getElementById('opt-subject').classList.add('selected');
             document.getElementById('semestersCountGroup').style.display = 'none';
         }
+    }
+
+    function openEditCourseModal(course) {
+        document.getElementById('editCourseForm').action = '/admin/courses/' + course.id;
+        document.getElementById('edit_course_name').value = course.name;
+        document.getElementById('edit_course_type').value = course.type;
+        document.getElementById('edit_course_duration_value').value = course.duration_value;
+        document.getElementById('edit_course_duration_unit').value = course.duration_unit;
+        document.getElementById('edit_course_admission_fee').value = course.admission_fee || 0;
+        document.getElementById('edit_course_is_active').checked = !!course.is_active;
+        openModal('editCourseModal');
     }
     </script>
     @endpush

@@ -34,7 +34,7 @@
                 @if($class->meeting_link && $class->status === 'SCHEDULED')
                 <div style="margin-top:20px">
                     <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary">
-                        🎥 Join Live Class
+                        Join Live Class
                     </a>
                 </div>
                 @endif
@@ -47,12 +47,12 @@
                 @if($attendance)
                     @php
                         $color = match($attendance->status) { 'PRESENT'=>'#10b981','ABSENT'=>'#ef4444','LATE'=>'#f59e0b','EXCUSED'=>'#3b82f6',default=>'#6b7280' };
-                        $icon  = match($attendance->status) { 'PRESENT'=>'✅','ABSENT'=>'❌','LATE'=>'⏰','EXCUSED'=>'📋',default=>'—' };
+                        $icon  = match($attendance->status) { 'PRESENT'=>'','ABSENT'=>'','LATE'=>'','EXCUSED'=>'',default=>'—' };
                     @endphp
                     <div style="font-size:48px;margin-bottom:8px">{{ $icon }}</div>
                     <div style="font-size:18px;font-weight:700;color:{{ $color }}">{{ $attendance->status }}</div>
                 @else
-                    <div style="font-size:40px;margin-bottom:8px">📋</div>
+                    <div style="font-size:40px;margin-bottom:8px"></div>
                     <div style="color:var(--text-muted)">
                         @if($class->status === 'COMPLETED') Attendance not recorded @else Pending @endif
                     </div>

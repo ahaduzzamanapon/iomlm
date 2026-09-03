@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <a href="{{ route('admin.admissions.create') }}" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 New Admission
             </a>
         </div>
@@ -24,11 +23,11 @@
             <span class="badge badge-secondary no-dot" style="margin-left:4px">{{ $totalCount }}</span>
         </a>
         <a href="?tab=admin"  class="tab-item {{ $tab === 'admin'  ? 'active' : '' }}">
-            🏫 Admin Added
+            <i class="fa-solid fa-building-columns"></i> Admin Added
             <span class="badge badge-secondary no-dot" style="margin-left:4px">{{ $adminCount }}</span>
         </a>
         <a href="?tab=public" class="tab-item {{ $tab === 'public' ? 'active' : '' }}">
-            🌐 Public Form
+            <i class="fa-solid fa-globe"></i> Public Form
             <span class="badge badge-secondary no-dot" style="margin-left:4px;background:rgba(139,92,246,.15);color:#7c3aed">{{ $publicCount }}</span>
             @if($publicPending > 0)<span class="badge no-dot" style="background:#ef4444;color:#fff;margin-left:4px">{{ $publicPending }}</span>@endif
         </a>
@@ -70,13 +69,13 @@
                         @forelse($adminAdmissions as $adm)
                         <tr>
                             <td>
-                                <span class="badge no-dot" style="background:rgba(59,130,246,.1);color:#1d4ed8;font-size:11px">🏫 Admin</span>
+                                <span class="badge no-dot" style="background:rgba(59,130,246,.1);color:#1d4ed8;font-size:11px"><i class="fa-solid fa-building-columns"></i> Admin</span>
                             </td>
                             <td class="td-primary">
                                 <strong>{{ $adm->student->name ?? '—' }}</strong>
                                 <div class="td-muted">{{ $adm->student->phone ?? '—' }}</div>
                                 @if($adm->waiver_code)
-                                    <span class="badge badge-active no-dot" style="font-size:10px;padding:2px 6px;margin-top:2px">🎁 Waiver: {{ $adm->waiver_code }} ({{ $adm->discount_percent }}%)</span>
+                                    <span class="badge badge-active no-dot" style="font-size:10px;padding:2px 6px;margin-top:2px"><i class="fa-solid fa-gift"></i> Waiver: {{ $adm->waiver_code }} ({{ $adm->discount_percent }}%)</span>
                                 @endif
                             </td>
                             <td style="font-size:12px">
@@ -94,7 +93,7 @@
                                 @endif
                             </td>
                             <td style="text-align:right">
-                                <a href="{{ route('admin.admissions.show', $adm) }}" class="btn btn-outline btn-sm">View →</a>
+                                <a href="{{ route('admin.admissions.show', $adm) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</a>
                             </td>
                         </tr>
                         @empty
@@ -107,14 +106,14 @@
                         @forelse($publicApplications as $pub)
                         <tr>
                             <td>
-                                <span class="badge no-dot" style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:11px">🌐 Public</span>
+                                <span class="badge no-dot" style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:11px"><i class="fa-solid fa-globe"></i> Public</span>
                                 <div style="font-size:10px;color:var(--text-muted);margin-top:2px">{{ $pub->application_no }}</div>
                             </td>
                             <td class="td-primary">
                                 <strong>{{ $pub->student->name ?? '—' }}</strong>
                                 <div class="td-muted">{{ $pub->student->phone ?? '—' }}</div>
                                 @if($pub->waiver_code)
-                                    <span class="badge badge-active no-dot" style="font-size:10px;padding:2px 6px;margin-top:2px">🎁 Waiver: {{ $pub->waiver_code }} ({{ $pub->discount_percent }}%)</span>
+                                    <span class="badge badge-active no-dot" style="font-size:10px;padding:2px 6px;margin-top:2px"><i class="fa-solid fa-gift"></i> Waiver: {{ $pub->waiver_code }} ({{ $pub->discount_percent }}%)</span>
                                 @endif
                             </td>
                             <td style="font-size:12px">
@@ -134,7 +133,7 @@
                                 @endif
                             </td>
                             <td style="text-align:right">
-                                <a href="{{ route('admin.admissions.show', $pub) }}" class="btn btn-outline btn-sm">View →</a>
+                                <a href="{{ route('admin.admissions.show', $pub) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</a>
                             </td>
                         </tr>
                         @empty

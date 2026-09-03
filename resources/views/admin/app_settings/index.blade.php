@@ -11,7 +11,7 @@
     {{-- Tab navigation --}}
     @php $tab = request('tab', 'blood-groups'); @endphp
     <div style="display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid var(--card-border);padding-bottom:0">
-        @foreach(['blood-groups'=>'🩸 Blood Groups','religions'=>'☪️ Religions','divisions'=>'🗺️ Divisions & Districts','settings'=>'⚙️ Global Settings'] as $key => $label)
+        @foreach(['blood-groups'=>'Blood Groups','religions'=>'Religions','divisions'=>'Divisions & Districts','settings'=>'Global Settings'] as $key => $label)
         <a href="?tab={{ $key }}"
            style="padding:9px 18px;font-size:13px;font-weight:600;border-radius:8px 8px 0 0;text-decoration:none;
                   {{ $tab === $key ? 'background:var(--card-bg);border:1px solid var(--card-border);border-bottom:2px solid var(--card-bg);color:var(--blue);margin-bottom:-2px' : 'color:var(--text-muted)' }}">

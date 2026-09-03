@@ -12,7 +12,7 @@ class ExamController extends Controller
 {
     public function index()
     {
-        $exams = Exam::with(['subject', 'attendees.student'])->latest()->get();
+        $exams    = Exam::with(['subject', 'attendees.student'])->latest()->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
         return view('admin.exams.index', compact('exams', 'subjects'));
     }
@@ -47,5 +47,20 @@ class ExamController extends Controller
     {
         $exam->load(['subject', 'attendees.student', 'results.student']);
         return view('admin.exams.show', compact('exam'));
+    }
+
+    public function update(Request $request, Exam $exam)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:SCHEDULED,ONGOING,COMPLETED,CANCELLED',
+        ]);
+        $exam->update($validated);
+        return back()->with('success', 'Exam status updated.');
+    }
+
+    public function destroy(Exam $exam)
+    {
+        $exam->delete();
+        return back()->with('success', 'Exam removed.');
     }
 }

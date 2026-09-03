@@ -10,7 +10,7 @@ class AttendanceController extends Controller
 {
     public function index()
     {
-        $student = Student::where('email', auth()->user()->email)->first();
+        $student = Student::where('user_id', auth()->id())->first();
 
         $attendances = Attendance::with(['classSession.subject', 'classSession.batch', 'classSession.routineEntry.slot'])
             ->where('student_id', $student?->id)

@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>🎥 Class Sessions</h1>
+            <h1>Class Sessions</h1>
             <p>Routine-based class schedule — per-class meeting links & attendance</p>
         </div>
     </div>
@@ -20,7 +20,7 @@
                 </select>
                 <input type="date" name="date" class="form-control" value="{{ $dateFilter }}" style="min-width:150px" onchange="document.getElementById('filterForm').submit()" title="Filter by date">
                 @if($dateFilter)
-                    <a href="{{ route('admin.classes.index', array_filter(['status' => $status ?: null, 'batch_id' => $batchId ?: null])) }}" class="btn btn-sm btn-ghost" title="Clear date">✕ Clear Date</a>
+                    <a href="{{ route('admin.classes.index', array_filter(['status' => $status ?: null, 'batch_id' => $batchId ?: null])) }}" class="btn btn-sm btn-ghost" title="Clear date">Clear Date</a>
                 @endif
                 <input type="hidden" name="status" value="{{ $status }}">
             </form>
@@ -41,7 +41,7 @@
         <div class="card-header">
             <span class="card-title">
                 @if($dateFilter)
-                    📅 {{ \Carbon\Carbon::parse($dateFilter)->format('l, d M Y') }}
+                    {{ \Carbon\Carbon::parse($dateFilter)->format('l, d M Y') }}
                     — {{ $classes->count() }} Session{{ $classes->count() !== 1 ? 's' : '' }}
                 @else
                     {{ $classes->count() }} Session{{ $classes->count() !== 1 ? 's' : '' }}
@@ -95,12 +95,12 @@
                         </td>
                         <td>
                             @if($cs->meeting_link)
-                                <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-outline" style="font-size:11px">🔗 Join</a>
+                                <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-outline" style="font-size:11px">Join</a>
                             @else
                                 <form method="POST" action="{{ route('admin.classes.generateZoom', $cs) }}" style="display:inline">
                                     @csrf
                                     <button type="submit" class="btn btn-sm btn-outline" style="font-size:11px;color:#2563eb" title="Generate Real Zoom Link">
-                                        ⚡ Generate Zoom Link
+                                        Generate Zoom Link
                                     </button>
                                 </form>
                             @endif

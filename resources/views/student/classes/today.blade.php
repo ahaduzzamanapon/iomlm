@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>☀️ Today's Classes</h1>
+            <h1>Today's Classes</h1>
             <p>{{ \Carbon\Carbon::parse($today)->format('l, d F Y') }} — Your scheduled sessions for today</p>
         </div>
         <div class="page-header-actions">
@@ -13,7 +13,7 @@
 
     @if($sessions->isEmpty())
         <div class="card" style="padding:60px;text-align:center">
-            <div style="font-size:48px;margin-bottom:12px">🎉</div>
+            <div style="font-size:48px;margin-bottom:12px"></div>
             <div style="font-size:18px;font-weight:600;color:#1e293b;margin-bottom:6px">No classes today!</div>
             <p style="color:var(--text-muted)">You have no scheduled sessions for {{ \Carbon\Carbon::parse($today)->format('l, d M Y') }}.</p>
             <a href="{{ route('student.calendar') }}" class="btn btn-outline" style="margin-top:16px">View Calendar</a>
@@ -51,10 +51,10 @@
                                 <div style="font-size:16px;font-weight:700;color:#1e293b">{{ $cs->subject?->name ?? '—' }}</div>
                                 <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
                                     {{ $cs->batch?->name ?? '' }}
-                                    @if($cs->teacher) · 👨‍🏫 {{ $cs->teacher->name }} @endif
+                                    @if($cs->teacher) · {{ $cs->teacher->name }} @endif
                                 </div>
                                 @if($cs->moduleCovered)
-                                    <div style="font-size:11px;color:#6366f1;margin-top:4px">📖 {{ $cs->moduleCovered->title }}</div>
+                                    <div style="font-size:11px;color:#6366f1;margin-top:4px">{{ $cs->moduleCovered->title }}</div>
                                 @endif
                             </div>
                             @php $badge = match($cs->status) { 'COMPLETED'=>'badge-success','CANCELLED'=>'badge-danger','RUNNING'=>'badge-warning',default=>'badge-info' }; @endphp
@@ -65,14 +65,14 @@
                         <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
                             @if($cs->meeting_link && in_array($cs->status, ['SCHEDULED','RUNNING']))
                                 <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">
-                                    🎥 Join Live Class
+                                    Join Live Class
                                 </a>
                             @elseif($cs->status === 'SCHEDULED')
                                 <span class="badge badge-secondary no-dot" style="font-size:11px">⏳ Awaiting link from teacher</span>
                             @elseif($cs->status === 'COMPLETED')
-                                <span class="badge badge-success no-dot" style="font-size:11px">✓ Class completed</span>
+                                <span class="badge badge-success no-dot" style="font-size:11px">Class completed</span>
                             @elseif($cs->status === 'CANCELLED')
-                                <span class="badge badge-danger no-dot" style="font-size:11px">✗ Cancelled</span>
+                                <span class="badge badge-danger no-dot" style="font-size:11px">Cancelled</span>
                             @endif
                             <a href="{{ route('student.classes.show', $cs) }}" class="btn btn-ghost btn-sm" style="font-size:11px">Details →</a>
                         </div>

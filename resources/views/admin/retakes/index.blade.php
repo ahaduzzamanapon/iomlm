@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addRetakeModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 New Subject Retake
             </button>
         </div>
@@ -58,7 +57,7 @@
                             @if($ret->status === 'PENDING')
                                 <button class="btn btn-success btn-sm"
                                     onclick="openApproveRetake({{ $ret->id }}, @json($ret->student->name ?? ''), @json($ret->subject->name ?? ''))">
-                                    ✓ Approve & Set Fee
+                                    Approve & Set Fee
                                 </button>
                             @else
                                 <span class="td-muted" style="font-size:12px">—</span>
@@ -117,7 +116,7 @@
                         <textarea name="notes" class="form-control" placeholder="Admin notes for retake approval..."></textarea>
                     </div>
                     <div class="alert alert-info" style="margin-top:8px">
-                        💡 Retake Fee will be set by admin at the time of approval.
+                        Retake Fee will be set by admin at the time of approval.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -132,7 +131,7 @@
     <div class="modal-overlay" id="approveRetakeModal">
         <div class="modal" style="max-width:450px">
             <div class="modal-header">
-                <span class="modal-title">✓ Approve Retake & Set Fee</span>
+                <span class="modal-title">Approve Retake & Set Fee</span>
                 <button class="modal-close" onclick="closeModal('approveRetakeModal')">&times;</button>
             </div>
             <form method="POST" id="approveRetakeForm">
@@ -153,7 +152,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('approveRetakeModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success">✓ Approve & Generate Invoice</button>
+                    <button type="submit" class="btn btn-success">Approve & Generate Invoice</button>
                 </div>
             </form>
         </div>

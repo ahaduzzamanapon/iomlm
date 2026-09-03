@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function () {
+Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')->name('teacher.')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -43,8 +43,14 @@ Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function
     Route::get('exams',                            [\App\Http\Controllers\Teacher\ExamController::class, 'index'])->name('exams.index');
     Route::post('exams',                           [\App\Http\Controllers\Teacher\ExamController::class, 'store'])->name('exams.store');
     Route::get('exams/{exam}',                     [\App\Http\Controllers\Teacher\ExamController::class, 'show'])->name('exams.show');
+    Route::put('exams/{exam}',                     [\App\Http\Controllers\Teacher\ExamController::class, 'update'])->name('exams.update');
+    Route::delete('exams/{exam}',                  [\App\Http\Controllers\Teacher\ExamController::class, 'destroy'])->name('exams.destroy');
     Route::post('exams/{exam}/questions',          [\App\Http\Controllers\Teacher\ExamController::class, 'attachQuestion'])->name('exams.questions.attach');
     Route::delete('exams/{exam}/questions/{examQuestion}', [\App\Http\Controllers\Teacher\ExamController::class, 'detachQuestion'])->name('exams.questions.detach');
+
+    // Exam Grading (Written Questions)
+    Route::get('exams/{exam}/grade',               [\App\Http\Controllers\Teacher\ExamGradingController::class, 'index'])->name('exams.grade');
+    Route::patch('exam-answers/{answer}/grade',    [\App\Http\Controllers\Teacher\ExamGradingController::class, 'grade'])->name('exam-answers.grade');
 
     // Results
     Route::get('results',                      [\App\Http\Controllers\Teacher\ResultController::class, 'index'])->name('results.index');
@@ -52,8 +58,11 @@ Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function
     Route::post('results/{exam}/store',        [\App\Http\Controllers\Teacher\ResultController::class, 'store'])->name('results.store');
 
     // Learning Resources
-    Route::resource('resources', \App\Http\Controllers\Teacher\LearningResourceController::class);
+    Route::resource('resources', \App\Http\Controllers\Teacher\LearningResourceController::class)->only(['index', 'store', 'destroy']);
 
     // Routine
     Route::get('routine', [\App\Http\Controllers\Teacher\RoutineController::class, 'index'])->name('routine.index');
+
+    // Notice Board
+    Route::get('notices', [\App\Http\Controllers\Teacher\NoticeController::class, 'index'])->name('notices.index');
 });

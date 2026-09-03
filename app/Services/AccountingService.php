@@ -21,21 +21,39 @@ class AccountingService
      */
     public static function createAdmissionInvoice(Student $student, AdmissionForm $admission, Enrollment $enrollment): Invoice
     {
+        // ── SAFEGUARD 1: Prevent duplicate admission invoice for the same enrollment ──
+        $existing = Invoice::where('student_id', $student->id)
+            ->where('enrollment_id', $enrollment->id)
+            ->where('category', 'ADMISSION')
+            ->first();
+        if ($existing) {
+            return $existing; // Already created — return existing, don't duplicate
+        }
+
         $batch  = $enrollment->batch;
         $course = $enrollment->course ?? $batch?->course;
 
         // Priority 1: Batch admission fee, Priority 2: Course admission fee, Priority 3: FeeStructure fallback
-        $feeRate = ($batch && $batch->admission_fee > 0)
-            ? (float)$batch->admission_fee
-            : (($course && $course->admission_fee > 0)
-                ? (float)$course->admission_fee
-                : (float)(FeeStructure::where('category', 'ADMISSION')
-                    ->where(function ($q) use ($enrollment) {
-                        $q->where('course_id', $enrollment->course_id)
-                          ->orWhereNull('course_id');
-                    })
-                    ->where('is_active', true)
-                    ->value('amount') ?? 2000.00));
+        // IMPORTANT: if batch/course explicitly set to 0, honour that (don't fallback to FeeStructure)
+        $batchFee  = $batch  ? (float)$batch->admission_fee  : null;
+        $courseFee = $course ? (float)$course->admission_fee : null;
+
+        if ($batchFee !== null && $batchFee >= 0) {
+            // Batch admission_fee is explicitly configured — use it (even if 0)
+            $feeRate = $batchFee;
+        } elseif ($courseFee !== null && $courseFee >= 0) {
+            // Course admission_fee is explicitly configured — use it (even if 0)
+            $feeRate = $courseFee;
+        } else {
+            // No batch/course fee configured — fall back to FeeStructure
+            $feeRate = (float)(FeeStructure::where('category', 'ADMISSION')
+                ->where(function ($q) use ($enrollment) {
+                    $q->where('course_id', $enrollment->course_id)
+                      ->orWhereNull('course_id');
+                })
+                ->where('is_active', true)
+                ->value('amount') ?? 0.00);
+        }
 
         // Check if a waiver code is linked and has an approved_admission_fee set
         $waiverApp = null;
@@ -67,19 +85,23 @@ class AccountingService
 
         $invNo = 'INV-ADM-' . date('Ymd') . '-' . rand(1000, 9999);
 
+        // ── SAFEGUARD 2: If payable amount is 0, auto-mark as PAID immediately ──
+        // This ensures courses/batches with admission_fee=0 never show a pending due
+        $isFreAdmission = ($payableAmount <= 0);
+
         return Invoice::create([
             'invoice_no'     => $invNo,
             'student_id'     => $student->id,
             'enrollment_id'  => $enrollment->id,
             'category'       => 'ADMISSION',
-            'title'          => "Admission Fee — " . ($batch ? $batch->name : $enrollment->course->name),
+            'title'          => "Admission Fee — " . ($batch ? $batch->name : ($enrollment->course?->name ?? 'Course')),
             'amount'         => $feeRate,
             'discount'       => $discountAmount,
             'payable_amount' => $payableAmount,
-            'paid_amount'    => 0.00,
-            'due_amount'     => $payableAmount,
-            'status'         => $payableAmount <= 0 ? 'PAID' : 'UNPAID',
-            'due_date'       => Carbon::now()->addDays(7),
+            'paid_amount'    => $isFreAdmission ? 0.00 : 0.00,
+            'due_amount'     => $isFreAdmission ? 0.00 : $payableAmount,
+            'status'         => $isFreAdmission ? 'PAID' : 'UNPAID',
+            'due_date'       => $isFreAdmission ? null : Carbon::now()->addDays(7),
             'source_type'    => AdmissionForm::class,
             'source_id'      => $admission->id,
             'created_by'     => auth()->id(),
@@ -127,6 +149,29 @@ class AccountingService
      */
     public static function createSemesterInvoice(Student $student, Enrollment $enrollment, ?Semester $semester = null): Invoice
     {
+        // ── SAFEGUARD 3: Prevent duplicate semester invoice for same enrollment + semester ──
+        $dupQuery = Invoice::where('student_id', $student->id)
+            ->where('enrollment_id', $enrollment->id)
+            ->where('category', 'SEMESTER');
+        if ($semester) {
+            $dupQuery->where(function ($q) use ($semester) {
+                $q->where(function ($q2) use ($semester) {
+                    $q2->where('source_type', Semester::class)->where('source_id', $semester->id);
+                })->orWhere(fn($q3) => $q3->where('title', 'like', "%{$semester->name}%"));
+            });
+        }
+        $existingInv = $dupQuery->first();
+        if ($existingInv) {
+            return $existingInv; // Already exists for this semester — skip creation
+        }
+
+        $course = $enrollment->course ?? $enrollment->batch?->course;
+        $courseType = $course?->type ?? 'SEMESTER_BASED';
+        // ── SAFEGUARD 4: Subject-based courses use full package total (no semester division) ──
+        $totalSemesters = ($courseType === 'SUBJECT_BASED')
+            ? 1
+            : max(1, $course?->semesters()->count() ?: 6);
+
         // Check if student has an active approved waiver with a tuition package
         $approvedPackage = null;
         // Find waiver code from admission form
@@ -148,19 +193,22 @@ class AccountingService
         }
 
         if ($approvedPackage) {
-            // Use the approved package total
-            $feeRate    = (float) $approvedPackage->total;
-            $feeTitle   = "Semester Tuition Fee — {$enrollment->course->name} ({$approvedPackage->name})";
-            $discountAmount = 0.00;
+            $fullPackageTotal = (float) $approvedPackage->items()->sum('total_amount');
+            $feeRate          = round($fullPackageTotal / $totalSemesters, 2);
+            $feeLabel         = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
+            $feeTitle         = "{$feeLabel} — {$course?->name} ({$approvedPackage->name})";
+            $discountAmount   = 0.00;
         } else {
             // Check if course has default fee package
-            $course = $enrollment->course ?? $enrollment->batch?->course;
             $defaultPackage = $course?->feePackages()->where('is_default', true)->first()
                 ?? $course?->feePackages()->first();
 
-            if ($defaultPackage && $defaultPackage->total > 0) {
-                $feeRate  = (float) $defaultPackage->total;
-                $feeTitle = "Semester Tuition Fee — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
+            $packageTotal = $defaultPackage ? (float) $defaultPackage->items()->sum('total_amount') : 0;
+            $feeLabel     = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
+
+            if ($defaultPackage && $packageTotal > 0) {
+                $feeRate  = round($packageTotal / $totalSemesters, 2);
+                $feeTitle = "{$feeLabel} — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
                 $discountAmount = 0.00;
             } else {
                 // Fallback: FeeStructure lookup
@@ -170,21 +218,43 @@ class AccountingService
                           ->orWhereNull('course_id');
                     })
                     ->where('is_active', true)
-                    ->value('amount') ?? 10000.00);
-                $feeTitle       = "Semester Tuition Fee — {$enrollment->course->name}";
+                    ->value('amount') ?? 7000.00);
+                $feeTitle       = "{$feeLabel} — {$course?->name}";
                 $discountAmount = 0.00;
             }
         }
 
-        $semName = $semester?->name ?? 'Current Semester';
-        $invNo   = 'INV-SEM-' . date('Ymd') . '-' . rand(1000, 9999);
+        $semName = $semester?->name ?? 'Current Period';
+        // For subject-based courses, don't append semester name to avoid confusion
+        $titleSuffix = ($courseType === 'SUBJECT_BASED') ? '' : " ({$semName})";
+        $invNo   = 'INV-TUI-' . date('Ymd') . '-' . rand(1000, 9999);
+
+        // ── SAFEGUARD 5: feeRate must be positive — never create a ৳0 semester invoice ──
+        // If no fee configured, skip silently. Admin can manually create an invoice if needed.
+        if ($feeRate <= 0) {
+            // Return a dummy (unsaved) Invoice object with amount=0 to avoid breaking callers
+            $dummy = new Invoice([
+                'invoice_no'     => $invNo,
+                'student_id'     => $student->id,
+                'enrollment_id'  => $enrollment->id,
+                'category'       => 'SEMESTER',
+                'title'          => $feeTitle . $titleSuffix,
+                'amount'         => 0,
+                'payable_amount' => 0,
+                'paid_amount'    => 0,
+                'due_amount'     => 0,
+                'status'         => 'PAID',
+            ]);
+            $dummy->save();
+            return $dummy;
+        }
 
         return Invoice::create([
             'invoice_no'     => $invNo,
             'student_id'     => $student->id,
             'enrollment_id'  => $enrollment->id,
             'category'       => 'SEMESTER',
-            'title'          => $feeTitle . " ({$semName})",
+            'title'          => $feeTitle . $titleSuffix,
             'amount'         => $feeRate,
             'discount'       => $discountAmount,
             'payable_amount' => $feeRate,
@@ -200,7 +270,79 @@ class AccountingService
 
 
     /**
-     * Receive payment against an invoice and update due status.
+     * Submit payment request from Student Portal (Status: PENDING, awaiting Admin Approval).
+     */
+    public static function submitStudentPayment(Invoice $invoice, float $amount, string $method, ?string $trxId = null, ?string $remarks = null): Payment
+    {
+        $payNo = 'PAY-ONLINE-' . date('Ymd') . '-' . rand(1000, 9999);
+
+        return Payment::create([
+            'payment_no'     => $payNo,
+            'invoice_id'     => $invoice->id,
+            'student_id'     => $invoice->student_id,
+            'amount'         => $amount,
+            'payment_method' => $method,
+            'transaction_id' => $trxId,
+            'remarks'        => $remarks ?: 'Online Payment via Student Portal (Pending Approval)',
+            'received_by'    => null,
+            'status'         => 'PENDING',
+            'paid_at'        => now(),
+        ]);
+    }
+
+    /**
+     * Admin Approves a Pending Student Online Payment.
+     */
+    public static function approvePayment(Payment $payment): Payment
+    {
+        if ($payment->status === 'APPROVED') {
+            return $payment;
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($payment) {
+            $invoice = $payment->invoice;
+
+            $newPaidAmount = $invoice->paid_amount + $payment->amount;
+            $newDueAmount  = max(0, $invoice->payable_amount - $newPaidAmount);
+
+            $status = 'UNPAID';
+            if ($newDueAmount <= 0) {
+                $status = 'PAID';
+            } elseif ($newPaidAmount > 0) {
+                $status = 'PARTIAL';
+            }
+
+            $invoice->update([
+                'paid_amount' => $newPaidAmount,
+                'due_amount'  => $newDueAmount,
+                'status'      => $status,
+            ]);
+
+            $payment->update([
+                'status'      => 'APPROVED',
+                'approved_at' => now(),
+                'received_by' => auth()->id(),
+            ]);
+
+            return $payment;
+        });
+    }
+
+    /**
+     * Admin Rejects a Pending Student Online Payment.
+     */
+    public static function rejectPayment(Payment $payment, ?string $reason = null): Payment
+    {
+        $payment->update([
+            'status'  => 'REJECTED',
+            'remarks' => ($payment->remarks ? $payment->remarks . ' | ' : '') . 'Rejected: ' . ($reason ?: 'Invalid transaction details'),
+        ]);
+
+        return $payment;
+    }
+
+    /**
+     * Receive instant payment against an invoice (Admin Counter Collection).
      */
     public static function receivePayment(Invoice $invoice, float $amount, string $method = 'CASH', ?string $trxId = null, ?string $remarks = null): Payment
     {
@@ -215,6 +357,8 @@ class AccountingService
                 'payment_method' => $method,
                 'transaction_id' => $trxId,
                 'remarks'        => $remarks,
+                'status'         => 'APPROVED',
+                'approved_at'    => now(),
                 'received_by'    => auth()->id(),
                 'paid_at'        => now(),
             ]);

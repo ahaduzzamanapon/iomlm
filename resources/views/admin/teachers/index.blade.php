@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addTeacherModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 New Teacher
             </button>
         </div>
@@ -18,29 +17,29 @@
     <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap">
         <div class="card" style="padding:16px 22px;flex:1;min-width:140px;display:flex;align-items:center;gap:14px">
             <div style="width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,.1);display:flex;align-items:center;justify-content:center;color:#3b82f6">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <i class="fa-solid fa-chalkboard-user"></i>
             </div>
             <div><div class="stat-value">{{ $teachers->count() }}</div><div class="stat-label">Total Teachers</div></div>
         </div>
         <div class="card" style="padding:16px 22px;flex:1;min-width:140px;display:flex;align-items:center;gap:14px">
             <div style="width:40px;height:40px;border-radius:10px;background:rgba(16,185,129,.1);display:flex;align-items:center;justify-content:center;color:#10b981">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <i class="fa-solid fa-circle-check"></i>
             </div>
             <div><div class="stat-value">{{ $teachers->where('is_active', true)->count() }}</div><div class="stat-label">Active</div></div>
         </div>
         <div class="card" style="padding:16px 22px;flex:1;min-width:140px;display:flex;align-items:center;gap:14px">
             <div style="width:40px;height:40px;border-radius:10px;background:rgba(239,68,68,.1);display:flex;align-items:center;justify-content:center;color:#ef4444">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <i class="fa-solid fa-circle-xmark"></i>
             </div>
             <div><div class="stat-value">{{ $teachers->where('is_active', false)->count() }}</div><div class="stat-label">Inactive</div></div>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="overflow:visible">
         {{-- Search Toolbar --}}
         <div style="padding:14px 20px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div class="search-box" style="flex:1;min-width:220px">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                <i class="fa-solid fa-magnifying-glass" style="color:var(--text-muted)"></i>
                 <input type="text" id="teacherSearch" placeholder="Search by name, ID, designation, phone..." oninput="searchTeachers(this.value)">
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -54,7 +53,8 @@
         </div>
 
         {{-- Table --}}
-        <table id="teacherTable">
+        <div class="table-wrapper" style="overflow:visible">
+            <table id="teacherTable">
                 <thead>
                     <tr>
                         <th>Employee ID</th>
@@ -98,26 +98,24 @@
                             <div class="dropdown" style="display:inline-block">
                                 <button class="btn btn-outline btn-sm" onclick="toggleDropdown('tact-{{ $teacher->id }}')" style="gap:4px">
                                     Actions
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                                </button>
+                                    </button>
                                 <div class="dropdown-menu" id="tact-{{ $teacher->id }}" style="right:0;min-width:160px">
                                     <a href="{{ route('admin.teachers.id-card', $teacher) }}" target="_blank" class="dropdown-item">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2"/></svg>
+                                        <i class="fa-solid fa-id-card" style="margin-right:6px"></i>
                                         ID Card
                                     </a>
                                     <button class="dropdown-item" onclick="openEditTeacherModal({{ $teacher->id }});toggleDropdown('tact-{{ $teacher->id }}')">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        <i class="fa-solid fa-pen-to-square" style="margin-right:6px"></i>
                                         Edit
                                     </button>
                                     <button class="dropdown-item" onclick="openAssignModal({{ $teacher->id }}, '{{ $teacher->name }}');toggleDropdown('tact-{{ $teacher->id }}')">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                         Assign Subject
                                     </button>
                                     <div class="dropdown-divider"></div>
                                     <form method="POST" action="{{ route('admin.teachers.destroy', $teacher) }}" onsubmit="return confirm('Delete teacher profile?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="dropdown-item danger" style="width:100%;border:none;background:none;text-align:left;color:var(--red)">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            <i class="fa-solid fa-trash" style="margin-right:6px"></i>
                                             Delete
                                         </button>
                                     </form>
@@ -130,6 +128,7 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
     </div>
 
     <!-- Create Teacher Modal -->
@@ -144,7 +143,7 @@
                 <div class="modal-body">
 
                     {{-- Basic Info --}}
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">👤 Basic Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">Basic Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name <span class="required">*</span></label>
@@ -161,8 +160,14 @@
                             <input type="email" name="email" class="form-control" placeholder="teacher@iom.edu.bd">
                         </div>
                         <div class="form-group">
-                            <label>Date of Birth</label>
-                            <input type="date" name="date_of_birth" class="form-control">
+                            <label>Login Password</label>
+                            <div style="position:relative;display:flex;align-items:center">
+                                <input type="password" id="add_teacher_password" name="password" class="form-control" style="padding-right:44px" placeholder="Leave empty to use phone number">
+                                <button type="button" onclick="togglePasswordVisibility('add_teacher_password', this)" style="position:absolute;right:8px;background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b">
+                                    <i class="fa-solid fa-eye eye-show"></i>
+                                    <i class="fa-solid fa-eye-slash eye-hide" style="display:none"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -203,7 +208,7 @@
                     </div>
 
                     {{-- Job Info --}}
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">💼 Job Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">Job Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Designation</label>
@@ -263,7 +268,7 @@
                     </div>
 
                     {{-- Present Address --}}
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">🏠 Present Address</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">Present Address</div>
                     <div class="form-group">
                         <label>House / Street / Village</label>
                         <input type="text" name="present_house" class="form-control" placeholder="House, Street, Village">
@@ -298,7 +303,7 @@
 
                     {{-- Permanent Address --}}
                     <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px;display:flex;align-items:center;justify-content:space-between">
-                        🏡 Permanent Address
+                        Permanent Address
                         <label class="form-check" style="text-transform:none;font-size:12px;font-weight:400;letter-spacing:0">
                             <input type="checkbox" id="teacher_same_address" onchange="teacherSameAddress(this)">
                             Same as Present
@@ -391,7 +396,7 @@
                 @csrf @method('PUT')
                 <div class="modal-body">
 
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">👤 Basic Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin-bottom:14px">Basic Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name <span class="required">*</span></label>
@@ -408,8 +413,14 @@
                             <input type="email" name="email" id="et_email" class="form-control">
                         </div>
                         <div class="form-group">
-                            <label>Date of Birth</label>
-                            <input type="date" name="date_of_birth" id="et_dob" class="form-control">
+                            <label>Reset / Change Password</label>
+                            <div style="position:relative;display:flex;align-items:center">
+                                <input type="password" id="edit_teacher_password" name="password" class="form-control" style="padding-right:44px" placeholder="Leave blank to keep current password">
+                                <button type="button" onclick="togglePasswordVisibility('edit_teacher_password', this)" style="position:absolute;right:8px;background:transparent;border:none;padding:6px;cursor:pointer;color:#64748b">
+                                    <i class="fa-solid fa-eye eye-show"></i>
+                                    <i class="fa-solid fa-eye-slash eye-hide" style="display:none"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -449,7 +460,7 @@
                         </div>
                     </div>
 
-                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">💼 Job Information</div>
+                    <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">Job Information</div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Designation</label>

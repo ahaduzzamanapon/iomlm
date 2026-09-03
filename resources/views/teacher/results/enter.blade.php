@@ -45,7 +45,7 @@
                 </table>
             </div>
             <div class="card-footer" style="text-align:right">
-                <button type="submit" class="btn btn-success btn-lg">✓ Save Results & Publish Grades</button>
+                <button type="submit" class="btn btn-success btn-lg">Save Results & Publish Grades</button>
             </div>
         </div>
     </form>

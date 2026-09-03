@@ -33,14 +33,16 @@
 
     <div style="text-align:center;margin-bottom:20px" class="btn-print">
         <button onclick="window.print()" style="background:#d97706;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer">
-            🎓 Print Official Certificate of Completion
+            Print Official Certificate of Completion
         </button>
     </div>
 
     <div class="cert-outer">
         <div class="cert-inner">
-            <div class="cert-badge">🏅</div>
-            <h1 class="institute-name">IOM Institute</h1>
+            <div style="display:flex;justify-content:center;margin-bottom:10px">
+                <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:64px;width:auto;object-fit:contain">
+            </div>
+            <h1 class="institute-name">Islamic Online Madrasah</h1>
             <div class="cert-title">Certificate of Completion</div>
 
             <div class="cert-body">

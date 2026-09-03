@@ -32,13 +32,14 @@
 
     <div style="text-align:center;margin-bottom:20px" class="btn-print">
         <button onclick="window.print()" style="background:#6366f1;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer">
-            🖨️ Print Official Academic Transcript &amp; Grade Sheet
+            Print Official Academic Transcript &amp; Grade Sheet
         </button>
     </div>
 
     <div class="sheet-card">
-        <div class="header">
-            <h1 class="institute-title">IOM Institute</h1>
+        <div class="header" style="display:flex;flex-direction:column;align-items:center">
+            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:52px;width:auto;object-fit:contain;margin-bottom:6px">
+            <h1 class="institute-title">Islamic Online Madrasah</h1>
             <div class="sheet-sub">OFFICIAL ACADEMIC TRANSCRIPT &amp; GRADE SHEET</div>
             <div style="font-size:12px;color:#64748b;margin-top:4px">Issued Date: {{ date('d F Y') }}</div>
         </div>

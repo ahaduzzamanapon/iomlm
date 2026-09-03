@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addPromotionModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 Promote Student
             </button>
         </div>
@@ -40,7 +39,7 @@
                             @if($prom->decision === 'PROMOTED')
                                 <span class="badge badge-active">Promoted</span>
                             @elseif($prom->decision === 'FORCE_PROMOTED')
-                                <span class="badge badge-rescheduled">⚡ Force Promoted</span>
+                                <span class="badge badge-rescheduled">Force Promoted</span>
                             @else
                                 <span class="badge badge-cancelled">Held Back</span>
                             @endif

@@ -30,7 +30,7 @@
                         <td><span class="badge badge-secondary no-dot">{{ $res->type }}</span></td>
                         <td>
                             @if($res->url)
-                                <a href="{{ $res->url }}" target="_blank" class="btn btn-outline btn-sm">📖 Download / Open ↗</a>
+                                <a href="{{ $res->url }}" target="_blank" class="btn btn-outline btn-sm">Download / Open ↗</a>
                             @else
                                 <span class="td-muted">Text Note</span>
                             @endif

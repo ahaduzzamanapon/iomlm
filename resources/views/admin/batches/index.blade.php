@@ -8,14 +8,14 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addBatchModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 New Batch
             </button>
         </div>
     </div>
 
     <div class="card" style="overflow:visible">
-        <table>
+        <div class="table-wrapper" style="overflow:visible">
+            <table>
                 <thead>
                     <tr>
                         <th>Batch Code</th>
@@ -45,30 +45,28 @@
                         </td>
                         <td>
                             @if($batch->is_admission_open)
-                                <span class="badge badge-active no-dot">🟢 Admission Open</span>
+                                <span class="badge badge-active no-dot"><i class="fa-solid fa-circle-check" style="color:#10b981;margin-right:4px"></i> Admission Open</span>
                             @else
-                                <span class="badge badge-secondary no-dot">🔴 Admission Closed</span>
+                                <span class="badge badge-secondary no-dot"><i class="fa-solid fa-circle-xmark" style="color:#ef4444;margin-right:4px"></i> Admission Closed</span>
                             @endif
                         </td>
                         <td style="text-align:right">
                             <div class="dropdown" style="display:inline-block">
                                 <button class="btn btn-outline btn-sm" onclick="toggleDropdown('bact-{{ $batch->id }}')" style="gap:4px">
                                     Actions
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
-                                </button>
+                                    </button>
                                 <div class="dropdown-menu" id="bact-{{ $batch->id }}" style="right:0;min-width:165px">
                                     <a href="{{ route('admin.batches.show', $batch) }}" class="dropdown-item">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        <i class="fa-solid fa-eye" style="margin-right:6px"></i>
                                         View Details
                                     </a>
                                     <button class="dropdown-item" onclick="openEditBatchModal({{ $batch->id }});toggleDropdown('bact-{{ $batch->id }}')">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        <i class="fa-solid fa-pen-to-square" style="margin-right:6px"></i>
                                         Edit Batch
                                     </button>
                                     <form method="POST" action="{{ route('admin.batches.generateTimeline', $batch) }}">
                                         @csrf
                                         <button type="submit" class="dropdown-item" style="width:100%;border:none;background:none;text-align:left">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                             Gen Sessions
                                         </button>
                                     </form>
@@ -76,7 +74,7 @@
                                     <form method="POST" action="{{ route('admin.batches.destroy', $batch) }}" onsubmit="return confirm('Delete this batch?')">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="dropdown-item danger" style="width:100%;border:none;background:none;text-align:left;color:var(--red)">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            <i class="fa-solid fa-trash" style="margin-right:6px"></i>
                                             Delete Batch
                                         </button>
                                     </form>
@@ -89,6 +87,7 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
     </div>
 
     <!-- Create Batch Modal -->
@@ -134,12 +133,12 @@
 
                     <div class="form-group" style="margin-top:10px">
                         <label class="form-check" style="cursor:pointer;font-weight:600">
-                            <input type="checkbox" name="is_admission_open" value="1" checked> 🟢 Open for Admission
+                            <input type="checkbox" name="is_admission_open" value="1" checked> Open for Admission
                         </label>
                     </div>
 
                     <div class="alert alert-info" style="margin-top:8px">
-                        💡 <strong>Auto Sessions:</strong> After creating the batch, set up the Routine for this batch — sessions will be auto-generated daily from the routine schedule.
+                        <strong>Auto Sessions:</strong> After creating the batch, set up the Routine for this batch — sessions will be auto-generated daily from the routine schedule.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -203,7 +202,7 @@
 
                     <div class="form-group" style="margin-top:14px">
                         <label class="form-check" style="cursor:pointer;font-weight:600">
-                            <input type="checkbox" name="is_admission_open" id="eb_is_admission_open" value="1"> 🟢 Open for Admission
+                            <input type="checkbox" name="is_admission_open" id="eb_is_admission_open" value="1"> Open for Admission
                         </label>
                     </div>
                 </div>

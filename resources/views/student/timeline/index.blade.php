@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📅 My Class Timeline</h1>
+            <h1>My Class Timeline</h1>
             <p>All scheduled and completed class sessions for your enrolled courses</p>
         </div>
     </div>
@@ -25,10 +25,7 @@
                 @endphp
                 <div class="timeline-item">
                     <div class="timeline-dot {{ $dotClass }}">
-                        @if($isCompleted && $attStatus === 'PRESENT') ✓
-                        @elseif($isCancelled) ✕
-                        @else {{ $loop->iteration }}
-                        @endif
+                        {{ $loop->iteration }}
                     </div>
                     <div class="timeline-content">
                         <div style="display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -69,7 +66,7 @@
                                 @elseif($cs->status === 'CANCELLED')
                                     <span class="badge badge-danger no-dot">Cancelled</span>
                                 @elseif($cs->meeting_link)
-                                    <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-primary" style="font-size:11px">🎥 Join</a>
+                                    <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-primary" style="font-size:11px">Join</a>
                                 @else
                                     <span class="badge badge-info no-dot">Scheduled</span>
                                 @endif

@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📝 Online Examinations</h1>
+            <h1>Online Examinations</h1>
             <p>Class Quizzes, Class Tests, Half-Term, and Final Examinations</p>
         </div>
     </div>
@@ -43,7 +43,7 @@
                     <tr>
                         <td>
                             <strong>{{ $ex->title }}</strong><br>
-                            <span style="color:#64748b;font-size:12px">🎯 {{ $ex->subject?->name ?? '—' }} ({{ $ex->subject?->code }})</span>
+                            <span style="color:#64748b;font-size:12px">{{ $ex->subject?->name ?? '—' }} ({{ $ex->subject?->code }})</span>
                         </td>
                         <td><span class="badge {{ $typeBadge }} no-dot">{{ $ex->type }}</span></td>
                         <td>
@@ -59,19 +59,19 @@
                             @endif
                         </td>
                         <td class="td-muted" style="font-size:12px">
-                            📅 {{ \Carbon\Carbon::parse($ex->exam_date)->format('d M Y') }}
+                            {{ \Carbon\Carbon::parse($ex->exam_date)->format('d M Y') }}
                             @if($ex->start_datetime)
-                                <br><small>🕒 {{ \Carbon\Carbon::parse($ex->start_datetime)->format('h:i A') }}</small>
+                                <br><small>{{ \Carbon\Carbon::parse($ex->start_datetime)->format('h:i A') }}</small>
                             @endif
                         </td>
                         <td style="text-align:center">
                             @if($isSubmitted)
                                 <a href="{{ route('student.exams.result', [$ex, $submission]) }}" class="btn btn-outline btn-sm" style="color:#10b981">
-                                    📊 View Result ({{ $submission->total_score }})
+                                    View Result ({{ $submission->total_score }})
                                 </a>
                             @else
                                 <a href="{{ route('student.exams.take', $ex) }}" class="btn btn-primary btn-sm">
-                                    ✍️ Start Exam
+                                    Start Exam
                                 </a>
                             @endif
                         </td>

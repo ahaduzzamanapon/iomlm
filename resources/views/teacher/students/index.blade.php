@@ -37,5 +37,10 @@
                 </tbody>
             </table>
         </div>
+        @if($students->hasPages())
+        <div style="padding:16px;border-top:1px solid #e2e8f0">
+            {{ $students->links() }}
+        </div>
+        @endif
     </div>
 </x-teacher-layout>

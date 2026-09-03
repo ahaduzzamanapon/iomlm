@@ -3,7 +3,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📊 Financial &amp; Collection Reports</h1>
+            <h1>Financial &amp; Collection Reports</h1>
             <p>Date-wise collection statement, head-wise revenue summary, and transaction audit log</p>
         </div>
     </div>
@@ -29,7 +29,7 @@
     <div class="grid-2" style="margin-bottom:24px">
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📈 Head-wise Revenue Breakdown</span>
+                <span class="card-title">Head-wise Revenue Breakdown</span>
             </div>
             <div class="card-body">
                 <table class="table" style="font-size:13px">
@@ -80,7 +80,7 @@
     {{-- Transactions Statement Table --}}
     <div class="card">
         <div class="card-header">
-            <span class="card-title">📄 Detailed Transaction Collection Log</span>
+            <span class="card-title">Detailed Transaction Collection Log</span>
         </div>
         <div class="table-wrapper">
             <table>

@@ -32,11 +32,11 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>📅 Class Routine</h1>
+            <h1>Class Routine</h1>
             <p>Weekly class schedule grid — manage time slots, assign classes, detect teacher conflicts</p>
         </div>
         <div class="page-header-actions" style="gap:8px">
-            <a href="{{ route('admin.routine.unassigned') }}" class="btn btn-outline btn-sm">📋 Assign Class</a>
+            <a href="{{ route('admin.routine.unassigned') }}" class="btn btn-outline btn-sm">Assign Class</a>
             <button class="btn btn-outline btn-sm" onclick="openModal('addSlotModal')">+ Add Time Slot</button>
         </div>
     </div>
@@ -55,7 +55,7 @@
             @if($selectedBatchId)
             <form method="POST" action="{{ route('admin.routine.auto-generate', $selectedBatchId) }}">
                 @csrf
-                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Auto-generate routine for this batch? Existing entries will be kept.')">⚡ Auto-Generate Routine</button>
+                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Auto-generate routine for this batch? Existing entries will be kept.')">Auto-Generate Routine</button>
             </form>
             @endif
             <a href="{{ route('admin.routine.index') }}" class="btn btn-ghost btn-sm">Clear Filter</a>
@@ -66,7 +66,7 @@
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;font-size:12px;align-items:center">
         <span style="color:#64748b">Legend:</span>
         <span style="background:#3b82f6;color:#fff;border-radius:4px;padding:2px 8px">Normal Entry</span>
-        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444">🔴 Teacher Conflict (Override)</span>
+        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444">Overlap Conflict (Batch / Teacher)</span>
         <span style="background:repeating-linear-gradient(45deg,#fef9c3,#fef9c3 4px,#fefce8 4px,#fefce8 8px);padding:2px 8px;border-radius:4px;border:1px solid #f59e0b">Weekend</span>
     </div>
 
@@ -113,6 +113,7 @@
                                     <div class="entry-pill {{ $entry->is_override ? 'override' : '' }}"
                                          id="pill-{{ $entry->id }}"
                                          style="background:{{ $entry->is_override ? '#ef4444' : $color }}"
+                                         title="{{ $entry->is_override ? 'OVERLAP CONFLICT: ' . ($entry->conflict_type ?? 'Batch or Teacher schedule overlap in this slot!') : '' }}"
                                          draggable="true"
                                          data-entry-id="{{ $entry->id }}"
                                          data-batch-id="{{ $entry->batch_id }}"
@@ -122,13 +123,13 @@
                                          data-original-color="{{ $color }}"
                                          onclick="openEditModal({{ $entry->id }}, '{{ addslashes($entry->batch->name ?? '') }}', '{{ $entry->day_of_week }}', {{ $slot->id }}, {{ $entry->batch_id }}, {{ $entry->subject_id ?? 'null' }}, {{ $entry->teacher_id ?? 'null' }}, '{{ addslashes($entry->title ?? '') }}')">
                                         @if($entry->is_override)
-                                            <span class="override-badge">⚠</span>
+                                            <span class="override-badge"></span>
                                         @endif
                                         <span class="drag-handle">⠿</span>
                                         <div class="pill-title">{{ $entry->title ?: ($entry->subject?->code ?? $entry->batch?->name ?? '—') }}</div>
                                         <div class="pill-sub">{{ $entry->batch?->name ?? '' }}</div>
                                         @if($entry->teacher)
-                                        <div class="pill-sub">👤 {{ $entry->teacher->name }}</div>
+                                        <div class="pill-sub">{{ $entry->teacher->name }}</div>
                                         @endif
                                     </div>
                                 @empty
@@ -143,7 +144,7 @@
                         </td>
                     @endforeach
                     <td style="text-align:center;vertical-align:middle">
-                        <button class="btn btn-ghost btn-sm" onclick="openEditSlotModal({{ $slot->id }}, '{{ addslashes($slot->name) }}', '{{ $slot->start_time }}', '{{ $slot->end_time }}', {{ $slot->sort_order }})" title="Edit Slot">✏️</button>
+                        <button class="btn btn-ghost btn-sm" onclick="openEditSlotModal({{ $slot->id }}, '{{ addslashes($slot->name) }}', '{{ $slot->start_time }}', '{{ $slot->end_time }}', {{ $slot->sort_order }})" title="Edit Slot"><i class="fa-solid fa-pen-to-square"></i></button>
                     </td>
                 </tr>
                 @endforeach
@@ -167,17 +168,25 @@
 
                     <div class="form-group">
                         <label>Batch <span class="required">*</span></label>
-                        <select name="batch_id" class="form-control" required>
+                        <select name="batch_id" id="add_batch_id" class="form-control" required onchange="onBatchSelect(this.value, 'add')">
                             <option value="">Select Batch</option>
                             @foreach($batches as $b)
                                 <option value="{{ $b->id }}" {{ $selectedBatchId == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
                             @endforeach
                         </select>
                     </div>
+
+                    <div class="form-group">
+                        <label>Semester (Running Semester)</label>
+                        <select name="semester_id" id="add_semester_id" class="form-control" onchange="onSemesterSelect('add')">
+                            <option value="">— Select Semester —</option>
+                        </select>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Subject</label>
-                            <select name="subject_id" class="form-control">
+                            <select name="subject_id" id="add_subject_id" class="form-control" onchange="onSubjectSelect('add')">
                                 <option value="">— Select Subject —</option>
                                 @foreach($subjects as $s)
                                     <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
@@ -186,7 +195,7 @@
                         </div>
                         <div class="form-group">
                             <label>Teacher</label>
-                            <select name="teacher_id" class="form-control">
+                            <select name="teacher_id" id="add_teacher_id" class="form-control">
                                 <option value="">— Assign Teacher —</option>
                                 @foreach($teachers as $t)
                                     <option value="{{ $t->id }}">{{ $t->name }}</option>
@@ -224,10 +233,16 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Batch</label>
-                        <select name="batch_id" id="edit_batch_id" class="form-control">
+                        <select name="batch_id" id="edit_batch_id" class="form-control" onchange="onBatchSelect(this.value, 'edit')">
                             @foreach($batches as $b)
                                 <option value="{{ $b->id }}">{{ $b->name }}</option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Semester (Running Semester)</label>
+                        <select name="semester_id" id="edit_semester_id" class="form-control" onchange="onSemesterSelect('edit')">
+                            <option value="">— Select Semester —</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -242,7 +257,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Subject</label>
-                            <select name="subject_id" id="edit_subject_id" class="form-control">
+                            <select name="subject_id" id="edit_subject_id" class="form-control" onchange="onSubjectSelect('edit')">
                                 <option value="">— None —</option>
                                 @foreach($subjects as $s)
                                     <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
@@ -265,7 +280,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline btn-sm text-red" id="editDeleteBtn">🗑 Delete</button>
+                    <button type="button" class="btn btn-outline btn-sm text-red" id="editDeleteBtn"><i class="fa-solid fa-trash"></i> Delete</button>
                     <button type="button" class="btn btn-outline" onclick="closeModal('editEntryModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
@@ -340,7 +355,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline btn-sm text-red" id="deleteSlotBtn">🗑 Delete Slot</button>
+                    <button type="button" class="btn btn-outline btn-sm text-red" id="deleteSlotBtn"><i class="fa-solid fa-trash"></i> Delete Slot</button>
                     <button type="button" class="btn btn-outline" onclick="closeModal('editSlotModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
@@ -354,6 +369,154 @@
     @push('scripts')
     <script>
     const CSRF = '{{ csrf_token() }}';
+
+    // Batch details map for dynamic semester & subject filtering
+    const batchDetails = @json($batchData);
+
+    const allSubjects = [
+        @foreach($subjects as $s)
+        { id: {{ $s->id }}, code: @json($s->code), name: @json($s->name) },
+        @endforeach
+    ];
+
+    const allTeachers = [
+        @foreach($teachers as $t)
+        { id: {{ $t->id }}, name: @json($t->name) },
+        @endforeach
+    ];
+
+    const subjectTeacherMap = @json($subjectTeachers ?? []);
+
+    function onSubjectSelect(prefix = 'add', targetTeacherId = null) {
+        const subjSelect  = document.getElementById(prefix + '_subject_id');
+        const teachSelect = document.getElementById(prefix + '_teacher_id');
+        if (!teachSelect) return;
+
+        const subjId = subjSelect ? subjSelect.value : null;
+        teachSelect.innerHTML = '<option value="">— Assign Teacher —</option>';
+
+        const assigned = (subjId && subjectTeacherMap[subjId]) ? subjectTeacherMap[subjId] : [];
+        const assignedIds = assigned.map(t => parseInt(t.id));
+
+        if (assigned.length > 0) {
+            const grpAssigned = document.createElement('optgroup');
+            grpAssigned.label = 'বিষয়ভিত্তিক শিক্ষক (Assigned Subject Teachers)';
+            assigned.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name + ' ⭐';
+                grpAssigned.appendChild(opt);
+            });
+            teachSelect.appendChild(grpAssigned);
+
+            const otherTeachers = allTeachers.filter(t => !assignedIds.includes(parseInt(t.id)));
+            if (otherTeachers.length > 0) {
+                const grpOthers = document.createElement('optgroup');
+                grpOthers.label = 'অন্যান্য শিক্ষক (Other Teachers)';
+                otherTeachers.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.name;
+                    grpOthers.appendChild(opt);
+                });
+                teachSelect.appendChild(grpOthers);
+            }
+        } else {
+            allTeachers.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name;
+                teachSelect.appendChild(opt);
+            });
+        }
+
+        if (targetTeacherId) {
+            teachSelect.value = targetTeacherId;
+        } else if (assigned.length === 1 && prefix === 'add') {
+            teachSelect.value = assigned[0].id;
+        }
+    }
+
+    function onBatchSelect(batchId, prefix = 'add', targetSemesterId = null, targetSubjectId = null, targetTeacherId = null) {
+        const semSelect = document.getElementById(prefix + '_semester_id');
+        if (!semSelect) return;
+
+        semSelect.innerHTML = '<option value="">— Select Semester —</option>';
+
+        const batch = batchDetails[batchId];
+        if (batch) {
+            if (batch.course_type === 'SEMESTER_BASED' && batch.semesters && batch.semesters.length > 0) {
+                batch.semesters.forEach(sem => {
+                    const isRunning = (sem.id == batch.current_semester_id);
+                    const opt = document.createElement('option');
+                    opt.value = sem.id;
+                    opt.textContent = sem.name + (isRunning ? ' (Running)' : '');
+                    semSelect.appendChild(opt);
+                });
+
+                if (targetSemesterId) {
+                    semSelect.value = targetSemesterId;
+                } else if (batch.current_semester_id) {
+                    semSelect.value = batch.current_semester_id;
+                }
+            } else {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'Direct Subject Enrolled (No Semester)';
+                semSelect.appendChild(opt);
+            }
+        }
+
+        onSemesterSelect(prefix, targetSubjectId, targetTeacherId);
+    }
+
+    function onSemesterSelect(prefix = 'add', targetSubjectId = null, targetTeacherId = null) {
+        const batchSelect = document.getElementById(prefix + '_batch_id');
+        const semSelect   = document.getElementById(prefix + '_semester_id');
+        const subjSelect  = document.getElementById(prefix + '_subject_id');
+
+        if (!subjSelect) return;
+
+        const batchId = batchSelect ? batchSelect.value : null;
+        const semId   = semSelect ? semSelect.value : null;
+        const batch   = batchId ? batchDetails[batchId] : null;
+
+        subjSelect.innerHTML = '<option value="">— Select Subject —</option>';
+
+        if (batch && batch.subject_maps && batch.subject_maps.length > 0) {
+            let filteredMaps = batch.subject_maps;
+            if (semId) {
+                filteredMaps = filteredMaps.filter(m => m.semester_id == semId);
+            }
+
+            if (filteredMaps.length > 0) {
+                filteredMaps.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.subject_id;
+                    opt.textContent = (m.code ? m.code + ': ' : '') + m.name;
+                    subjSelect.appendChild(opt);
+                });
+            } else {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'No mapped subjects for this semester';
+                subjSelect.appendChild(opt);
+            }
+        } else {
+            allSubjects.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.code + ': ' + s.name;
+                subjSelect.appendChild(opt);
+            });
+        }
+
+        if (targetSubjectId) {
+            subjSelect.value = targetSubjectId;
+        }
+
+        onSubjectSelect(prefix, targetTeacherId);
+    }
 
     // ══════════════════════════════════════════════════════
     // DRAG & DROP
@@ -401,7 +564,6 @@
                 e.dataTransfer.dropEffect = isWeekend ? 'none' : 'move';
             });
             cell.addEventListener('dragleave', e => {
-                // only clear if leaving the cell itself (not a child)
                 if (!cell.contains(e.relatedTarget)) {
                     cell.classList.remove('drag-over', 'drop-reject');
                 }
@@ -411,7 +573,7 @@
                 cell.classList.remove('drag-over', 'drop-reject');
                 if (!draggingPill || cell === sourceCell) return;
                 if (cell.dataset.isWeekend === '1') {
-                    toast('❌ Cannot drop on weekend!', '#ef4444');
+                    toast('Cannot drop on weekend!', '#ef4444');
                     return;
                 }
 
@@ -423,12 +585,10 @@
                 const teachId  = draggingPill.dataset.teacherId || null;
                 const title    = draggingPill.dataset.title || null;
 
-                // Optimistic move: append pill to new cell before server responds
                 const addBtn = cell.querySelector('.add-btn');
                 if (addBtn) cell.insertBefore(draggingPill, addBtn);
                 else cell.appendChild(draggingPill);
 
-                // Add placeholder "+ add" if source cell now empty
                 const remainingPills = sourceCell.querySelectorAll('.entry-pill');
                 if (remainingPills.length === 0 && !sourceCell.querySelector('.add-btn')) {
                     const btn = document.createElement('button');
@@ -440,7 +600,6 @@
                     sourceCell.appendChild(btn);
                 }
 
-                // AJAX update
                 try {
                     const body = new URLSearchParams({
                         _method:     'PUT',
@@ -465,45 +624,49 @@
                         if (!draggingPill.querySelector('.override-badge')) {
                             const badge = document.createElement('span');
                             badge.className = 'override-badge';
-                            badge.textContent = '⚠';
+                            badge.textContent = '';
                             draggingPill.prepend(badge);
                         }
-                        toast('⚠️ Moved — teacher conflict detected! Shown in red.', '#f59e0b');
+                        toast('Moved — teacher conflict detected! Shown in red.', '#f59e0b');
                     } else {
-                        // Conflict cleared — restore original batch color
                         const origColor = draggingPill.dataset.originalColor || '#3b82f6';
                         draggingPill.style.background = origColor;
                         draggingPill.classList.remove('override');
                         draggingPill.querySelector('.override-badge')?.remove();
-                        toast('✅ Entry moved to ' + newDay + ' — conflict resolved!');
+                        toast('Entry moved to ' + newDay + ' — conflict resolved!');
                     }
-                    // Update data attributes to reflect new position
                     draggingPill.setAttribute('onclick',
                         draggingPill.getAttribute('onclick')
                             .replace(/(, '[A-Z]{3}',\s*)(\d+)/, `, '${newDay}', ${newSlot}`)
                     );
                 } catch (err) {
-                    // Revert on network failure
                     const origAddBtn = sourceCell.querySelector('.add-btn');
                     if (origAddBtn) sourceCell.insertBefore(draggingPill, origAddBtn);
                     else sourceCell.appendChild(draggingPill);
-                    toast('❌ Failed to save. Please try again.', '#ef4444');
+                    toast('Failed to save. Please try again.', '#ef4444');
                 }
             });
         });
     }
 
-    // ══════════════════════════════════════════════════════
-    // Override update() to return JSON for drag-drop AJAX
-    // ══════════════════════════════════════════════════════
-    // (handled server-side — see note below)
+    document.addEventListener('DOMContentLoaded', function() {
+        initDragDrop();
+        const initialBatch = document.getElementById('add_batch_id')?.value;
+        if (initialBatch) onBatchSelect(initialBatch, 'add');
+    });
 
-    document.addEventListener('DOMContentLoaded', initDragDrop);
-
-    // ── Modal helpers (existing) ──────────────────────────
+    // ── Modal helpers ──────────────────────────
     function openAddModal(day, slotId) {
         document.getElementById('add_day').value = day;
         document.getElementById('add_slot_id').value = slotId;
+
+        const batchSelect = document.getElementById('add_batch_id');
+        if (batchSelect && batchSelect.value) {
+            onBatchSelect(batchSelect.value, 'add');
+        } else {
+            onBatchSelect('', 'add');
+        }
+
         openModal('addEntryModal');
     }
 
@@ -512,8 +675,17 @@
         document.getElementById('edit_day_of_week').value = day;
         document.getElementById('edit_slot_id').value = slotId;
         document.getElementById('edit_batch_id').value = batchId;
-        if (subjectId)  document.getElementById('edit_subject_id').value = subjectId;
-        if (teacherId)  document.getElementById('edit_teacher_id').value = teacherId;
+
+        let foundSemId = null;
+        const b = batchDetails[batchId];
+        if (b && b.subject_maps && subjectId) {
+            const m = b.subject_maps.find(map => map.subject_id == subjectId);
+            if (m) foundSemId = m.semester_id;
+        }
+
+        onBatchSelect(batchId, 'edit', foundSemId, subjectId, teacherId);
+
+        if (teacherId) document.getElementById('edit_teacher_id').value = teacherId;
         document.getElementById('edit_title').value = title;
 
         document.getElementById('editDeleteBtn').onclick = function() {

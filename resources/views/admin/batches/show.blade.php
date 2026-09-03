@@ -12,7 +12,7 @@
         <div class="page-header-actions">
             <form method="POST" action="{{ route('admin.batches.generateTimeline', $batch) }}">
                 @csrf
-                <button type="submit" class="btn btn-primary btn-sm">⚡ Generate Sessions (8 Weeks)</button>
+                <button type="submit" class="btn btn-primary btn-sm">Generate Sessions (8 Weeks)</button>
             </form>
         </div>
     </div>
@@ -23,7 +23,7 @@
         <div>
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">📅 Class Sessions ({{ $sessions->count() }} total)</span>
+                    <span class="card-title">Class Sessions ({{ $sessions->count() }} total)</span>
                     <span style="font-size:11px;color:var(--text-muted)">Routine-based · per class date</span>
                 </div>
 
@@ -81,7 +81,7 @@
                                 </td>
                                 <td>
                                     @if($cs->meeting_link)
-                                        <a href="{{ $cs->meeting_link }}" target="_blank" style="font-size:11px;color:#3b82f6">🔗</a>
+                                        <a href="{{ $cs->meeting_link }}" target="_blank" style="font-size:11px;color:#3b82f6"></a>
                                     @else
                                         <span style="color:#d1d5db;font-size:11px">—</span>
                                     @endif
@@ -105,7 +105,7 @@
             @if($subjects->isNotEmpty())
             <div class="card" style="margin-top:16px">
                 <div class="card-header">
-                    <span class="card-title">📖 Curriculum Syllabus</span>
+                    <span class="card-title">Curriculum Syllabus</span>
                     <span style="font-size:11px;color:var(--text-muted)">Module coverage tracked via class sessions</span>
                 </div>
                 @foreach($subjects as $subject)
@@ -115,7 +115,7 @@
                         @foreach($subject->modules as $mod)
                         @php $covered = in_array($mod->id, $coveredModuleIds); @endphp
                         <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 8px;background:{{ $covered ? '#f0fdf4' : '#f8fafc' }};border-radius:4px;border:1px solid {{ $covered ? '#bbf7d0' : '#e2e8f0' }}">
-                            <span style="color:{{ $covered ? '#10b981' : '#9ca3af' }};font-size:14px">{{ $covered ? '✅' : '○' }}</span>
+                            <span style="color:{{ $covered ? '#10b981' : '#9ca3af' }};font-size:14px">{{ $covered ? '' : '○' }}</span>
                             <span style="{{ $covered ? '' : 'color:#64748b' }}">{{ $mod->title }}</span>
                         </div>
                         @endforeach
@@ -130,7 +130,7 @@
         <div>
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">👥 Enrolled Students</span>
+                    <span class="card-title">Enrolled Students</span>
                     <span class="badge badge-info no-dot">{{ $batch->enrollments->count() }}</span>
                 </div>
                 @if($batch->enrollments->isEmpty())

@@ -17,6 +17,11 @@ class Notice extends Model
         return $this->belongsTo(Batch::class);
     }
 
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

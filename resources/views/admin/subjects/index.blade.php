@@ -8,7 +8,6 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addSubjectModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                 New Subject
             </button>
         </div>
@@ -48,7 +47,12 @@
                             @endif
                         </td>
                         <td style="text-align:right">
-                            <a href="{{ route('admin.subjects.show', $subj) }}" class="btn btn-outline btn-sm">Manage Modules →</a>
+                            <button class="btn btn-outline btn-sm" onclick='openEditSubjectModal(@json($subj))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                            <a href="{{ route('admin.subjects.show', $subj) }}" class="btn btn-outline btn-sm">Manage Modules</a>
+                            <form method="POST" action="{{ route('admin.subjects.destroy', $subj) }}" style="display:inline" onsubmit="return confirm('Delete this subject?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-ghost btn-sm text-red"><i class="fa-solid fa-trash"></i> Delete</button>
+                            </form>
                         </td>
                     </tr>
                     @empty
@@ -104,4 +108,65 @@
             </form>
         </div>
     </div>
+
+    <!-- Edit Subject Modal -->
+    <div class="modal-overlay" id="editSubjectModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Subject</span>
+                <button class="modal-close" onclick="closeModal('editSubjectModal')">&times;</button>
+            </div>
+            <form method="POST" id="editSubjectForm">
+                @csrf @method('PUT')
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Subject Code <span class="required">*</span></label>
+                            <input type="text" name="code" id="es_code" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Subject Credit <span class="required">*</span></label>
+                            <input type="number" name="credit" id="es_credit" class="form-control" min="1" max="10" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subject Name <span class="required">*</span></label>
+                        <input type="text" name="name" id="es_name" class="form-control" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Marks <span class="required">*</span></label>
+                            <input type="number" name="full_marks" id="es_full_marks" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Pass Marks <span class="required">*</span></label>
+                            <input type="number" name="pass_marks" id="es_pass_marks" class="form-control" required>
+                        </div>
+                    </div>
+                    <label class="form-check">
+                        <input type="checkbox" name="is_active" id="es_is_active" value="1"> Active Subject
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editSubjectModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Subject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+    function openEditSubjectModal(subj) {
+        document.getElementById('editSubjectForm').action = '/admin/subjects/' + subj.id;
+        document.getElementById('es_code').value = subj.code;
+        document.getElementById('es_credit').value = subj.credit;
+        document.getElementById('es_name').value = subj.name;
+        document.getElementById('es_full_marks').value = subj.full_marks;
+        document.getElementById('es_pass_marks').value = subj.pass_marks;
+        document.getElementById('es_is_active').checked = !!subj.is_active;
+        openModal('editSubjectModal');
+    }
+    </script>
+    @endpush
 </x-admin-layout>

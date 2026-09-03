@@ -12,7 +12,7 @@ class TimelineController extends Controller
 {
     public function index()
     {
-        $student   = Student::where('email', auth()->user()->email)->first();
+        $student   = Student::where('user_id', auth()->id())->first();
         $studentId = $student?->id;
 
         $batchIds = Enrollment::where('student_id', $studentId)

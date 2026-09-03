@@ -36,7 +36,7 @@
             <!-- 2. Meeting Platform -->
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title">2. 🎥 Meeting Platform Configuration</span>
+                    <span class="card-title">2. Meeting Platform Configuration</span>
                     <span style="font-size:11px;color:var(--text-muted)">Used when teacher clicks "Generate Link"</span>
                 </div>
                 <div class="card-body">
@@ -67,7 +67,7 @@
                     {{-- Zoom API Credentials --}}
                     <div id="zoom_config" style="{{ ($settings['meeting_provider']->value ?? 'manual') === 'zoom' ? '' : 'display:none' }}">
                         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin-bottom:16px">
-                            <p style="font-size:13px;font-weight:600;color:#065f46;margin-bottom:4px">🔑 Zoom Server-to-Server OAuth App</p>
+                            <p style="font-size:13px;font-weight:600;color:#065f46;margin-bottom:4px"><i class="fa-solid fa-key" style="color:#059669"></i> Zoom Server-to-Server OAuth App</p>
                             <p style="font-size:12px;color:#047857;margin-bottom:0">
                                 Create a <strong>Server-to-Server OAuth</strong> app at
                                 <a href="https://marketplace.zoom.us/develop/create" target="_blank" style="color:#059669;font-weight:600">marketplace.zoom.us</a><br>
@@ -92,7 +92,7 @@
                                 value="{{ $settings['zoom_client_secret']->value ?? 'yGFSWGCvfWCyce5J17pkqyZcggePRDBC' }}"
                                 placeholder="Enter Client Secret"
                                 autocomplete="new-password">
-                            <span class="form-help" style="color:#059669">✓ Client Secret is configured</span>
+                            <span class="form-help" style="color:#059669">Client Secret is configured</span>
                         </div>
                         <div class="form-group">
                             <label>Default Meeting Duration (minutes)</label>
@@ -105,7 +105,7 @@
                     {{-- Google Meet info --}}
                     <div id="gmeet_config" style="{{ ($settings['meeting_provider']->value ?? '') === 'google_meet' ? '' : 'display:none' }}">
                         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px">
-                            <p style="font-size:13px;font-weight:600;color:#1e40af;margin-bottom:4px">ℹ️ Google Meet — Manual Paste Mode</p>
+                            <p style="font-size:13px;font-weight:600;color:#1e40af;margin-bottom:4px"><i class="fa-solid fa-circle-info" style="color:#2563eb"></i> Google Meet — Manual Paste Mode</p>
                             <p style="font-size:12px;color:#1d4ed8;margin-bottom:0">
                                 Teacher creates a meeting at
                                 <a href="https://meet.google.com" target="_blank" style="color:#2563eb;font-weight:600">meet.google.com</a>
@@ -117,7 +117,7 @@
                     {{-- Manual info --}}
                     <div id="manual_config" style="{{ in_array($settings['meeting_provider']->value ?? 'manual', ['manual', '']) ? '' : 'display:none' }}">
                         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px">
-                            <p style="font-size:13px;font-weight:600;color:#475569;margin-bottom:4px">ℹ️ Manual Link Mode</p>
+                            <p style="font-size:13px;font-weight:600;color:#475569;margin-bottom:4px"><i class="fa-solid fa-circle-info" style="color:#64748b"></i> Manual Link Mode</p>
                             <p style="font-size:12px;color:#64748b;margin-bottom:0">
                                 Teacher pastes any meeting URL (Zoom, Teams, Google Meet, Jitsi…) into the class session form.
                             </p>
@@ -170,7 +170,7 @@
                     </div>
                 </div>
                 <div class="card-footer" style="text-align:right">
-                    <button type="submit" class="btn btn-primary btn-lg">💾 Save All Settings</button>
+                    <button type="submit" class="btn btn-primary btn-lg">Save All Settings</button>
                 </div>
             </div>
 

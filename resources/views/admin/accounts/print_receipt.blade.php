@@ -28,13 +28,14 @@
 
     <div style="text-align:center;margin-bottom:16px" class="btn-print">
         <button onclick="window.print()" style="background:#6366f1;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-weight:700;cursor:pointer">
-            🖨️ Print Money Receipt
+            Print Money Receipt
         </button>
     </div>
 
     <div class="receipt-card">
-        <div class="header">
-            <h1 class="institute-name">IOM Institute</h1>
+        <div class="header" style="display:flex;flex-direction:column;align-items:center">
+            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:48px;width:auto;object-fit:contain;margin-bottom:6px">
+            <h1 class="institute-name">Islamic Online Madrasah</h1>
             <div class="receipt-title">OFFICIAL MONEY RECEIPT</div>
             <div style="font-size:12px;color:#64748b;margin-top:2px">Receipt No: <strong>{{ $payment->payment_no }}</strong></div>
         </div>

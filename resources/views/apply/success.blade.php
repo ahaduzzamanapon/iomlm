@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Application Submitted — IOM</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', sans-serif; background: #f1f5f9; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
     .card { background: #fff; border-radius: 16px; padding: 40px 48px; max-width: 520px; width: 100%; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
     .icon { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #059669, #10b981); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-    .icon svg { width: 36px; height: 36px; color: #fff; }
+    .icon i { font-size: 32px; color: #fff; }
     h1 { font-size: 22px; font-weight: 700; color: #111827; margin-bottom: 8px; }
     p { font-size: 14px; color: #6b7280; line-height: 1.6; }
     .app-no { display: inline-block; background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 10px 24px; margin: 20px 0; font-size: 22px; font-weight: 700; color: #1d4ed8; letter-spacing: .06em; }
@@ -29,7 +30,7 @@
 <body>
 <div class="card" id="printArea">
     <div class="icon">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <i class="fa-solid fa-check"></i>
     </div>
 
     <h1>Application Submitted!</h1>
@@ -47,13 +48,13 @@
     </table>
 
     <div class="note">
-        📌 আপনার Application Number <strong>{{ $form->application_no }}</strong> টি সংরক্ষণ করুন। আবেদনের অগ্রগতি সম্পর্কে আপনার সাথে যোগাযোগ করা হবে।
+        <i class="fa-solid fa-thumbtack" style="margin-right:4px"></i> আপনার Application Number <strong>{{ $form->application_no }}</strong> টি সংরক্ষণ করুন। আবেদনের অগ্রগতি সম্পর্কে আপনার সাথে যোগাযোগ করা হবে।
     </div>
 
     <div class="actions">
-        <button class="btn btn-primary" onclick="window.print()">🖨 Print Application</button>
-        <a href="{{ route('apply.show') }}" class="btn btn-secondary">+ New Application</a>
-        <a href="/" class="btn btn-secondary">🏠 Home</a>
+        <button class="btn btn-primary" onclick="window.print()">Print Application</button>
+        <a href="{{ route('apply.show') }}" class="btn btn-secondary">New Application</a>
+        <a href="/" class="btn btn-secondary">Home</a>
     </div>
 </div>
 </body>

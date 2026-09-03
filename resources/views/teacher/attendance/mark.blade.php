@@ -6,7 +6,7 @@
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
                 <a href="{{ route('teacher.attendance.index') }}">← Back to Attendance</a>
             </div>
-            <h1>✅ Mark Attendance</h1>
+            <h1>Mark Attendance</h1>
             <p>
                 {{ $class->subject?->name ?? '—' }} &middot;
                 {{ $class->batch?->name ?? '—' }} &middot;
@@ -30,10 +30,10 @@
                             <th>#</th>
                             <th>Student Code</th>
                             <th>Name</th>
-                            <th style="text-align:center">Present ✅</th>
-                            <th style="text-align:center">Absent ❌</th>
-                            <th style="text-align:center">Late ⏰</th>
-                            <th style="text-align:center">Excused 📝</th>
+                            <th style="text-align:center">Present</th>
+                            <th style="text-align:center">Absent</th>
+                            <th style="text-align:center">Late</th>
+                            <th style="text-align:center">Excused</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -58,7 +58,7 @@
             </div>
             <div style="padding:16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px">
                 <a href="{{ route('teacher.attendance.index') }}" class="btn btn-outline">Cancel</a>
-                <button type="submit" class="btn btn-primary">💾 Save Attendance</button>
+                <button type="submit" class="btn btn-primary">Save Attendance</button>
             </div>
             @endif
         </form>

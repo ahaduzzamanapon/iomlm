@@ -11,36 +11,28 @@
     <!-- Student Stats -->
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-icon violet">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['enrolled_courses'] }}</div>
                 <div class="stat-label">Enrolled Courses</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon teal">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['upcoming_classes'] }}</div>
                 <div class="stat-label">Upcoming Classes</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon green">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['attendance_percent'] }}%</div>
                 <div class="stat-label">Attendance Rate</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon orange">
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
-            </div>
+            
             <div class="stat-info">
                 <div class="stat-value">{{ $stats['upcoming_exams'] }}</div>
                 <div class="stat-label">Upcoming Exams</div>
@@ -52,7 +44,7 @@
     @if(isset($notices) && $notices->count() > 0)
     <div class="card" style="margin-bottom:24px;border-top:4px solid #3b82f6">
         <div class="card-header">
-            <span class="card-title">📢 Notice Board &amp; Announcements</span>
+            <span class="card-title">Notice Board &amp; Announcements</span>
         </div>
         <div style="padding:16px;display:flex;flex-direction:column;gap:12px">
             @foreach($notices as $n)
@@ -79,7 +71,7 @@
         <!-- Recent Sessions / Covered Modules -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📖 Subjects & Coverage</span>
+                <span class="card-title">Subjects & Coverage</span>
                 <a href="{{ route('student.classes.index') }}" class="btn btn-ghost btn-sm">All Classes</a>
             </div>
             <div style="padding:0">
@@ -89,7 +81,7 @@
                         <div style="font-size:13px;font-weight:600">{{ $cs->subject?->name ?? '—' }}</div>
                         <div style="font-size:11px;color:var(--text-muted)">
                             {{ $cs->session_date?->format('d M Y (D)') ?? 'TBA' }}
-                            @if($cs->moduleCovered) · 📖 {{ $cs->moduleCovered->title }} @endif
+                            @if($cs->moduleCovered) · <i class="fa-solid fa-book"></i> {{ $cs->moduleCovered->title }} @endif
                         </div>
                     </div>
                     @php $badge = match($cs->status) { 'COMPLETED'=>'badge-success','SCHEDULED'=>'badge-info','CANCELLED'=>'badge-danger',default=>'badge-warning' }; @endphp
@@ -104,7 +96,7 @@
         <!-- Upcoming Classes -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📅 Upcoming Classes</span>
+                <span class="card-title">Upcoming Classes</span>
                 <a href="{{ route('student.classes.index') }}" class="btn btn-ghost btn-sm">All →</a>
             </div>
             <div style="padding:0">
@@ -123,7 +115,7 @@
                         </div>
                     </div>
                     @if($class->meeting_link)
-                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">🔗 Join</a>
+                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary btn-sm"><i class="fa-solid fa-video"></i> Join</a>
                     @endif
                 </div>
                 @empty

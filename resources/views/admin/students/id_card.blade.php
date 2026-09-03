@@ -37,20 +37,21 @@
 
     <div style="margin-bottom:20px" class="btn-print">
         <button onclick="window.print()" style="background:#4338ca;color:#fff;border:none;padding:12px 24px;border-radius:8px;font-weight:700;cursor:pointer">
-            🖨️ Print Digital Student ID Card
+            Print Digital Student ID Card
         </button>
     </div>
 
     <div class="id-card-wrapper">
         {{-- FRONT SIDE --}}
         <div class="id-card">
-            <div class="card-header">
-                <h1 class="institute-name">IOM Institute</h1>
+            <div class="card-header" style="display:flex;flex-direction:column;align-items:center;padding:12px 10px 8px">
+                <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:36px;width:auto;object-fit:contain;margin-bottom:4px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2))">
+                <h1 class="institute-name" style="font-size:12px">Islamic Online Madrasah</h1>
                 <span class="card-tag">STUDENT ID CARD</span>
             </div>
 
             <div class="card-body">
-                <div class="photo-placeholder">👤</div>
+                <div class="photo-placeholder"></div>
                 <h2 class="student-name">{{ $student->name }}</h2>
                 <div class="student-code">{{ $student->student_code ?? 'STD-2026-000' }}</div>
 

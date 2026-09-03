@@ -49,10 +49,15 @@ class StudentController extends Controller
             'address'       => 'nullable|string',
             'guardian_name' => 'nullable|string|max:200',
             'guardian_phone'=> 'nullable|string|max:30',
-            'status'        => 'required|in:LEAD,PENDING,APPROVED,ACTIVE,ABSENT,DROPPED,CANCELLED,TRANSFERRED,COMPLETED,GRADUATED',
+            'status'        => 'required|in:LEAD,PENDING,ACTIVE,ABSENT,DROPPED,CANCELLED,TRANSFERRED,COMPLETED,GRADUATED',
         ]);
 
         $student->update($validated);
+
+        if (!empty($validated['email']) && $student->user) {
+            $student->user->update(['email' => $validated['email']]);
+        }
+
         return redirect()->route('admin.students.show', $student)->with('success', 'Student details updated.');
     }
 

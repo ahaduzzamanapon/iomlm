@@ -16,7 +16,7 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
-        $student   = Student::where('email', auth()->user()->email)->first();
+        $student   = Student::where('user_id', auth()->id())->first();
         $studentId = $student?->id;
         $today     = Carbon::today();
 

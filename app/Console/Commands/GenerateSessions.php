@@ -38,9 +38,19 @@ class GenerateSessions extends Command
         ];
 
         // Load holidays
-        $holidays = HolidayCalendar::pluck('date')
-            ->map(fn($d) => Carbon::parse($d)->toDateString())
-            ->toArray();
+        $holidayRecords = HolidayCalendar::all();
+        $isHoliday = function(Carbon $date) use ($holidayRecords) {
+            foreach ($holidayRecords as $h) {
+                $hDate = Carbon::parse($h->date);
+                if ($hDate->isSameDay($date)) {
+                    return true;
+                }
+                if ($h->is_recurring_yearly && $hDate->month === $date->month && $hDate->day === $date->day) {
+                    return true;
+                }
+            }
+            return false;
+        };
 
         // Load routine entries (active batches only)
         $query = RoutineEntry::with(['slot', 'batch'])
@@ -77,8 +87,8 @@ class GenerateSessions extends Command
             while ($sessionDate <= $endDate) {
                 $dateStr = $sessionDate->toDateString();
 
-                // Skip holidays
-                if (in_array($dateStr, $holidays)) {
+                // Skip holidays (both exact and yearly recurring)
+                if ($isHoliday($sessionDate)) {
                     $sessionDate->addWeek();
                     continue;
                 }
