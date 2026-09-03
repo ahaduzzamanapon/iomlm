@@ -29,16 +29,27 @@
                 </div>
                 <div style="padding:0">
                     @php
+                        $adm = $student->admissionForms()->latest()->first();
+                        $studentCode = $student->student_code ?? '—';
+                        $phone = $student->phone ?: ($adm?->phone ?? '—');
+                        $email = $student->email ?: ($adm?->email ?? ($student->user?->email ?? '—'));
+                        $dob = ($student->date_of_birth ?: $adm?->date_of_birth) ? \Carbon\Carbon::parse($student->date_of_birth ?: $adm?->date_of_birth)->format('d M Y') : '—';
+                        $gender = $student->gender ?: ($adm?->gender ?? '—');
+                        $bloodGroup = $student->blood_group ?: ($adm?->bloodGroup?->name ?? ($adm?->blood_group ?? '—'));
+                        $nationalId = $student->national_id ?: ($adm?->national_id ?? '—');
+                        $nationality = $student->nationality ?? ($adm?->nationality ?? 'Bangladeshi');
+                        $religion = $student->religion ?? ($adm?->religion?->name ?? ($adm?->religion ?? '—'));
+
                         $rows = [
-                            ['Student Code',  $student->student_code ?? '—'],
-                            ['Phone',         $student->phone ?? '—'],
-                            ['Email',         $student->email ?? '—'],
-                            ['Date of Birth', $student->date_of_birth ? \Carbon\Carbon::parse($student->date_of_birth)->format('d M Y') : '—'],
-                            ['Gender',        $student->gender ?? '—'],
-                            ['Blood Group',   $student->blood_group ?? '—'],
-                            ['National ID',   $student->national_id ?? '—'],
-                            ['Nationality',   $student->nationality ?? '—'],
-                            ['Religion',      $student->religion ?? '—'],
+                            ['Student Code',  $studentCode],
+                            ['Phone',         $phone],
+                            ['Email',         $email],
+                            ['Date of Birth', $dob],
+                            ['Gender',        $gender],
+                            ['Blood Group',   $bloodGroup],
+                            ['National ID',   $nationalId],
+                            ['Nationality',   $nationality],
+                            ['Religion',      $religion],
                         ];
                     @endphp
                     @foreach($rows as [$label, $value])
@@ -55,11 +66,16 @@
                 <div class="card-header"><span class="card-title">👨‍👩‍👧 Family Information</span></div>
                 <div style="padding:0">
                     @php
+                        $fatherName = $student->father_name ?: ($adm?->father_name ?? '—');
+                        $motherName = $student->mother_name ?: ($adm?->mother_name ?? '—');
+                        $guardianName = $student->guardian_name ?: ($adm?->guardian_name ?? '—');
+                        $guardianPhone = $student->guardian_phone ?: ($adm?->guardian_phone ?? '—');
+
                         $family = [
-                            ['Father Name',   $student->father_name ?? '—'],
-                            ['Mother Name',   $student->mother_name ?? '—'],
-                            ['Guardian Name', $student->guardian_name ?? '—'],
-                            ['Guardian Phone',$student->guardian_phone ?? '—'],
+                            ['Father Name',    $fatherName],
+                            ['Mother Name',    $motherName],
+                            ['Guardian Name',  $guardianName],
+                            ['Guardian Phone', $guardianPhone],
                         ];
                     @endphp
                     @foreach($family as [$label, $value])
@@ -73,13 +89,23 @@
 
             {{-- Academic Background --}}
             <div class="card">
-                <div class="card-header"><span class="card-title">🎓 Academic Background</span></div>
+                <div class="card-header"><span class="card-title">🎓 Academic Background & Address</span></div>
                 <div style="padding:0">
                     @php
+                        $sscInfo = ($student->ssc_gpa ? ('GPA: ' . $student->ssc_gpa) : '') 
+                            ?: ($adm?->ssc_school ? ($adm->ssc_school . ($adm->ssc_year ? " ({$adm->ssc_year})" : '')) : '—');
+                        $hscInfo = ($student->hsc_gpa ? ('GPA: ' . $student->hsc_gpa) : '') 
+                            ?: ($adm?->hsc_college ? ($adm->hsc_college . ($adm->hsc_year ? " ({$adm->hsc_year})" : '')) : '—');
+                        $qualification = $adm?->education_qualification ?? '—';
+                        $presentAddress = $student->address ?: ($adm?->present_house ?: '—');
+                        $permanentAddress = $adm ? ($adm->same_as_present ? 'Same as present address' : ($adm->permanent_house ?: '—')) : '—';
+
                         $academic = [
-                            ['SSC GPA', $student->ssc_gpa ?? '—'],
-                            ['HSC GPA', $student->hsc_gpa ?? '—'],
-                            ['Address', $student->address ?? '—'],
+                            ['SSC Record',        $sscInfo],
+                            ['HSC Record',        $hscInfo],
+                            ['Qualification',     $qualification],
+                            ['Present Address',   $presentAddress],
+                            ['Permanent Address', $permanentAddress],
                         ];
                     @endphp
                     @foreach($academic as [$label, $value])

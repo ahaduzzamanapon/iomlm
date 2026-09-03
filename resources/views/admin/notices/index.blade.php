@@ -44,6 +44,11 @@
                                 Batch: {{ $n->batch->name }}
                             </span>
                         @endif
+                        @if($n->semester)
+                            <span class="badge badge-active no-dot" style="font-size:10px;margin-left:4px;background:#10b981">
+                                Semester: {{ $n->semester->name }}
+                            </span>
+                        @endif
                         <h3 style="font-size:16px;font-weight:700;margin:6px 0 2px;color:#0f172a">{{ $n->title }}</h3>
                         <div style="font-size:11px;color:#64748b">
                             Published {{ $n->created_at->diffForHumans() }} ({{ $n->created_at->format('d M Y, h:i A') }}) by {{ $n->creator->name ?? 'Admin' }}
@@ -76,7 +81,7 @@
 
     {{-- Create Notice Modal --}}
     <div class="modal-overlay" id="createNoticeModal">
-        <div class="modal" style="max-width:600px">
+        <div class="modal" style="max-width:650px">
             <div class="modal-header">
                 <span class="modal-title">+ Publish Announcement Notice</span>
                 <button class="modal-close" onclick="closeModal('createNoticeModal')">&times;</button>
@@ -89,7 +94,7 @@
                         <input type="text" name="title" class="form-control" placeholder="e.g. Midterm Examination Schedule & Guidelines" required>
                     </div>
 
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
                             <label>Target Audience <span class="required">*</span></label>
                             <select name="target_audience" class="form-control" required>
@@ -106,12 +111,24 @@
                                 <option value="URGENT">URGENT (জরুরি)</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
-                            <label>Specific Batch</label>
+                            <label>Specific Batch (ঐচ্ছিক)</label>
                             <select name="batch_id" class="form-control">
-                                <option value="">All Batches</option>
+                                <option value="">All Batches (সকল ব্যাচ)</option>
                                 @foreach($batches as $b)
                                     <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Specific Semester (সেমিস্টার)</label>
+                            <select name="semester_id" class="form-control">
+                                <option value="">All Semesters (সকল সেমিস্টার)</option>
+                                @foreach($semesters as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
                                 @endforeach
                             </select>
                         </div>

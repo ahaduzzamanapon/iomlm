@@ -8,7 +8,7 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addSemesterModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <i class="fa-solid fa-plus"></i>
                 New Semester
             </button>
         </div>
@@ -34,7 +34,7 @@
                         <td style="text-align:right">
                             <form method="POST" action="{{ route('admin.semesters.destroy', $sem) }}" style="display:inline" onsubmit="return confirm('Delete this semester?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-ghost btn-sm text-red">Delete</button>
+                                <button type="submit" class="btn btn-ghost btn-sm text-red"><i class="fa-solid fa-trash"></i> Delete</button>
                             </form>
                         </td>
                     </tr>

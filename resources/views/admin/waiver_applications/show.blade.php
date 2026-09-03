@@ -157,7 +157,7 @@
                 <span class="modal-title">Approve Waiver — {{ $applyLabel }}</span>
                 <button class="modal-close" onclick="closeModal('approveWaiverModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.waiver-applications.approve', $waiverApplication) }}">
+            <form method="POST" action="{{ route('admin.waiver-applications.approve', $waiverApplication) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই পুওর ফান্ড ওয়েভার আবেদনটি অনুমোদন (Approve) করতে চান? (Are you sure you want to approve this waiver application?)')">
                 @csrf @method('PATCH')
                 <div class="modal-body">
 
@@ -233,7 +233,7 @@
                 <span class="modal-title">Reject Waiver Application</span>
                 <button class="modal-close" onclick="closeModal('rejectWaiverModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.waiver-applications.reject', $waiverApplication) }}">
+            <form method="POST" action="{{ route('admin.waiver-applications.reject', $waiverApplication) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই পুওর ফান্ড ওয়েভার আবেদনটি বাতিল (Reject) করতে চান?')">
                 @csrf @method('PATCH')
                 <div class="modal-body">
                     <div class="form-group">
@@ -259,7 +259,7 @@
         const total = opt.dataset.total;
         if (sel.value && items) {
             box.style.display = 'block';
-            box.innerHTML = '<strong>Items:</strong> ' + items;
+            box.innerHTML = '<strong>Fee Items:</strong> ' + items + '<br><strong>Total Package Price:</strong> <span style="color:#047857;font-weight:700">৳' + Number(total || 0).toLocaleString() + '</span>';
         } else {
             box.style.display = 'none';
         }

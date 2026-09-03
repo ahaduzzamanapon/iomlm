@@ -12,6 +12,7 @@ use App\Models\Setting;
 use App\Models\Subject;
 use App\Models\SubjectTeacherAssignment;
 use App\Models\Teacher;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class RoutineController extends Controller
@@ -87,6 +88,16 @@ class RoutineController extends Controller
         $teachers  = Teacher::where('is_active', true)->orderBy('name')->get();
         $holidays  = HolidayCalendar::pluck('date')->toArray();
 
+        $subjectTeachers = \App\Models\SubjectTeacherAssignment::with('teacher')
+            ->get()
+            ->groupBy('subject_id')
+            ->map(function ($assignments) {
+                return $assignments->map(fn($a) => [
+                    'id'   => $a->teacher_id,
+                    'name' => $a->teacher?->name,
+                ])->filter(fn($t) => !empty($t['id']) && !empty($t['name']))->unique('id')->values()->all();
+            })->all();
+
         $batchData = $batches->mapWithKeys(function($b) {
             return [$b->id => [
                 'id'                  => $b->id,
@@ -108,7 +119,7 @@ class RoutineController extends Controller
 
         return view('admin.routine.index', compact(
             'slots', 'batches', 'batchData', 'days', 'entries', 'weekends',
-            'batchColors', 'subjects', 'teachers', 'selectedBatchId', 'holidays'
+            'batchColors', 'subjects', 'teachers', 'selectedBatchId', 'holidays', 'subjectTeachers'
         ));
     }
 
@@ -179,7 +190,8 @@ class RoutineController extends Controller
 
         $isOverride = $batchConflict || $teacherConflict;
 
-        RoutineEntry::create(array_merge($validated, ['is_override' => $isOverride]));
+        $entry = RoutineEntry::create(array_merge($validated, ['is_override' => $isOverride]));
+        $this->syncFutureSessionsForEntry($entry);
 
         if ($batchConflict && $teacherConflict) {
             return back()->with('warning', '⚠️ Conflict detected: Both Batch and Teacher are already scheduled in this slot! Marked in RED.');
@@ -205,6 +217,8 @@ class RoutineController extends Controller
             'color'            => 'nullable|string|max:20',
         ]);
 
+        $oldDayOfWeek = $entry->day_of_week;
+
         // Conflict detection (Batch overlap & Teacher overlap)
         $batchConflict = RoutineEntry::where('slot_id', $validated['slot_id'])
             ->where('day_of_week', $validated['day_of_week'])
@@ -224,6 +238,7 @@ class RoutineController extends Controller
         $isOverride = $batchConflict || $teacherConflict;
 
         $entry->update(array_merge($validated, ['is_override' => $isOverride]));
+        $this->syncFutureSessionsForEntry($entry, $oldDayOfWeek);
 
         $msg = 'Routine entry updated.';
         if ($batchConflict && $teacherConflict) {
@@ -247,11 +262,60 @@ class RoutineController extends Controller
         return back()->with($isOverride ? 'warning' : 'success', $msg);
     }
 
-
     public function destroy(RoutineEntry $entry)
     {
+        // Delete future scheduled sessions that haven't been conducted yet
+        ClassSession::where('routine_entry_id', $entry->id)
+            ->whereDate('session_date', '>=', Carbon::today())
+            ->where('status', 'SCHEDULED')
+            ->doesntHave('attendances')
+            ->delete();
+
         $entry->delete();
         return back()->with('success', 'Routine entry removed.');
+    }
+
+    /**
+     * Synchronize upcoming class sessions when a routine entry is created or updated.
+     */
+    private function syncFutureSessionsForEntry(RoutineEntry $entry, ?string $oldDayOfWeek = null): void
+    {
+        $today = Carbon::today();
+        $entry->load(['slot', 'batch']);
+
+        $futureSessions = ClassSession::where('routine_entry_id', $entry->id)
+            ->whereDate('session_date', '>=', $today)
+            ->where('status', 'SCHEDULED')
+            ->get();
+
+        $dayMap = ['SUN' => 0, 'MON' => 1, 'TUE' => 2, 'WED' => 3, 'THU' => 4, 'FRI' => 5, 'SAT' => 6];
+        $dayChanged = ($oldDayOfWeek && $oldDayOfWeek !== $entry->day_of_week);
+
+        if ($futureSessions->isNotEmpty()) {
+            foreach ($futureSessions as $session) {
+                $sessionDate = Carbon::parse($session->session_date);
+                $newDateStr  = $sessionDate->toDateString();
+
+                if ($dayChanged && isset($dayMap[$entry->day_of_week])) {
+                    $targetDow   = $dayMap[$entry->day_of_week];
+                    $startOfWeek = $sessionDate->copy()->startOfWeek(Carbon::SATURDAY);
+                    $newDate     = $startOfWeek->copy()->addDays(($targetDow + 1) % 7);
+                    if ($newDate->lt($today)) {
+                        $newDate->addWeek();
+                    }
+                    $newDateStr = $newDate->toDateString();
+                }
+
+                $session->update([
+                    'subject_id'   => $entry->subject_id,
+                    'teacher_id'   => $entry->teacher_id,
+                    'start_time'   => $entry->slot?->start_time,
+                    'session_date' => $newDateStr,
+                ]);
+            }
+        } elseif ($entry->batch) {
+            (new BatchController())->generateSessionsFromRoutine($entry->batch, 4);
+        }
     }
 
     /**

@@ -9,6 +9,13 @@
             <p>Design questions, add field types (text, choices, file upload), set requirements, and build your survey form</p>
         </div>
         <div style="display:flex; gap:8px; align-items:center">
+            <form method="POST" action="{{ route('admin.surveys.toggle-status', $survey) }}" style="display:inline">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn {{ $survey->is_active ? 'btn-success' : 'btn-outline' }}" style="font-weight:600" title="Click to toggle form status">
+                    {{ $survey->is_active ? '● Active' : '○ Closed' }}
+                </button>
+            </form>
             <button type="button" class="btn btn-outline" onclick="copyPublicLink('{{ url('/surveys/' . $survey->slug) }}')">
                 📋 Copy Link
             </button>

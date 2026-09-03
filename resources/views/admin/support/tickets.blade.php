@@ -3,12 +3,15 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>🎧 Support Tickets Overview</h1>
+            <h1><i class="fa-solid fa-headset" style="color:#0284c7"></i> Support Tickets Overview</h1>
             <p>Monitor all incoming support tickets, live chats, and department performance</p>
         </div>
         <div class="page-header-actions">
-            <a href="{{ route('admin.support-departments.index') }}" class="btn btn-outline">⚙️ Manage Departments & Agents</a>
-            <a href="{{ route('support.dashboard') }}" class="btn btn-primary">💬 Open Agent Panel</a>
+            <a href="{{ route('admin.support-tickets.export', request()->query()) }}" class="btn btn-outline" style="color:#0284c7;border-color:#0284c7">
+                <i class="fa-solid fa-file-arrow-down"></i> Export Tickets (CSV)
+            </a>
+            <a href="{{ route('admin.support-departments.index') }}" class="btn btn-outline"><i class="fa-solid fa-gear"></i> Manage Departments & Agents</a>
+            <a href="{{ route('support.dashboard') }}" class="btn btn-primary"><i class="fa-solid fa-comments"></i> Open Agent Panel</a>
         </div>
     </div>
 
@@ -21,35 +24,35 @@
     {{-- Overall Stats --}}
     <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 24px;">
         <div class="stat-card" style="border-left: 4px solid #6366f1">
-            <div class="stat-icon" style="background:#e0e7ff;color:#4338ca">📋</div>
+            <div class="stat-icon" style="background:#e0e7ff;color:#4338ca"><i class="fa-solid fa-ticket"></i></div>
             <div class="stat-info">
                 <div class="stat-value">{{ $totalCount }}</div>
                 <div class="stat-label">Total Tickets</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #f59e0b">
-            <div class="stat-icon" style="background:#fef3c7;color:#b45309">⏳</div>
+            <div class="stat-icon" style="background:#fef3c7;color:#b45309"><i class="fa-solid fa-clock"></i></div>
             <div class="stat-info">
                 <div class="stat-value" style="color:#b45309">{{ $pendingCount }}</div>
                 <div class="stat-label">Pending Queue</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #0284c7">
-            <div class="stat-icon" style="background:#e0f2fe;color:#0369a1">💬</div>
+            <div class="stat-icon" style="background:#e0f2fe;color:#0369a1"><i class="fa-solid fa-comments"></i></div>
             <div class="stat-info">
                 <div class="stat-value" style="color:#0369a1">{{ $activeCount }}</div>
                 <div class="stat-label">Active Chats</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #10b981">
-            <div class="stat-icon" style="background:#d1fae5;color:#047857">✅</div>
+            <div class="stat-icon" style="background:#d1fae5;color:#047857"><i class="fa-solid fa-circle-check"></i></div>
             <div class="stat-info">
                 <div class="stat-value" style="color:#047857">{{ $closedCount }}</div>
                 <div class="stat-label">Resolved / Closed</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #ec4899">
-            <div class="stat-icon" style="background:#fce7f3;color:#be185d">★</div>
+            <div class="stat-icon" style="background:#fce7f3;color:#be185d"><i class="fa-solid fa-star"></i></div>
             <div class="stat-info">
                 <div class="stat-value" style="color:#be185d">{{ $avgRating }} / 5</div>
                 <div class="stat-label">Avg User Rating</div>
@@ -113,14 +116,14 @@
                         <td>
                             <strong style="font-size:14px">{{ $t->name }}</strong>
                             <div style="font-size:12px;color:#64748b">
-                                📞 {{ $t->phone }} &middot; ✉️ {{ $t->email }}
+                                <i class="fa-solid fa-phone" style="font-size:11px"></i> {{ $t->phone }} &middot; <i class="fa-solid fa-envelope" style="font-size:11px"></i> {{ $t->email }}
                                 @if($t->student_id)
                                     &middot; Roll: <strong>{{ $t->student_id }}</strong>
                                 @endif
                             </div>
                         </td>
                         <td>
-                            <span class="badge badge-secondary no-dot">🏢 {{ $t->department->name ?? '—' }}</span>
+                            <span class="badge badge-secondary no-dot"><i class="fa-solid fa-building" style="margin-right:4px"></i> {{ $t->department->name ?? '—' }}</span>
                         </td>
                         <td>
                             <div style="font-weight:700;font-size:13px;color:#0f172a">{{ $t->subject }}</div>
@@ -137,16 +140,16 @@
                         </td>
                         <td>
                             @if($t->status === 'PENDING')
-                                <span class="badge badge-pending">⏳ Pending</span>
+                                <span class="badge badge-pending"><i class="fa-solid fa-clock" style="margin-right:4px"></i> Pending</span>
                             @elseif($t->status === 'IN_PROGRESS')
-                                <span class="badge badge-running">🟢 Active Chat</span>
+                                <span class="badge badge-running"><i class="fa-solid fa-circle-dot" style="color:#10b981;margin-right:4px"></i> Active Chat</span>
                             @else
-                                <span class="badge badge-secondary">🔒 Closed</span>
+                                <span class="badge badge-secondary"><i class="fa-solid fa-lock" style="margin-right:4px"></i> Closed</span>
                             @endif
                         </td>
                         <td>
                             @if($t->rating)
-                                <span style="color:#f59e0b;font-weight:700">★ {{ $t->rating }}/5</span>
+                                <span style="color:#f59e0b;font-weight:700"><i class="fa-solid fa-star"></i> {{ $t->rating }}/5</span>
                             @else
                                 <span style="color:#94a3b8;font-size:12px">—</span>
                             @endif
@@ -155,15 +158,19 @@
                             <div class="dropdown" style="display:inline-block">
                                 <button class="btn btn-outline btn-sm" onclick="toggleDropdown('stact-{{ $t->id }}')" style="gap:4px">
                                     Actions
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                    <i class="fa-solid fa-chevron-down" style="font-size:10px"></i>
                                 </button>
                                 <div class="dropdown-menu" id="stact-{{ $t->id }}" style="right:0;min-width:170px">
+                                    <a href="{{ route('admin.support-tickets.show', $t) }}" class="dropdown-item">
+                                        <i class="fa-solid fa-eye" style="margin-right:6px"></i>
+                                        View Details
+                                    </a>
                                     <a href="{{ route('support.chat', $t->uuid) }}" target="_blank" class="dropdown-item">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                                        <i class="fa-solid fa-comments" style="margin-right:6px"></i>
                                         Open Live Chat
                                     </a>
                                     <button class="dropdown-item" onclick='openReassignModal(@json($t))'>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                        <i class="fa-solid fa-arrows-rotate" style="margin-right:6px"></i>
                                         Reassign Agent/Dept
                                     </button>
                                 </div>

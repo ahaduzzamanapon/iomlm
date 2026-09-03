@@ -43,6 +43,7 @@
                     <tr><th style="color:var(--text-muted)">Date of Birth:</th><td>{{ $admission->date_of_birth ?? $admission->student->date_of_birth ?? '—' }}</td></tr>
                     <tr><th style="color:var(--text-muted)">Gender / Device:</th><td>{{ $admission->gender ?? $admission->student->gender ?? '—' }} ({{ $admission->device_type ?? 'N/A' }})</td></tr>
                     <tr><th style="color:var(--text-muted)">Course Interested:</th><td><strong>{{ $admission->interestedCourse->name ?? '—' }}</strong></td></tr>
+                    <tr><th style="color:var(--text-muted)">Course Admission Fee:</th><td><strong style="color:#047857;font-size:14px">৳ {{ number_format($admission->interestedCourse->admission_fee ?? 0, 0) }}</strong></td></tr>
                     <tr><th style="color:var(--text-muted)">Academic Session:</th><td>{{ $admission->session->name ?? '—' }}</td></tr>
                     <tr><th style="color:var(--text-muted)">Lead Source / Waiver:</th><td>{{ $admission->lead_source ?? 'Direct' }} (Waiver: {{ $admission->discount_percent ?? 0 }}%)</td></tr>
                 </table>
@@ -69,16 +70,16 @@
 
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Accounts & Fee Summary</div>
                 @php 
-                    $courseFee = $admission->interestedCourse->admission_fee ?? 0;
-                    $batchFee = ($admission->batch && $admission->batch->admission_fee > 0) ? $admission->batch->admission_fee : ($courseFee > 0 ? $courseFee : 2000);
+                    $courseFee = (float)($admission->interestedCourse->admission_fee ?? 0);
+                    $batchFee = ($admission->batch && $admission->batch->admission_fee !== null) ? (float)$admission->batch->admission_fee : $courseFee;
                     $waiverApp = $admission->waiver_code ? \App\Models\WaiverApplication::where('application_no', $admission->waiver_code)->first() : null;
                     if ($waiverApp && $waiverApp->approved_admission_fee !== null && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
-                        $netPayable = (float) $waiverApp->approved_admission_fee;
+                        $netPayable = min($batchFee, (float) $waiverApp->approved_admission_fee);
                         $discVal = max(0, $batchFee - $netPayable);
                     } else {
                         $discVal = ($admission->discount_type === 'FIXED') 
-                            ? ($admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent) 
-                            : round($batchFee * (($admission->discount_percent ?? 0) / 100), 2);
+                            ? (float)($admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent) 
+                            : round($batchFee * (((float)($admission->discount_percent ?? 0)) / 100), 2);
                         $netPayable = max(0, $batchFee - $discVal);
                     }
                     $invoice = \App\Models\Invoice::where('source_type', \App\Models\AdmissionForm::class)->where('source_id', $admission->id)->first();
@@ -99,6 +100,18 @@
                         </td>
                     </tr>
                     <tr><th style="color:var(--text-muted)">Net Payable Fee:</th><td><strong style="color:var(--blue);font-size:15px">৳ {{ number_format($netPayable, 0) }}</strong></td></tr>
+                    @if($waiverApp && $waiverApp->approvedPackage)
+                    <tr>
+                        <th style="color:var(--text-muted)">Approved Tuition Package:</th>
+                        <td>
+                            <strong>{{ $waiverApp->approvedPackage->name }}</strong>
+                            <span class="badge badge-active no-dot" style="margin-left:6px">৳ {{ number_format($waiverApp->approvedPackage->total, 0) }}</span>
+                            @if($waiverApp->convenient_monthly_fee)
+                                <div style="font-size:11px;color:#166534;margin-top:2px">Applicant requested Monthly Fee: ৳{{ number_format($waiverApp->convenient_monthly_fee, 0) }}</div>
+                            @endif
+                        </td>
+                    </tr>
+                    @endif
                     <tr>
                         <th style="color:var(--text-muted)">Accounts Due Status:</th>
                         <td>
@@ -214,7 +227,7 @@
                 <span class="modal-title">Approve Admission & Assign Batch</span>
                 <button class="modal-close" onclick="closeModal('approveModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.admissions.approve', $admission) }}">
+            <form method="POST" action="{{ route('admin.admissions.approve', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি অনুমোদন (Approve & Activate) করতে চান?')">
                 @csrf @method('PATCH')
                 <div class="modal-body">
                     <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
@@ -245,7 +258,7 @@
                 <span class="modal-title">Reject Admission Application</span>
                 <button class="modal-close" onclick="closeModal('rejectModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.admissions.reject', $admission) }}">
+            <form method="POST" action="{{ route('admin.admissions.reject', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি বাতিল (Reject) করতে চান?')">
                 @csrf @method('PATCH')
                 <div class="modal-body">
                     <div class="form-group">

@@ -115,14 +115,14 @@
     <div class="survey-header-card">
         <div>
             <h1 style="margin:0 0 6px; font-size:24px; font-weight:800; color:#ffffff; display:flex; align-items:center; gap:10px">
-                📋 Survey &amp; Dynamic Form Builder
+                <i class="fa-solid fa-clipboard-question"></i> Survey &amp; Dynamic Form Builder
             </h1>
             <p style="margin:0; font-size:13.5px; color:#94a3b8">
                 Build Google Forms-like custom surveys, share public links, and view automated dynamic response tables
             </p>
         </div>
         <button class="btn-gradient-primary" onclick="openModal('createSurveyModal')">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            <i class="fa-solid fa-plus"></i>
             Create New Survey Form
         </button>
     </div>
@@ -131,9 +131,9 @@
     <div class="card" style="margin-bottom:20px; padding:16px; border-radius:14px">
         <form method="GET" action="{{ route('admin.surveys.index') }}" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center">
             <div style="flex:1; min-width:260px; position:relative">
-                <input type="text" name="search" class="form-control" placeholder="🔍 Search survey forms by title or description..." value="{{ request('search') }}" style="padding-left:14px">
+                <input type="text" name="search" class="form-control" placeholder="Search survey forms by title or description..." value="{{ request('search') }}" style="padding-left:14px">
             </div>
-            <button type="submit" class="btn btn-primary" style="font-weight:600">Search</button>
+            <button type="submit" class="btn btn-primary" style="font-weight:600"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
             @if(request('search'))
                 <a href="{{ route('admin.surveys.index') }}" class="btn btn-outline">Reset Filter</a>
             @endif
@@ -168,13 +168,13 @@
                             @endif
                             <div style="margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                                 <span class="survey-link-pill">
-                                    🔗 /surveys/{{ $survey->slug }}
+                                    <i class="fa-solid fa-link"></i> /surveys/{{ $survey->slug }}
                                 </span>
                                 <button type="button" class="btn btn-xs btn-outline" style="border-radius:6px; font-weight:600" onclick="copyPublicLink('{{ url('/surveys/' . $survey->slug) }}')">
-                                    📋 Copy Link
+                                    <i class="fa-solid fa-copy"></i> Copy Link
                                 </button>
                                 <a href="{{ url('/surveys/' . $survey->slug) }}" target="_blank" style="font-size:11.5px; color:#2563eb; text-decoration:none; font-weight:700">
-                                    Preview Form ↗
+                                    Preview Form <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                 </a>
                             </div>
                         </td>
@@ -185,7 +185,7 @@
                         </td>
                         <td style="text-align:center">
                             <a href="{{ route('admin.surveys.responses', $survey) }}" class="badge badge-primary no-dot" style="font-weight:700; font-size:12px; padding:5px 12px; border-radius:20px; text-decoration:none; background:linear-gradient(135deg,#2563eb,#3b82f6)">
-                                📊 {{ $survey->responses_count }} Responses
+                                <i class="fa-solid fa-chart-pie"></i> {{ $survey->responses_count }} Responses
                             </a>
                         </td>
                         <td style="text-align:center">
@@ -203,16 +203,16 @@
                         <td style="text-align:right; white-space:nowrap">
                             <div style="display:inline-flex; justify-content:flex-end; gap:6px; align-items:center">
                                 <a href="{{ route('admin.surveys.builder', $survey) }}" class="action-btn primary" title="Form Builder">
-                                    ✏️
+                                    <i class="fa-solid fa-pen-to-square"></i>
                                 </a>
                                 <a href="{{ route('admin.surveys.responses', $survey) }}" class="action-btn" title="View Responses">
-                                    📊
+                                    <i class="fa-solid fa-chart-pie"></i>
                                 </a>
                                 <form method="POST" action="{{ route('admin.surveys.destroy', $survey) }}" onsubmit="return confirm('Delete this survey?')" style="display:contents">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="action-btn danger" title="Delete Survey">
-                                        🗑️
+                                        <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </form>
                             </div>
@@ -221,7 +221,7 @@
                     @empty
                     <tr>
                         <td colspan="7" style="text-align:center; padding:50px 20px; color:var(--text-muted)">
-                            <div style="font-size:36px; margin-bottom:12px">📋</div>
+                            <div style="font-size:36px; margin-bottom:12px; color:#94a3b8"><i class="fa-solid fa-clipboard-question"></i></div>
                             <strong style="font-size:16px; color:#1e293b">No survey forms created yet.</strong><br>
                             <span style="font-size:13px; color:#64748b">Click <em>"Create New Survey Form"</em> above to build your first dynamic form.</span>
                         </td>

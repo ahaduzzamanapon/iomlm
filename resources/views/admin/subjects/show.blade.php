@@ -4,14 +4,14 @@
     <div class="page-header">
         <div class="page-header-left">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
-                <a href="{{ route('admin.subjects.index') }}">← Back to Subjects</a>
+                <a href="{{ route('admin.subjects.index') }}"><i class="fa-solid fa-arrow-left"></i> Back to Subjects</a>
             </div>
             <h1>{{ $subject->code }}: {{ $subject->name }}</h1>
             <p>Credit: {{ $subject->credit }} · Full Marks: {{ $subject->full_marks }} · Pass Marks: {{ $subject->pass_marks }}</p>
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addModuleModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <i class="fa-solid fa-plus"></i>
                 Add Module
             </button>
         </div>
@@ -32,7 +32,7 @@
                         <div style="flex:1;min-width:0">
                             <div style="display:flex;align-items:center;gap:8px">
                                 @if($mod->category)
-                                    <span class="badge badge-secondary no-dot" style="font-size:11px;background:rgba(59,130,246,.1);color:var(--blue)">📁 {{ $mod->category }}</span>
+                                    <span class="badge badge-secondary no-dot" style="font-size:11px;background:rgba(59,130,246,.1);color:var(--blue)"><i class="fa-solid fa-folder" style="margin-right:4px"></i> {{ $mod->category }}</span>
                                 @endif
                                 <span class="module-title">{{ $mod->title }}</span>
                             </div>
@@ -48,11 +48,11 @@
                     <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:12px">
                         <button type="button" class="btn btn-outline btn-sm"
                             onclick="openEditModal({{ $mod->id }}, '{{ addslashes($mod->title) }}', '{{ addslashes($mod->category ?? '') }}', {{ $mod->sequence_no }}, '{{ addslashes($mod->description ?? '') }}')">
-                            Edit
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
                         <form method="POST" action="{{ route('admin.modules.destroy', $mod) }}" style="display:inline" onsubmit="return confirm('Delete module?')">
                             @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-ghost btn-sm text-red">Delete</button>
+                            <button type="submit" class="btn btn-ghost btn-sm text-red"><i class="fa-solid fa-trash"></i> Delete</button>
                         </form>
                     </div>
                 </div>

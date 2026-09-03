@@ -157,6 +157,16 @@ class SurveyController extends Controller
         $survey->update(['is_active' => !$survey->is_active]);
 
         $statusText = $survey->is_active ? 'Activated' : 'Closed';
+
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success'     => true,
+                'is_active'   => $survey->is_active,
+                'status_text' => $statusText,
+                'message'     => "Survey has been {$statusText}.",
+            ]);
+        }
+
         return redirect()->back()->with('success', "Survey has been {$statusText}.");
     }
 

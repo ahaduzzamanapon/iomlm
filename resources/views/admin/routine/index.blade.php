@@ -186,7 +186,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Subject</label>
-                            <select name="subject_id" id="add_subject_id" class="form-control">
+                            <select name="subject_id" id="add_subject_id" class="form-control" onchange="onSubjectSelect('add')">
                                 <option value="">— Select Subject —</option>
                                 @foreach($subjects as $s)
                                     <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
@@ -257,7 +257,7 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Subject</label>
-                            <select name="subject_id" id="edit_subject_id" class="form-control">
+                            <select name="subject_id" id="edit_subject_id" class="form-control" onchange="onSubjectSelect('edit')">
                                 <option value="">— None —</option>
                                 @foreach($subjects as $s)
                                     <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
@@ -379,7 +379,65 @@
         @endforeach
     ];
 
-    function onBatchSelect(batchId, prefix = 'add', targetSemesterId = null, targetSubjectId = null) {
+    const allTeachers = [
+        @foreach($teachers as $t)
+        { id: {{ $t->id }}, name: @json($t->name) },
+        @endforeach
+    ];
+
+    const subjectTeacherMap = @json($subjectTeachers ?? []);
+
+    function onSubjectSelect(prefix = 'add', targetTeacherId = null) {
+        const subjSelect  = document.getElementById(prefix + '_subject_id');
+        const teachSelect = document.getElementById(prefix + '_teacher_id');
+        if (!teachSelect) return;
+
+        const subjId = subjSelect ? subjSelect.value : null;
+        teachSelect.innerHTML = '<option value="">— Assign Teacher —</option>';
+
+        const assigned = (subjId && subjectTeacherMap[subjId]) ? subjectTeacherMap[subjId] : [];
+        const assignedIds = assigned.map(t => parseInt(t.id));
+
+        if (assigned.length > 0) {
+            const grpAssigned = document.createElement('optgroup');
+            grpAssigned.label = 'বিষয়ভিত্তিক শিক্ষক (Assigned Subject Teachers)';
+            assigned.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name + ' ⭐';
+                grpAssigned.appendChild(opt);
+            });
+            teachSelect.appendChild(grpAssigned);
+
+            const otherTeachers = allTeachers.filter(t => !assignedIds.includes(parseInt(t.id)));
+            if (otherTeachers.length > 0) {
+                const grpOthers = document.createElement('optgroup');
+                grpOthers.label = 'অন্যান্য শিক্ষক (Other Teachers)';
+                otherTeachers.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.name;
+                    grpOthers.appendChild(opt);
+                });
+                teachSelect.appendChild(grpOthers);
+            }
+        } else {
+            allTeachers.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name;
+                teachSelect.appendChild(opt);
+            });
+        }
+
+        if (targetTeacherId) {
+            teachSelect.value = targetTeacherId;
+        } else if (assigned.length === 1 && prefix === 'add') {
+            teachSelect.value = assigned[0].id;
+        }
+    }
+
+    function onBatchSelect(batchId, prefix = 'add', targetSemesterId = null, targetSubjectId = null, targetTeacherId = null) {
         const semSelect = document.getElementById(prefix + '_semester_id');
         if (!semSelect) return;
 
@@ -409,10 +467,10 @@
             }
         }
 
-        onSemesterSelect(prefix, targetSubjectId);
+        onSemesterSelect(prefix, targetSubjectId, targetTeacherId);
     }
 
-    function onSemesterSelect(prefix = 'add', targetSubjectId = null) {
+    function onSemesterSelect(prefix = 'add', targetSubjectId = null, targetTeacherId = null) {
         const batchSelect = document.getElementById(prefix + '_batch_id');
         const semSelect   = document.getElementById(prefix + '_semester_id');
         const subjSelect  = document.getElementById(prefix + '_subject_id');
@@ -456,6 +514,8 @@
         if (targetSubjectId) {
             subjSelect.value = targetSubjectId;
         }
+
+        onSubjectSelect(prefix, targetTeacherId);
     }
 
     // ══════════════════════════════════════════════════════
@@ -623,7 +683,7 @@
             if (m) foundSemId = m.semester_id;
         }
 
-        onBatchSelect(batchId, 'edit', foundSemId, subjectId);
+        onBatchSelect(batchId, 'edit', foundSemId, subjectId, teacherId);
 
         if (teacherId) document.getElementById('edit_teacher_id').value = teacherId;
         document.getElementById('edit_title').value = title;

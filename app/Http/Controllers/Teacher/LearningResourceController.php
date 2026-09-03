@@ -18,21 +18,31 @@ class LearningResourceController extends Controller
 
     public function store(Request $request)
     {
+        $moduleId = $request->input('module_id') ?? $request->input('subject_module_id');
+
         $validated = $request->validate([
-            'subject_module_id' => 'required|exists:subject_modules,id',
-            'title'             => 'required|string|max:200',
-            'type'              => 'required|in:VIDEO,RECORDING,PDF,AUDIO,SLIDES,NOTES,ASSIGNMENT,QUIZ,PRACTICAL,LINK',
-            'url'               => 'nullable|string',
-            'content'           => 'nullable|string',
+            'title' => 'required|string|max:200',
+            'type'  => 'required|string',
+            'url'   => 'nullable|string|max:1000',
         ]);
 
+        if (!$moduleId || !SubjectModule::where('id', $moduleId)->exists()) {
+            return back()->withErrors(['module_id' => 'Please select a valid subject module.']);
+        }
+
+        $type = match($validated['type']) {
+            'RECORDING'  => 'VIDEO',
+            'ASSIGNMENT' => 'NOTES',
+            'QUIZ'       => 'NOTES',
+            'PRACTICAL'  => 'NOTES',
+            default      => in_array($validated['type'], ['VIDEO', 'PDF', 'AUDIO', 'NOTES', 'SLIDES', 'LINK']) ? $validated['type'] : 'LINK',
+        };
+
         LearningResource::create([
-            'subject_module_id' => $validated['subject_module_id'],
-            'title'             => $validated['title'],
-            'type'              => $validated['type'],
-            'url'               => $validated['url'] ?? null,
-            'content'           => $validated['content'] ?? null,
-            'created_by'        => auth()->id(),
+            'module_id' => $moduleId,
+            'title'     => $validated['title'],
+            'type'      => $type,
+            'url'       => $validated['url'] ?? '#',
         ]);
 
         return back()->with('success', 'Learning resource uploaded successfully.');
@@ -41,6 +51,6 @@ class LearningResourceController extends Controller
     public function destroy(LearningResource $resource)
     {
         $resource->delete();
-        return back()->with('success', 'Resource removed.');
+        return back()->with('success', 'Resource removed successfully.');
     }
 }

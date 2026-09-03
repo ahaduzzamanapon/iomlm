@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Dashboard' }} — Student | IOM</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
         /* Student-specific accent: violet */
@@ -47,18 +48,18 @@
             <!-- Overview -->
             <div class="nav-group-label">Overview</div>
             <a href="{{ route('student.dashboard') }}" class="nav-item {{ request()->routeIs('student.dashboard') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <i class="fa-solid fa-house"></i>
                 Dashboard
             </a>
 
             <!-- My Learning -->
             <div class="nav-group-label">My Learning</div>
             <a href="{{ route('student.my-course.index') }}" class="nav-item {{ request()->routeIs('student.my-course*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0121 21H3a12.083 12.083 0 012.84-10.422L12 14z"/></svg>
+                <i class="fa-solid fa-book-open"></i>
                 My Course
             </a>
             <a href="{{ route('student.classes.today') }}" class="nav-item {{ request()->routeIs('student.classes.today') ? 'active' : '' }}" style="{{ !request()->routeIs('student.classes.today') ? 'border-left:3px solid #f59e0b' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1M4.22 4.22l.707.707M18.364 18.364l.707.707M1 12h1m18 0h1M4.22 19.778l.707-.707M18.364 5.636l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+                <i class="fa-solid fa-sun"></i>
                 Today's Classes
                 @php
                     try {
@@ -70,55 +71,55 @@
                 @if($todayClassCount > 0)<span class="nav-badge" style="background:#f59e0b">{{ $todayClassCount }}</span>@endif
             </a>
             <a href="{{ route('student.classes.index') }}" class="nav-item {{ request()->routeIs('student.classes.index') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                <i class="fa-solid fa-video"></i>
                 My Classes
             </a>
             <a href="{{ route('student.calendar') }}" class="nav-item {{ request()->routeIs('student.calendar*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <i class="fa-solid fa-calendar-days"></i>
                 My Calendar
             </a>
             <a href="{{ route('student.routine.index') }}" class="nav-item {{ request()->routeIs('student.routine*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg>
+                <i class="fa-solid fa-calendar-week"></i>
                 My Routine
             </a>
             <a href="{{ route('student.resources.index') }}" class="nav-item {{ request()->routeIs('student.resources*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                <i class="fa-solid fa-paperclip"></i>
                 Learning Resources
             </a>
 
             <!-- Progress -->
             <div class="nav-group-label">My Progress &amp; Exams</div>
             <a href="{{ route('student.exams.index') }}" class="nav-item {{ request()->routeIs('student.exams*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                <i class="fa-solid fa-file-pen"></i>
                 Online Exams
             </a>
             <a href="{{ route('student.attendance.index') }}" class="nav-item {{ request()->routeIs('student.attendance*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <i class="fa-solid fa-clipboard-check"></i>
                 My Attendance
             </a>
             <a href="{{ route('student.results.index') }}" class="nav-item {{ request()->routeIs('student.results*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11 V3.055z"/></svg>
+                <i class="fa-solid fa-award"></i>
                 Academic Results
             </a>
 
             <!-- Financials -->
             <div class="nav-group-label">Financials</div>
             <a href="{{ route('student.fees.index') }}" class="nav-item {{ request()->routeIs('student.fees*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <i class="fa-solid fa-credit-card"></i>
                 My Fees &amp; Invoices
             </a>
 
             <!-- Support -->
             <div class="nav-group-label">Support &amp; Help</div>
             <a href="{{ route('student.support.index') }}" class="nav-item {{ request()->routeIs('student.support*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                <i class="fa-solid fa-headset"></i>
                 Online Support
             </a>
 
             <!-- Documents -->
             <div class="nav-group-label">Documents</div>
             <a href="{{ route('student.documents.index') }}" class="nav-item {{ request()->routeIs('student.documents*') ? 'active' : '' }}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                <i class="fa-solid fa-folder-open"></i>
                 My Documents
             </a>
 
@@ -130,7 +131,7 @@
         <header class="topbar">
             <div class="topbar-left">
                 <button class="topbar-btn" onclick="toggleSidebar()">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <i class="fa-solid fa-bars"></i>
                 </button>
                 @if(isset($breadcrumbs))
                 <div class="topbar-breadcrumb">
@@ -149,16 +150,22 @@
                         <div class="user-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'S', 0, 2)) }}</div>
                         <div>
                             <div class="user-name">{{ auth()->user()->name ?? 'Student' }}</div>
-                            <div class="user-role">Student</div>
+                            <div class="user-role">
+                                {{ match(strtoupper(auth()->user()->role ?? 'STUDENT')) {
+                                    'STUDENT' => 'Student',
+                                    'ADMIN', 'SUPER_ADMIN' => 'Admin (Student View)',
+                                    default => ucfirst(strtolower(auth()->user()->role ?? 'Student')),
+                                } }}
+                            </div>
                         </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        <i class="fa-solid fa-chevron-down" style="font-size:11px;opacity:0.7"></i>
                     </div>
                     <div class="dropdown-menu" id="studentUserMenu">
                         <div class="dropdown-divider"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="dropdown-item danger" style="width:100%;border:none;background:none;text-align:left">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                <i class="fa-solid fa-right-from-bracket"></i>
                                 Logout
                             </button>
                         </form>

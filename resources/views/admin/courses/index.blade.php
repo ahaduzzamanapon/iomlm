@@ -8,7 +8,7 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addCourseModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <i class="fa-solid fa-plus"></i>
                 New Course
             </button>
         </div>
@@ -60,8 +60,8 @@
                             @endif
                         </td>
                         <td style="text-align:right">
-                            <button class="btn btn-outline btn-sm" onclick='openEditCourseModal(@json($course))'>Edit</button>
-                            <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm">Configure →</a>
+                            <button class="btn btn-outline btn-sm" onclick='openEditCourseModal(@json($course))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                            <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-sliders"></i> Configure</a>
                         </td>
                     </tr>
                     @empty
@@ -92,13 +92,13 @@
                         <div class="type-selector">
                             <label class="type-option selected" id="opt-semester" onclick="selectType('SEMESTER_BASED')">
                                 <input type="radio" name="type" value="SEMESTER_BASED" checked>
-                                <div class="type-option-icon">🎓</div>
+                                <div class="type-option-icon"><i class="fa-solid fa-graduation-cap"></i></div>
                                 <div class="type-option-label">Semester Based</div>
                                 <div class="type-option-desc">Subjects are bound to semesters</div>
                             </label>
                             <label class="type-option" id="opt-subject" onclick="selectType('SUBJECT_BASED')">
                                 <input type="radio" name="type" value="SUBJECT_BASED">
-                                <div class="type-option-icon">📖</div>
+                                <div class="type-option-icon"><i class="fa-solid fa-book"></i></div>
                                 <div class="type-option-label">Subject Based</div>
                                 <div class="type-option-desc">Direct subject selection</div>
                             </label>

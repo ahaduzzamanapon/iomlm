@@ -52,14 +52,16 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('surveys',                              [\App\Http\Controllers\Admin\SurveyController::class, 'store'])->name('surveys.store');
     Route::get('surveys/{survey}/builder',             [\App\Http\Controllers\Admin\SurveyController::class, 'builder'])->name('surveys.builder');
     Route::put('surveys/{survey}/builder',             [\App\Http\Controllers\Admin\SurveyController::class, 'saveBuilder'])->name('surveys.builder.save');
-    Route::patch('surveys/{survey}/toggle-status',      [\App\Http\Controllers\Admin\SurveyController::class, 'toggleStatus'])->name('surveys.toggle-status');
+    Route::match(['PATCH', 'POST', 'GET'], 'surveys/{survey}/toggle-status', [\App\Http\Controllers\Admin\SurveyController::class, 'toggleStatus'])->name('surveys.toggle-status');
     Route::get('surveys/{survey}/responses',           [\App\Http\Controllers\Admin\SurveyController::class, 'responses'])->name('surveys.responses');
     Route::get('surveys/{survey}/responses/csv',       [\App\Http\Controllers\Admin\SurveyController::class, 'exportCsv'])->name('surveys.responses.csv');
     Route::delete('surveys/{survey}',                   [\App\Http\Controllers\Admin\SurveyController::class, 'destroy'])->name('surveys.destroy');
 
     // ── Support Setup (Departments & Agents) ──────────────────────────
     Route::get('support-tickets',                        [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'index'])->name('support-tickets.index');
-    Route::patch('support-tickets/{ticket}/reassign',    [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'reassign'])->name('support-tickets.reassign');
+    Route::get('support-tickets/export',                 [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'exportCsv'])->name('support-tickets.export');
+    Route::get('support-tickets/{ticket}',               [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'show'])->name('support-tickets.show');
+    Route::match(['PATCH', 'POST'], 'support-tickets/{ticket}/reassign', [\App\Http\Controllers\Admin\AdminSupportTicketController::class, 'reassign'])->name('support-tickets.reassign');
     Route::resource('support-departments',               \App\Http\Controllers\Admin\SupportDepartmentController::class);
     Route::patch('support-departments/{supportDepartment}/toggle', [\App\Http\Controllers\Admin\SupportDepartmentController::class, 'toggleStatus'])->name('support-departments.toggle');
     Route::resource('support-agents',                    \App\Http\Controllers\Admin\SupportUserController::class);

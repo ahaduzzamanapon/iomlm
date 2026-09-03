@@ -4,7 +4,7 @@
     <div class="page-header">
         <div class="page-header-left">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
-                <a href="{{ route('admin.courses.index') }}">← Back to Courses</a>
+                <a href="{{ route('admin.courses.index') }}"><i class="fa-solid fa-arrow-left"></i> Back to Courses</a>
             </div>
             <h1>{{ $course->name }}</h1>
             <p>
@@ -14,10 +14,10 @@
         </div>
         <div class="page-header-actions">
             @if($course->type === 'SEMESTER_BASED')
-                <button class="btn btn-outline" onclick="openModal('addSemesterModal')">+ New Semester</button>
+                <button class="btn btn-outline" onclick="openModal('addSemesterModal')"><i class="fa-solid fa-plus"></i> New Semester</button>
             @endif
             <button class="btn btn-primary" onclick="openModal('mapSubjectModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <i class="fa-solid fa-plus"></i>
                 Map Subject to Course
             </button>
         </div>

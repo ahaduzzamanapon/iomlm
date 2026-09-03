@@ -12,7 +12,7 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>🔔 Notification & Communication Settings</h1>
+            <h1><i class="fa-solid fa-bell text-primary"></i> Notification & Communication Settings</h1>
             <p>Manage Firebase Push Notification credentials and SMTP Mail Server configuration</p>
         </div>
     </div>
@@ -31,10 +31,10 @@
     {{-- Tabs Navigation --}}
     <div class="nav-tabs-custom">
         <div class="nav-tab-item active" onclick="switchTab('firebaseTab', this)">
-            🔥 Firebase Notification Tab
+            <i class="fa-solid fa-fire text-orange"></i> Firebase Notification Tab
         </div>
         <div class="nav-tab-item" onclick="switchTab('smtpTab', this)">
-            📧 SMTP Mail Configuration Tab
+            <i class="fa-solid fa-envelope text-blue"></i> SMTP Mail Configuration Tab
         </div>
     </div>
 
@@ -45,7 +45,7 @@
             <div style="display:flex;flex-direction:column;gap:20px;max-width:960px">
                 <div class="card">
                     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-                        <span class="card-title">🔥 Firebase Cloud Messaging (FCM) Credentials</span>
+                        <span class="card-title"><i class="fa-solid fa-fire text-orange"></i> Firebase Cloud Messaging (FCM) Credentials</span>
                         <label class="form-check" style="margin:0;font-weight:700;color:#2563eb">
                             <input type="checkbox" name="firebase_enabled" value="1"
                                 {{ ($settings['firebase_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
@@ -54,7 +54,7 @@
                     </div>
                     <div class="card-body">
                         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px;margin-bottom:20px;font-size:13px;color:#1e40af">
-                            <strong>ℹ️ How to get Firebase credentials:</strong> Go to
+                            <strong><i class="fa-solid fa-circle-info"></i> How to get Firebase credentials:</strong> Go to
                             <a href="https://console.firebase.google.com" target="_blank" style="color:#2563eb;font-weight:700">console.firebase.google.com</a>
                             → Create Project → Add Web App → Copy SDK Configuration & Cloud Messaging Server Key.
                         </div>
@@ -126,7 +126,7 @@
                         </div>
                     </div>
                     <div class="card-footer" style="text-align:right">
-                        <button type="submit" class="btn btn-primary">💾 Save Firebase Credentials</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save Firebase Credentials</button>
                     </div>
                 </div>
             </div>
@@ -140,7 +140,7 @@
             <div style="display:flex;flex-direction:column;gap:20px;max-width:960px">
                 <div class="card">
                     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-                        <span class="card-title">📧 SMTP Mail Server Configuration</span>
+                        <span class="card-title"><i class="fa-solid fa-envelope text-blue"></i> SMTP Mail Server Configuration</span>
                         <label class="form-check" style="margin:0;font-weight:700;color:#2563eb">
                             <input type="checkbox" name="smtp_enabled" value="1"
                                 {{ ($settings['smtp_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
@@ -213,9 +213,9 @@
                     </div>
                     <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center">
                         <button type="button" class="btn btn-outline" onclick="openTestMailModal()">
-                            ✉️ Send Test Email
+                            <i class="fa-solid fa-paper-plane"></i> Send Test Email
                         </button>
-                        <button type="submit" class="btn btn-primary">💾 Save SMTP Settings</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Save SMTP Settings</button>
                     </div>
                 </div>
             </div>
@@ -226,7 +226,7 @@
     <div class="modal-overlay" id="testMailModal">
         <div class="modal" style="max-width:480px">
             <div class="modal-header">
-                <span class="modal-title">✉️ Send Test Email</span>
+                <span class="modal-title"><i class="fa-solid fa-envelope"></i> Send Test Email</span>
                 <button class="modal-close" onclick="closeModal('testMailModal')">&times;</button>
             </div>
             <form id="testMailForm" onsubmit="handleSendTestMail(event)">
@@ -245,7 +245,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('testMailModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="testMailSubmitBtn">🚀 Send Test Mail</button>
+                    <button type="submit" class="btn btn-primary" id="testMailSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Send Test Mail</button>
                 </div>
             </form>
         </div>
@@ -271,7 +271,7 @@
         const alert = document.getElementById('testMailAlert');
 
         btn.disabled = true;
-        btn.textContent = 'Sending...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
         alert.style.display = 'none';
 
         try {
@@ -306,7 +306,7 @@
             alert.textContent = '✕ Error connecting to server: ' + err.message;
         } finally {
             btn.disabled = false;
-            btn.textContent = '🚀 Send Test Mail';
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Test Mail';
         }
     }
     </script>

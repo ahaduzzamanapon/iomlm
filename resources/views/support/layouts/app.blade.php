@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Support Agent Portal' }} — IOM Support</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <style>
@@ -27,7 +28,7 @@
         }
         .sidebar-brand-icon {
             width: 36px; height: 36px; background: #0284c7; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center; font-size: 18px;
+            display: flex; align-items: center; justify-content: center; font-size: 16px;
         }
         .sidebar-brand-text h2 { font-size: 15px; font-weight: 700; margin: 0; line-height: 1.2; }
         .sidebar-brand-text span { font-size: 11px; color: #0284c7; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -64,7 +65,9 @@
         {{-- Sidebar Menu --}}
         <aside class="support-sidebar">
             <a href="{{ route('support.dashboard') }}" class="sidebar-brand">
-                <div class="sidebar-brand-icon">🎧</div>
+                <div class="sidebar-brand-icon">
+                    <i class="fa-solid fa-headset"></i>
+                </div>
                 <div class="sidebar-brand-text">
                     <h2>IOM Support</h2>
                     <span>Agent Panel</span>
@@ -75,12 +78,12 @@
                 <div class="menu-section-title">Support Queue</div>
 
                 <a href="{{ route('support.dashboard') }}" class="menu-item {{ request()->fullUrl() === route('support.dashboard') ? 'active' : '' }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    <i class="fa-solid fa-gauge-high"></i>
                     Dashboard Overview
                 </a>
 
                 <a href="{{ route('support.dashboard', ['status' => 'PENDING']) }}" class="menu-item {{ request()->query('status') === 'PENDING' ? 'active' : '' }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <i class="fa-solid fa-clock"></i>
                     Pending Queue
                     @php
                         $userDepts = auth()->user()->isAdmin() ? \App\Models\SupportDepartment::pluck('id')->toArray() : auth()->user()->supportDepartments()->pluck('support_departments.id')->toArray();
@@ -92,7 +95,7 @@
                 </a>
 
                 <a href="{{ route('support.dashboard', ['status' => 'IN_PROGRESS']) }}" class="menu-item {{ request()->query('status') === 'IN_PROGRESS' ? 'active' : '' }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                    <i class="fa-solid fa-comments"></i>
                     Active Live Chats
                     @php
                         $aCount = \App\Models\SupportTicket::where('assigned_agent_id', auth()->id())->where('status', 'IN_PROGRESS')->count();
@@ -103,12 +106,12 @@
                 </a>
 
                 <a href="{{ route('support.dashboard', ['status' => 'CLOSED']) }}" class="menu-item {{ request()->query('status') === 'CLOSED' ? 'active' : '' }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <i class="fa-solid fa-circle-check"></i>
                     Resolved Tickets
                 </a>
 
                 <a href="{{ route('support.canned-messages.index') }}" class="menu-item {{ request()->routeIs('support.canned-messages*') ? 'active' : '' }}">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <i class="fa-solid fa-bolt"></i>
                     My Quick Replies
                 </a>
 
@@ -118,7 +121,7 @@
                 @endphp
                 @forelse($myDepts as $dept)
                     <div class="menu-item" style="font-size:12px;opacity:0.85">
-                        <span>🏢 {{ $dept->name }}</span>
+                        <span><i class="fa-solid fa-building" style="margin-right:6px"></i> {{ $dept->name }}</span>
                     </div>
                 @empty
                     <div style="font-size:11px;color:#64748b;padding:8px 14px">কোনো ডিপার্টমেন্ট অ্যাসাইন করা নেই</div>
@@ -127,8 +130,8 @@
                 @if(auth()->user()->isAdmin())
                     <div class="menu-section-title">Admin Management</div>
                     <a href="{{ route('admin.support-departments.index') }}" class="menu-item">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        Manage Departments & Agents
+                        <i class="fa-solid fa-users-gear"></i>
+                        Manage Departments &amp; Agents
                     </a>
                 @endif
             </div>
@@ -149,7 +152,8 @@
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="btn btn-outline btn-sm" style="color:#e11d48;border-color:#fecaca">
-                            🚪 Logout
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                            Logout
                         </button>
                     </form>
                 </div>

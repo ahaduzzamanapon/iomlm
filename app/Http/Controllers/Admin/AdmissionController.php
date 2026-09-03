@@ -276,6 +276,19 @@ class AdmissionController extends Controller
                 $student->student_code = "{$yearCode}-{$batchCode}-{$courseCode}-{$genderCode}-{$seqNo}";
             }
 
+            // Sync all profile details from admission form into student
+            $student->blood_group    = $student->blood_group ?: ($admission->bloodGroup?->name ?? $admission->blood_group);
+            $student->father_name    = $student->father_name ?: $admission->father_name;
+            $student->mother_name    = $student->mother_name ?: $admission->mother_name;
+            $student->guardian_name  = $student->guardian_name ?: $admission->guardian_name;
+            $student->guardian_phone = $student->guardian_phone ?: $admission->guardian_phone;
+            $student->national_id    = $student->national_id ?: $admission->national_id;
+            $student->address        = $student->address ?: ($admission->present_house ?: $admission->permanent_house);
+            $student->email          = $student->email ?: $admission->email;
+            $student->phone          = $student->phone ?: $admission->phone;
+            $student->gender         = $student->gender ?: $admission->gender;
+            $student->date_of_birth  = $student->date_of_birth ?: $admission->date_of_birth;
+
             $student->status = 'ACTIVE';
             $student->save();
 

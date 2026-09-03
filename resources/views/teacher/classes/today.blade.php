@@ -4,7 +4,7 @@
     <div class="page-header">
         <div class="page-header-left">
             <h1>📅 Today's Classes</h1>
-            <p>{{ $today->format('l, d F Y') }}</p>
+            <p>{{ \Carbon\Carbon::parse($today)->format('l, d F Y') }}</p>
         </div>
         <div class="page-header-actions">
             <a href="{{ route('teacher.classes.index') }}" class="btn btn-outline btn-sm">← All Classes</a>
@@ -29,6 +29,7 @@
                             {{ $cs->batch?->name ?? '—' }} &middot;
                             {{ $cs->routineEntry?->slot?->name ?? '' }}
                             @if($cs->start_time) · {{ \Carbon\Carbon::parse($cs->start_time)->format('h:i A') }} @endif
+                            &middot; 👨‍🏫 {{ $cs->teacher?->name ?? 'শিক্ষক' }}
                         </div>
                         @if($cs->moduleCovered)
                         <div style="font-size:11px;color:#6366f1;margin-top:4px">📖 Module: {{ $cs->moduleCovered->title }}</div>

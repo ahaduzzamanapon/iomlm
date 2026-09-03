@@ -8,7 +8,7 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addSubjectModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <i class="fa-solid fa-plus"></i>
                 New Subject
             </button>
         </div>
@@ -48,11 +48,11 @@
                             @endif
                         </td>
                         <td style="text-align:right">
-                            <button class="btn btn-outline btn-sm" onclick='openEditSubjectModal(@json($subj))'>Edit</button>
-                            <a href="{{ route('admin.subjects.show', $subj) }}" class="btn btn-outline btn-sm">Manage Modules →</a>
+                            <button class="btn btn-outline btn-sm" onclick='openEditSubjectModal(@json($subj))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+                            <a href="{{ route('admin.subjects.show', $subj) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-cubes"></i> Manage Modules</a>
                             <form method="POST" action="{{ route('admin.subjects.destroy', $subj) }}" style="display:inline" onsubmit="return confirm('Delete this subject?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-ghost btn-sm text-red">Delete</button>
+                                <button type="submit" class="btn btn-ghost btn-sm text-red"><i class="fa-solid fa-trash"></i> Delete</button>
                             </form>
                         </td>
                     </tr>

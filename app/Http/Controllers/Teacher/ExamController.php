@@ -24,6 +24,10 @@ class ExamController extends Controller
         $teacher = $this->teacher();
         $assignedSubjectIds = SubjectTeacherAssignment::where('teacher_id', $teacher?->id)->pluck('subject_id');
 
+        if ($assignedSubjectIds->isEmpty()) {
+            $assignedSubjectIds = Subject::where('is_active', true)->pluck('id');
+        }
+
         $exams = Exam::with(['subject', 'examQuestions.question', 'submissions'])
             ->whereIn('subject_id', $assignedSubjectIds)
             ->latest()
@@ -39,10 +43,14 @@ class ExamController extends Controller
         $teacher = $this->teacher();
         $assignedSubjectIds = SubjectTeacherAssignment::where('teacher_id', $teacher?->id)->pluck('subject_id');
 
+        if ($assignedSubjectIds->isEmpty()) {
+            $assignedSubjectIds = Subject::where('is_active', true)->pluck('id');
+        }
+
         $validated = $request->validate([
             'subject_id'       => 'required|in:' . $assignedSubjectIds->implode(','),
             'title'            => 'required|string|max:200',
-            'type'             => 'required|in:QUIZ,MIDTERM,FINAL,RETAKE,PRACTICAL',
+            'type'             => 'required|in:QUIZ,MIDTERM,FINAL,RETAKE,PRACTICAL,CLASS_TEST,HALF_TERM',
             'exam_date'        => 'required|date',
             'start_datetime'   => 'nullable|date',
             'duration_minutes' => 'required|integer|min:5|max:300',
@@ -52,10 +60,16 @@ class ExamController extends Controller
             'is_anti_cheating' => 'nullable|boolean',
         ]);
 
+        $mappedType = match($validated['type']) {
+            'CLASS_TEST' => 'QUIZ',
+            'HALF_TERM'  => 'MIDTERM',
+            default      => $validated['type'],
+        };
+
         Exam::create([
             'subject_id'       => $validated['subject_id'],
             'title'            => $validated['title'],
-            'type'             => $validated['type'],
+            'type'             => $mappedType,
             'exam_date'        => $validated['exam_date'],
             'start_datetime'   => $validated['start_datetime'] ?? null,
             'duration_minutes' => $validated['duration_minutes'],
@@ -67,6 +81,58 @@ class ExamController extends Controller
         ]);
 
         return back()->with('success', "{$validated['type']} exam created successfully! Now attach questions from Question Bank.");
+    }
+
+    public function update(Request $request, Exam $exam)
+    {
+        $teacher = $this->teacher();
+        $assignedSubjectIds = SubjectTeacherAssignment::where('teacher_id', $teacher?->id)->pluck('subject_id');
+
+        if ($assignedSubjectIds->isEmpty()) {
+            $assignedSubjectIds = Subject::where('is_active', true)->pluck('id');
+        }
+
+        $validated = $request->validate([
+            'subject_id'       => 'required|in:' . $assignedSubjectIds->implode(','),
+            'title'            => 'required|string|max:200',
+            'type'             => 'required|in:QUIZ,MIDTERM,FINAL,RETAKE,PRACTICAL,CLASS_TEST,HALF_TERM',
+            'exam_date'        => 'required|date',
+            'start_datetime'   => 'nullable|date',
+            'duration_minutes' => 'required|integer|min:5|max:300',
+            'full_marks'       => 'required|integer|min:1',
+            'pass_marks'       => 'required|integer|min:1',
+            'negative_marking' => 'nullable|numeric|min:0|max:5',
+            'is_anti_cheating' => 'nullable|boolean',
+            'status'           => 'nullable|in:SCHEDULED,RUNNING,COMPLETED,CANCELLED',
+        ]);
+
+        $mappedType = match($validated['type']) {
+            'CLASS_TEST' => 'QUIZ',
+            'HALF_TERM'  => 'MIDTERM',
+            default      => $validated['type'],
+        };
+
+        $exam->update([
+            'subject_id'       => $validated['subject_id'],
+            'title'            => $validated['title'],
+            'type'             => $mappedType,
+            'exam_date'        => $validated['exam_date'],
+            'start_datetime'   => $validated['start_datetime'] ?? null,
+            'duration_minutes' => $validated['duration_minutes'],
+            'full_marks'       => $validated['full_marks'],
+            'pass_marks'       => $validated['pass_marks'],
+            'negative_marking' => $validated['negative_marking'] ?? 0.00,
+            'is_anti_cheating' => $request->boolean('is_anti_cheating', true),
+            'status'           => $validated['status'] ?? $exam->status,
+        ]);
+
+        return back()->with('success', 'Exam updated successfully.');
+    }
+
+    public function destroy(Exam $exam)
+    {
+        $exam->delete();
+        return back()->with('success', 'Exam removed.');
     }
 
     public function show(Exam $exam)

@@ -53,7 +53,10 @@
                             <strong style="font-size:12px">{{ $cs->session_date?->format('d M (D)') ?? 'TBA' }}</strong>
                             @if($isToday)<div><span class="badge badge-success no-dot" style="font-size:9px">TODAY</span></div>@endif
                         </td>
-                        <td class="td-primary">{{ $cs->subject?->name ?? '—' }}</td>
+                        <td class="td-primary">
+                            {{ $cs->subject?->name ?? '—' }}
+                            @if($cs->teacher)<div style="font-size:11px;color:var(--text-muted)">👨‍🏫 {{ $cs->teacher->name }}</div>@endif
+                        </td>
                         <td class="td-muted" style="font-size:11px">{{ $cs->batch?->name ?? '—' }}</td>
                         <td class="td-muted" style="font-size:11px">
                             {{ $cs->routineEntry?->slot?->name ?? '—' }}

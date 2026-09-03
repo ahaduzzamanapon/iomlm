@@ -261,16 +261,36 @@ input, select, textarea { font-family: var(--font); }
   border: 1px solid rgba(96, 165, 250, 0.2);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-.nav-item svg, .nav-item .nav-icon {
+.nav-item svg, .nav-item .nav-icon, .nav-item i {
   width: 20px !important;
   height: 20px !important;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   opacity: 0.9;
-  stroke-width: 2px;
+  text-align: center;
 }
-.nav-item.active svg, .nav-item.active .nav-icon {
+.nav-item.active svg, .nav-item.active .nav-icon, .nav-item.active i {
   opacity: 1;
   color: #60a5fa;
+}
+
+.tree-toggle i:not(.tree-toggle-arrow) {
+  width: 18px;
+  font-size: 15px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.btn i {
+  margin-right: 6px;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .nav-badge {

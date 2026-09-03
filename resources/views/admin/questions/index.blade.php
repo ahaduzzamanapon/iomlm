@@ -60,23 +60,23 @@
     <div class="qb-header">
         <div>
             <div class="qb-title">
-                <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#e0e7ff;color:#4f46e5;font-size:16px">❓</span>
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#e0e7ff;color:#4f46e5;font-size:16px"><i class="fa-solid fa-circle-question"></i></span>
                 প্রশ্ন ব্যাংক ব্যবস্থাপনা
             </div>
             <div class="qb-subtitle">MCQ ও Written — দুই ধরনের প্রশ্ন যোগ করুন, Exam-এ সংযুক্ত করুন</div>
         </div>
         <div class="qb-actions">
             <a href="{{ route('admin.questions.template-download') }}" class="btn-teal">
-                ⬇️ CSV Template
+                <i class="fa-solid fa-download"></i> CSV Template
             </a>
             <button class="btn-ghost-purple" onclick="openModal('bulkUploadModal')">
-                📤 Bulk CSV Upload
+                <i class="fa-solid fa-file-arrow-up"></i> Bulk CSV Upload
             </button>
             <button class="btn-green" onclick="openModal('createWrittenModal')">
-                ✏️ Written প্রশ্ন
+                <i class="fa-solid fa-pen-nib"></i> Written প্রশ্ন
             </button>
             <button class="btn-purple" onclick="openModal('createMcqModal')">
-                + MCQ প্রশ্ন
+                <i class="fa-solid fa-plus"></i> MCQ প্রশ্ন
             </button>
         </div>
     </div>
@@ -96,7 +96,7 @@
     {{-- Filter Bar --}}
     <form method="GET" action="{{ route('admin.questions.index') }}" class="filter-card">
         <div class="search-input-wrap">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8"></i>
             <input type="text" name="search" class="search-input" placeholder="প্রশ্ন দিয়ে অনুসন্ধান করুন..." value="{{ $search }}">
         </div>
 
@@ -140,15 +140,15 @@
                 <td class="q-id">{{ $q->id }}</td>
                 <td>
                     @if($q->question_type === 'WRITTEN')
-                        <span class="type-badge-written">✏️ Written</span>
+                        <span class="type-badge-written"><i class="fa-solid fa-pen-nib"></i> Written</span>
                     @else
-                        <span class="type-badge-mcq">🔵 MCQ</span>
+                        <span class="type-badge-mcq"><i class="fa-solid fa-list-check"></i> MCQ</span>
                     @endif
                     <div class="q-text">{!! e($q->question_text) !!}</div>
                 </td>
                 <td>
                     @if($q->subject)
-                        <div class="subject-badge">🎯 {{ $q->subject->name }}</div><br>
+                        <div class="subject-badge"><i class="fa-solid fa-bullseye"></i> {{ $q->subject->name }}</div><br>
                         <span class="subject-sub-badge">{{ $q->subject->code }}</span>
                     @else
                         <span style="color:#94a3b8;font-size:12px">Unassigned</span>
@@ -161,7 +161,7 @@
                 </td>
                 <td>
                     @if($q->question_type === 'WRITTEN')
-                        <span class="written-col">📝 ছাত্র হাতে লিখে Image Upload করবে</span>
+                        <span class="written-col"><i class="fa-solid fa-file-pen"></i> ছাত্র হাতে লিখে Image Upload করবে</span>
                     @else
                         <div class="options-grid">
                             @foreach($q->options ?? [] as $opt)
@@ -184,7 +184,7 @@
                     <form method="POST" action="{{ route('admin.questions.destroy', $q) }}" onsubmit="return confirm('প্রশ্নটি মুছে ফেলতে চান?')">
                         @csrf @method('DELETE')
                         <button type="submit" class="btn-delete" title="Delete">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                            <i class="fa-solid fa-trash"></i>
                         </button>
                     </form>
                 </td>
@@ -203,10 +203,11 @@
     <div style="margin-top:20px">{{ $questions->links() }}</div>
 
     {{-- Create MCQ Modal --}}
+    {{-- Create MCQ Modal --}}
     <div class="modal-overlay" id="createMcqModal">
         <div class="modal" style="max-width:650px">
             <div class="modal-header">
-                <span class="modal-title">🔵 নতুন MCQ প্রশ্ন যোগ করুন</span>
+                <span class="modal-title"><i class="fa-solid fa-list-check" style="color:#6366f1"></i> নতুন MCQ প্রশ্ন যোগ করুন</span>
                 <button class="modal-close" onclick="closeModal('createMcqModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.questions.store') }}">
@@ -269,7 +270,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-ghost-purple" onclick="closeModal('createMcqModal')">বাতিল</button>
-                    <button type="submit" class="btn-purple">💾 MCQ সেভ করুন</button>
+                    <button type="submit" class="btn-purple"><i class="fa-solid fa-floppy-disk"></i> MCQ সেভ করুন</button>
                 </div>
             </form>
         </div>
@@ -279,7 +280,7 @@
     <div class="modal-overlay" id="createWrittenModal">
         <div class="modal" style="max-width:550px">
             <div class="modal-header">
-                <span class="modal-title">✏️ নতুন Written প্রশ্ন যোগ করুন</span>
+                <span class="modal-title"><i class="fa-solid fa-pen-nib" style="color:#10b981"></i> নতুন Written প্রশ্ন যোগ করুন</span>
                 <button class="modal-close" onclick="closeModal('createWrittenModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.questions.store') }}">
@@ -287,7 +288,7 @@
                 <input type="hidden" name="question_type" value="WRITTEN">
                 <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
                     <div style="background:#fce7f3;border:1px solid #fbcfe8;border-radius:8px;padding:10px 14px;font-size:12px;color:#9d174d">
-                        💡 Written প্রশ্নে কোনো অপশন নেই। ছাত্র হাতে লিখে Answer-এর Image Upload করবে। Teacher সেই Image দেখে Marks দেবে।
+                        <i class="fa-solid fa-lightbulb"></i> Written প্রশ্নে কোনো অপশন নেই। ছাত্র হাতে লিখে Answer-এর Image Upload করবে। Teacher সেই Image দেখে Marks দেবে।
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -317,7 +318,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-ghost-purple" onclick="closeModal('createWrittenModal')">বাতিল</button>
-                    <button type="submit" class="btn-green">💾 Written প্রশ্ন সেভ করুন</button>
+                    <button type="submit" class="btn-green"><i class="fa-solid fa-floppy-disk"></i> Written প্রশ্ন সেভ করুন</button>
                 </div>
             </form>
         </div>
@@ -327,14 +328,14 @@
     <div class="modal-overlay" id="bulkUploadModal">
         <div class="modal" style="max-width:600px">
             <div class="modal-header">
-                <span class="modal-title">📤 Bulk CSV Upload</span>
+                <span class="modal-title"><i class="fa-solid fa-file-arrow-up" style="color:#6366f1"></i> Bulk CSV Upload</span>
                 <button class="modal-close" onclick="closeModal('bulkUploadModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.questions.bulk-upload') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
                     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;font-size:13px;color:#166534">
-                        <strong>📋 CSV ফরম্যাট:</strong><br>
+                        <strong><i class="fa-solid fa-clipboard-list"></i> CSV ফরম্যাট:</strong><br>
                         <code style="font-size:11px">question_type, subject_code, question_text, option_a, option_b, option_c, option_d, correct_option, difficulty</code><br><br>
                         • MCQ: সব column fill করুন<br>
                         • Written: option_a-d ও correct_option ফাঁকা রাখুন
@@ -342,7 +343,7 @@
 
                     <div style="text-align:center">
                         <a href="{{ route('admin.questions.template-download') }}" class="btn-teal" style="font-size:12px">
-                            ⬇️ Template Download করুন
+                            <i class="fa-solid fa-download"></i> Template Download করুন
                         </a>
                     </div>
 
@@ -353,7 +354,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-ghost-purple" onclick="closeModal('bulkUploadModal')">বাতিল</button>
-                    <button type="submit" class="btn-purple">⚡ আপলোড ও Import করুন</button>
+                    <button type="submit" class="btn-purple"><i class="fa-solid fa-bolt"></i> আপলোড ও Import করুন</button>
                 </div>
             </form>
         </div>

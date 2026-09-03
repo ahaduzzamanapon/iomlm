@@ -8,7 +8,7 @@
         </div>
         <div class="page-header-actions">
             <button class="btn btn-primary" onclick="openModal('addPromotionModal')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                <i class="fa-solid fa-graduation-cap"></i>
                 Promote Student
             </button>
         </div>

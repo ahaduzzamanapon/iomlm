@@ -43,6 +43,8 @@ Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')
     Route::get('exams',                            [\App\Http\Controllers\Teacher\ExamController::class, 'index'])->name('exams.index');
     Route::post('exams',                           [\App\Http\Controllers\Teacher\ExamController::class, 'store'])->name('exams.store');
     Route::get('exams/{exam}',                     [\App\Http\Controllers\Teacher\ExamController::class, 'show'])->name('exams.show');
+    Route::put('exams/{exam}',                     [\App\Http\Controllers\Teacher\ExamController::class, 'update'])->name('exams.update');
+    Route::delete('exams/{exam}',                  [\App\Http\Controllers\Teacher\ExamController::class, 'destroy'])->name('exams.destroy');
     Route::post('exams/{exam}/questions',          [\App\Http\Controllers\Teacher\ExamController::class, 'attachQuestion'])->name('exams.questions.attach');
     Route::delete('exams/{exam}/questions/{examQuestion}', [\App\Http\Controllers\Teacher\ExamController::class, 'detachQuestion'])->name('exams.questions.detach');
 
@@ -60,4 +62,7 @@ Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')
 
     // Routine
     Route::get('routine', [\App\Http\Controllers\Teacher\RoutineController::class, 'index'])->name('routine.index');
+
+    // Notice Board
+    Route::get('notices', [\App\Http\Controllers\Teacher\NoticeController::class, 'index'])->name('notices.index');
 });

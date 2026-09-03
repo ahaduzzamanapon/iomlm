@@ -231,7 +231,7 @@
                     <div class="q-text">{!! e($q->question_text) !!}</div>
 
                     <div class="written-upload-zone" id="zone-{{ $q->id }}"
-                         onclick="document.getElementById('file-{{ $q->id }}').click()">
+                         onclick="isPickingFile=true; document.getElementById('file-{{ $q->id }}').click()">
                         <input type="file" id="file-{{ $q->id }}"
                                name="answer_image_{{ $q->id }}"
                                accept="image/*"
@@ -312,15 +312,31 @@
     }, 1000);
 
     // ── Progress Tracker ──────────────────────────────────────────────────────
-    const totalQ = {{ $totalQ }};
+    const renderedCards = document.querySelectorAll('.q-card');
+    const totalQ = renderedCards.length > 0 ? renderedCards.length : {{ $totalQ }};
     const answeredSet = new Set();
 
-    // Pre-populate answered set from saved answers
+    // Pre-populate answered set from saved answers (both MCQ and Written)
     @foreach($savedAnswers as $qId => $ans)
-        @if($ans->selected_option_id)
+        @if($ans->selected_option_id || $ans->answer_image_path || $ans->answer_text)
             answeredSet.add({{ $qId }});
+            const c{{ $qId }} = document.getElementById('qcard-{{ $qId }}');
+            if (c{{ $qId }}) c{{ $qId }}.classList.add('answered');
         @endif
     @endforeach
+
+    // Check rendered inputs in DOM to ensure no answered question is missed
+    renderedCards.forEach(card => {
+        const hasChecked = card.querySelector('input[type="radio"]:checked');
+        const hasExistingImg = card.querySelector('a[href*="storage"]') || card.querySelector('.upload-preview[style*="display: block"]');
+        if (hasChecked || hasExistingImg) {
+            const qid = parseInt(card.id.replace('qcard-', ''));
+            if (!isNaN(qid)) {
+                answeredSet.add(qid);
+                card.classList.add('answered');
+            }
+        }
+    });
 
     function markAnswered(qId) {
         answeredSet.add(parseInt(qId));
@@ -330,14 +346,15 @@
     }
 
     function updateProgress() {
-        const count = answeredSet.size;
+        const count = Math.min(answeredSet.size, totalQ);
         document.getElementById('answeredCount').innerText = count;
-        document.getElementById('progressFill').style.width = (count / totalQ * 100) + '%';
+        document.getElementById('progressFill').style.width = (totalQ > 0 ? (count / totalQ * 100) : 0) + '%';
     }
     updateProgress();
 
     // Written image upload preview
     function previewImage(qId, input) {
+        isPickingFile = false;
         if (!input.files || !input.files[0]) return;
         const file = input.files[0];
         const reader = new FileReader();
@@ -356,7 +373,8 @@
     }
 
     function confirmSubmit() {
-        const unanswered = totalQ - answeredSet.size;
+        const answeredCount = Math.min(answeredSet.size, totalQ);
+        const unanswered = Math.max(0, totalQ - answeredCount);
         let msg = 'প্রশ্নপত্র জমা দিতে চান?';
         if (unanswered > 0) {
             msg = unanswered + 'টি প্রশ্নের উত্তর এখনো দেওয়া হয়নি।\n' + msg;
@@ -366,18 +384,35 @@
         }
     }
 
-    // ── Anti-Cheating ─────────────────────────────────────────────────────────
+    // ── Anti-Cheating with File Picker Protection ─────────────────────────────
     let tabSwitches = 0;
     const isAntiCheating = {{ $exam->is_anti_cheating ? 'true' : 'false' }};
+    let isPickingFile = false;
+
+    // Detect when student opens file chooser dialog
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+        input.addEventListener('click', () => {
+            isPickingFile = true;
+        });
+    });
+
+    window.addEventListener('focus', () => {
+        setTimeout(() => { isPickingFile = false; }, 1500);
+    });
 
     if (isAntiCheating) {
         document.addEventListener('visibilitychange', () => {
+            if (isPickingFile) return;
             if (document.hidden) handleViolation();
         });
-        window.addEventListener('blur', () => handleViolation());
+        window.addEventListener('blur', () => {
+            if (isPickingFile) return;
+            handleViolation();
+        });
     }
 
     function handleViolation() {
+        if (isPickingFile) return;
         tabSwitches++;
         document.getElementById('tab_switch_count').value = tabSwitches;
         if (tabSwitches >= 3) {

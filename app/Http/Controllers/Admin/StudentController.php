@@ -53,6 +53,11 @@ class StudentController extends Controller
         ]);
 
         $student->update($validated);
+
+        if (!empty($validated['email']) && $student->user) {
+            $student->user->update(['email' => $validated['email']]);
+        }
+
         return redirect()->route('admin.students.show', $student)->with('success', 'Student details updated.');
     }
 
