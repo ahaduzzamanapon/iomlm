@@ -86,10 +86,19 @@ class ClassController extends Controller
         $class->load(['subject', 'batch', 'routineEntry.slot', 'teacher', 'attendances.student', 'moduleCovered']);
         $meetingProvider = (new MeetingService())->provider();
 
-        $batchStudents = Enrollment::with('student')
+        $batchStudentsQuery = Enrollment::with('student')
             ->where('batch_id', $class->batch_id)
-            ->where('status', 'ACTIVE')
-            ->get();
+            ->where('status', 'ACTIVE');
+
+        if ($class->group_tag === 'MALE') {
+            $batchStudentsQuery->whereHas('student', fn($q) => $q->where('gender', 'MALE'));
+        } elseif ($class->group_tag === 'FEMALE') {
+            $batchStudentsQuery->whereHas('student', fn($q) => $q->where('gender', 'FEMALE'));
+        } elseif (!empty($class->group_tag) && $class->group_tag !== 'ALL') {
+            $batchStudentsQuery->where('group_tag', $class->group_tag);
+        }
+
+        $batchStudents = $batchStudentsQuery->get();
 
         $modules = SubjectModule::where('subject_id', $class->subject_id)
             ->orderBy('sequence_no')
@@ -121,7 +130,7 @@ class ClassController extends Controller
 
             if ($provider === 'zoom') {
                 // Auto-generate via Zoom API
-                $sessionDate = $validated['session_date'] ?? $class->session_date?->toDateString();
+                $sessionDate = $validated['session_date'] ?? ($class->session_date ? Carbon::parse($class->session_date)->toDateString() : null);
                 $startTime   = $validated['start_time']   ?? $class->start_time;
                 $isoStart    = $sessionDate && $startTime
                     ? Carbon::parse("{$sessionDate} {$startTime}")->toIso8601String()
@@ -194,10 +203,19 @@ class ClassController extends Controller
         $joinedEmails = collect($participants)->pluck('user_email')->filter()->map(fn($e) => strtolower(trim($e)))->toArray();
         $joinedNames  = collect($participants)->pluck('name')->filter()->map(fn($n) => strtolower(trim($n)))->toArray();
 
-        $enrolledStudents = Enrollment::with('student')
+        $enrolledStudentsQuery = Enrollment::with('student')
             ->where('batch_id', $class->batch_id)
-            ->where('status', 'ACTIVE')
-            ->get();
+            ->where('status', 'ACTIVE');
+
+        if ($class->group_tag === 'MALE') {
+            $enrolledStudentsQuery->whereHas('student', fn($q) => $q->where('gender', 'MALE'));
+        } elseif ($class->group_tag === 'FEMALE') {
+            $enrolledStudentsQuery->whereHas('student', fn($q) => $q->where('gender', 'FEMALE'));
+        } elseif (!empty($class->group_tag) && $class->group_tag !== 'ALL') {
+            $enrolledStudentsQuery->where('group_tag', $class->group_tag);
+        }
+
+        $enrolledStudents = $enrolledStudentsQuery->get();
 
         $markedPresentCount = 0;
 

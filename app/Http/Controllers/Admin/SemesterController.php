@@ -22,10 +22,48 @@ class SemesterController extends Controller
             'course_id'   => 'required|exists:courses,id',
             'name'        => 'required|string|max:100',
             'sequence_no' => 'required|integer|min:1',
+            'has_groups'  => 'nullable|boolean',
+            'group_type'  => 'nullable|in:NONE,GENDER,SPLIT',
+            'split_count' => 'nullable|integer|min:2|max:10',
         ]);
 
-        Semester::create($validated);
+        $hasGroups = $request->boolean('has_groups');
+        $groupType = $hasGroups ? ($request->input('group_type', 'GENDER')) : 'NONE';
+
+        Semester::create([
+            'course_id'   => $validated['course_id'],
+            'name'        => $validated['name'],
+            'sequence_no' => $validated['sequence_no'],
+            'has_groups'  => $hasGroups,
+            'group_type'  => $groupType,
+            'split_count' => $request->input('split_count', 2),
+        ]);
+
         return back()->with('success', 'Semester created successfully.');
+    }
+
+    public function update(Request $request, Semester $semester)
+    {
+        $validated = $request->validate([
+            'name'        => 'required|string|max:100',
+            'sequence_no' => 'required|integer|min:1',
+            'has_groups'  => 'nullable|boolean',
+            'group_type'  => 'nullable|in:NONE,GENDER,SPLIT',
+            'split_count' => 'nullable|integer|min:2|max:10',
+        ]);
+
+        $hasGroups = $request->boolean('has_groups');
+        $groupType = $hasGroups ? ($request->input('group_type', 'GENDER')) : 'NONE';
+
+        $semester->update([
+            'name'        => $validated['name'],
+            'sequence_no' => $validated['sequence_no'],
+            'has_groups'  => $hasGroups,
+            'group_type'  => $groupType,
+            'split_count' => $request->input('split_count', 2),
+        ]);
+
+        return back()->with('success', 'Semester configuration updated.');
     }
 
     public function destroy(Semester $semester)

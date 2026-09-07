@@ -27,7 +27,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::delete('courses/{course}/semesters/{semester}', [\App\Http\Controllers\Admin\CourseController::class, 'destroySemester'])->name('courses.semesters.destroy');
     Route::post('courses/{course}/subjects', [\App\Http\Controllers\Admin\CourseController::class, 'assignSubject'])->name('courses.subjects.assign');
     Route::delete('courses/{course}/subjects/{map}', [\App\Http\Controllers\Admin\CourseController::class, 'removeSubject'])->name('courses.subjects.remove');
-    Route::resource('semesters', \App\Http\Controllers\Admin\SemesterController::class)->only(['index', 'store', 'destroy']);
+    Route::resource('semesters', \App\Http\Controllers\Admin\SemesterController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('holiday-calendar', \App\Http\Controllers\Admin\HolidayCalendarController::class)->only(['index', 'store', 'destroy']);
 
     // ── Teachers ──────────────────────────────────────────────────────
@@ -78,6 +78,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     // ── Batches & Classes ─────────────────────────────────────────────
     Route::resource('batches', \App\Http\Controllers\Admin\BatchController::class);
     Route::post('batches/{batch}/generate-sessions', [\App\Http\Controllers\Admin\BatchController::class, 'generateTimeline'])->name('batches.generateTimeline');
+    Route::post('batches/{batch}/split-students',    [\App\Http\Controllers\Admin\BatchController::class, 'autoSplitStudents'])->name('batches.split-students');
+    Route::post('enrollments/{enrollment}/set-group',[\App\Http\Controllers\Admin\BatchController::class, 'setStudentGroup'])->name('enrollments.set-group');
     Route::resource('classes', \App\Http\Controllers\Admin\ClassSessionController::class);
     Route::put('classes/{class}/schedule',   [\App\Http\Controllers\Admin\ClassSessionController::class, 'updateSchedule'])->name('classes.updateSchedule');
     Route::post('classes/{class}/generate-zoom', [\App\Http\Controllers\Admin\ClassSessionController::class, 'generateZoomLink'])->name('classes.generateZoom');

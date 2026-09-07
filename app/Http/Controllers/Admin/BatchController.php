@@ -182,6 +182,7 @@ class BatchController extends Controller
                             'batch_id'         => $batch->id,
                             'subject_id'       => $entry->subject_id,
                             'teacher_id'       => $entry->teacher_id,
+                            'group_tag'        => $entry->group_tag ?? 'ALL',
                             'session_date'     => $dateStr,
                             'start_time'       => $entry->slot?->start_time,
                             'status'           => $sessionDate->isPast() ? 'COMPLETED' : 'SCHEDULED',
@@ -195,5 +196,38 @@ class BatchController extends Controller
         }
 
         return $created;
+    }
+
+    /**
+     * Auto-split active students in a batch 50/50 into Group A and Group B.
+     */
+    public function autoSplitStudents(Request $request, Batch $batch)
+    {
+        $enrollments = $batch->enrollments()
+            ->where('status', 'ACTIVE')
+            ->orderBy('id')
+            ->get();
+
+        $groupNames = ['GROUP_A', 'GROUP_B'];
+        foreach ($enrollments as $index => $enr) {
+            $assignedGroup = $groupNames[$index % 2];
+            $enr->update(['group_tag' => $assignedGroup]);
+        }
+
+        return back()->with('success', "{$enrollments->count()} জন শিক্ষার্থীকে সফলভাবে গ্রুপ ক এবং গ্রুপ খ-তে ৫০/৫০ বিভাজন করা হয়েছে।");
+    }
+
+    /**
+     * Set group tag for an enrollment.
+     */
+    public function setStudentGroup(Request $request, \App\Models\Enrollment $enrollment)
+    {
+        $validated = $request->validate([
+            'group_tag' => 'nullable|string|max:30',
+        ]);
+
+        $enrollment->update(['group_tag' => $validated['group_tag'] ?: null]);
+
+        return back()->with('success', 'শিক্ষার্থীর গ্রুপ আপডেট করা হয়েছে।');
     }
 }

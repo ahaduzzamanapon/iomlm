@@ -65,6 +65,11 @@
                             </div>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px">
+                            @if($sem->has_groups && $sem->group_type === 'GENDER')
+                                <span class="badge" style="background:#0284c7;color:#fff;font-size:10px;padding:2px 6px"><i class="fa-solid fa-venus-mars"></i> ভাই ও বোন শাখা</span>
+                            @elseif($sem->has_groups && $sem->group_type === 'SPLIT')
+                                <span class="badge" style="background:#8b5cf6;color:#fff;font-size:10px;padding:2px 6px"><i class="fa-solid fa-users-line"></i> বিভাজন শাখা</span>
+                            @endif
                             <span class="badge badge-secondary no-dot" style="font-size:10px;padding:2px 6px">{{ $semSubjects->count() }} Subjects</span>
                             <span class="badge badge-scheduled no-dot" style="font-size:10px;padding:2px 6px">{{ $totalCredit }} Cr</span>
                             <form method="POST" action="{{ route('admin.courses.semesters.destroy', [$course, $sem]) }}" style="display:inline" onsubmit="return confirm('Delete semester?')">
@@ -304,6 +309,16 @@
                         </select>
                         <small style="color:var(--text-muted);font-size:11px">Ctrl / Cmd চেপে একাধিক সাবজেক্ট একসাথে সিলেক্ট করতে পারবেন</small>
                     </div>
+
+                    <div class="form-group">
+                        <label>গ্রুপিং মোড (Grouping Mode)</label>
+                        <select name="group_mode" class="form-control">
+                            <option value="INHERIT">সেমিস্টার ডিফল্ট অনুসরণ করবে (Inherit from Semester)</option>
+                            <option value="NONE">যৌথ / সাধারণ (No Grouping for this subject)</option>
+                            <option value="GENDER">লিঙ্গভিত্তিক (ভাই ও বোন শাখা)</option>
+                            <option value="SPLIT">বিভাজন ভিত্তিক (গ্রুপ ক ও খ)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('mapSubjectModal')">Cancel</button>
@@ -332,6 +347,26 @@
                         <div class="form-group">
                             <label>Semester Name <span class="required">*</span></label>
                             <input type="text" name="name" class="form-control" placeholder="e.g. 5th Semester" required>
+                        </div>
+                    </div>
+
+                    <div style="background:var(--bg-subtle, #f8fafc);border:1px solid var(--border-color, #e2e8f0);border-radius:8px;padding:14px;margin-top:12px">
+                        <label style="font-weight:600;display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+                            <input type="checkbox" name="has_groups" value="1" onchange="const el=document.getElementById('course_sem_group_sec'); if(el) el.style.display=this.checked?'block':'none'">
+                            <span>এই সেমিস্টারে গ্রুপ শাখা থাকবে (Dynamic Grouping)</span>
+                        </label>
+                        <div id="course_sem_group_sec" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed var(--border-color, #cbd5e1)">
+                            <label style="font-size:12px;font-weight:600;margin-bottom:6px;display:block">গ্রুপিং ক্রাইটেরিয়া</label>
+                            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                                    <input type="radio" name="group_type" value="GENDER" checked>
+                                    <span><strong>লিঙ্গভিত্তিক (Gender-based)</strong> — ভাই শাখা ও বোন শাখা</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                                    <input type="radio" name="group_type" value="SPLIT">
+                                    <span><strong>বিভাজন ভিত্তিক (Split-based)</strong> — গ্রুপ ক, গ্রুপ খ দল</span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

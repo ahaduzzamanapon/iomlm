@@ -84,7 +84,20 @@ class ClassSession extends Model
     public function getDisplayDateAttribute(): string
     {
         return $this->session_date
-            ? $this->session_date->format('d M Y (D)')
+            ? \Carbon\Carbon::parse($this->session_date)->format('d M Y (D)')
             : 'TBA';
+    }
+
+    /** Resolved group label */
+    public function getGroupLabelAttribute(): string
+    {
+        return match($this->group_tag) {
+            'MALE'    => 'ভাই শাখা',
+            'FEMALE'  => 'বোন শাখা',
+            'GROUP_A' => 'গ্রুপ ক',
+            'GROUP_B' => 'গ্রুপ খ',
+            'ALL'     => 'যৌথ',
+            default   => 'যৌথ',
+        };
     }
 }

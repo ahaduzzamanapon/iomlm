@@ -15,14 +15,39 @@ class ClassController extends Controller
         return Student::where('user_id', auth()->id())->first();
     }
 
+    private function applyStudentGroupScope($query, ?Student $student)
+    {
+        if (!$student) return $query;
+        $studentGender = strtoupper($student->gender ?? '');
+        $enrollmentGroups = Enrollment::where('student_id', $student->id)
+            ->where('status', 'ACTIVE')
+            ->pluck('group_tag')
+            ->filter()
+            ->unique()
+            ->toArray();
+
+        return $query->where(function ($q) use ($studentGender, $enrollmentGroups) {
+            $q->whereNull('group_tag')
+              ->orWhere('group_tag', 'ALL');
+            if ($studentGender) {
+                $q->orWhere('group_tag', $studentGender);
+            }
+            if (!empty($enrollmentGroups)) {
+                $q->orWhereIn('group_tag', $enrollmentGroups);
+            }
+        });
+    }
+
     public function today()
     {
         $student  = $this->student();
         $batchIds = Enrollment::where('student_id', $student?->id)->where('status', 'ACTIVE')->pluck('batch_id');
 
-        $sessions = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot', 'moduleCovered'])
+        $query = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot', 'moduleCovered'])
             ->whereIn('batch_id', $batchIds)
-            ->whereDate('session_date', today())
+            ->whereDate('session_date', today());
+
+        $sessions = $this->applyStudentGroupScope($query, $student)
             ->orderBy('start_time')
             ->get();
 
@@ -36,8 +61,10 @@ class ClassController extends Controller
         $student  = $this->student();
         $batchIds = Enrollment::where('student_id', $student?->id)->where('status', 'ACTIVE')->pluck('batch_id');
 
-        $classes = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot', 'moduleCovered'])
-            ->whereIn('batch_id', $batchIds)
+        $query = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot', 'moduleCovered'])
+            ->whereIn('batch_id', $batchIds);
+
+        $classes = $this->applyStudentGroupScope($query, $student)
             ->orderBy('session_date', 'desc')
             ->get();
 
@@ -53,6 +80,24 @@ class ClassController extends Controller
             if (!$guard['allowed']) {
                 return redirect()->route('student.fees.index')->with('error', $guard['reason']);
             }
+
+            // Verify group eligibility
+            if ($class->group_tag && $class->group_tag !== 'ALL') {
+                $studentGender = strtoupper($student->gender ?? '');
+                $enr = Enrollment::where('student_id', $student->id)
+                    ->where('batch_id', $class->batch_id)
+                    ->where('status', 'ACTIVE')
+                    ->first();
+                $allowed = false;
+                if ($class->group_tag === 'MALE' && $studentGender === 'MALE') $allowed = true;
+                elseif ($class->group_tag === 'FEMALE' && $studentGender === 'FEMALE') $allowed = true;
+                elseif ($enr && $enr->group_tag === $class->group_tag) $allowed = true;
+
+                if (!$allowed) {
+                    return redirect()->route('student.classes.index')
+                        ->with('error', 'এই ক্লাস সেশনটি আপনার নির্ধারিত গ্রুপের জন্য নয়।');
+                }
+            }
         }
 
         $class->load(['subject', 'batch', 'teacher', 'routineEntry.slot', 'moduleCovered']);
@@ -66,10 +111,11 @@ class ClassController extends Controller
         $student  = $this->student();
         $batchIds = Enrollment::where('student_id', $student?->id)->where('status', 'ACTIVE')->pluck('batch_id');
 
-        $classes = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot'])
+        $query = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot'])
             ->whereIn('batch_id', $batchIds)
-            ->whereNotNull('session_date')
-            ->get();
+            ->whereNotNull('session_date');
+
+        $classes = $this->applyStudentGroupScope($query, $student)->get();
 
         $events = $classes->map(fn($c) => [
             'id'           => $c->id,

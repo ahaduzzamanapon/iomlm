@@ -65,7 +65,18 @@
                                         @if($isToday)<span class="badge badge-success no-dot" style="font-size:9px">TODAY</span>@endif
                                     </div>
                                 </td>
-                                <td class="td-primary" style="font-size:12px">{{ $cs->subject?->name ?? '—' }}</td>
+                                <td class="td-primary" style="font-size:12px">
+                                    {{ $cs->subject?->name ?? '—' }}
+                                    @if($cs->group_tag === 'MALE')
+                                        <span class="badge" style="background:#0284c7;color:#fff;font-size:9px;padding:1px 5px">ভাই শাখা</span>
+                                    @elseif($cs->group_tag === 'FEMALE')
+                                        <span class="badge" style="background:#ec4899;color:#fff;font-size:9px;padding:1px 5px">বোন শাখা</span>
+                                    @elseif($cs->group_tag === 'GROUP_A')
+                                        <span class="badge" style="background:#8b5cf6;color:#fff;font-size:9px;padding:1px 5px">গ্রুপ ক</span>
+                                    @elseif($cs->group_tag === 'GROUP_B')
+                                        <span class="badge" style="background:#f59e0b;color:#fff;font-size:9px;padding:1px 5px">গ্রুপ খ</span>
+                                    @endif
+                                </td>
                                 <td class="td-muted" style="font-size:11px">
                                     {{ $cs->routineEntry?->slot?->name ?? '—' }}<br>
                                     @if($cs->start_time)<small>{{ \Carbon\Carbon::parse($cs->start_time)->format('h:i A') }}</small>@endif
@@ -81,7 +92,7 @@
                                 </td>
                                 <td>
                                     @if($cs->meeting_link)
-                                        <a href="{{ $cs->meeting_link }}" target="_blank" style="font-size:11px;color:#3b82f6"></a>
+                                        <a href="{{ $cs->meeting_link }}" target="_blank" style="font-size:11px;color:#3b82f6"><i class="fa-solid fa-video"></i></a>
                                     @else
                                         <span style="color:#d1d5db;font-size:11px">—</span>
                                     @endif
@@ -115,7 +126,7 @@
                         @foreach($subject->modules as $mod)
                         @php $covered = in_array($mod->id, $coveredModuleIds); @endphp
                         <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 8px;background:{{ $covered ? '#f0fdf4' : '#f8fafc' }};border-radius:4px;border:1px solid {{ $covered ? '#bbf7d0' : '#e2e8f0' }}">
-                            <span style="color:{{ $covered ? '#10b981' : '#9ca3af' }};font-size:14px">{{ $covered ? '' : '○' }}</span>
+                            <span style="color:{{ $covered ? '#10b981' : '#9ca3af' }};font-size:14px">{{ $covered ? '✓' : '○' }}</span>
                             <span style="{{ $covered ? '' : 'color:#64748b' }}">{{ $mod->title }}</span>
                         </div>
                         @endforeach
@@ -129,22 +140,56 @@
         {{-- RIGHT: Enrolled Students --}}
         <div>
             <div class="card">
-                <div class="card-header">
-                    <span class="card-title">Enrolled Students</span>
-                    <span class="badge badge-info no-dot">{{ $batch->enrollments->count() }}</span>
+                <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <div>
+                        <span class="card-title">Enrolled Students</span>
+                        <span class="badge badge-info no-dot">{{ $batch->enrollments->count() }}</span>
+                    </div>
+                    @if($batch->enrollments->count() > 1)
+                    <form method="POST" action="{{ route('admin.batches.split-students', $batch) }}" style="display:inline" onsubmit="return confirm('সক্রিয় শিক্ষার্থীদের গ্রুপ ক এবং গ্রুপ খ-তে ৫০/৫০ বিভাজন করবেন?')">
+                        @csrf
+                        <button type="submit" class="btn btn-outline btn-sm" style="font-size:11px;padding:2px 8px" title="অটো ৫০/৫০ স্প্লিট">
+                            <i class="fa-solid fa-users-viewfinder"></i> Auto-Split 50/50
+                        </button>
+                    </form>
+                    @endif
                 </div>
                 @if($batch->enrollments->isEmpty())
                     <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No students enrolled yet.</div>
                 @else
                 <div class="table-wrapper">
                     <table>
-                        <thead><tr><th>Code</th><th>Name</th><th>Enrolled</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Name</th>
+                                <th>Group / শাখা</th>
+                            </tr>
+                        </thead>
                         <tbody>
                             @foreach($batch->enrollments as $en)
                             <tr>
                                 <td style="font-size:11px;color:#3b82f6;font-weight:600">{{ $en->student->student_code }}</td>
-                                <td class="td-primary" style="font-size:12px">{{ $en->student->name }}</td>
-                                <td class="td-muted" style="font-size:11px">{{ \Carbon\Carbon::parse($en->enrolled_at)->format('d M Y') }}</td>
+                                <td class="td-primary" style="font-size:12px">
+                                    {{ $en->student->name }}
+                                    <div class="td-muted" style="font-size:10px">
+                                        @if(strtoupper($en->student->gender ?? '') === 'MALE')
+                                            <span style="color:#0284c7">ভাই / পুরুষ</span>
+                                        @elseif(strtoupper($en->student->gender ?? '') === 'FEMALE')
+                                            <span style="color:#ec4899">বোন / মহিলা</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ route('admin.enrollments.set-group', $en) }}" style="margin:0">
+                                        @csrf
+                                        <select name="group_tag" class="form-control" style="font-size:11px;padding:2px 6px;height:26px" onchange="this.form.submit()">
+                                            <option value="">— অটো / ডিফল্ট —</option>
+                                            <option value="GROUP_A" {{ $en->group_tag === 'GROUP_A' ? 'selected' : '' }}>গ্রুপ ক (Group A)</option>
+                                            <option value="GROUP_B" {{ $en->group_tag === 'GROUP_B' ? 'selected' : '' }}>গ্রুপ খ (Group B)</option>
+                                        </select>
+                                    </form>
+                                </td>
                             </tr>
                             @endforeach
                         </tbody>

@@ -51,4 +51,16 @@ class RoutineEntry extends Model
             'FRI' => 'শুক্রবার', default => $this->day_of_week,
         };
     }
+
+    public function getGroupLabelAttribute(): string
+    {
+        return match($this->group_tag) {
+            'MALE'    => 'ভাই শাখা',
+            'FEMALE'  => 'বোন শাখা',
+            'GROUP_A' => 'গ্রুপ ক',
+            'GROUP_B' => 'গ্রুপ খ',
+            'ALL'     => 'যৌথ',
+            default   => 'যৌথ',
+        };
+    }
 }

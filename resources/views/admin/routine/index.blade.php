@@ -138,21 +138,30 @@
         </div>
     </div>
 
-    {{-- Batch Filter + Auto-Generate --}}
+    {{-- Batch Filter + Group Filter + Auto-Generate --}}
     <div class="card" style="margin-bottom:16px;padding:14px 16px">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <form method="GET" action="{{ route('admin.routine.index') }}" style="display:flex;gap:8px;align-items:center">
+            <form method="GET" action="{{ route('admin.routine.index') }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                 <select name="batch_id" class="form-control" style="min-width:220px" onchange="this.form.submit()">
-                    <option value="">All Active Batches</option>
+                    <option value="">সকল সক্রিয় ব্যাচ (All Batches)</option>
                     @foreach($batches as $b)
-                        <option value="{{ $b->id }}" {{ $selectedBatchId == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                        <option value="{{ $b->id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
                     @endforeach
                 </select>
+
+                <select name="group" class="form-control" style="min-width:180px" onchange="this.form.submit()">
+                    <option value="">সকল শাখা / গ্রুপ (All Groups)</option>
+                    <option value="ALL" {{ ($selectedGroup ?? null) === 'ALL' ? 'selected' : '' }}>যৌথ / সাধারণ (Common / All)</option>
+                    <option value="MALE" {{ ($selectedGroup ?? null) === 'MALE' ? 'selected' : '' }}>ভাই শাখা (Male)</option>
+                    <option value="FEMALE" {{ ($selectedGroup ?? null) === 'FEMALE' ? 'selected' : '' }}>বোন শাখা (Female)</option>
+                    <option value="GROUP_A" {{ ($selectedGroup ?? null) === 'GROUP_A' ? 'selected' : '' }}>গ্রুপ ক (Group A)</option>
+                    <option value="GROUP_B" {{ ($selectedGroup ?? null) === 'GROUP_B' ? 'selected' : '' }}>গ্রুপ খ (Group B)</option>
+                </select>
             </form>
-            @if($selectedBatchId)
-            <form method="POST" action="{{ route('admin.routine.auto-generate', $selectedBatchId) }}">
+            @if(!empty($selectedBatchId))
+            <form method="POST" action="{{ route('admin.routine.auto-generate', $selectedBatchId ?? 0) }}">
                 @csrf
-                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Auto-generate routine for this batch? Existing entries will be kept.')">Auto-Generate Routine</button>
+                <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Auto-generate routine for this batch? Existing entries will be kept.')"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Generate Routine</button>
             </form>
             @endif
             <a href="{{ route('admin.routine.index') }}" class="btn btn-ghost btn-sm">Clear Filter</a>
@@ -161,10 +170,13 @@
 
     {{-- Legend --}}
     <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;font-size:12px;align-items:center">
-        <span style="color:#64748b">Legend:</span>
-        <span style="background:#3b82f6;color:#fff;border-radius:4px;padding:2px 8px">Normal Entry</span>
-        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444">Overlap Conflict (Batch / Teacher)</span>
-        <span style="background:repeating-linear-gradient(45deg,#fef9c3,#fef9c3 4px,#fefce8 4px,#fefce8 8px);padding:2px 8px;border-radius:4px;border:1px solid #f59e0b">Weekend</span>
+        <span style="color:#64748b">শাখা ও সূচক:</span>
+        <span style="background:#0284c7;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">ভাই শাখা (Brothers)</span>
+        <span style="background:#ec4899;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">বোন শাখা (Sisters)</span>
+        <span style="background:#8b5cf6;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">গ্রুপ ক (A)</span>
+        <span style="background:#f59e0b;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">গ্রুপ খ (B)</span>
+        <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444;font-size:11px">কনফ্লিক্ট (Overlap)</span>
+        <span style="background:repeating-linear-gradient(45deg,#fef9c3,#fef9c3 4px,#fefce8 4px,#fefce8 8px);padding:2px 8px;border-radius:4px;border:1px solid #f59e0b;font-size:11px">ছুটির দিন (Weekend)</span>
     </div>
 
     {{-- Routine Grid --}}
@@ -216,13 +228,23 @@
                                          data-batch-id="{{ $entry->batch_id }}"
                                          data-subject-id="{{ $entry->subject_id ?? '' }}"
                                          data-teacher-id="{{ $entry->teacher_id ?? '' }}"
+                                         data-group-tag="{{ $entry->group_tag ?? 'ALL' }}"
                                          data-title="{{ addslashes($entry->title ?? '') }}"
                                          data-original-color="{{ $color }}"
-                                         onclick="openEditModal({{ $entry->id }}, '{{ addslashes($entry->batch->name ?? '') }}', '{{ $entry->day_of_week }}', {{ $slot->id }}, {{ $entry->batch_id }}, {{ $entry->subject_id ?? 'null' }}, {{ $entry->teacher_id ?? 'null' }}, '{{ addslashes($entry->title ?? '') }}')">
+                                         onclick="openEditModal({{ $entry->id }}, '{{ addslashes($entry->batch->name ?? '') }}', '{{ $entry->day_of_week }}', {{ $slot->id }}, {{ $entry->batch_id }}, {{ $entry->subject_id ?? 'null' }}, {{ $entry->teacher_id ?? 'null' }}, '{{ addslashes($entry->title ?? '') }}', '{{ $entry->group_tag ?? 'ALL' }}')">
                                         @if($entry->is_override)
                                             <span class="override-badge"></span>
                                         @endif
                                         <span class="drag-handle">⠿</span>
+                                        @if($entry->group_tag === 'MALE')
+                                            <div style="margin-bottom:2px"><span style="background:#0284c7;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">ভাই শাখা</span></div>
+                                        @elseif($entry->group_tag === 'FEMALE')
+                                            <div style="margin-bottom:2px"><span style="background:#ec4899;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">বোন শাখা</span></div>
+                                        @elseif($entry->group_tag === 'GROUP_A')
+                                            <div style="margin-bottom:2px"><span style="background:#8b5cf6;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">গ্রুপ ক</span></div>
+                                        @elseif($entry->group_tag === 'GROUP_B')
+                                            <div style="margin-bottom:2px"><span style="background:#f59e0b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">গ্রুপ খ</span></div>
+                                        @endif
                                         <div class="pill-title">{{ $entry->title ?: ($entry->subject?->code ?? $entry->batch?->name ?? '—') }}</div>
                                         <div class="pill-sub">{{ $entry->batch?->name ?? '' }}</div>
                                         @if($entry->teacher)
@@ -268,7 +290,7 @@
                         <select name="batch_id" id="add_batch_id" class="form-control" required onchange="onBatchSelect(this.value, 'add')">
                             <option value="">Select Batch</option>
                             @foreach($batches as $b)
-                                <option value="{{ $b->id }}" {{ $selectedBatchId == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                                <option value="{{ $b->id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -282,12 +304,9 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Subject</label>
-                            <select name="subject_id" id="add_subject_id" class="form-control" onchange="onSubjectSelect('add')">
+                            <label>Subject (রানিং সেমিস্টার বিষয়) <span class="required">*</span></label>
+                            <select name="subject_id" id="add_subject_id" class="form-control" onchange="onSubjectSelect('add')" required>
                                 <option value="">— Select Subject —</option>
-                                @foreach($subjects as $s)
-                                    <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
-                                @endforeach
                             </select>
                         </div>
                         <div class="form-group">
@@ -299,6 +318,16 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>গ্রুপ / শাখা (Group / Section) <span class="required">*</span></label>
+                        <select name="group_tag" id="add_group_tag" class="form-control">
+                            <option value="ALL">যৌথ / সকল শিক্ষার্থী (Common / All)</option>
+                            <option value="MALE">ভাই শাখা (Brothers / Male)</option>
+                            <option value="FEMALE">বোন শাখা (Sisters / Female)</option>
+                            <option value="GROUP_A">গ্রুপ ক (Group A)</option>
+                            <option value="GROUP_B">গ্রুপ খ (Group B)</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Custom Title (optional)</label>
@@ -353,12 +382,9 @@
                     <input type="hidden" name="slot_id" id="edit_slot_id">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Subject</label>
+                            <label>Subject (রানিং সেমিস্টার বিষয়)</label>
                             <select name="subject_id" id="edit_subject_id" class="form-control" onchange="onSubjectSelect('edit')">
                                 <option value="">— None —</option>
-                                @foreach($subjects as $s)
-                                    <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
-                                @endforeach
                             </select>
                         </div>
                         <div class="form-group">
@@ -370,6 +396,16 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>গ্রুপ / শাখা (Group / Section) <span class="required">*</span></label>
+                        <select name="group_tag" id="edit_group_tag" class="form-control">
+                            <option value="ALL">যৌথ / সকল শিক্ষার্থী (Common / All)</option>
+                            <option value="MALE">ভাই শাখা (Brothers / Male)</option>
+                            <option value="FEMALE">বোন শাখা (Sisters / Female)</option>
+                            <option value="GROUP_A">গ্রুপ ক (Group A)</option>
+                            <option value="GROUP_B">গ্রুপ খ (Group B)</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Custom Title</label>
@@ -593,19 +629,21 @@
         const batch = batchDetails[batchId];
         if (batch) {
             if (batch.course_type === 'SEMESTER_BASED' && batch.semesters && batch.semesters.length > 0) {
+                const runningSemId = batch.current_semester_id || batch.semesters[0].id;
+                const activeSemId  = targetSemesterId || runningSemId;
+
                 batch.semesters.forEach(sem => {
-                    const isRunning = (sem.id == batch.current_semester_id);
+                    const isRunning = (sem.id == runningSemId);
                     const opt = document.createElement('option');
                     opt.value = sem.id;
-                    opt.textContent = sem.name + (isRunning ? ' (Running)' : '');
+                    opt.textContent = sem.name + (isRunning ? ' ★ (Running Semester)' : '');
+                    if (sem.id == activeSemId) {
+                        opt.selected = true;
+                    }
                     semSelect.appendChild(opt);
                 });
 
-                if (targetSemesterId) {
-                    semSelect.value = targetSemesterId;
-                } else if (batch.current_semester_id) {
-                    semSelect.value = batch.current_semester_id;
-                }
+                semSelect.value = activeSemId;
             } else {
                 const opt = document.createElement('option');
                 opt.value = '';
@@ -630,32 +668,46 @@
 
         subjSelect.innerHTML = '<option value="">— Select Subject —</option>';
 
-        if (batch && batch.subject_maps && batch.subject_maps.length > 0) {
-            let filteredMaps = batch.subject_maps;
-            if (semId) {
-                filteredMaps = filteredMaps.filter(m => m.semester_id == semId);
-            }
+        if (batch) {
+            if (batch.course_type === 'SEMESTER_BASED' && batch.semesters && batch.semesters.length > 0) {
+                // Strictly filter to running / chosen semester
+                const activeSemId = semId || batch.current_semester_id || batch.semesters[0].id;
+                let filteredMaps = (batch.subject_maps || []).filter(m => m.semester_id == activeSemId);
 
-            if (filteredMaps.length > 0) {
-                filteredMaps.forEach(m => {
+                if (filteredMaps.length > 0) {
+                    filteredMaps.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.subject_id;
+                        opt.textContent = (m.code ? m.code + ': ' : '') + m.name;
+                        subjSelect.appendChild(opt);
+                    });
+                } else {
                     const opt = document.createElement('option');
-                    opt.value = m.subject_id;
-                    opt.textContent = (m.code ? m.code + ': ' : '') + m.name;
+                    opt.value = '';
+                    opt.textContent = 'No mapped subjects for this running semester';
                     subjSelect.appendChild(opt);
-                });
+                }
             } else {
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = 'No mapped subjects for this semester';
-                subjSelect.appendChild(opt);
+                // Non-semester course
+                if (batch.subject_maps && batch.subject_maps.length > 0) {
+                    batch.subject_maps.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.subject_id;
+                        opt.textContent = (m.code ? m.code + ': ' : '') + m.name;
+                        subjSelect.appendChild(opt);
+                    });
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = 'No mapped subjects for this course';
+                    subjSelect.appendChild(opt);
+                }
             }
         } else {
-            allSubjects.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = s.code + ': ' + s.name;
-                subjSelect.appendChild(opt);
-            });
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = '— Please select a batch first —';
+            subjSelect.appendChild(opt);
         }
 
         if (targetSubjectId) {
@@ -814,14 +866,21 @@
             onBatchSelect('', 'add');
         }
 
+        if (document.getElementById('add_group_tag')) {
+            document.getElementById('add_group_tag').value = 'ALL';
+        }
+
         openModal('addEntryModal');
     }
 
-    function openEditModal(id, batchName, day, slotId, batchId, subjectId, teacherId, title) {
+    function openEditModal(id, batchName, day, slotId, batchId, subjectId, teacherId, title, groupTag = 'ALL') {
         document.getElementById('editEntryForm').action = '/admin/routine/entries/' + id;
         document.getElementById('edit_day_of_week').value = day;
         document.getElementById('edit_slot_id').value = slotId;
         document.getElementById('edit_batch_id').value = batchId;
+        if (document.getElementById('edit_group_tag')) {
+            document.getElementById('edit_group_tag').value = groupTag || 'ALL';
+        }
 
         let foundSemId = null;
         const b = batchDetails[batchId];

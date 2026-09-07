@@ -71,12 +71,21 @@ class CourseController extends Controller
         $validated = $request->validate([
             'name'        => 'required|string|max:100',
             'sequence_no' => 'required|integer|min:1',
+            'has_groups'  => 'nullable|boolean',
+            'group_type'  => 'nullable|in:NONE,GENDER,SPLIT',
+            'split_count' => 'nullable|integer|min:2|max:10',
         ]);
+
+        $hasGroups = $request->boolean('has_groups');
+        $groupType = $hasGroups ? ($request->input('group_type', 'GENDER')) : 'NONE';
 
         Semester::create([
             'course_id'   => $course->id,
             'sequence_no' => $validated['sequence_no'],
             'name'        => $validated['name'],
+            'has_groups'  => $hasGroups,
+            'group_type'  => $groupType,
+            'split_count' => $request->input('split_count', 2),
         ]);
 
         return back()->with('success', 'Semester added to course.');
@@ -117,6 +126,7 @@ class CourseController extends Controller
             'subject_ids.*' => 'exists:subjects,id',
             'subject_id'    => 'nullable|exists:subjects,id',
             'semester_id'   => 'nullable|exists:semesters,id',
+            'group_mode'    => 'nullable|in:INHERIT,NONE,GENDER,SPLIT',
         ]);
 
         $subjectIds = $request->input('subject_ids');
@@ -129,12 +139,19 @@ class CourseController extends Controller
             return back()->with('error', 'Subject Based কোর্সে মাত্র ১টি Subject যুক্ত করা যায়। বিদ্যমান Subject টি আগে রিমুভ করুন।');
         }
 
+        $groupMode = $request->input('group_mode', 'INHERIT');
+
         foreach ($subjectIds as $subId) {
-            CourseSubjectMap::firstOrCreate([
-                'course_id'   => $course->id,
-                'subject_id'  => $subId,
-                'semester_id' => $course->type === 'SEMESTER_BASED' ? $request->input('semester_id') : null,
-            ]);
+            CourseSubjectMap::updateOrCreate(
+                [
+                    'course_id'   => $course->id,
+                    'subject_id'  => $subId,
+                    'semester_id' => $course->type === 'SEMESTER_BASED' ? $request->input('semester_id') : null,
+                ],
+                [
+                    'group_mode'  => $groupMode,
+                ]
+            );
         }
 
         return back()->with('success', 'Subjects mapped to course successfully.');

@@ -61,6 +61,15 @@
                                     @forelse($cellEntries as $entry)
                                         @php $color = $entry->color ?: '#8b5cf6'; @endphp
                                         <div class="entry-pill" style="background:{{ $color }}">
+                                            @if($entry->group_tag === 'MALE')
+                                                <div style="margin-bottom:2px"><span style="background:#0284c7;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">ভাই শাখা</span></div>
+                                            @elseif($entry->group_tag === 'FEMALE')
+                                                <div style="margin-bottom:2px"><span style="background:#ec4899;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">বোন শাখা</span></div>
+                                            @elseif($entry->group_tag === 'GROUP_A')
+                                                <div style="margin-bottom:2px"><span style="background:#8b5cf6;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">গ্রুপ ক</span></div>
+                                            @elseif($entry->group_tag === 'GROUP_B')
+                                                <div style="margin-bottom:2px"><span style="background:#f59e0b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">গ্রুপ খ</span></div>
+                                            @endif
                                             <div class="pill-title">{{ $entry->title ?: ($entry->subject?->code ?? '—') }}</div>
                                             <div class="pill-sub">{{ $entry->teacher?->name ?? 'TBA' }}</div>
                                             @if($isToday && isset($todaySessions[$entry->id]))
