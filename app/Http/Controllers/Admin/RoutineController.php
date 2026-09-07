@@ -132,10 +132,22 @@ class RoutineController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
+        try {
+            $startTime = Carbon::parse($validated['start_time'])->format('H:i:s');
+        } catch (\Exception $e) {
+            $startTime = $validated['start_time'];
+        }
+
+        try {
+            $endTime = Carbon::parse($validated['end_time'])->format('H:i:s');
+        } catch (\Exception $e) {
+            $endTime = $validated['end_time'];
+        }
+
         RoutineSlot::create([
             'name'       => $validated['name'],
-            'start_time' => $validated['start_time'],
-            'end_time'   => $validated['end_time'],
+            'start_time' => $startTime,
+            'end_time'   => $endTime,
             'sort_order' => $validated['sort_order'] ?? RoutineSlot::count(),
         ]);
 
@@ -151,7 +163,24 @@ class RoutineController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        $slot->update($validated);
+        try {
+            $startTime = Carbon::parse($validated['start_time'])->format('H:i:s');
+        } catch (\Exception $e) {
+            $startTime = $validated['start_time'];
+        }
+
+        try {
+            $endTime = Carbon::parse($validated['end_time'])->format('H:i:s');
+        } catch (\Exception $e) {
+            $endTime = $validated['end_time'];
+        }
+
+        $slot->update([
+            'name'       => $validated['name'],
+            'start_time' => $startTime,
+            'end_time'   => $endTime,
+            'sort_order' => $validated['sort_order'] ?? $slot->sort_order,
+        ]);
         return back()->with('success', 'Time slot updated.');
     }
 

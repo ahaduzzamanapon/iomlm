@@ -1,6 +1,103 @@
 <x-admin-layout>
     <x-slot name="title">Class Routine</x-slot>
 
+    @push('styles')
+    <link rel="stylesheet" href="{{ asset('vendor/flatpickr/flatpickr.min.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <style>
+        /* ═══ Flatpickr Time Picker Customization for IOM Emerald Theme ═══ */
+        .flatpickr-calendar.hasTime.noCalendar {
+            width: auto;
+            border-radius: 12px;
+            box-shadow: 0 12px 36px rgba(2, 44, 34, 0.22);
+            border: 1px solid #a7f3d0;
+            background: #ffffff;
+            padding: 10px 14px;
+            z-index: 999999 !important;
+            font-family: 'Kalpurush', 'Plus Jakarta Sans', sans-serif;
+        }
+        .flatpickr-time {
+            height: 48px;
+            line-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .flatpickr-time input {
+            font-size: 18px;
+            font-weight: 700;
+            color: #064e3b;
+            font-family: 'Kalpurush', 'Plus Jakarta Sans', sans-serif;
+            border-radius: 6px;
+        }
+        .flatpickr-time input:hover, .flatpickr-time input:focus {
+            background: #ecfdf5;
+        }
+        .flatpickr-time .flatpickr-time-separator {
+            font-size: 20px;
+            font-weight: 800;
+            color: #047857;
+        }
+        .flatpickr-time .flatpickr-am-pm {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+            background: #047857;
+            border-radius: 8px;
+            height: 36px;
+            line-height: 36px;
+            margin: auto 6px;
+            padding: 0 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(4, 120, 87, 0.3);
+            transition: all 0.2s ease;
+        }
+        .flatpickr-time .flatpickr-am-pm:hover {
+            background: #064e3b;
+            transform: scale(1.05);
+        }
+        .time-input-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .time-input-wrap .form-control {
+            padding-right: 36px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .time-input-wrap .time-icon {
+            position: absolute;
+            right: 12px;
+            color: #047857;
+            pointer-events: none;
+            font-size: 14px;
+        }
+        .time-picker-helper-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .time-preset-pill {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #064e3b;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Kalpurush', sans-serif;
+            transition: all .15s ease;
+        }
+        .time-preset-pill:hover {
+            background: #047857;
+            color: #ffffff;
+            border-color: #047857;
+        }
+    </style>
+    @endpush
+
     <style>
         .routine-grid { width:100%; border-collapse:collapse; table-layout:fixed; font-size:12px; }
         .routine-grid th, .routine-grid td { border:1px solid #e2e8f0; padding:0; vertical-align:top; }
@@ -37,7 +134,7 @@
         </div>
         <div class="page-header-actions" style="gap:8px">
             <a href="{{ route('admin.routine.unassigned') }}" class="btn btn-outline btn-sm">Assign Class</a>
-            <button class="btn btn-outline btn-sm" onclick="openModal('addSlotModal')">+ Add Time Slot</button>
+            <button class="btn btn-outline btn-sm" onclick="openAddSlotModal()">+ Add Time Slot</button>
         </div>
     </div>
 
@@ -74,7 +171,7 @@
     @if($slots->isEmpty())
         <div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">
             <p>No time slots configured yet.</p>
-            <button class="btn btn-primary" onclick="openModal('addSlotModal')" style="margin-top:12px">+ Add First Time Slot</button>
+            <button class="btn btn-primary" onclick="openAddSlotModal()" style="margin-top:12px">+ Add First Time Slot</button>
         </div>
     @else
     <div style="overflow-x:auto">
@@ -292,34 +389,56 @@
     <div class="modal-overlay" id="addSlotModal">
         <div class="modal">
             <div class="modal-header">
-                <span class="modal-title">Add Time Slot</span>
+                <span class="modal-title"><i class="fa-solid fa-clock" style="color:var(--iom-green);margin-right:6px"></i> Add Time Slot</span>
                 <button class="modal-close" onclick="closeModal('addSlotModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.routine.slots.store') }}">
+            <form method="POST" action="{{ route('admin.routine.slots.store') }}" id="addSlotForm">
                 @csrf
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Slot Name <span class="required">*</span></label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. মাগরিবের পর" required>
+                        <label>Slot Name (স্লটের নাম) <span class="required">*</span></label>
+                        <input type="text" name="name" id="add_slot_name" class="form-control" placeholder="e.g. সকাল ১ম শিফট / মাগরিবের পর" required>
                     </div>
+
+                    {{-- Quick Preset Slots (Bangladeshi Islamic & Academic Hours) --}}
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:11px;color:var(--iom-muted);margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-bolt" style="color:var(--iom-gold)"></i> দ্রুত সময় নির্বাচন করুন (Quick Presets):
+                        </label>
+                        <div class="time-picker-helper-btns">
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('add', '09:00', '10:30', 'সকাল ০৯:০০ - ১০:৩০')">সকাল ০৯:০০ - ১০:৩০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('add', '10:30', '12:00', 'সকাল ১০:৩০ - ১২:০০')">সকাল ১০:৩০ - ১২:০০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('add', '14:00', '15:30', 'দুপুর ০২:০০ - ০৩:৩০')">দুপুর ০২:০০ - ০৩:৩০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('add', '16:00', '17:30', 'আসর ০৪:০০ - ০৫:৩০')">আসর ০৪:০০ - ০৫:৩০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('add', '18:45', '20:00', 'মাগরিবের পর')">মাগরিব ১৮:৪৫ - ২০:০০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('add', '20:30', '22:00', 'রাত ০৮:৩০ - ১০:০০')">রাত ০৮:৩০ - ১০:০০</button>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Start Time <span class="required">*</span></label>
-                            <input type="time" name="start_time" class="form-control" required>
+                            <label><i class="fa-regular fa-clock" style="color:var(--iom-green);margin-right:4px"></i> Start Time (শুরুর সময় - AM/PM) <span class="required">*</span></label>
+                            <div class="time-input-wrap">
+                                <input type="text" name="start_time" id="add_slot_start" class="form-control timepicker" placeholder="Select Start Time" required>
+                                <i class="fa-regular fa-clock time-icon"></i>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label>End Time <span class="required">*</span></label>
-                            <input type="time" name="end_time" class="form-control" required>
+                            <label><i class="fa-regular fa-clock" style="color:var(--iom-green);margin-right:4px"></i> End Time (শেষের সময় - AM/PM) <span class="required">*</span></label>
+                            <div class="time-input-wrap">
+                                <input type="text" name="end_time" id="add_slot_end" class="form-control timepicker" placeholder="Select End Time" required>
+                                <i class="fa-regular fa-clock time-icon"></i>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Sort Order</label>
+                        <label>Sort Order (ক্রমিক নম্বর)</label>
                         <input type="number" name="sort_order" class="form-control" value="{{ $slots->count() + 1 }}" min="0">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addSlotModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Slot</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Slot</button>
                 </div>
             </form>
         </div>
@@ -329,35 +448,57 @@
     <div class="modal-overlay" id="editSlotModal">
         <div class="modal">
             <div class="modal-header">
-                <span class="modal-title">Edit Time Slot</span>
+                <span class="modal-title"><i class="fa-solid fa-pen-to-square" style="color:var(--iom-green);margin-right:6px"></i> Edit Time Slot</span>
                 <button class="modal-close" onclick="closeModal('editSlotModal')">&times;</button>
             </div>
             <form method="POST" id="editSlotForm">
                 @csrf @method('PUT')
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Slot Name <span class="required">*</span></label>
+                        <label>Slot Name (স্লটের নাম) <span class="required">*</span></label>
                         <input type="text" name="name" id="edit_slot_name" class="form-control" required>
                     </div>
+
+                    {{-- Quick Preset Slots for Edit --}}
+                    <div style="margin-bottom:14px">
+                        <label style="font-size:11px;color:var(--iom-muted);margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-bolt" style="color:var(--iom-gold)"></i> দ্রুত সময় পরিবর্তন (Quick Presets):
+                        </label>
+                        <div class="time-picker-helper-btns">
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('edit', '09:00', '10:30')">সকাল ০৯:০০ - ১০:৩০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('edit', '10:30', '12:00')">সকাল ১০:৩০ - ১২:০০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('edit', '14:00', '15:30')">দুপুর ০২:০০ - ০৩:৩০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('edit', '16:00', '17:30')">আসর ০৪:০০ - ০৫:৩০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('edit', '18:45', '20:00')">মাগরিব ১৮:৪৫ - ২০:০০</button>
+                            <button type="button" class="time-preset-pill" onclick="applyTimePreset('edit', '20:30', '22:00')">রাত ০৮:৩০ - ১০:০০</button>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Start Time</label>
-                            <input type="time" name="start_time" id="edit_slot_start" class="form-control">
+                            <label><i class="fa-regular fa-clock" style="color:var(--iom-green);margin-right:4px"></i> Start Time (শুরুর সময় - AM/PM) <span class="required">*</span></label>
+                            <div class="time-input-wrap">
+                                <input type="text" name="start_time" id="edit_slot_start" class="form-control timepicker" placeholder="Select Start Time" required>
+                                <i class="fa-regular fa-clock time-icon"></i>
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label>End Time</label>
-                            <input type="time" name="end_time" id="edit_slot_end" class="form-control">
+                            <label><i class="fa-regular fa-clock" style="color:var(--iom-green);margin-right:4px"></i> End Time (শেষের সময় - AM/PM) <span class="required">*</span></label>
+                            <div class="time-input-wrap">
+                                <input type="text" name="end_time" id="edit_slot_end" class="form-control timepicker" placeholder="Select End Time" required>
+                                <i class="fa-regular fa-clock time-icon"></i>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label>Sort Order</label>
+                        <label>Sort Order (ক্রমিক নম্বর)</label>
                         <input type="number" name="sort_order" id="edit_slot_order" class="form-control" min="0">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline btn-sm text-red" id="deleteSlotBtn"><i class="fa-solid fa-trash"></i> Delete Slot</button>
                     <button type="button" class="btn btn-outline" onclick="closeModal('editSlotModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
                 </div>
             </form>
         </div>
@@ -367,6 +508,12 @@
     <div id="dropToast"></div>
 
     @push('scripts')
+    <script src="{{ asset('vendor/flatpickr/flatpickr.min.js') }}"></script>
+    <script>
+    if (typeof flatpickr === 'undefined') {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/flatpickr"><\/script>');
+    }
+    </script>
     <script>
     const CSRF = '{{ csrf_token() }}';
 
@@ -701,11 +848,105 @@
         openModal('editEntryModal');
     }
 
+    // ═══ Flatpickr Timepicker Integration for Routine Slots (12-Hour AM/PM) ═══
+    let fpAddStart = null, fpAddEnd = null, fpEditStart = null, fpEditEnd = null;
+
+    function initSlotTimepickers() {
+        if (typeof flatpickr === 'undefined') {
+            setTimeout(initSlotTimepickers, 100);
+            return;
+        }
+
+        const commonTimeConfig = {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",      // Value submitted to server in 24-hour SQL format (e.g. 09:30, 14:15)
+            altInput: true,          // Human-readable formatted input visible to user
+            altFormat: "h:i K",      // 12-hour format with AM / PM: e.g. 09:30 AM, 02:15 PM
+            altInputClass: "form-control timepicker",
+            time_24hr: false,        // 12-hour AM/PM picker with dedicated toggle button
+            minuteIncrement: 5,      // 5-minute steps for smooth time selection
+            allowInput: true,        // Allow manual typing or picker selection
+        };
+
+        if (document.getElementById('add_slot_start') && !fpAddStart) {
+            fpAddStart = flatpickr("#add_slot_start", {
+                ...commonTimeConfig,
+                defaultDate: "09:00",
+            });
+        }
+
+        if (document.getElementById('add_slot_end') && !fpAddEnd) {
+            fpAddEnd = flatpickr("#add_slot_end", {
+                ...commonTimeConfig,
+                defaultDate: "10:30",
+            });
+        }
+
+        if (document.getElementById('edit_slot_start') && !fpEditStart) {
+            fpEditStart = flatpickr("#edit_slot_start", commonTimeConfig);
+        }
+
+        if (document.getElementById('edit_slot_end') && !fpEditEnd) {
+            fpEditEnd = flatpickr("#edit_slot_end", commonTimeConfig);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSlotTimepickers);
+    } else {
+        initSlotTimepickers();
+    }
+
+    function applyTimePreset(modalType, start, end, slotName) {
+        if (modalType === 'add') {
+            if (fpAddStart) fpAddStart.setDate(start, true, "H:i");
+            if (fpAddEnd)   fpAddEnd.setDate(end, true, "H:i");
+            if (slotName && !document.getElementById('add_slot_name').value) {
+                document.getElementById('add_slot_name').value = slotName;
+            }
+        } else if (modalType === 'edit') {
+            if (fpEditStart) fpEditStart.setDate(start, true, "H:i");
+            if (fpEditEnd)   fpEditEnd.setDate(end, true, "H:i");
+        }
+    }
+
+    function openAddSlotModal() {
+        if (!fpAddStart || !fpAddEnd) {
+            initSlotTimepickers();
+        }
+        if (fpAddStart && !fpAddStart.input.value) {
+            fpAddStart.setDate("09:00", true, "H:i");
+        }
+        if (fpAddEnd && !fpAddEnd.input.value) {
+            fpAddEnd.setDate("10:30", true, "H:i");
+        }
+        openModal('addSlotModal');
+    }
+
     function openEditSlotModal(id, name, start, end, order) {
         document.getElementById('editSlotForm').action = '/admin/routine/slots/' + id;
         document.getElementById('edit_slot_name').value = name;
-        document.getElementById('edit_slot_start').value = start.substring(0,5);
-        document.getElementById('edit_slot_end').value   = end.substring(0,5);
+
+        if (!fpEditStart || !fpEditEnd) {
+            initSlotTimepickers();
+        }
+
+        const cleanStart = (start || '').substring(0, 5);
+        const cleanEnd   = (end || '').substring(0, 5);
+
+        if (fpEditStart) {
+            fpEditStart.setDate(cleanStart, true, "H:i");
+        } else {
+            document.getElementById('edit_slot_start').value = cleanStart;
+        }
+
+        if (fpEditEnd) {
+            fpEditEnd.setDate(cleanEnd, true, "H:i");
+        } else {
+            document.getElementById('edit_slot_end').value = cleanEnd;
+        }
+
         document.getElementById('edit_slot_order').value = order;
 
         document.getElementById('deleteSlotBtn').onclick = function() {

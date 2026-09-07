@@ -470,7 +470,11 @@
                     <i class="fa-solid fa-headset"></i>
                     Support &amp; Helpdesk
                     @php
-                        $pendingSupportCount = \App\Models\SupportTicket::where('status', 'PENDING')->count();
+                        try {
+                            $pendingSupportCount = \App\Models\SupportTicket::where('status', 'PENDING')->count();
+                        } catch (\Throwable $e) {
+                            $pendingSupportCount = 0;
+                        }
                     @endphp
                     @if($pendingSupportCount > 0)
                         <span class="nav-badge" style="background:#f59e0b">{{ $pendingSupportCount }}</span>
