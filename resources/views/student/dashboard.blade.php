@@ -115,7 +115,7 @@
                         </div>
                     </div>
                     @if($class->meeting_link)
-                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary btn-sm"><i class="fa-solid fa-video"></i> Join</a>
+                    <a href="{{ route('student.classes.join', $class) }}" target="_blank" class="btn btn-primary btn-sm"><i class="fa-solid fa-video"></i> Join</a>
                     @endif
                 </div>
                 @empty

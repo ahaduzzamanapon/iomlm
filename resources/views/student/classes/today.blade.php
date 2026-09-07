@@ -64,7 +64,7 @@
                         {{-- Action row --}}
                         <div style="display:flex;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap">
                             @if($cs->meeting_link && in_array($cs->status, ['SCHEDULED','RUNNING']))
-                                <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">
+                                <a href="{{ route('student.classes.join', $cs) }}" target="_blank" class="btn btn-primary btn-sm">
                                     Join Live Class
                                 </a>
                             @elseif($cs->status === 'SCHEDULED')

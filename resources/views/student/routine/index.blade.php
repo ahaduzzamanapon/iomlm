@@ -74,7 +74,7 @@
                                             <div class="pill-sub">{{ $entry->teacher?->name ?? 'TBA' }}</div>
                                             @if($isToday && isset($todaySessions[$entry->id]))
                                             <div class="pill-sub" style="margin-top:4px">
-                                                <a href="{{ $todaySessions[$entry->id]->meeting_link }}" target="_blank" style="color:#fff;background:rgba(255,255,255,.2);border-radius:3px;padding:2px 6px;text-decoration:none;font-size:10px">Join Class</a>
+                                                <a href="{{ route('student.classes.join', $todaySessions[$entry->id]) }}" target="_blank" style="color:#fff;background:rgba(255,255,255,.2);border-radius:3px;padding:2px 6px;text-decoration:none;font-size:10px">Join Class</a>
                                             </div>
                                             @endif
                                         </div>

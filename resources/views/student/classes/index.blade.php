@@ -52,7 +52,7 @@
                         </td>
                         <td style="text-align:right">
                             @if($c->meeting_link && in_array($c->status, ['SCHEDULED','RUNNING']))
-                                <a href="{{ $c->meeting_link }}" target="_blank" class="btn btn-primary btn-sm">Join</a>
+                                <a href="{{ route('student.classes.join', $c) }}" target="_blank" class="btn btn-primary btn-sm">Join</a>
                             @elseif($c->status === 'COMPLETED')
                                 <a href="{{ route('student.classes.show', $c) }}" class="btn btn-ghost btn-sm">View →</a>
                             @else

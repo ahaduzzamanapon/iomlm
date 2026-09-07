@@ -42,13 +42,20 @@
                         <tr>
                             <td class="td-muted">{{ $i + 1 }}</td>
                             <td style="font-size:11px;color:#3b82f6;font-weight:600">{{ $en->student->student_code }}</td>
-                            <td class="td-primary">{{ $en->student->name }}</td>
+                            <td class="td-primary">
+                                {{ $en->student->name }}
+                                @if($existing?->status === 'PRESENT')
+                                    <span style="font-size:10px;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;padding:1px 6px;border-radius:10px;margin-left:6px;font-family:'Kalpurush',sans-serif">
+                                        ✓ জয়েন করেছে
+                                    </span>
+                                @endif
+                            </td>
                             @foreach(['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'] as $status)
                             <td style="text-align:center">
                                 <input type="radio"
                                     name="attendance[{{ $en->student_id }}]"
                                     value="{{ $status }}"
-                                    {{ ($existing?->status === $status || (!$existing && $status === 'PRESENT')) ? 'checked' : '' }}>
+                                    {{ ($existing?->status === $status || (!$existing && $status === 'ABSENT')) ? 'checked' : '' }}>
                             </td>
                             @endforeach
                         </tr>

@@ -66,7 +66,7 @@
                                 @elseif($cs->status === 'CANCELLED')
                                     <span class="badge badge-danger no-dot">Cancelled</span>
                                 @elseif($cs->meeting_link)
-                                    <a href="{{ $cs->meeting_link }}" target="_blank" class="btn btn-sm btn-primary" style="font-size:11px">Join</a>
+                                    <a href="{{ route('student.classes.join', $cs) }}" target="_blank" class="btn btn-sm btn-primary" style="font-size:11px">Join</a>
                                 @else
                                     <span class="badge badge-info no-dot">Scheduled</span>
                                 @endif

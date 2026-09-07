@@ -153,7 +153,8 @@
 
             const joinBtn = document.getElementById('m_join_btn');
             if (evt.meeting_link && (evt.status === 'SCHEDULED' || evt.status === 'RUNNING')) {
-                joinBtn.href = evt.meeting_link;
+                joinBtn.href = evt.join_url || evt.meeting_link;
+                joinBtn.target = '_blank';
                 joinBtn.style.display = 'inline-flex';
             } else {
                 joinBtn.style.display = 'none';

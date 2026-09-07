@@ -31,9 +31,9 @@
                     @endif
                 </table>
 
-                @if($class->meeting_link && $class->status === 'SCHEDULED')
+                @if($class->meeting_link && in_array($class->status, ['SCHEDULED', 'RUNNING']))
                 <div style="margin-top:20px">
-                    <a href="{{ $class->meeting_link }}" target="_blank" class="btn btn-primary">
+                    <a href="{{ route('student.classes.join', $class) }}" target="_blank" class="btn btn-primary">
                         Join Live Class
                     </a>
                 </div>

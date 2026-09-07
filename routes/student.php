@@ -19,10 +19,11 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
     Route::get('timeline', [\App\Http\Controllers\Student\TimelineController::class, 'index'])->name('timeline');
 
     // My Classes & Calendar
-    Route::get('classes',          [\App\Http\Controllers\Student\ClassController::class, 'index'])->name('classes.index');
-    Route::get('classes/today',    [\App\Http\Controllers\Student\ClassController::class, 'today'])->name('classes.today');
-    Route::get('calendar',     [\App\Http\Controllers\Student\ClassController::class, 'calendar'])->name('calendar');
-    Route::get('classes/{class}',  [\App\Http\Controllers\Student\ClassController::class, 'show'])->name('classes.show');
+    Route::get('classes',               [\App\Http\Controllers\Student\ClassController::class, 'index'])->name('classes.index');
+    Route::get('classes/today',         [\App\Http\Controllers\Student\ClassController::class, 'today'])->name('classes.today');
+    Route::get('calendar',              [\App\Http\Controllers\Student\ClassController::class, 'calendar'])->name('calendar');
+    Route::get('classes/{class}',       [\App\Http\Controllers\Student\ClassController::class, 'show'])->name('classes.show');
+    Route::get('classes/{class}/join',  [\App\Http\Controllers\Student\ClassController::class, 'join'])->name('classes.join');
 
     // My Course
     Route::get('my-course',       [\App\Http\Controllers\Student\MyCourseController::class, 'index'])->name('my-course.index');
