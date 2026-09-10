@@ -88,6 +88,12 @@
         background: linear-gradient(135deg, #047857, #064e3b) !important;
         border: 2px solid #a7f3d0 !important;
         color: #ffffff !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        display: inline-block !important;
+        flex-shrink: 0 !important;
     }
     .user-role {
         color: #047857 !important;
@@ -265,14 +271,25 @@
             <div class="topbar-right">
                 <div class="dropdown">
                     <div class="user-menu" onclick="toggleDropdown('studentUserMenu')" style="cursor:pointer">
-                        <div class="user-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'S', 0, 2)) }}</div>
+                        @php
+                            $stUser = auth()->user();
+                            $stRecord = \App\Models\Student::where('user_id', $stUser?->id)
+                                ->orWhere('email', $stUser?->email)
+                                ->first();
+                            $stPhoto = $stRecord?->photo_url;
+                        @endphp
+                        @if(!empty($stPhoto))
+                            <img src="{{ asset($stPhoto) }}" alt="Avatar" class="user-avatar" onerror="this.onerror=null;this.src='{{ asset('images/default-avatar.svg') }}'">
+                        @else
+                            <img src="{{ asset('images/default-avatar.svg') }}" alt="Avatar" class="user-avatar">
+                        @endif
                         <div>
-                            <div class="user-name">{{ auth()->user()->name ?? 'Student' }}</div>
+                            <div class="user-name">{{ $stUser->name ?? 'Student' }}</div>
                             <div class="user-role">
-                                {{ match(strtoupper(auth()->user()->role ?? 'STUDENT')) {
+                                {{ match(strtoupper($stUser->role ?? 'STUDENT')) {
                                     'STUDENT' => 'Student',
                                     'ADMIN', 'SUPER_ADMIN' => 'Admin (Student View)',
-                                    default => ucfirst(strtolower(auth()->user()->role ?? 'Student')),
+                                    default => ucfirst(strtolower($stUser->role ?? 'Student')),
                                 } }}
                             </div>
                         </div>

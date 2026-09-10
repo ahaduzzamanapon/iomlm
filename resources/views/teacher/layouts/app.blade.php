@@ -88,6 +88,12 @@
         background: linear-gradient(135deg, #047857, #064e3b) !important;
         border: 2px solid #a7f3d0 !important;
         color: #ffffff !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 50% !important;
+        object-fit: cover !important;
+        display: inline-block !important;
+        flex-shrink: 0 !important;
     }
     .user-role {
         color: #047857 !important;
@@ -240,9 +246,18 @@
             <div class="topbar-right">
                 <div class="dropdown">
                     <div class="user-menu" onclick="toggleDropdown('teacherUserMenu')" style="cursor:pointer">
-                        <div class="user-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'T', 0, 2)) }}</div>
+                        @php
+                            $tcUser = auth()->user();
+                            $tcRecord = $tcUser?->teacher;
+                            $tcPhoto = $tcRecord?->photo_url;
+                        @endphp
+                        @if(!empty($tcPhoto))
+                            <img src="{{ asset($tcPhoto) }}" alt="Avatar" class="user-avatar" onerror="this.onerror=null;this.src='{{ asset('images/default-avatar.svg') }}'">
+                        @else
+                            <img src="{{ asset('images/default-avatar.svg') }}" alt="Avatar" class="user-avatar">
+                        @endif
                         <div>
-                            <div class="user-name">{{ auth()->user()->name ?? 'Teacher' }}</div>
+                            <div class="user-name">{{ $tcUser->name ?? 'Teacher' }}</div>
                             <div class="user-role">
                                 {{ match(strtoupper(auth()->user()->role ?? 'TEACHER')) {
                                     'TEACHER' => 'Teacher',

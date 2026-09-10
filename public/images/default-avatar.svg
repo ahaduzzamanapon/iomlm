@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="avatarBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#064e3b" />
+    </linearGradient>
+  </defs>
+  <!-- Background Circle -->
+  <rect width="128" height="128" rx="64" fill="url(#avatarBg)" />
+  <!-- Head Silhouette -->
+  <circle cx="64" cy="46" r="23" fill="#ffffff" opacity="0.95" />
+  <!-- Torso Silhouette -->
+  <path d="M64 76 C42 76 25 94 25 116 C25 121 29 125 34 125 L94 125 C99 125 103 121 103 116 C103 94 86 76 64 76 Z" fill="#ffffff" opacity="0.95" />
+</svg>

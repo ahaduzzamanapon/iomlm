@@ -593,9 +593,7 @@
                 </div>
                 <div class="dropdown">
                     <div class="user-menu" onclick="toggleDropdown('adminUserMenu')" style="cursor:pointer">
-                        <div class="user-avatar" style="background:linear-gradient(135deg,#047857,#064e3b);border:2px solid #a7f3d0">
-                            {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 2)) }}
-                        </div>
+                        <img src="{{ asset('images/default-avatar.svg') }}" alt="Avatar" class="user-avatar" style="border:2px solid #a7f3d0;width:34px;height:34px;border-radius:50%;object-fit:cover">
                         <div>
                             <div class="user-name">{{ auth()->user()->name ?? 'Admin' }}</div>
                             <div class="user-role" style="color:#047857">
