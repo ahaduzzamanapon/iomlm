@@ -528,22 +528,30 @@ class PaymentGatewayService
         $rawPassword = null;
         if (empty($student->user_id)) {
             $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
-            $tempPassword = $student->phone ?: 'iom@1234';
-            $rawPassword = $tempPassword;
+            $existingUser = !empty($student->email) ? User::where('email', $student->email)->first() : null;
 
-            if (User::where('email', $loginEmail)->exists()) {
-                $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code ?: uniqid())) . '@iom.student';
+            if ($existingUser) {
+                $user = $existingUser;
+                $student->user_id = $user->id;
+                $student->save();
+            } else {
+                $tempPassword = $student->phone ?: 'iom@1234';
+                $rawPassword = $tempPassword;
+
+                if (User::where('email', $loginEmail)->exists()) {
+                    $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code ?: uniqid())) . '@iom.student';
+                }
+
+                $user = User::create([
+                    'name'     => $student->name,
+                    'email'    => $loginEmail,
+                    'password' => Hash::make($tempPassword),
+                    'role'     => 'student',
+                ]);
+
+                $student->user_id = $user->id;
+                $student->save();
             }
-
-            $user = User::create([
-                'name'     => $student->name,
-                'email'    => $loginEmail,
-                'password' => Hash::make($tempPassword),
-                'role'     => 'student',
-            ]);
-
-            $student->user_id = $user->id;
-            $student->save();
         } else {
             $user = $student->user;
         }

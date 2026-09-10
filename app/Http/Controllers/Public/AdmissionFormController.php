@@ -58,35 +58,79 @@ class AdmissionFormController extends Controller
 
         $course = Course::findOrFail($validated['course_id']);
 
+        // Check if student with this email is already actively enrolled in this course
+        $existingStudent = !empty($validated['email'])
+            ? Student::where('email', $validated['email'])->first()
+            : null;
+
+        if ($existingStudent) {
+            $alreadyEnrolled = $existingStudent->enrollments()
+                ->where('course_id', $validated['course_id'])
+                ->where('status', 'ACTIVE')
+                ->exists();
+
+            if ($alreadyEnrolled) {
+                return back()->withInput()->with('error', 'আপনি ইতিমধ্যে এই কোর্সে সক্রিয়ভাবে ভর্তি আছেন। অনুগ্রহ করে লগইন করে আপনার ড্যাশবোর্ডে প্রবেশ করুন।');
+            }
+        }
+
         // Create Application & Lead Student inside Transaction
-        $result = DB::transaction(function () use ($validated, $request) {
+        $result = DB::transaction(function () use ($validated, $request, $existingStudent) {
             $sessionId = $validated['academic_session_id']
                 ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
 
-            // 1. Create Student as LEAD
-            $student = Student::create([
-                'name'   => $validated['applicant_name'],
-                'phone'  => $validated['phone'],
-                'email'  => $validated['email'] ?? null,
-                'gender' => $validated['gender'] ?? null,
-                'status' => 'LEAD',
-            ]);
+            // 1. Find or Create Student as LEAD
+            $student = $existingStudent;
+            if (!$student && !empty($validated['phone'])) {
+                $student = Student::where('phone', $validated['phone'])->first();
+            }
+
+            if ($student) {
+                $student->update([
+                    'name'   => $validated['applicant_name'],
+                    'phone'  => $validated['phone'] ?: $student->phone,
+                    'gender' => $validated['gender'] ?: $student->gender,
+                ]);
+            } else {
+                $student = Student::create([
+                    'name'   => $validated['applicant_name'],
+                    'phone'  => $validated['phone'],
+                    'email'  => $validated['email'] ?? null,
+                    'gender' => $validated['gender'] ?? null,
+                    'status' => 'LEAD',
+                ]);
+            }
 
             $student->calculateProfileCompletion();
 
-            // 2. Create AdmissionForm
-            $form = AdmissionForm::create([
-                'source'               => 'PUBLIC',
-                'application_no'       => AdmissionForm::generateApplicationNo(),
-                'student_id'           => $student->id,
-                'interested_course_id' => $validated['course_id'],
-                'batch_id'             => $validated['batch_id'] ?? null,
-                'academic_session_id'  => $sessionId,
-                'attempt_no'           => 1,
-                'lead_source'          => 'Website',
-                'status'               => 'PENDING',
-                'ip_address'           => $request->ip(),
-            ]);
+            // 2. Check if student already has an unpaid PENDING admission form for this course
+            $form = AdmissionForm::where('student_id', $student->id)
+                ->where('interested_course_id', $validated['course_id'])
+                ->where('status', 'PENDING')
+                ->latest()
+                ->first();
+
+            if ($form) {
+                // Update batch / session on existing pending application
+                $form->update([
+                    'batch_id'            => $validated['batch_id'] ?? $form->batch_id,
+                    'academic_session_id' => $sessionId,
+                    'ip_address'          => $request->ip(),
+                ]);
+            } else {
+                $form = AdmissionForm::create([
+                    'source'               => 'PUBLIC',
+                    'application_no'       => AdmissionForm::generateApplicationNo(),
+                    'student_id'           => $student->id,
+                    'interested_course_id' => $validated['course_id'],
+                    'batch_id'             => $validated['batch_id'] ?? null,
+                    'academic_session_id'  => $sessionId,
+                    'attempt_no'           => 1,
+                    'lead_source'          => 'Website',
+                    'status'               => 'PENDING',
+                    'ip_address'           => $request->ip(),
+                ]);
+            }
 
             return ['form' => $form, 'student' => $student];
         });
