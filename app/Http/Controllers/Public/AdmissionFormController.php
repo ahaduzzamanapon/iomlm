@@ -24,34 +24,41 @@ class AdmissionFormController extends Controller
 {
     public function show()
     {
-        $terms         = AppSetting::get('admission_terms', '');
-        $courses       = Course::where('is_active', true)->orderBy('name')->get();
+        $terms = AppSetting::get('admission_terms', '');
+        $courses = Course::where('is_active', true)->orderBy('name')->get();
         $activeBatches = Batch::where('status', 'ACTIVE')->with('course')->get();
-        $sessions      = AcademicSession::where('is_active', true)->orderByDesc('id')->get();
-        $bloodGroups   = BloodGroup::active()->get();
-        $religions     = Religion::active()->get();
-        $divisions     = Division::orderBy('name')->get();
+        $sessions = AcademicSession::where('is_active', true)->orderByDesc('id')->get();
+        $bloodGroups = BloodGroup::active()->get();
+        $religions = Religion::active()->get();
+        $divisions = Division::orderBy('name')->get();
 
-        $sslActive     = PaymentGatewayService::isSslcommerzActive();
-        $bkashActive   = PaymentGatewayService::isBkashActive();
+        $sslActive = PaymentGatewayService::isSslcommerzActive();
+        $bkashActive = PaymentGatewayService::isBkashActive();
 
         return view('apply.index', compact(
-            'terms', 'courses', 'activeBatches', 'sessions', 'bloodGroups', 'religions', 'divisions',
-            'sslActive', 'bkashActive'
+            'terms',
+            'courses',
+            'activeBatches',
+            'sessions',
+            'bloodGroups',
+            'religions',
+            'divisions',
+            'sslActive',
+            'bkashActive'
         ));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'course_id'           => 'required|exists:courses,id',
-            'batch_id'            => 'nullable|exists:batches,id',
+            'course_id' => 'required|exists:courses,id',
+            'batch_id' => 'nullable|exists:batches,id',
             'academic_session_id' => 'nullable|exists:academic_sessions,id',
-            'applicant_name'      => 'required|string|max:200',
-            'phone'               => 'required|string|max:30',
-            'email'               => 'required|email|max:150',
-            'gender'              => 'required|in:Male,Female,Other,male,female,other',
-            'terms_agreed'        => 'required',
+            'applicant_name' => 'required|string|max:200',
+            'phone' => 'required|string|max:30',
+            'email' => 'required|email|max:150',
+            'gender' => 'required|in:Male,Female,Other,male,female,other',
+            'terms_agreed' => 'required',
         ], [
             'terms_agreed.required' => 'মাদ্রাসার নিয়ম ও ভর্তির শর্তাবলীতে সম্মতি প্রদান করা আবশ্যক।'
         ]);
@@ -87,15 +94,15 @@ class AdmissionFormController extends Controller
 
             if ($student) {
                 $student->update([
-                    'name'   => $validated['applicant_name'],
-                    'phone'  => $validated['phone'] ?: $student->phone,
+                    'name' => $validated['applicant_name'],
+                    'phone' => $validated['phone'] ?: $student->phone,
                     'gender' => $validated['gender'] ?: $student->gender,
                 ]);
             } else {
                 $student = Student::create([
-                    'name'   => $validated['applicant_name'],
-                    'phone'  => $validated['phone'],
-                    'email'  => $validated['email'] ?? null,
+                    'name' => $validated['applicant_name'],
+                    'phone' => $validated['phone'],
+                    'email' => $validated['email'] ?? null,
                     'gender' => $validated['gender'] ?? null,
                     'status' => 'LEAD',
                 ]);
@@ -113,22 +120,22 @@ class AdmissionFormController extends Controller
             if ($form) {
                 // Update batch / session on existing pending application
                 $form->update([
-                    'batch_id'            => $validated['batch_id'] ?? $form->batch_id,
+                    'batch_id' => $validated['batch_id'] ?? $form->batch_id,
                     'academic_session_id' => $sessionId,
-                    'ip_address'          => $request->ip(),
+                    'ip_address' => $request->ip(),
                 ]);
             } else {
                 $form = AdmissionForm::create([
-                    'source'               => 'PUBLIC',
-                    'application_no'       => AdmissionForm::generateApplicationNo(),
-                    'student_id'           => $student->id,
+                    'source' => 'PUBLIC',
+                    'application_no' => AdmissionForm::generateApplicationNo(),
+                    'student_id' => $student->id,
                     'interested_course_id' => $validated['course_id'],
-                    'batch_id'             => $validated['batch_id'] ?? null,
-                    'academic_session_id'  => $sessionId,
-                    'attempt_no'           => 1,
-                    'lead_source'          => 'Website',
-                    'status'               => 'PENDING',
-                    'ip_address'           => $request->ip(),
+                    'batch_id' => $validated['batch_id'] ?? null,
+                    'academic_session_id' => $sessionId,
+                    'attempt_no' => 1,
+                    'lead_source' => 'Website',
+                    'status' => 'PENDING',
+                    'ip_address' => $request->ip(),
                 ]);
             }
 
@@ -156,24 +163,24 @@ class AdmissionFormController extends Controller
         }
 
         $course = $form->interestedCourse;
-        $batch  = $form->batch;
+        $batch = $form->batch;
 
         // Base Fee calculation: prioritize batch fee if > 0, otherwise course admission fee
         $courseFee = (float) ($course->admission_fee ?? 0);
-        $batchFee  = ($batch && (float) $batch->admission_fee > 0) ? (float) $batch->admission_fee : $courseFee;
-        $baseFee   = max(0, $batchFee);
+        $batchFee = ($batch && (float) $batch->admission_fee > 0) ? (float) $batch->admission_fee : $courseFee;
+        $baseFee = max(0, $batchFee);
 
         $discountAmount = (float) ($form->discount_amount ?? 0);
-        $netPayable     = max(0, round($baseFee - $discountAmount, 2));
+        $netPayable = max(0, round($baseFee - $discountAmount, 2));
 
-        $sslActive   = PaymentGatewayService::isSslcommerzActive();
+        $sslActive = PaymentGatewayService::isSslcommerzActive();
         $bkashActive = PaymentGatewayService::isBkashActive();
 
         return view('apply.payment', compact('form', 'course', 'batch', 'baseFee', 'discountAmount', 'netPayable', 'sslActive', 'bkashActive'));
     }
 
     /**
-     * Process Admission Payment (SSLCommerz / Direct bKash / Free)
+     * Process Admission Payment (SSLCommerz / bKash / Free)
      */
     public function processPayment(Request $request, string $applicationNo)
     {
@@ -187,17 +194,17 @@ class AdmissionFormController extends Controller
         }
 
         $course = $form->interestedCourse;
-        $batch  = $form->batch;
+        $batch = $form->batch;
 
         // Base Fee calculation
         $courseFee = (float) ($course->admission_fee ?? 0);
-        $batchFee  = ($batch && (float) $batch->admission_fee > 0) ? (float) $batch->admission_fee : $courseFee;
-        $baseFee   = max(0, $batchFee);
+        $batchFee = ($batch && (float) $batch->admission_fee > 0) ? (float) $batch->admission_fee : $courseFee;
+        $baseFee = max(0, $batchFee);
 
         // Check Waiver / Coupon Code
-        $discountAmount  = 0.0;
+        $discountAmount = 0.0;
         $discountPercent = 0.0;
-        $waiverCode      = null;
+        $waiverCode = null;
 
         if ($request->filled('waiver_code')) {
             if (!$course->is_poor_fund_applicable) {
@@ -215,16 +222,16 @@ class AdmissionFormController extends Controller
             if ($waiverApp) {
                 $waiverCode = $code;
                 if ($waiverApp->approved_admission_fee !== null && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
-                    $approvedFee    = (float) $waiverApp->approved_admission_fee;
-                    $payableAmount  = min($baseFee, $approvedFee);
+                    $approvedFee = (float) $waiverApp->approved_admission_fee;
+                    $payableAmount = min($baseFee, $approvedFee);
                     $discountAmount = max(0, $baseFee - $payableAmount);
                 } else {
                     $discountPercent = (float) ($waiverApp->approved_discount_percent ?? 0);
-                    $discountAmount  = round(($baseFee * $discountPercent) / 100, 2);
+                    $discountAmount = round(($baseFee * $discountPercent) / 100, 2);
                 }
 
                 $waiverApp->update([
-                    'is_used'           => true,
+                    'is_used' => true,
                     'admission_form_id' => $form->id,
                 ]);
             } else {
@@ -235,13 +242,13 @@ class AdmissionFormController extends Controller
         $netPayable = max(0, round($baseFee - $discountAmount, 2));
 
         $form->update([
-            'waiver_code'      => $waiverCode,
+            'waiver_code' => $waiverCode,
             'discount_percent' => $discountPercent,
-            'discount_amount'  => $discountAmount,
+            'discount_amount' => $discountAmount,
         ]);
 
         $student = $form->student;
-        $sslActive   = PaymentGatewayService::isSslcommerzActive();
+        $sslActive = PaymentGatewayService::isSslcommerzActive();
         $bkashActive = PaymentGatewayService::isBkashActive();
 
         if ($netPayable > 0 && ($sslActive || $bkashActive)) {
@@ -255,27 +262,33 @@ class AdmissionFormController extends Controller
                 : PaymentGatewayService::getSslcommerzConfig()['mode'];
 
             $transaction = GatewayTransaction::create([
-                'tran_id'           => GatewayTransaction::generateTranId('ADM'),
-                'gateway'           => $chosenGateway,
-                'gateway_mode'      => $gatewayMode,
+                'tran_id' => GatewayTransaction::generateTranId('ADM'),
+                'gateway' => $chosenGateway,
+                'gateway_mode' => $gatewayMode,
                 'admission_form_id' => $form->id,
-                'student_id'        => $student->id,
-                'amount'            => $netPayable,
-                'currency'          => 'BDT',
-                'customer_name'     => $student->name,
-                'customer_phone'    => $student->phone,
-                'customer_email'    => $student->email,
-                'status'            => 'INITIATED',
-                'ip_address'        => $request->ip(),
+                'student_id' => $student->id,
+                'amount' => $netPayable,
+                'currency' => 'BDT',
+                'customer_name' => $student->name,
+                'customer_phone' => $student->phone,
+                'customer_email' => $student->email,
+                'status' => 'INITIATED',
+                'ip_address' => $request->ip(),
             ]);
 
             if ($chosenGateway === 'sslcommerz') {
                 $initRes = PaymentGatewayService::initiateSslcommerz(
-                    $transaction, $form, $student->phone, $student->email, $student->name
+                    $transaction,
+                    $form,
+                    $student->phone,
+                    $student->email,
+                    $student->name
                 );
             } else {
                 $initRes = PaymentGatewayService::initiateBkash(
-                    $transaction, $form, $student->phone
+                    $transaction,
+                    $form,
+                    $student->phone
                 );
             }
 
@@ -305,7 +318,7 @@ class AdmissionFormController extends Controller
             ->latest()
             ->first();
 
-        $instituteName    = AppSetting::get('institute_name', 'Islamic Online Madrasah');
+        $instituteName = AppSetting::get('institute_name', 'Islamic Online Madrasah');
         $instituteTagline = AppSetting::get('institute_tagline', 'Through Knowledge, Towards Jannah');
 
         return view('apply.success', compact('form', 'transaction', 'instituteName', 'instituteTagline'));

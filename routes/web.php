@@ -23,9 +23,9 @@ Route::get('/auth/google/redirect', [\App\Http\Controllers\Auth\GoogleAuthContro
 Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 // ── Panel Routes ─────────────────────────────────────────────────────
-require __DIR__.'/admin.php';
-require __DIR__.'/teacher.php';
-require __DIR__.'/student.php';
+require __DIR__ . '/admin.php';
+require __DIR__ . '/teacher.php';
+require __DIR__ . '/student.php';
 
 // ── Public Admission Form (No Auth) ──────────────────────────────────
 Route::get('/apply', [\App\Http\Controllers\Public\AdmissionFormController::class, 'show'])->name('apply.show');
@@ -41,12 +41,12 @@ Route::get('/apply/payment-status-ajax/{tranId}', [\App\Http\Controllers\Public\
 
 // SSLCommerz Callbacks
 Route::match(['get', 'post'], '/payment/callback/sslcommerz/success', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzSuccess'])->name('payment.callback.sslcommerz.success');
-Route::match(['get', 'post'], '/payment/callback/sslcommerz/fail',    [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzFail'])->name('payment.callback.sslcommerz.fail');
-Route::match(['get', 'post'], '/payment/callback/sslcommerz/cancel',  [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzCancel'])->name('payment.callback.sslcommerz.cancel');
-Route::match(['get', 'post'], '/api/payment/sslcommerz/ipn',          [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzIpn'])->name('payment.callback.sslcommerz.ipn');
+Route::match(['get', 'post'], '/payment/callback/sslcommerz/fail', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzFail'])->name('payment.callback.sslcommerz.fail');
+Route::match(['get', 'post'], '/payment/callback/sslcommerz/cancel', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzCancel'])->name('payment.callback.sslcommerz.cancel');
+Route::match(['get', 'post'], '/api/payment/sslcommerz/ipn', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzIpn'])->name('payment.callback.sslcommerz.ipn');
 
-// Direct bKash Callbacks
-Route::match(['get', 'post'], '/payment/callback/bkash',     [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback'])->name('payment.callback.bkash');
+// bKash Callbacks
+Route::match(['get', 'post'], '/payment/callback/bkash', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback'])->name('payment.callback.bkash');
 Route::match(['get', 'post'], '/api/payment/bkash/callback', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback']);
 
 

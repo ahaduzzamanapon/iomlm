@@ -43,18 +43,18 @@ class PaymentGatewayService
         $currency = Setting::where('key', 'sslcommerz_currency')->value('value') ?: 'BDT';
 
         return [
-            'enabled'      => $enabled,
-            'mode'         => $mode,
-            'is_sandbox'   => $isSandbox,
-            'store_id'     => trim($storeId),
+            'enabled' => $enabled,
+            'mode' => $mode,
+            'is_sandbox' => $isSandbox,
+            'store_id' => trim($storeId),
             'store_passwd' => trim($storePasswd),
-            'base_url'     => rtrim($baseUrl, '/'),
-            'currency'     => $currency,
+            'base_url' => rtrim($baseUrl, '/'),
+            'currency' => $currency,
         ];
     }
 
     /**
-     * Get Direct bKash active configuration based on sandbox/live toggle.
+     * Get bKash active configuration based on sandbox/live toggle.
      */
     public static function getBkashConfig(): array
     {
@@ -85,15 +85,15 @@ class PaymentGatewayService
         $currency = Setting::where('key', 'bkash_currency')->value('value') ?: 'BDT';
 
         return [
-            'enabled'    => $enabled,
-            'mode'       => $mode,
+            'enabled' => $enabled,
+            'mode' => $mode,
             'is_sandbox' => $isSandbox,
-            'app_key'    => trim($appKey),
+            'app_key' => trim($appKey),
             'app_secret' => trim($appSecret),
-            'username'   => trim($username),
-            'password'   => trim($password),
-            'base_url'   => rtrim($baseUrl, '/'),
-            'currency'   => $currency,
+            'username' => trim($username),
+            'password' => trim($password),
+            'base_url' => rtrim($baseUrl, '/'),
+            'currency' => $currency,
         ];
     }
 
@@ -107,7 +107,7 @@ class PaymentGatewayService
     }
 
     /**
-     * Check if Direct bKash is enabled.
+     * Check if bKash is enabled.
      */
     public static function isBkashActive(): bool
     {
@@ -135,27 +135,27 @@ class PaymentGatewayService
         }
 
         $postData = [
-            'store_id'         => $config['store_id'],
-            'store_passwd'     => $config['store_passwd'],
-            'total_amount'     => number_format($transaction->amount, 2, '.', ''),
-            'currency'         => $transaction->currency ?: 'BDT',
-            'tran_id'          => $transaction->tran_id,
-            'success_url'      => route('payment.callback.sslcommerz.success'),
-            'fail_url'         => route('payment.callback.sslcommerz.fail'),
-            'cancel_url'       => route('payment.callback.sslcommerz.cancel'),
-            'ipn_url'          => route('payment.callback.sslcommerz.ipn'),
-            'cus_name'         => $customerName ?: ($form->student->name ?? 'Student'),
-            'cus_email'        => $customerEmail ?: ($form->student->email ?? 'applicant@iom.edu.bd'),
-            'cus_add1'         => $form->present_house ?: 'Dhaka',
-            'cus_city'         => 'Dhaka',
-            'cus_country'      => 'Bangladesh',
-            'cus_phone'        => $customerPhone ?: ($form->student->phone ?? '01700000000'),
-            'shipping_method'  => 'NO',
-            'product_name'     => 'Admission Fee - ' . ($form->interestedCourse->name ?? 'Course'),
+            'store_id' => $config['store_id'],
+            'store_passwd' => $config['store_passwd'],
+            'total_amount' => number_format($transaction->amount, 2, '.', ''),
+            'currency' => $transaction->currency ?: 'BDT',
+            'tran_id' => $transaction->tran_id,
+            'success_url' => route('payment.callback.sslcommerz.success'),
+            'fail_url' => route('payment.callback.sslcommerz.fail'),
+            'cancel_url' => route('payment.callback.sslcommerz.cancel'),
+            'ipn_url' => route('payment.callback.sslcommerz.ipn'),
+            'cus_name' => $customerName ?: ($form->student->name ?? 'Student'),
+            'cus_email' => $customerEmail ?: ($form->student->email ?? 'applicant@iom.edu.bd'),
+            'cus_add1' => $form->present_house ?: 'Dhaka',
+            'cus_city' => 'Dhaka',
+            'cus_country' => 'Bangladesh',
+            'cus_phone' => $customerPhone ?: ($form->student->phone ?? '01700000000'),
+            'shipping_method' => 'NO',
+            'product_name' => 'Admission Fee - ' . ($form->interestedCourse->name ?? 'Course'),
             'product_category' => 'Education',
-            'product_profile'  => 'general',
-            'value_a'          => (string) $form->id,
-            'value_b'          => (string) $transaction->id,
+            'product_profile' => 'general',
+            'value_a' => (string) $form->id,
+            'value_b' => (string) $transaction->id,
         ];
 
         try {
@@ -170,21 +170,21 @@ class PaymentGatewayService
             $data = $response->json();
             if (isset($data['status']) && $data['status'] === 'SUCCESS' && !empty($data['GatewayPageURL'])) {
                 $transaction->update([
-                    'status'       => 'PENDING',
+                    'status' => 'PENDING',
                     'raw_response' => $data,
                 ]);
 
                 return [
-                    'success'      => true,
+                    'success' => true,
                     'redirect_url' => $data['GatewayPageURL'],
                 ];
             }
 
             $error = $data['failedreason'] ?? 'SSLCommerz পেমেন্ট সেশন তৈরি ব্যর্থ হয়েছে।';
             $transaction->update([
-                'status'        => 'FAILED',
+                'status' => 'FAILED',
                 'error_message' => $error,
-                'raw_response'  => $data,
+                'raw_response' => $data,
             ]);
 
             return ['success' => false, 'message' => $error];
@@ -204,10 +204,10 @@ class PaymentGatewayService
 
         try {
             $response = Http::timeout(15)->get($endpoint, [
-                'val_id'       => $valId,
-                'store_id'     => $config['store_id'],
+                'val_id' => $valId,
+                'store_id' => $config['store_id'],
                 'store_passwd' => $config['store_passwd'],
-                'format'       => 'json',
+                'format' => 'json',
             ]);
 
             if ($response->successful()) {
@@ -230,10 +230,10 @@ class PaymentGatewayService
 
         try {
             $response = Http::timeout(15)->get($endpoint, [
-                'tran_id'      => $tranId,
-                'store_id'     => $config['store_id'],
+                'tran_id' => $tranId,
+                'store_id' => $config['store_id'],
                 'store_passwd' => $config['store_passwd'],
-                'format'       => 'json',
+                'format' => 'json',
             ]);
 
             if ($response->successful()) {
@@ -247,7 +247,7 @@ class PaymentGatewayService
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // DIRECT BKASH API INTEGRATION
+    // bKash API INTEGRATION
     // ══════════════════════════════════════════════════════════════════════
 
     /**
@@ -271,9 +271,9 @@ class PaymentGatewayService
                 'username' => $config['username'],
                 'password' => $config['password'],
             ])->timeout(15)->post($endpoint, [
-                'app_key'    => $config['app_key'],
-                'app_secret' => $config['app_secret'],
-            ]);
+                        'app_key' => $config['app_key'],
+                        'app_secret' => $config['app_secret'],
+                    ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -293,7 +293,7 @@ class PaymentGatewayService
     }
 
     /**
-     * Initiate payment session with Direct bKash.
+     * Initiate payment session with bKash.
      */
     public static function initiateBkash(
         GatewayTransaction $transaction,
@@ -312,19 +312,19 @@ class PaymentGatewayService
 
         $endpoint = $config['base_url'] . '/tokenized/checkout/create';
         $postData = [
-            'mode'                  => '0011',
-            'payerReference'        => $customerPhone ?: ($form->student->phone ?? '01700000000'),
-            'callbackURL'           => route('payment.callback.bkash'),
-            'amount'                => number_format($transaction->amount, 2, '.', ''),
-            'currency'              => 'BDT',
-            'intent'                => 'sale',
+            'mode' => '0011',
+            'payerReference' => $customerPhone ?: ($form->student->phone ?? '01700000000'),
+            'callbackURL' => route('payment.callback.bkash'),
+            'amount' => number_format($transaction->amount, 2, '.', ''),
+            'currency' => 'BDT',
+            'intent' => 'sale',
             'merchantInvoiceNumber' => $transaction->tran_id,
         ];
 
         try {
             $response = Http::withHeaders([
                 'Authorization' => $token,
-                'X-APP-Key'     => $config['app_key'],
+                'X-APP-Key' => $config['app_key'],
             ])->timeout(15)->post($endpoint, $postData);
 
             if (!$response->successful()) {
@@ -335,23 +335,23 @@ class PaymentGatewayService
             $data = $response->json();
             if (isset($data['statusCode']) && $data['statusCode'] === '0000' && !empty($data['bkashURL'])) {
                 $transaction->update([
-                    'status'       => 'PENDING',
-                    'payment_id'   => $data['paymentID'] ?? null,
+                    'status' => 'PENDING',
+                    'payment_id' => $data['paymentID'] ?? null,
                     'raw_response' => $data,
                 ]);
 
                 return [
-                    'success'      => true,
+                    'success' => true,
                     'redirect_url' => $data['bkashURL'],
-                    'payment_id'   => $data['paymentID'] ?? null,
+                    'payment_id' => $data['paymentID'] ?? null,
                 ];
             }
 
             $error = $data['statusMessage'] ?? 'বিকাশ পেমেন্ট শুরু করতে ব্যর্থ হয়েছে।';
             $transaction->update([
-                'status'        => 'FAILED',
+                'status' => 'FAILED',
                 'error_message' => $error,
-                'raw_response'  => $data,
+                'raw_response' => $data,
             ]);
 
             return ['success' => false, 'message' => $error];
@@ -377,10 +377,10 @@ class PaymentGatewayService
         try {
             $response = Http::withHeaders([
                 'Authorization' => $token,
-                'X-APP-Key'     => $config['app_key'],
+                'X-APP-Key' => $config['app_key'],
             ])->timeout(20)->post($endpoint, [
-                'paymentID' => $paymentId,
-            ]);
+                        'paymentID' => $paymentId,
+                    ]);
 
             if ($response->successful()) {
                 return $response->json();
@@ -409,10 +409,10 @@ class PaymentGatewayService
         try {
             $response = Http::withHeaders([
                 'Authorization' => $token,
-                'X-APP-Key'     => $config['app_key'],
+                'X-APP-Key' => $config['app_key'],
             ])->timeout(15)->post($endpoint, [
-                'paymentID' => $paymentId,
-            ]);
+                        'paymentID' => $paymentId,
+                    ]);
 
             if ($response->successful()) {
                 return $response->json();
@@ -451,22 +451,22 @@ class PaymentGatewayService
             $valId = $gatewayData['val_id'] ?? $transaction->val_id;
             $paymentId = $gatewayData['paymentID'] ?? $transaction->payment_id;
 
-            $cardType   = $gatewayData['card_type'] ?? ($isBkash ? 'BKASH' : null);
-            $cardBrand  = $gatewayData['card_brand'] ?? ($isBkash ? 'BKASH' : null);
+            $cardType = $gatewayData['card_type'] ?? ($isBkash ? 'BKASH' : null);
+            $cardBrand = $gatewayData['card_brand'] ?? ($isBkash ? 'BKASH' : null);
             $cardIssuer = $gatewayData['card_issuer'] ?? ($isBkash ? 'bKash Limited' : null);
             $bankStatus = $gatewayData['status'] ?? $gatewayData['transactionStatus'] ?? 'SUCCESS';
 
             $transaction->update([
-                'status'         => 'SUCCESS',
+                'status' => 'SUCCESS',
                 'gateway_trx_id' => $gatewayTrxId,
-                'val_id'         => $valId,
-                'payment_id'     => $paymentId,
-                'card_type'      => $cardType,
-                'card_brand'     => $cardBrand,
-                'card_issuer'    => $cardIssuer,
-                'bank_status'    => $bankStatus,
-                'verified_at'    => now(),
-                'raw_response'   => array_merge((array) ($transaction->raw_response ?? []), $gatewayData),
+                'val_id' => $valId,
+                'payment_id' => $paymentId,
+                'card_type' => $cardType,
+                'card_brand' => $cardBrand,
+                'card_issuer' => $cardIssuer,
+                'bank_status' => $bankStatus,
+                'verified_at' => now(),
+                'raw_response' => array_merge((array) ($transaction->raw_response ?? []), $gatewayData),
             ]);
 
             $form = $transaction->admissionForm;
@@ -543,10 +543,10 @@ class PaymentGatewayService
                 }
 
                 $user = User::create([
-                    'name'     => $student->name,
-                    'email'    => $loginEmail,
+                    'name' => $student->name,
+                    'email' => $loginEmail,
                     'password' => Hash::make($tempPassword),
-                    'role'     => 'student',
+                    'role' => 'student',
                 ]);
 
                 $student->user_id = $user->id;
@@ -558,7 +558,7 @@ class PaymentGatewayService
 
         // 3. Mark Admission Form as APPROVED
         $form->update([
-            'status'      => 'APPROVED',
+            'status' => 'APPROVED',
             'reviewed_at' => now(),
         ]);
 
@@ -568,14 +568,14 @@ class PaymentGatewayService
             $enrollment = Enrollment::firstOrCreate(
                 [
                     'student_id' => $student->id,
-                    'batch_id'   => $batch->id,
+                    'batch_id' => $batch->id,
                 ],
                 [
-                    'course_id'         => $batch->course_id,
-                    'semester_id'       => $batch->semesterPosition?->current_semester_id,
+                    'course_id' => $batch->course_id,
+                    'semester_id' => $batch->semesterPosition?->current_semester_id,
                     'admission_form_id' => $form->id,
-                    'enrolled_at'       => now()->toDateString(),
-                    'status'            => 'ACTIVE',
+                    'enrolled_at' => now()->toDateString(),
+                    'status' => 'ACTIVE',
                 ]
             );
 

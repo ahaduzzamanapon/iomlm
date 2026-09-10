@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 class PaymentGatewaySettingController extends Controller
 {
     /**
-     * Display the payment gateway settings page with tabs for SSLCommerz and Direct bKash.
+     * Display the payment gateway settings page with tabs for SSLCommerz and bKash.
      */
     public function index()
     {
@@ -27,17 +27,17 @@ class PaymentGatewaySettingController extends Controller
             'sslcommerz_live_store_passwd',
             'sslcommerz_live_url',
 
-            // Direct bKash General
+            // bKash General
             'bkash_enabled',
             'bkash_mode',
             'bkash_currency',
-            // Direct bKash Sandbox
+            // bKash Sandbox
             'bkash_sandbox_app_key',
             'bkash_sandbox_app_secret',
             'bkash_sandbox_username',
             'bkash_sandbox_password',
             'bkash_sandbox_base_url',
-            // Direct bKash Live
+            // bKash Live
             'bkash_live_app_key',
             'bkash_live_app_secret',
             'bkash_live_username',
@@ -49,17 +49,17 @@ class PaymentGatewaySettingController extends Controller
 
         // Sensible defaults if not previously saved
         $defaults = [
-            'sslcommerz_enabled'              => '0',
-            'sslcommerz_mode'                 => 'sandbox',
-            'sslcommerz_currency'             => 'BDT',
-            'sslcommerz_sandbox_url'          => 'https://sandbox.sslcommerz.com',
-            'sslcommerz_live_url'             => 'https://securepay.sslcommerz.com',
+            'sslcommerz_enabled' => '0',
+            'sslcommerz_mode' => 'sandbox',
+            'sslcommerz_currency' => 'BDT',
+            'sslcommerz_sandbox_url' => 'https://sandbox.sslcommerz.com',
+            'sslcommerz_live_url' => 'https://securepay.sslcommerz.com',
 
-            'bkash_enabled'                   => '0',
-            'bkash_mode'                      => 'sandbox',
-            'bkash_currency'                  => 'BDT',
-            'bkash_sandbox_base_url'          => 'https://tokenized.sandbox.bka.sh/v1.2.0-beta',
-            'bkash_live_base_url'             => 'https://tokenized.pay.bka.sh/v1.2.0-beta',
+            'bkash_enabled' => '0',
+            'bkash_mode' => 'sandbox',
+            'bkash_currency' => 'BDT',
+            'bkash_sandbox_base_url' => 'https://tokenized.sandbox.bka.sh/v1.2.0-beta',
+            'bkash_live_base_url' => 'https://tokenized.pay.bka.sh/v1.2.0-beta',
         ];
 
         foreach ($defaults as $k => $v) {
@@ -105,7 +105,7 @@ class PaymentGatewaySettingController extends Controller
     }
 
     /**
-     * Update Direct bKash configuration.
+     * Update bKash configuration.
      */
     public function updateBkash(Request $request)
     {
@@ -142,6 +142,6 @@ class PaymentGatewaySettingController extends Controller
         }
 
         return redirect()->route('admin.settings.payment-gateways.index', ['tab' => 'bkash'])
-            ->with('success', 'Direct bKash (বিকাশ) পেমেন্ট গেটওয়ে সেটিংস সফলভাবে সংরক্ষিত হয়েছে।');
+            ->with('success', 'bKash (বিকাশ) পেমেন্ট গেটওয়ে সেটিংস সফলভাবে সংরক্ষিত হয়েছে।');
     }
 }

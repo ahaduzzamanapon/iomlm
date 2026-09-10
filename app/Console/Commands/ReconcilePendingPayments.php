@@ -47,7 +47,7 @@ class ReconcilePendingPayments extends Command
             // ── 1. SSLCOMMERZ RECONCILIATION ──────────────────────────────
             if ($gateway === 'sslcommerz') {
                 $queryRes = PaymentGatewayService::querySslcommerzByTranId($trx->tran_id);
-                $status   = $queryRes['status'] ?? ($queryRes['element'][0]['status'] ?? null);
+                $status = $queryRes['status'] ?? ($queryRes['element'][0]['status'] ?? null);
 
                 if (in_array($status, ['VALID', 'VALIDATED'])) {
                     $item = isset($queryRes['element'][0]) ? $queryRes['element'][0] : $queryRes;
@@ -64,9 +64,9 @@ class ReconcilePendingPayments extends Command
                 }
             }
 
-            // ── 2. DIRECT BKASH RECONCILIATION ────────────────────────────
+            // ── 2. bKash RECONCILIATION ────────────────────────────
             if ($gateway === 'bkash' && !empty($trx->payment_id)) {
-                $queryRes  = PaymentGatewayService::queryBkash($trx->payment_id);
+                $queryRes = PaymentGatewayService::queryBkash($trx->payment_id);
                 $trxStatus = $queryRes['transactionStatus'] ?? '';
 
                 if ($trxStatus === 'Completed') {
@@ -86,7 +86,7 @@ class ReconcilePendingPayments extends Command
             // ── 3. EXPIRE STALE TRANSACTIONS (> 2 Hours) ──────────────────
             if ($trx->created_at <= now()->subHours(2)) {
                 $trx->update([
-                    'status'        => 'EXPIRED',
+                    'status' => 'EXPIRED',
                     'error_message' => 'Transaction timed out after 2 hours without gateway confirmation',
                 ]);
                 $this->comment(" -> EXPIRED: Transaction {$trx->tran_id} expired.");

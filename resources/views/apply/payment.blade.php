@@ -488,7 +488,7 @@
                         <div style="flex:1">
                             <div class="gateway-header">
                                 <img src="{{ asset('images/gateways/bkash.png') }}" alt="bKash" class="gateway-img" style="height:28px;max-width:100px">
-                                <span class="gateway-tag gateway-tag-bkash">সরাসরি বিকাশ</span>
+                                <span class="gateway-tag gateway-tag-bkash">বিকাশ</span>
                             </div>
                             <div class="gateway-desc">
                                 বিকাশ ওয়ালেট ও পিন দিয়ে সরাসরি দ্রুত পেমেন্ট

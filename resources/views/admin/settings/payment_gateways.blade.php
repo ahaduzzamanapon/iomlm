@@ -197,7 +197,7 @@
                     পেমেন্ট গেটওয়ে সেটিংস (Payment Gateway Settings)
                 </h1>
                 <p style="color:#64748b;font-size:14px;margin-top:4px">
-                    SSLCommerz এবং Direct bKash গেটওয়ের স্যান্ডবক্স (টেস্ট) ও লাইভ ক্রেডেনশিয়াল ও URL পরিচালনা করুন।
+                    SSLCommerz এবং bKash গেটওয়ের স্যান্ডবক্স (টেস্ট) ও লাইভ ক্রেডেনশিয়াল ও URL পরিচালনা করুন।
                 </p>
             </div>
         </div>
@@ -232,7 +232,7 @@
             </div>
             <div class="nav-tab-item {{ $activeTab === 'bkash' ? 'active' : '' }}" onclick="switchGatewayTab('bkash', this)">
                 <i class="fa-solid fa-mobile-screen-button" style="color:#d82a6b"></i>
-                <span>Direct bKash (বিকাশ ডিরেক্ট পিজিডব্লিউ)</span>
+                <span>bKash (বিকাশ ডিরেক্ট পিজিডব্লিউ)</span>
                 @if(($settings['bkash_enabled'] ?? '0') === '1')
                     <span style="font-size:11px;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:12px">সক্রিয়</span>
                 @else
@@ -436,7 +436,7 @@
         </div>
 
         {{-- ========================================================= --}}
-        {{-- TAB 2: DIRECT BKASH SETTINGS                              --}}
+        {{-- TAB 2: bKash SETTINGS                              --}}
         {{-- ========================================================= --}}
         <div id="tab-bkash" class="tab-content-panel {{ $activeTab === 'bkash' ? 'active' : '' }}">
             <form method="POST" action="{{ route('admin.settings.payment-gateways.bkash') }}">
@@ -446,7 +446,7 @@
                 <div class="mode-toggle-card">
                     <div>
                         <h3 style="margin:0 0 4px 0;font-size:16px;font-weight:700;color:#0f172a">
-                            Direct bKash (বিকাশ ডিরেক্ট পিজিডব্লিউ) স্ট্যাটাস
+                            bKash (বিকাশ ডিরেক্ট পিজিডব্লিউ) স্ট্যাটাস
                         </h3>
                         <p style="margin:0;font-size:13px;color:#64748b">
                             সরাসরি বিকাশ টোকেনাইজড পেমেন্ট গেটওয়ের মাধ্যমে পেমেন্ট গ্রহণের জন্য এটি অন রাখুন।
