@@ -88,8 +88,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
 
     // ── Question Bank ────────────────────────────────────────────────
     Route::get('questions/template-download', [\App\Http\Controllers\Admin\QuestionController::class, 'downloadTemplate'])->name('questions.template-download');
+    Route::get('questions/aiken-template-download', [\App\Http\Controllers\Admin\QuestionController::class, 'downloadAikenTemplate'])->name('questions.aiken-template-download');
     Route::resource('questions', \App\Http\Controllers\Admin\QuestionController::class)->only(['index', 'store', 'destroy']);
     Route::post('questions/bulk-upload', [\App\Http\Controllers\Admin\QuestionController::class, 'bulkUpload'])->name('questions.bulk-upload');
+    Route::post('questions/aiken-upload', [\App\Http\Controllers\Admin\QuestionController::class, 'importAiken'])->name('questions.aiken-upload');
 
     // ── Exams, Results, Retakes, Promotions ───────────────────────────
     Route::resource('exams', \App\Http\Controllers\Admin\ExamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);

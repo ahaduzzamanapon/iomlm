@@ -66,17 +66,23 @@
             <div class="qb-subtitle">MCQ ও Written — দুই ধরনের প্রশ্ন যোগ করুন, Exam-এ সংযুক্ত করুন</div>
         </div>
         <div class="qb-actions">
-            <a href="{{ route('admin.questions.template-download') }}" class="btn-teal">
-                CSV Template
+            <a href="{{ route('admin.questions.template-download') }}" class="btn-teal" title="CSV ফরম্যাট টেমপ্লেট ডাউনলোড">
+                <i class="fa-solid fa-file-csv"></i> CSV Template
+            </a>
+            <a href="{{ route('admin.questions.aiken-template-download') }}" class="btn-teal" style="background:#0284c7" title="Aiken ফরম্যাট ডেমো টেক্সট ফাইল ডাউনলোড">
+                <i class="fa-solid fa-file-lines"></i> Aiken Template
             </a>
             <button class="btn-ghost-purple" onclick="openModal('bulkUploadModal')">
-                Bulk CSV Upload
+                <i class="fa-solid fa-file-csv"></i> Bulk CSV Upload
+            </button>
+            <button class="btn-ghost-purple" style="border-color:#0284c7;color:#0284c7;background:#f0f9ff" onclick="openModal('aikenUploadModal')">
+                <i class="fa-solid fa-file-import"></i> Aiken Upload
             </button>
             <button class="btn-green" onclick="openModal('createWrittenModal')">
-                Written প্রশ্ন
+                <i class="fa-solid fa-pen-nib"></i> Written প্রশ্ন
             </button>
             <button class="btn-purple" onclick="openModal('createMcqModal')">
-                MCQ প্রশ্ন
+                <i class="fa-solid fa-plus"></i> MCQ প্রশ্ন
             </button>
         </div>
     </div>
@@ -199,7 +205,9 @@
         </tbody>
     </table>
 
-    <div style="margin-top:20px">{{ $questions->links() }}</div>
+    @if(method_exists($questions, 'links'))
+        <div style="margin-top:20px">{{ $questions->links() }}</div>
+    @endif
 
     {{-- Create MCQ Modal --}}
     {{-- Create MCQ Modal --}}
@@ -354,6 +362,78 @@
                 <div class="modal-footer">
                     <button type="button" class="btn-ghost-purple" onclick="closeModal('bulkUploadModal')">বাতিল</button>
                     <button type="submit" class="btn-purple">আপলোড ও Import করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Aiken Format Upload Modal --}}
+    <div class="modal-overlay" id="aikenUploadModal">
+        <div class="modal" style="max-width:680px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header">
+                <span class="modal-title" style="font-family:'Kalpurush',sans-serif">
+                    <i class="fa-solid fa-file-import" style="color:#0284c7"></i> Aiken ফরম্যাটে প্রশ্ন আপলোড (Aiken Import)
+                </span>
+                <button class="modal-close" onclick="closeModal('aikenUploadModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.questions.aiken-upload') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+                    <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 16px;font-size:13px;color:#0369a1;line-height:1.6">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+                            <strong><i class="fa-solid fa-circle-info"></i> Aiken ফরম্যাট নির্দেশিকা:</strong>
+                            <a href="{{ route('admin.questions.aiken-template-download') }}" class="btn-teal" style="font-size:11px;padding:5px 12px;background:#0284c7;color:#fff;text-decoration:none;border-radius:6px">
+                                <i class="fa-solid fa-download"></i> ডেমো ফরম্যাট ডাউনলোড
+                            </a>
+                        </div>
+                        প্রতিটি প্রশ্নের পর পর অপশনগুলো (A. B. C. D.) থাকবে এবং প্রতিটি প্রশ্নের শেষে <code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;font-weight:700">ANSWER: X</code> থাকবে। প্রতিটি প্রশ্নের মাঝে ১টি ফাঁকা লাইন থাকবে।
+                        <pre style="background:#0f172a;color:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;margin-top:8px;line-height:1.5;overflow-x:auto;font-family:monospace">ব্যবস্থাপনার জনক কাকে বলা হয়?
+A. হেনরি ফেওল
+B. এফ. ডব্লিউ. টেলর
+C. এলটন মেও
+D. পিটার ড্রাকার
+ANSWER: A</pre>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">বিষয় (Subject) <span style="font-size:12px;color:var(--text-muted)">(ঐচ্ছিক)</span></label>
+                            <select name="subject_id" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="">-- বিষয় নির্বাচন করুন --</option>
+                                @foreach($subjects as $sub)
+                                    <option value="{{ $sub->id }}">{{ $sub->name }} ({{ $sub->code }})</option>
+                                @endforeach
+                            </select>
+                            <small style="color:var(--text-muted);font-size:11px">ফাইলে নির্দিষ্ট বিষয় উল্লেখ না থাকলে সব প্রশ্ন এতে যুক্ত হবে</small>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">কঠিনতা (Difficulty) <span class="required">*</span></label>
+                            <select name="difficulty" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px" required>
+                                <option value="easy">Easy (সহজ)</option>
+                                <option value="medium">Medium (মধ্যম)</option>
+                                <option value="hard">Hard (কঠিন)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight:600;margin-bottom:4px;display:block">Aiken ফাইল নির্বাচন করুন (.txt, .aiken)</label>
+                        <input type="file" name="aiken_file" class="form-control" accept=".txt,.aiken,text/plain" style="padding:7px 12px">
+                        <small style="color:var(--text-muted);font-size:11px">নোটপ্যাড বা ওয়ার্ড থেকে তৈরি করা .txt ফাইল আপলোড করুন</small>
+                    </div>
+
+                    <div style="text-align:center;font-size:12px;color:#64748b;font-weight:700;margin:-4px 0">
+                        — অথবা সরাসরি নিচে Aiken টেক্সট পেস্ট করুন —
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-weight:600;margin-bottom:4px;display:block">Aiken টেক্সট সরাসরি পেস্ট করুন</label>
+                        <textarea name="aiken_text" class="form-control" rows="5" style="width:100%;border-radius:8px;font-size:13px" placeholder="এখানে সরাসরি প্রশ্ন ও অপশনগুলো পেস্ট করুন...&#10;&#10;প্রশ্ন?&#10;A. অপশন ১&#10;B. অপশন ২&#10;C. অপশন ৩&#10;D. অপশন ৪&#10;ANSWER: A"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-ghost-purple" onclick="closeModal('aikenUploadModal')">বাতিল</button>
+                    <button type="submit" class="btn-purple" style="background:#0284c7;border-color:#0284c7">Aiken প্রশ্নাবলী Import করুন</button>
                 </div>
             </form>
         </div>
