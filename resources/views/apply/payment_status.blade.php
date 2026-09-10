@@ -134,6 +134,10 @@
         </p>
     @endif
 
+    @php
+        $admissionForm = $transaction->admissionForm ?? ($transaction->admission_form_id ? \App\Models\AdmissionForm::find($transaction->admission_form_id) : null);
+    @endphp
+
     {{-- Details Box --}}
     <div class="trx-details">
         <div class="trx-row">
@@ -160,17 +164,17 @@
             <span class="trx-val" style="font-family:monospace">{{ $transaction->gateway_trx_id }}</span>
         </div>
         @endif
-        @if($transaction->admissionForm)
+        @if($admissionForm)
         <div class="trx-row">
             <span class="trx-label">আবেদন নম্বর:</span>
-            <span class="trx-val">{{ $transaction->admissionForm->application_no }}</span>
+            <span class="trx-val">{{ $admissionForm->application_no }}</span>
         </div>
         @endif
     </div>
 
     {{-- Actions --}}
-    @if($transaction->status === 'SUCCESS' && $transaction->admissionForm)
-        <a href="{{ route('apply.success', $transaction->admissionForm->application_no) }}" class="btn btn-primary">
+    @if($transaction->status === 'SUCCESS' && $admissionForm)
+        <a href="{{ route('apply.success', $admissionForm->application_no) }}" class="btn btn-primary">
             <i class="fa-solid fa-arrow-right"></i> আবেদন রসিদ ও লগইন তথ্য দেখুন
         </a>
     @elseif($transaction->isPending())
@@ -178,9 +182,22 @@
             <i class="fa-solid fa-arrows-rotate"></i> স্ট্যাটাস রিফ্রেশ করুন
         </button>
     @else
-        <a href="{{ route('apply.show') }}" class="btn btn-primary">
-            <i class="fa-solid fa-arrow-rotate-left"></i> পুনরায় ভর্তি আবেদন করুন
-        </a>
+        @if($admissionForm && $admissionForm->status !== 'APPROVED')
+            <a href="{{ route('apply.payment', $admissionForm->application_no) }}" class="btn btn-primary" style="background:#047857;">
+                <i class="fa-solid fa-credit-card"></i> আবার পেমেন্ট করুন
+            </a>
+            <a href="{{ route('apply.show') }}" class="btn btn-outline">
+                <i class="fa-solid fa-arrow-rotate-left"></i> নতুন ভর্তি আবেদন করুন
+            </a>
+        @elseif($admissionForm && $admissionForm->status === 'APPROVED')
+            <a href="{{ route('apply.success', $admissionForm->application_no) }}" class="btn btn-primary">
+                <i class="fa-solid fa-arrow-right"></i> আবেদন রসিদ ও লগইন তথ্য দেখুন
+            </a>
+        @else
+            <a href="{{ route('apply.show') }}" class="btn btn-primary">
+                <i class="fa-solid fa-arrow-rotate-left"></i> পুনরায় ভর্তি আবেদন করুন
+            </a>
+        @endif
     @endif
 
     <a href="/" class="btn btn-outline">
