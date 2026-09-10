@@ -40,45 +40,6 @@
     .instruction-card p:last-child { margin-bottom: 0; }
     .note-tag { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 8px; font-weight: 600; margin-top: 12px; font-size: 12px; }
 
-    /* 3 Type Switcher Tabs */
-    .type-switcher {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-    }
-    .type-tab {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 18px;
-        border-radius: 999px;
-        font-size: 13.5px;
-        font-weight: 700;
-        text-decoration: none;
-        color: #064e3b;
-        background: #ffffff;
-        border: 1.5px solid #a7f3d0;
-        box-shadow: 0 2px 6px rgba(4, 120, 87, 0.08);
-        transition: all .2s ease;
-    }
-    .type-tab:hover {
-        background: #ecfdf5;
-        border-color: #34d399;
-        color: #022c22;
-        transform: translateY(-1px);
-    }
-    .type-tab.active {
-        background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
-        color: #ffffff !important;
-        border-color: #047857;
-        box-shadow: 0 4px 14px rgba(4, 120, 87, 0.32);
-    }
-    .type-tab.active i {
-        color: #fbbf24;
-    }
-
     /* Form card */
     .form-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden; width: 100%; }
     .form-header { background: #fff; padding: 20px 24px 16px; border-bottom: 1px solid var(--border); text-align: center; border-top: 4px solid #047857; }
@@ -165,18 +126,7 @@
         $activeType = $activeType ?? 'both';
     @endphp
 
-    {{-- 3 Dedicated Links Switcher --}}
-    <div class="type-switcher">
-        <a href="{{ route('poor_fund.admission') }}" class="type-tab {{ $activeType === 'admission' ? 'active' : '' }}">
-            <i class="fa-solid fa-graduation-cap"></i> ১. শুধুমাত্র ভর্তি ফি কমানো
-        </a>
-        <a href="{{ route('poor_fund.tuition') }}" class="type-tab {{ $activeType === 'tuition' ? 'active' : '' }}">
-            <i class="fa-solid fa-book-open-reader"></i> ২. শুধুমাত্র টিউশন ফি কমানো
-        </a>
-        <a href="{{ route('poor_fund.both') }}" class="type-tab {{ $activeType === 'both' ? 'active' : '' }}">
-            <i class="fa-solid fa-layer-group"></i> ৩. উভয় ফি কমানোর আবেদন (সকল)
-        </a>
-    </div>
+
 
     <div class="form-card">
         <div class="form-header">

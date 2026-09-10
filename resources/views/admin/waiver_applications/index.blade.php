@@ -6,8 +6,11 @@
             <h1>Poor Fund / Waiver Applications</h1>
             <p>Review financial assistance requests and poor fund applications submitted by applicants</p>
         </div>
-        <div class="page-header-actions">
-            <a href="/poor-fund" target="_blank" class="btn btn-outline">View Public Form ↗</a>
+        <div class="page-header-actions" style="display:flex;gap:10px;align-items:center">
+            <button type="button" class="btn btn-primary" onclick="openShareLinksModal()" style="display:inline-flex;align-items:center;gap:6px">
+                <i class="fa-solid fa-share-nodes"></i> আবেদন লিংকসমূহ (Copy Links)
+            </button>
+            <a href="{{ route('poor_fund.show') }}" target="_blank" class="btn btn-outline">View Public Form ↗</a>
         </div>
     </div>
 
@@ -120,4 +123,91 @@
             {{ $applications->links() }}
         </div>
     </div>
+
+    {{-- Direct Links Modal for Admin --}}
+    <div id="shareLinksModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;justify-content:center;align-items:center;padding:20px;box-sizing:border-box">
+        <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);animation:modalSlideUp .25s ease">
+            <div style="background:linear-gradient(135deg,#047857,#065f46);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-link"></i> পুওর ফান্ড ও ওয়েভার আবেদন লিংকসমূহ
+                    </div>
+                    <div style="font-size:12px;opacity:.9;margin-top:2px">পাবলিক পেজে এই লিংকগুলো লুকানো থাকে; প্রয়োজন অনুযায়ী শিক্ষার্থীকে ইনবক্সে পাঠান</div>
+                </div>
+                <button type="button" onclick="closeShareLinksModal()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
+            </div>
+            <div style="padding:22px;display:flex;flex-direction:column;gap:14px">
+                
+                {{-- Link 1: Admission Fee --}}
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                        <span style="font-size:13px;font-weight:700;color:#0f172a">
+                            <i class="fa-solid fa-graduation-cap" style="color:#047857"></i> ১. শুধুমাত্র ভর্তি ফি কমানো
+                        </span>
+                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink('{{ route('poor_fund.admission') }}', this)">
+                            <i class="fa-regular fa-copy"></i> কপি করুন
+                        </button>
+                    </div>
+                    <input type="text" readonly value="{{ route('poor_fund.admission') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
+                </div>
+
+                {{-- Link 2: Tuition Fee --}}
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                        <span style="font-size:13px;font-weight:700;color:#0f172a">
+                            <i class="fa-solid fa-book-open-reader" style="color:#047857"></i> ২. শুধুমাত্র টিউশন ফি কমানো
+                        </span>
+                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink('{{ route('poor_fund.tuition') }}', this)">
+                            <i class="fa-regular fa-copy"></i> কপি করুন
+                        </button>
+                    </div>
+                    <input type="text" readonly value="{{ route('poor_fund.tuition') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
+                </div>
+
+                {{-- Link 3: Both Fees --}}
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                        <span style="font-size:13px;font-weight:700;color:#0f172a">
+                            <i class="fa-solid fa-layer-group" style="color:#047857"></i> ৩. উভয় ফি কমানোর আবেদন (সকল)
+                        </span>
+                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink('{{ route('poor_fund.both') }}', this)">
+                            <i class="fa-regular fa-copy"></i> কপি করুন
+                        </button>
+                    </div>
+                    <input type="text" readonly value="{{ route('poor_fund.both') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
+                </div>
+
+            </div>
+            <div style="padding:14px 22px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:#64748b">লিংক কপি করে সরাসরি WhatsApp / Email / Messenger এ পাঠান</span>
+                <button type="button" onclick="closeShareLinksModal()" class="btn btn-outline btn-sm">বন্ধ করুন</button>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+    function openShareLinksModal() {
+        document.getElementById('shareLinksModal').style.display = 'flex';
+    }
+    function closeShareLinksModal() {
+        document.getElementById('shareLinksModal').style.display = 'none';
+    }
+    function copyLink(url, btn) {
+        navigator.clipboard.writeText(url).then(function() {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> কপি হয়েছে!';
+            btn.style.background = '#15803d';
+            btn.style.color = '#fff';
+            setTimeout(function() {
+                btn.innerHTML = originalHtml;
+                btn.style.background = '';
+                btn.style.color = '';
+            }, 2000);
+        }).catch(function() {
+            prompt('লিংকটি কপি করুন:', url);
+        });
+    }
+    </script>
+    @endpush
 </x-admin-layout>
