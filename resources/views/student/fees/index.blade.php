@@ -349,49 +349,129 @@
     </div>
 
     {{-- ── INTERACTIVE PAYMENT MODAL ── --}}
+    <style>
+    .modal-gateway-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px;
+        cursor: pointer;
+        background: #fff;
+        transition: all .2s;
+        display: block;
+        text-align: left;
+    }
+    .modal-gateway-card:hover {
+        border-color: #a7f3d0;
+        background: #f0fdf4;
+    }
+    .modal-gateway-card.selected {
+        border-color: #047857;
+        background: #f0fdf4;
+        box-shadow: 0 0 0 1.5px #047857;
+    }
+    </style>
+
     <div id="payInvoiceModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:9999; justify-content:center; align-items:center; padding:20px; box-sizing:border-box">
-        <div style="background:#fff; border-radius:18px; max-width:480px; width:100%; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.25); animation:modalSlideUp .3s ease">
-            <div style="background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center">
+        <div style="background:#fff; border-radius:18px; max-width:500px; width:100%; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); animation:modalSlideUp .3s ease">
+            <div style="background:linear-gradient(135deg,#047857,#065f46); color:#fff; padding:18px 24px; display:flex; justify-content:space-between; align-items:center">
                 <div>
-                    <div style="font-weight:800; font-size:16px">অনলাইন পেমেন্ট করুন</div>
-                    <div style="font-size:11px; opacity:.85" id="modalInvNo">INV-00000</div>
+                    <div style="font-weight:800; font-size:16px; display:flex; align-items:center; gap:8px">
+                        <i class="fa-solid fa-credit-card"></i> অনলাইন ফি পরিশোধ
+                    </div>
+                    <div style="font-size:11px; opacity:.85; margin-top:2px" id="modalInvNo">INV-00000</div>
                 </div>
-                <button onclick="closePayModal()" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer; line-height:1">&times;</button>
+                <button type="button" onclick="closePayModal()" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer; line-height:1; opacity:0.85">&times;</button>
             </div>
-            <form id="payForm" method="POST" action="" style="padding:24px">
+
+            <form id="payForm" method="POST" action="" style="padding:22px">
                 @csrf
-                <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:12px 16px; border-radius:12px; margin-bottom:18px">
-                    <div style="font-size:12px; color:#166534; font-weight:600" id="modalInvTitle">Invoice Title</div>
-                    <div style="font-size:20px; font-weight:800; color:#15803d; margin-top:2px">
-                        বকেয়া: ৳<span id="modalDueAmount">0.00</span>
+                <div style="background:#f0fdf4; border:1.5px solid #bbf7d0; padding:14px 18px; border-radius:12px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center">
+                    <div>
+                        <div style="font-size:12px; color:#166534; font-weight:700" id="modalInvTitle">Invoice Title</div>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px">পরিশোধযোগ্য মোট বকেয়া</div>
+                    </div>
+                    <div style="font-size:22px; font-weight:800; color:#15803d; text-align:right">
+                        ৳<span id="modalDueAmount">0.00</span>
                     </div>
                 </div>
 
+                {{-- Amount to Pay --}}
                 <div style="margin-bottom:16px">
-                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px">পেমেন্ট মেথড সিলেক্ট করুন <span style="color:#dc2626">*</span></label>
-                    <select name="payment_method" class="form-control" required style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px; font-weight:600">
-                        <option value="BKASH">bKash (বিকাশ)</option>
-                        <option value="NAGAD">Nagad (নগদ)</option>
-                        <option value="ROCKET">Rocket (রকেট)</option>
-                        <option value="ONLINE">Online Card / NetBanking</option>
-                        <option value="BANK_TRANSFER">Bank Deposit / Slip</option>
-                        <option value="CASH">Cash at Office</option>
-                    </select>
+                    <label style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px">
+                        <span>পরিশোধের পরিমাণ (টাকা) <span style="color:#dc2626">*</span></span>
+                        <span style="font-size:11px; color:#64748b; font-weight:500">(আংশিক বা সম্পূর্ণ প্রদেয়)</span>
+                    </label>
+                    <input type="number" step="0.01" id="payAmountInput" name="amount" class="form-control" required
+                           style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:16px; font-weight:700; color:#1e293b; box-sizing:border-box"
+                           oninput="updateModalButtonAmount()">
                 </div>
 
+                {{-- Payment Gateway Selection --}}
                 <div style="margin-bottom:16px">
-                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px">পেমেন্ট পরিমাণ (টাকা) <span style="color:#dc2626">*</span></label>
-                    <input type="number" step="0.01" id="payAmountInput" name="amount" class="form-control" required style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:15px; font-weight:700; color:#1e293b">
+                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:8px">
+                        পেমেন্ট মাধ্যম নির্বাচন করুন <span style="color:#dc2626">*</span>
+                    </label>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px" id="modalGatewayGrid">
+                        {{-- SSLCommerz Card --}}
+                        <label class="modal-gateway-card selected" id="card_sslcommerz" onclick="selectModalGateway('sslcommerz')">
+                            <input type="radio" name="payment_method" value="sslcommerz" checked style="display:none">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                                <img src="{{ asset('images/gateways/sslcommerz.png') }}" alt="SSLCommerz" style="height:22px; max-width:115px; object-fit:contain">
+                                <span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; background:#e0f2fe; color:#0369a1">সব মাধ্যম</span>
+                            </div>
+                            <div style="font-size:11px; color:#64748b; line-height:1.3">
+                                কার্ড, নগদ, রকেট ও ব্যাংক
+                            </div>
+                        </label>
+
+                        {{-- bKash Card --}}
+                        <label class="modal-gateway-card" id="card_bkash" onclick="selectModalGateway('bkash')">
+                            <input type="radio" name="payment_method" value="bkash" style="display:none">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                                <img src="{{ asset('images/gateways/bkash.png') }}" alt="bKash" style="height:24px; max-width:85px; object-fit:contain">
+                                <span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; background:#fce7f3; color:#be185d">বিকাশ</span>
+                            </div>
+                            <div style="font-size:11px; color:#64748b; line-height:1.3">
+                                সরাসরি বিকাশ ওয়ালেট ও পিন
+                            </div>
+                        </label>
+                    </div>
+
+                    {{-- Manual / Offline Payment Toggle --}}
+                    <div style="margin-top:10px; text-align:right">
+                        <button type="button" onclick="toggleManualPayment()" id="toggleManualBtn" style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:600; cursor:pointer; text-decoration:underline">
+                            অথবা ম্যানুয়াল ব্যাংক / ক্যাশ ভাউচার জমা দিন
+                        </button>
+                    </div>
+
+                    {{-- Manual Fields (Hidden by default) --}}
+                    <div id="manualPaymentFields" style="display:none; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:12px; margin-top:10px">
+                        <div style="margin-bottom:10px">
+                            <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">ম্যানুয়াল মাধ্যম নির্বাচন করুন</label>
+                            <select id="manualMethodSelect" class="form-control" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px" onchange="onManualMethodChange(this.value)">
+                                <option value="BANK_TRANSFER">ব্যাংক ডিপোজিট / স্লিপ (Bank Transfer)</option>
+                                <option value="CASH">সরাসরি অফিস ক্যাশ (Cash at Office)</option>
+                                <option value="NAGAD">নগদ ম্যানুয়াল ট্রানজেকশন (Nagad TrxID)</option>
+                                <option value="ROCKET">রকেট ম্যানুয়াল ট্রানজেকশন (Rocket TrxID)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">Transaction ID / রেফারেন্স (যদি থাকে)</label>
+                            <input type="text" name="transaction_id" id="manualTrxInput" placeholder="যেমন: 8N7A6B5C4D" class="form-control" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; box-sizing:border-box">
+                        </div>
+                    </div>
                 </div>
 
-                <div style="margin-bottom:18px">
-                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px">Transaction ID / রেফারেন্স (যদি থাকে)</label>
-                    <input type="text" name="transaction_id" placeholder="যেমন: 8N7A6B5C4D" class="form-control" style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid #cbd5e1; font-size:13px">
-                </div>
-
-                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px">
-                    <button type="button" onclick="closePayModal()" style="padding:10px 18px; border-radius:9px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-weight:600; font-size:13px; cursor:pointer">বাতিল</button>
-                    <button type="submit" style="padding:10px 22px; border-radius:9px; border:none; background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 4px 12px rgba(22,163,74,0.3)">পেমেন্ট নিশ্চিত করুন</button>
+                {{-- Action Buttons --}}
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px">
+                    <button type="button" onclick="closePayModal()" style="padding:11px 18px; border-radius:9px; border:1.5px solid #cbd5e1; background:#fff; color:#475569; font-weight:600; font-size:13px; cursor:pointer">
+                        বাতিল
+                    </button>
+                    <button type="submit" id="modalPaySubmitBtn" style="padding:11px 24px; border-radius:9px; border:none; background:linear-gradient(135deg,#047857,#065f46); color:#fff; font-weight:700; font-size:14px; cursor:pointer; box-shadow:0 4px 12px rgba(4,120,87,0.3); display:inline-flex; align-items:center; gap:8px">
+                        <i class="fa-solid fa-lock"></i>
+                        <span id="modalPayBtnText">পেমেন্ট সম্পন্ন করুন</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -399,6 +479,81 @@
 
     @push('scripts')
     <script>
+    let currentSelectedGateway = 'sslcommerz';
+    let isManualModeActive = false;
+
+    function selectModalGateway(method) {
+        isManualModeActive = false;
+        currentSelectedGateway = method;
+
+        const manualFields = document.getElementById('manualPaymentFields');
+        if (manualFields) manualFields.style.display = 'none';
+
+        // Re-enable radio buttons and remove hidden manual method if any
+        document.querySelectorAll('#modalGatewayGrid input[type="radio"]').forEach(r => {
+            r.disabled = false;
+            r.checked = (r.value === method);
+        });
+
+        const hiddenManual = document.getElementById('hiddenManualMethod');
+        if (hiddenManual) hiddenManual.disabled = true;
+
+        document.querySelectorAll('.modal-gateway-card').forEach(c => c.classList.remove('selected'));
+        const card = document.getElementById('card_' + method);
+        if (card) card.classList.add('selected');
+
+        updateModalButtonAmount();
+    }
+
+    function toggleManualPayment() {
+        isManualModeActive = !isManualModeActive;
+        const manualFields = document.getElementById('manualPaymentFields');
+
+        if (isManualModeActive) {
+            manualFields.style.display = 'block';
+            document.querySelectorAll('.modal-gateway-card').forEach(c => c.classList.remove('selected'));
+            setManualMethodValue(document.getElementById('manualMethodSelect').value);
+        } else {
+            manualFields.style.display = 'none';
+            selectModalGateway(currentSelectedGateway);
+        }
+        updateModalButtonAmount();
+    }
+
+    function onManualMethodChange(val) {
+        if (isManualModeActive) {
+            setManualMethodValue(val);
+        }
+    }
+
+    function setManualMethodValue(val) {
+        let hidden = document.getElementById('hiddenManualMethod');
+        if (!hidden) {
+            hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.id = 'hiddenManualMethod';
+            hidden.name = 'payment_method';
+            document.getElementById('payForm').appendChild(hidden);
+        }
+        hidden.value = val;
+        hidden.disabled = false;
+        document.querySelectorAll('#modalGatewayGrid input[type="radio"]').forEach(r => r.disabled = true);
+    }
+
+    function updateModalButtonAmount() {
+        const amt = parseFloat(document.getElementById('payAmountInput').value) || 0;
+        const formatted = '৳' + amt.toLocaleString('en-IN', {minimumFractionDigits: 2});
+        const btnText = document.getElementById('modalPayBtnText');
+
+        if (isManualModeActive) {
+            btnText.innerText = formatted + ' জমা দিন (ভেরিফিকেশন পেন্ডিং)';
+        } else if (currentSelectedGateway === 'bkash') {
+            btnText.innerText = 'bKash দিয়ে ' + formatted + ' পরিশোধ করুন';
+        } else {
+            btnText.innerText = 'SSLCommerz দিয়ে ' + formatted + ' পরিশোধ করুন';
+        }
+    }
+
     function openPayModal(invId, title, invNo, dueAmt) {
         document.getElementById('modalInvNo').innerText = invNo;
         document.getElementById('modalInvTitle').innerText = title;
@@ -408,6 +563,8 @@
 
         let actionUrl = "{{ route('student.fees.pay', ':id') }}".replace(':id', invId);
         document.getElementById('payForm').action = actionUrl;
+
+        selectModalGateway('sslcommerz');
 
         document.getElementById('payInvoiceModal').style.display = 'flex';
     }

@@ -54,9 +54,14 @@ class PaymentCallbackController extends Controller
         if ($isValid) {
             PaymentGatewayService::settleSuccessfulPayment($transaction, $validation);
 
-            $appNo = $transaction->admissionForm?->application_no;
-            return redirect()->route('apply.success', $appNo ?: 0)
-                ->with('success', 'আলহামদুলিল্লাহ! আপনার ভর্তি ফি ৳' . number_format($transaction->amount, 2) . ' সফলভাবে পরিশোধিত হয়েছে।');
+            if ($transaction->admissionForm) {
+                $appNo = $transaction->admissionForm->application_no;
+                return redirect()->route('apply.success', $appNo ?: 0)
+                    ->with('success', 'আলহামদুলিল্লাহ! আপনার ভর্তি ফি ৳' . number_format($transaction->amount, 2) . ' সফলভাবে পরিশোধিত হয়েছে।');
+            } elseif ($transaction->invoice_id) {
+                return redirect()->route('student.fees.index')
+                    ->with('success', 'আলহামদুলিল্লাহ! আপনার ফি ৳' . number_format($transaction->amount, 2) . ' (SSLCommerz TrxID: ' . ($valTranId ?: $transaction->tran_id) . ') সফলভাবে পরিশোধিত হয়েছে।');
+            }
         }
 
         // Verification failed
@@ -87,6 +92,10 @@ class PaymentCallbackController extends Controller
                     'error_message' => $error,
                     'raw_response' => array_merge((array) ($transaction->raw_response ?? []), $request->all()),
                 ]);
+
+                if ($transaction->invoice_id) {
+                    return redirect()->route('student.fees.index')->with('error', 'পেমেন্ট ব্যর্থ হয়েছে: ' . $error);
+                }
             }
             return redirect()->route('payment.status', $tranId)->with('error', $error);
         }
@@ -111,6 +120,10 @@ class PaymentCallbackController extends Controller
                     'error_message' => 'গ্রাহক দ্বারা পেমেন্ট বাতিল করা হয়েছে।',
                     'raw_response' => array_merge((array) ($transaction->raw_response ?? []), $request->all()),
                 ]);
+
+                if ($transaction->invoice_id) {
+                    return redirect()->route('student.fees.index')->with('error', 'পেমেন্ট প্রক্রিয়াটি বাতিল করা হয়েছে।');
+                }
             }
             return redirect()->route('payment.status', $tranId)->with('error', 'পেমেন্ট প্রক্রিয়াটি বাতিল করা হয়েছে।');
         }
@@ -186,17 +199,23 @@ class PaymentCallbackController extends Controller
 
         if ($status === 'cancel') {
             $transaction->update([
-                'status' => 'CANCELLED',
+                'status'        => 'CANCELLED',
                 'error_message' => 'বিকাশ পেমেন্ট বাতিল করা হয়েছে।',
             ]);
+            if ($transaction->invoice_id) {
+                return redirect()->route('student.fees.index')->with('error', 'বিকাশ পেমেন্ট বাতিল করা হয়েছে।');
+            }
             return redirect()->route('payment.status', $transaction->tran_id)->with('error', 'বিকাশ পেমেন্ট বাতিল করা হয়েছে।');
         }
 
         if ($status === 'failure') {
             $transaction->update([
-                'status' => 'FAILED',
+                'status'        => 'FAILED',
                 'error_message' => 'বিকাশ পেমেন্ট ব্যর্থ হয়েছে।',
             ]);
+            if ($transaction->invoice_id) {
+                return redirect()->route('student.fees.index')->with('error', 'বিকাশ পেমেন্ট সম্পন্ন করা যায়নি।');
+            }
             return redirect()->route('payment.status', $transaction->tran_id)->with('error', 'বিকাশ পেমেন্ট সম্পন্ন করা যায়নি।');
         }
 
@@ -209,9 +228,14 @@ class PaymentCallbackController extends Controller
             if ($statusCode === '0000' && $trxStatus === 'Completed') {
                 PaymentGatewayService::settleSuccessfulPayment($transaction, $executeRes);
 
-                $appNo = $transaction->admissionForm?->application_no;
-                return redirect()->route('apply.success', $appNo ?: 0)
-                    ->with('success', 'আলহামদুলিল্লাহ! আপনার বিকাশ পেমেন্ট (TrxID: ' . ($executeRes['trxID'] ?? '') . ') সফল হয়েছে।');
+                if ($transaction->admissionForm) {
+                    $appNo = $transaction->admissionForm->application_no;
+                    return redirect()->route('apply.success', $appNo ?: 0)
+                        ->with('success', 'আলহামদুলিল্লাহ! আপনার বিকাশ পেমেন্ট (TrxID: ' . ($executeRes['trxID'] ?? '') . ') সফল হয়েছে।');
+                } elseif ($transaction->invoice_id) {
+                    return redirect()->route('student.fees.index')
+                        ->with('success', 'আলহামদুলিল্লাহ! আপনার বিকাশ পেমেন্ট (TrxID: ' . ($executeRes['trxID'] ?? '') . ') সফল হয়েছে।');
+                }
             }
 
             // In case already executed, query status server-to-server
@@ -219,9 +243,14 @@ class PaymentCallbackController extends Controller
             if (($queryRes['transactionStatus'] ?? '') === 'Completed') {
                 PaymentGatewayService::settleSuccessfulPayment($transaction, $queryRes);
 
-                $appNo = $transaction->admissionForm?->application_no;
-                return redirect()->route('apply.success', $appNo ?: 0)
-                    ->with('success', 'আলহামদুলিল্লাহ! বিকাশ পেমেন্ট সফলভাবে যাচাই হয়েছে।');
+                if ($transaction->admissionForm) {
+                    $appNo = $transaction->admissionForm->application_no;
+                    return redirect()->route('apply.success', $appNo ?: 0)
+                        ->with('success', 'আলহামদুলিল্লাহ! বিকাশ পেমেন্ট সফলভাবে যাচাই হয়েছে।');
+                } elseif ($transaction->invoice_id) {
+                    return redirect()->route('student.fees.index')
+                        ->with('success', 'আলহামদুলিল্লাহ! বিকাশ পেমেন্ট সফলভাবে যাচাই হয়েছে।');
+                }
             }
 
             $errMsg = $executeRes['statusMessage'] ?? 'বিকাশ লেনদেন নিশ্চিত করা যায়নি।';

@@ -273,15 +273,19 @@ class FeeController extends Controller
             }
         }
 
+        $sslActive   = \App\Services\PaymentGatewayService::isSslcommerzActive();
+        $bkashActive = \App\Services\PaymentGatewayService::isBkashActive();
+
         return view('student.fees.index', compact(
             'student', 'course', 'courseType', 'runningSemester', 'runningSemesterName',
             'invoices', 'payments', 'totalDue', 'totalPaid', 'runningSemesterDue',
-            'semesterBreakdown', 'studentCourses', 'packageItemsBreakdown'
+            'semesterBreakdown', 'studentCourses', 'packageItemsBreakdown',
+            'sslActive', 'bkashActive'
         ));
     }
 
     /**
-     * Submit payment for an invoice from Student Portal.
+     * Submit payment for an invoice from Student Portal (Online Gateway or Offline).
      */
     public function payInvoice(Request $request, Invoice $invoice)
     {
@@ -297,15 +301,74 @@ class FeeController extends Controller
 
         $validated = $request->validate([
             'amount'         => 'required|numeric|min:1|max:' . $invoice->due_amount,
-            'payment_method' => 'required|string|in:BKASH,NAGAD,ROCKET,ONLINE,BANK_TRANSFER,CASH',
+            'payment_method' => 'required|string',
             'transaction_id' => 'nullable|string|max:100',
             'remarks'        => 'nullable|string|max:255',
         ]);
 
+        $method = strtolower($validated['payment_method']);
+
+        // 1. Direct Online Payment Gateways (bKash & SSLCommerz)
+        if (in_array($method, ['bkash', 'sslcommerz'])) {
+            $user = auth()->user();
+            $sslActive = \App\Services\PaymentGatewayService::isSslcommerzActive();
+            $bkashActive = \App\Services\PaymentGatewayService::isBkashActive();
+
+            if ($method === 'bkash' && !$bkashActive) {
+                return back()->with('error', 'বিকাশ গেটওয়ে বর্তমানে নিষ্ক্রিয় রয়েছে। অনুগ্রহ করে অন্য মাধ্যম ব্যবহার করুন।');
+            }
+            if ($method === 'sslcommerz' && !$sslActive) {
+                return back()->with('error', 'SSLCommerz গেটওয়ে বর্তমানে নিষ্ক্রিয় রয়েছে। অনুগ্রহ করে অন্য মাধ্যম ব্যবহার করুন।');
+            }
+
+            $gatewayMode = ($method === 'bkash')
+                ? \App\Services\PaymentGatewayService::getBkashConfig()['mode']
+                : \App\Services\PaymentGatewayService::getSslcommerzConfig()['mode'];
+
+            $transaction = \App\Models\GatewayTransaction::create([
+                'tran_id'           => \App\Models\GatewayTransaction::generateTranId('FEE'),
+                'gateway'           => $method,
+                'gateway_mode'      => $gatewayMode,
+                'invoice_id'        => $invoice->id,
+                'student_id'        => $student->id,
+                'amount'            => (float) $validated['amount'],
+                'currency'          => 'BDT',
+                'customer_name'     => $student->name,
+                'customer_phone'    => $student->phone,
+                'customer_email'    => $student->email ?: $user?->email,
+                'status'            => 'INITIATED',
+                'ip_address'        => $request->ip(),
+            ]);
+
+            if ($method === 'sslcommerz') {
+                $initRes = \App\Services\PaymentGatewayService::initiateSslcommerz(
+                    $transaction,
+                    null,
+                    $student->phone,
+                    $student->email ?: $user?->email,
+                    $student->name,
+                    "Student Fee Payment - " . ($invoice->title ?: $invoice->invoice_no)
+                );
+            } else {
+                $initRes = \App\Services\PaymentGatewayService::initiateBkash(
+                    $transaction,
+                    null,
+                    $student->phone
+                );
+            }
+
+            if (!empty($initRes['success']) && !empty($initRes['redirect_url'])) {
+                return redirect()->away($initRes['redirect_url']);
+            }
+
+            return back()->with('error', $initRes['message'] ?? 'পেমেন্ট গেটওয়েতে সংযোগ করতে সমস্যা হয়েছে।');
+        }
+
+        // 2. Manual / Offline Payment (Cash, Bank Transfer, Offline TrxID)
         $payment = \App\Services\AccountingService::submitStudentPayment(
             $invoice,
             (float) $validated['amount'],
-            $validated['payment_method'],
+            strtoupper($validated['payment_method']),
             $validated['transaction_id'] ?? null,
             $validated['remarks'] ?? null
         );

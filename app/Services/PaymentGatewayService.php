@@ -124,10 +124,11 @@ class PaymentGatewayService
      */
     public static function initiateSslcommerz(
         GatewayTransaction $transaction,
-        AdmissionForm $form,
+        ?AdmissionForm $form = null,
         ?string $customerPhone = null,
         ?string $customerEmail = null,
-        ?string $customerName = null
+        ?string $customerName = null,
+        ?string $productName = null
     ): array {
         $config = self::getSslcommerzConfig();
         if (!$config['enabled'] || empty($config['store_id']) || empty($config['store_passwd'])) {
@@ -144,18 +145,19 @@ class PaymentGatewayService
             'fail_url' => route('payment.callback.sslcommerz.fail'),
             'cancel_url' => route('payment.callback.sslcommerz.cancel'),
             'ipn_url' => route('payment.callback.sslcommerz.ipn'),
-            'cus_name' => $customerName ?: ($form->student->name ?? 'Student'),
-            'cus_email' => $customerEmail ?: ($form->student->email ?? 'applicant@iom.edu.bd'),
-            'cus_add1' => $form->present_house ?: 'Dhaka',
+            'cus_name' => $customerName ?: ($form?->student?->name ?? $transaction->customer_name ?? 'Student'),
+            'cus_email' => $customerEmail ?: ($form?->student?->email ?? $transaction->customer_email ?? 'applicant@iom.edu.bd'),
+            'cus_add1' => $form?->present_house ?: 'Dhaka',
             'cus_city' => 'Dhaka',
             'cus_country' => 'Bangladesh',
-            'cus_phone' => $customerPhone ?: ($form->student->phone ?? '01700000000'),
+            'cus_phone' => $customerPhone ?: ($form?->student?->phone ?? $transaction->customer_phone ?? '01700000000'),
             'shipping_method' => 'NO',
-            'product_name' => 'Admission Fee - ' . ($form->interestedCourse->name ?? 'Course'),
+            'product_name' => $productName ?: ('Fee Payment - ' . ($form?->interestedCourse?->name ?? 'Student Fee')),
             'product_category' => 'Education',
             'product_profile' => 'general',
-            'value_a' => (string) $form->id,
+            'value_a' => (string) ($form?->id ?? $transaction->admission_form_id ?? ''),
             'value_b' => (string) $transaction->id,
+            'value_c' => (string) ($transaction->invoice_id ?? ''),
         ];
 
         try {
@@ -297,7 +299,7 @@ class PaymentGatewayService
      */
     public static function initiateBkash(
         GatewayTransaction $transaction,
-        AdmissionForm $form,
+        ?AdmissionForm $form = null,
         ?string $customerPhone = null
     ): array {
         $config = self::getBkashConfig();
@@ -310,11 +312,19 @@ class PaymentGatewayService
             return ['success' => false, 'message' => 'বিকাশ সিকিউরিটি টোকেন সংগ্রহ ব্যর্থ হয়েছে।'];
         }
 
+        $callbackUrl = route('payment.callback.bkash');
+        if (str_starts_with($callbackUrl, 'http://')) {
+            $callbackUrl = preg_replace('/^http:\/\//', 'https://', $callbackUrl);
+        }
+        if ($config['is_sandbox'] && str_contains($callbackUrl, '.test')) {
+            $callbackUrl = str_replace(['http://learning-plus.test', 'https://learning-plus.test'], 'https://iom.mysoftheaven.com', $callbackUrl);
+        }
+
         $endpoint = $config['base_url'] . '/tokenized/checkout/create';
         $postData = [
             'mode' => '0011',
-            'payerReference' => $customerPhone ?: ($form->student->phone ?? '01700000000'),
-            'callbackURL' => route('payment.callback.bkash'),
+            'payerReference' => $customerPhone ?: ($form?->student?->phone ?? $transaction->customer_phone ?? '01700000000'),
+            'callbackURL' => $callbackUrl,
             'amount' => number_format($transaction->amount, 2, '.', ''),
             'currency' => 'BDT',
             'intent' => 'sale',
@@ -471,6 +481,21 @@ class PaymentGatewayService
 
             $form = $transaction->admissionForm;
             if (!$form) {
+                // If this is a student portal invoice payment
+                if ($transaction->invoice_id) {
+                    $invoice = Invoice::find($transaction->invoice_id);
+                    if ($invoice && $invoice->status !== 'PAID') {
+                        $trxId = $transaction->gateway_trx_id ?: $transaction->tran_id;
+                        $method = strtoupper($transaction->gateway) === 'BKASH' ? 'BKASH' : 'ONLINE';
+                        AccountingService::receivePayment(
+                            $invoice,
+                            (float) $transaction->amount,
+                            $method,
+                            $trxId,
+                            "Online Fee Payment via " . strtoupper($transaction->gateway) . " (Tran ID: {$transaction->tran_id})"
+                        );
+                    }
+                }
                 return true;
             }
 
