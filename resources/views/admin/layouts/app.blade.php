@@ -522,6 +522,10 @@
                         <i class="fa-solid fa-bell-slash"></i>
                         Notification Settings
                     </a>
+                    <a href="{{ route('admin.settings.payment-gateways.index') }}" class="nav-item {{ request()->routeIs('admin.settings.payment-gateways*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-credit-card"></i>
+                        Payment Gateway Settings
+                    </a>
                     <a href="{{ route('admin.app-settings.index') }}" class="nav-item {{ request()->routeIs('admin.app-settings*') ? 'active' : '' }}">
                         <i class="fa-solid fa-mobile-screen"></i>
                         App Settings

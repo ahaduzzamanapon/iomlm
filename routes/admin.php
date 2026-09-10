@@ -138,6 +138,11 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('settings/notifications/smtp',     [\App\Http\Controllers\Admin\NotificationSettingController::class, 'updateSmtp'])->name('settings.notifications.smtp');
     Route::post('settings/notifications/test-mail',[\App\Http\Controllers\Admin\NotificationSettingController::class, 'sendTestMail'])->name('settings.notifications.test-mail');
 
+    // ── Payment Gateway Settings (SSLCommerz & Direct bKash) ─────────────
+    Route::get('settings/payment-gateways',            [\App\Http\Controllers\Admin\PaymentGatewaySettingController::class, 'index'])->name('settings.payment-gateways.index');
+    Route::post('settings/payment-gateways/sslcommerz',[\App\Http\Controllers\Admin\PaymentGatewaySettingController::class, 'updateSslcommerz'])->name('settings.payment-gateways.sslcommerz');
+    Route::post('settings/payment-gateways/bkash',     [\App\Http\Controllers\Admin\PaymentGatewaySettingController::class, 'updateBkash'])->name('settings.payment-gateways.bkash');
+
     // ── Send Notification Broadcast Center ──────────────────────────────
     Route::get('notifications',                    [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/create',             [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'create'])->name('notifications.create');
