@@ -130,6 +130,32 @@
                     </tr>
                 </table>
 
+                @php
+                    $gwTrx = \App\Models\GatewayTransaction::where('admission_form_id', $admission->id)->latest()->first();
+                @endphp
+                @if($gwTrx)
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;margin-bottom:16px">
+                    <div style="font-weight:700;color:#1e40af;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+                        <span><i class="fa-solid fa-credit-card"></i> অনলাইন পেমেন্ট গেটওয়ে অডিট (Online Payment Audit)</span>
+                        <span class="badge {{ $gwTrx->status === 'SUCCESS' ? 'badge-active' : 'badge-pending' }}">{{ $gwTrx->status }}</span>
+                    </div>
+                    <table class="table" style="font-size:12.5px;margin:0">
+                        <tr><th style="width:140px">পেমেন্ট মাধ্যম:</th><td>{{ strtoupper($gwTrx->gateway) }} ({{ strtoupper($gwTrx->gateway_mode) }})</td></tr>
+                        <tr><th>ট্রানজেকশন আইডি:</th><td><code>{{ $gwTrx->tran_id }}</code></td></tr>
+                        @if($gwTrx->gateway_trx_id)
+                        <tr><th>গেটওয়ে TrxID / Val ID:</th><td><code>{{ $gwTrx->gateway_trx_id }}</code> {{ $gwTrx->val_id ? " (Val: {$gwTrx->val_id})" : "" }}</td></tr>
+                        @endif
+                        @if($gwTrx->card_type || $gwTrx->card_brand)
+                        <tr><th>কার্ড / চ্যানেল:</th><td>{{ $gwTrx->card_type }} {{ $gwTrx->card_brand ? "({$gwTrx->card_brand})" : "" }}</td></tr>
+                        @endif
+                        <tr><th>টাকার পরিমাণ:</th><td><strong style="color:#047857">৳ {{ number_format($gwTrx->amount, 2) }} {{ $gwTrx->currency }}</strong></td></tr>
+                        @if($gwTrx->verified_at)
+                        <tr><th>সার্ভার যাচাই সময়:</th><td>{{ $gwTrx->verified_at->format('d M Y, h:i A') }}</td></tr>
+                        @endif
+                    </table>
+                </div>
+                @endif
+
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Personal & Identification</div>
                 <table class="table" style="font-size:13px;margin-bottom:16px">
                     <tr><th style="width:140px;color:var(--text-muted)">Blood Group:</th><td>{{ $admission->bloodGroup->name ?? $admission->student->blood_group ?? '—' }}</td></tr>

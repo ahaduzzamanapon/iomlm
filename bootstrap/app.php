@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role'              => \App\Http\Middleware\RoleMiddleware::class,
             'profile.completed' => \App\Http\Middleware\EnsureProfileCompleted::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'payment/callback/*',
+            'api/payment/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

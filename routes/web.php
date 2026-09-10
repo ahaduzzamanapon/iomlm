@@ -33,6 +33,21 @@ Route::post('/apply', [\App\Http\Controllers\Public\AdmissionFormController::cla
 Route::get('/apply/success/{applicationNo}', [\App\Http\Controllers\Public\AdmissionFormController::class, 'success'])->name('apply.success');
 Route::get('/api/districts', [\App\Http\Controllers\Public\AdmissionFormController::class, 'districts'])->name('api.districts');
 
+// ── Payment Gateway Callbacks & Verification ──────────────────────────
+Route::get('/apply/payment-status/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'status'])->name('payment.status');
+Route::get('/apply/payment-status-ajax/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'checkStatusAjax'])->name('payment.status.ajax');
+
+// SSLCommerz Callbacks
+Route::match(['get', 'post'], '/payment/callback/sslcommerz/success', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzSuccess'])->name('payment.callback.sslcommerz.success');
+Route::match(['get', 'post'], '/payment/callback/sslcommerz/fail',    [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzFail'])->name('payment.callback.sslcommerz.fail');
+Route::match(['get', 'post'], '/payment/callback/sslcommerz/cancel',  [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzCancel'])->name('payment.callback.sslcommerz.cancel');
+Route::match(['get', 'post'], '/api/payment/sslcommerz/ipn',          [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzIpn'])->name('payment.callback.sslcommerz.ipn');
+
+// Direct bKash Callbacks
+Route::match(['get', 'post'], '/payment/callback/bkash',     [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback'])->name('payment.callback.bkash');
+Route::match(['get', 'post'], '/api/payment/bkash/callback', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback']);
+
+
 // ── Public Poor Fund / Waiver Form ────────────────────────────────────
 Route::get('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'show'])->name('poor_fund.show');
 Route::get('/poor-fund/admission', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showAdmission'])->name('poor_fund.admission');

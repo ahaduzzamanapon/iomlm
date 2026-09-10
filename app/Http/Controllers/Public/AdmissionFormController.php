@@ -6,14 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicSession;
 use App\Models\AdmissionForm;
 use App\Models\AppSetting;
+use App\Models\Batch;
 use App\Models\BloodGroup;
 use App\Models\Course;
 use App\Models\District;
 use App\Models\Division;
+use App\Models\GatewayTransaction;
 use App\Models\Religion;
 use App\Models\Student;
+use App\Models\WaiverApplication;
+use App\Services\PaymentGatewayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AdmissionFormController extends Controller
 {
@@ -21,14 +26,18 @@ class AdmissionFormController extends Controller
     {
         $terms         = AppSetting::get('admission_terms', '');
         $courses       = Course::where('is_active', true)->orderBy('name')->get();
-        $activeBatches = \App\Models\Batch::where('status', 'ACTIVE')->with('course')->get();
+        $activeBatches = Batch::where('status', 'ACTIVE')->with('course')->get();
         $sessions      = AcademicSession::where('is_active', true)->orderByDesc('id')->get();
         $bloodGroups   = BloodGroup::active()->get();
         $religions     = Religion::active()->get();
         $divisions     = Division::orderBy('name')->get();
 
+        $sslActive     = PaymentGatewayService::isSslcommerzActive();
+        $bkashActive   = PaymentGatewayService::isBkashActive();
+
         return view('apply.index', compact(
-            'terms', 'courses', 'activeBatches', 'sessions', 'bloodGroups', 'religions', 'divisions'
+            'terms', 'courses', 'activeBatches', 'sessions', 'bloodGroups', 'religions', 'divisions',
+            'sslActive', 'bkashActive'
         ));
     }
 
@@ -43,42 +52,64 @@ class AdmissionFormController extends Controller
             'email'                   => 'required|email|max:150',
             'gender'                  => 'required|in:Male,Female,Other,male,female,other',
             'waiver_code'             => 'nullable|string|max:50',
+            'payment_gateway'         => 'nullable|in:sslcommerz,bkash',
             'terms_agreed'            => 'nullable',
         ]);
 
-        $form = DB::transaction(function () use ($validated, $request) {
-            $sameAsPresent = $request->boolean('same_as_present');
+        $course = Course::findOrFail($validated['course_id']);
+        $batch  = !empty($validated['batch_id']) ? Batch::find($validated['batch_id']) : null;
 
-            // Session fallback
-            $sessionId = $validated['academic_session_id'] ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
+        // Calculate Admission Fee
+        $courseFee = (float) ($course->admission_fee ?? 0);
+        $batchFee  = ($batch && $batch->admission_fee !== null) ? (float) $batch->admission_fee : $courseFee;
+        $baseFee   = max(0, $batchFee);
 
-            // Check Waiver / Poor Fund Code
-            $discountPercent = 0;
-            $waiverCode = null;
-            $waiverApp = null;
-            if (!empty($validated['waiver_code'])) {
-                $code = strtoupper(trim($validated['waiver_code']));
-                $waiverApp = \App\Models\WaiverApplication::where('application_no', $code)->first();
-                if ($waiverApp && $waiverApp->status === 'APPROVED' && !$waiverApp->is_used) {
-                    $discountPercent = $waiverApp->approved_discount_percent;
-                    $waiverCode = $code;
+        // Check Waiver / Coupon Code
+        $discountAmount  = 0.0;
+        $discountPercent = 0.0;
+        $waiverCode      = null;
+        $waiverApp       = null;
+
+        if (!empty($validated['waiver_code'])) {
+            $code = strtoupper(trim($validated['waiver_code']));
+            $waiverApp = WaiverApplication::where('application_no', $code)
+                ->where('status', 'APPROVED')
+                ->where('is_used', false)
+                ->first();
+
+            if ($waiverApp) {
+                $waiverCode = $code;
+                if ($waiverApp->approved_admission_fee !== null && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
+                    $approvedFee    = (float) $waiverApp->approved_admission_fee;
+                    $payableAmount  = min($baseFee, $approvedFee);
+                    $discountAmount = max(0, $baseFee - $payableAmount);
+                } else {
+                    $discountPercent = (float) ($waiverApp->approved_discount_percent ?? 0);
+                    $discountAmount  = round(($baseFee * $discountPercent) / 100, 2);
                 }
             }
+        }
 
-            // Create a LEAD student record
+        $netPayable = max(0, round($baseFee - $discountAmount, 2));
+
+        // Create Application & Lead Student inside Transaction
+        $result = DB::transaction(function () use ($validated, $request, $waiverCode, $discountPercent, $discountAmount, $netPayable, $waiverApp) {
+            $sameAsPresent = $request->boolean('same_as_present');
+            $sessionId     = $validated['academic_session_id']
+                ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
+
+            // 1. Create Student as LEAD
             $student = Student::create([
                 'name'          => $validated['applicant_name'],
                 'phone'         => $validated['phone'],
                 'email'         => $validated['email'] ?? null,
-                'date_of_birth' => $validated['date_of_birth'] ?? null,
                 'gender'        => $validated['gender'] ?? null,
-                'national_id'   => $validated['national_id'] ?? null,
                 'status'        => 'LEAD',
             ]);
 
             $student->calculateProfileCompletion();
 
-            // Create AdmissionForm with source=PUBLIC
+            // 2. Create AdmissionForm
             $form = AdmissionForm::create([
                 'source'                  => 'PUBLIC',
                 'application_no'          => AdmissionForm::generateApplicationNo(),
@@ -90,47 +121,11 @@ class AdmissionFormController extends Controller
                 'lead_source'             => 'Website',
                 'waiver_code'             => $waiverCode,
                 'discount_percent'        => $discountPercent,
+                'discount_amount'         => $discountAmount,
                 'status'                  => 'PENDING',
-
-                // Education
-                'occupation'              => $validated['occupation'] ?? null,
-                'education_qualification' => $validated['education_qualification'] ?? null,
-                'ssc_school'              => $validated['ssc_school'] ?? null,
-                'ssc_board'               => $validated['ssc_board'] ?? null,
-                'ssc_year'                => $validated['ssc_year'] ?? null,
-                'hsc_college'             => $validated['hsc_college'] ?? null,
-                'hsc_board'               => $validated['hsc_board'] ?? null,
-                'hsc_year'                => $validated['hsc_year'] ?? null,
-                'university_name'         => $validated['university_name'] ?? null,
-                'department_name'         => $validated['department_name'] ?? null,
-                'device_type'             => $validated['device_type'] ?? null,
-
-                // Personal
-                'blood_group_id'          => $validated['blood_group_id'] ?? null,
-                'passport_no'             => $validated['passport_no'] ?? null,
-                'birth_certificate_no'    => $validated['birth_certificate_no'] ?? null,
-                'nationality'             => $validated['nationality'] ?? 'Bangladeshi',
-                'religion_id'             => $validated['religion_id'] ?? null,
-
-                // Present Address
-                'present_house'           => $validated['present_house'] ?? null,
-                'present_post_office'     => $validated['present_post_office'] ?? null,
-                'present_police_station'  => $validated['present_police_station'] ?? null,
-                'present_district_id'     => $validated['present_district_id'] ?? null,
-                'present_division_id'     => $validated['present_division_id'] ?? null,
-
-                // Permanent Address
-                'same_as_present'         => $sameAsPresent,
-                'permanent_house'         => $sameAsPresent ? ($validated['present_house'] ?? null)          : ($validated['permanent_house'] ?? null),
-                'permanent_post_office'   => $sameAsPresent ? ($validated['present_post_office'] ?? null)    : ($validated['permanent_post_office'] ?? null),
-                'permanent_police_station'=> $sameAsPresent ? ($validated['present_police_station'] ?? null) : ($validated['permanent_police_station'] ?? null),
-                'permanent_district_id'   => $sameAsPresent ? ($validated['present_district_id'] ?? null)    : ($validated['permanent_district_id'] ?? null),
-                'permanent_division_id'   => $sameAsPresent ? ($validated['present_division_id'] ?? null)    : ($validated['permanent_division_id'] ?? null),
-
                 'ip_address'              => $request->ip(),
             ]);
 
-            // Mark waiver application as USED if applicable
             if ($waiverApp) {
                 $waiverApp->update([
                     'is_used'           => true,
@@ -138,23 +133,84 @@ class AdmissionFormController extends Controller
                 ]);
             }
 
-            return $form;
+            return ['form' => $form, 'student' => $student];
         });
 
-        return redirect()->route('apply.success', $form->application_no);
+        $form    = $result['form'];
+        $student = $result['student'];
+
+        // ── ONLINE PAYMENT WORKFLOW ──────────────────────────────────────
+        $chosenGateway = $validated['payment_gateway'] ?? null;
+        $sslActive     = PaymentGatewayService::isSslcommerzActive();
+        $bkashActive   = PaymentGatewayService::isBkashActive();
+
+        if ($netPayable > 0 && ($sslActive || $bkashActive)) {
+            // Default gateway fallback if student didn't explicitly pick one
+            if (empty($chosenGateway)) {
+                $chosenGateway = $sslActive ? 'sslcommerz' : 'bkash';
+            }
+
+            $gatewayMode = ($chosenGateway === 'bkash')
+                ? PaymentGatewayService::getBkashConfig()['mode']
+                : PaymentGatewayService::getSslcommerzConfig()['mode'];
+
+            // 1. Create Gateway Transaction Record
+            $transaction = GatewayTransaction::create([
+                'tran_id'           => GatewayTransaction::generateTranId('ADM'),
+                'gateway'           => $chosenGateway,
+                'gateway_mode'      => $gatewayMode,
+                'admission_form_id' => $form->id,
+                'student_id'        => $student->id,
+                'amount'            => $netPayable,
+                'currency'          => 'BDT',
+                'customer_name'     => $student->name,
+                'customer_phone'    => $student->phone,
+                'customer_email'    => $student->email,
+                'status'            => 'INITIATED',
+                'ip_address'        => $request->ip(),
+            ]);
+
+            // 2. Initiate Payment Session with Gateway
+            if ($chosenGateway === 'sslcommerz') {
+                $initRes = PaymentGatewayService::initiateSslcommerz(
+                    $transaction, $form, $student->phone, $student->email, $student->name
+                );
+            } else {
+                $initRes = PaymentGatewayService::initiateBkash(
+                    $transaction, $form, $student->phone
+                );
+            }
+
+            if (!empty($initRes['success']) && !empty($initRes['redirect_url'])) {
+                return redirect()->away($initRes['redirect_url']);
+            }
+
+            // If initiation failed, redirect to status screen with error details
+            Log::error("Payment Initiation Failed for {$chosenGateway}: " . ($initRes['message'] ?? ''));
+            return redirect()->route('payment.status', $transaction->tran_id)
+                ->with('error', $initRes['message'] ?? 'পেমেন্ট গেটওয়েতে সংযোগ করতে ত্রুটি হয়েছে।');
+        }
+
+        // ── FREE ADMISSION (Net Payable is 0.00) ──────────────────────────
+        return redirect()->route('apply.success', $form->application_no)
+            ->with('success', 'আপনার ভর্তি আবেদন সফলভাবে জমা হয়েছে।');
     }
 
     public function success(string $applicationNo)
     {
-        $form = AdmissionForm::with(['interestedCourse', 'session', 'student'])
+        $form = AdmissionForm::with(['interestedCourse', 'session', 'student', 'batch'])
             ->where('application_no', $applicationNo)
             ->where('source', 'PUBLIC')
             ->firstOrFail();
 
-        $instituteName    = AppSetting::get('institute_name', 'IOM');
-        $instituteTagline = AppSetting::get('institute_tagline', '');
+        $transaction = GatewayTransaction::where('admission_form_id', $form->id)
+            ->latest()
+            ->first();
 
-        return view('apply.success', compact('form', 'instituteName', 'instituteTagline'));
+        $instituteName    = AppSetting::get('institute_name', 'Islamic Online Madrasah');
+        $instituteTagline = AppSetting::get('institute_tagline', 'Through Knowledge, Towards Jannah');
+
+        return view('apply.success', compact('form', 'transaction', 'instituteName', 'instituteTagline'));
     }
 
     // AJAX: districts by division

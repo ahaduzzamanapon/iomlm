@@ -133,9 +133,87 @@
         margin-bottom: 20px;
         line-height: 1.6;
     }
+
+    /* Fee & Payment Card Styling */
+    .fee-summary-card {
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+    }
+    .fee-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        font-size: 13.5px;
+        color: #475569;
+    }
+    .fee-row.total-row {
+        border-top: 1.5px dashed #cbd5e1;
+        margin-top: 8px;
+        padding-top: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #064e3b;
+    }
+    .payment-gateways-wrap {
+        margin-bottom: 22px;
+    }
+    .payment-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 10px;
+    }
+    @media(max-width: 540px) {
+        .payment-grid { grid-template-columns: 1fr; }
+    }
+    .payment-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px;
+        cursor: pointer;
+        transition: all .2s;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background: #fff;
+    }
+    .payment-card:hover {
+        border-color: #a7f3d0;
+        background: #f0fdf4;
+    }
+    .payment-card input[type="radio"] {
+        margin-top: 3px;
+        accent-color: #047857;
+        width: 18px;
+        height: 18px;
+    }
+    .payment-card.selected {
+        border-color: #047857;
+        background: #f0fdf4;
+        box-shadow: 0 0 0 1px #047857;
+    }
+    .gateway-title {
+        font-weight: 700;
+        font-size: 14px;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .gateway-desc {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 3px;
+        line-height: 1.4;
+    }
+
     .btn-submit {
         width: 100%;
-        padding: 12px;
+        padding: 13px;
         background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
         color: #fff;
         border: none;
@@ -182,7 +260,7 @@
 {{-- Hero Banner --}}
 <div class="hero-banner">
     <h1>অনলাইন সংক্ষিপ্ত ভর্তি আবেদন</h1>
-    <p>সহজ ও দ্রুত ভর্তি প্রক্রিয়া। প্রয়োজনীয় মৌলিক তথ্য প্রদান করে আবেদন সম্পন্ন করুন।</p>
+    <p>সহজ ও দ্রুত ভর্তি প্রক্রিয়া। প্রয়োজনীয় তথ্য প্রদান ও অনলাইনে পেমেন্ট সম্পন্ন করে ভর্তি নিশ্চিত করুন।</p>
 </div>
 
 <div class="apply-container">
@@ -193,7 +271,13 @@
         </div>
 
         <div class="form-card-body">
-            @if($errors->any())
+            @if(session('error'))
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#991b1b">
+                <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
+            </div>
+            @endif
+
+            @if(isset($errors) && $errors->any())
             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#991b1b">
                 <strong>অনুগ্রহ করে ত্রুটিগুলো সংশোধন করুন:</strong>
                 <ul style="margin-top:6px;margin-left:18px">
@@ -203,7 +287,7 @@
             @endif
 
             <div class="info-callout">
-                <strong>📌 তথ্য নির্দেশিকা:</strong> শুধুমাত্র প্রয়োজনীয় আবশ্যকীয় তথ্যগুলো প্রদান করে আবেদন সম্পন্ন করুন। ভর্তি অনুমোদনের পর স্টুডেন্ট পোর্টালে লগইন করে প্রোফাইল ৯৫% সম্পন্ন করতে হবে।
+                <strong>📌 তথ্য নির্দেশিকা:</strong> প্রয়োজনীয় মৌলিক তথ্য প্রদান করে অনলাইনে পেমেন্ট সম্পন্ন করুন। পেমেন্ট সম্পন্ন হলেই তাৎক্ষণিকভাবে ভর্তি নিশ্চিত হবে ও লগইন তথ্য প্রদর্শিত হবে।
             </div>
 
             <form method="POST" action="{{ route('apply.store') }}" id="applyForm">
@@ -212,11 +296,18 @@
                 {{-- Course Selection --}}
                 <div class="form-group">
                     <label>ভর্তি হতে ইচ্ছুক কোর্স / প্রোগ্রাম <span class="req">*</span></label>
-                    <select name="course_id" id="course_id" required onchange="filterBatchesByCourse(this.value)">
+                    <select name="course_id" id="course_id" required onchange="onCourseChange(this)">
                         <option value="">-- কোর্স নির্বাচন করুন --</option>
                         @foreach($courses as $course)
-                            <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>
+                            <option value="{{ $course->id }}"
+                                    data-fee="{{ (float)($course->admission_fee ?? 0) }}"
+                                    {{ old('course_id') == $course->id ? 'selected' : '' }}>
                                 {{ $course->name }} ({{ $course->duration_value }} {{ strtolower($course->duration_unit) }}s)
+                                @if(($course->admission_fee ?? 0) > 0)
+                                    — ভর্তি ফি: ৳{{ number_format($course->admission_fee, 0) }}
+                                @else
+                                    — ফ্রি ভর্তি
+                                @endif
                             </option>
                         @endforeach
                     </select>
@@ -225,12 +316,18 @@
                 {{-- Batch Selection --}}
                 <div class="form-group">
                     <label>নির্ধারিত ব্যাচ (টার্গেট ব্যাচ)</label>
-                    <select name="batch_id" id="batch_id">
+                    <select name="batch_id" id="batch_id" onchange="onBatchChange(this)">
                         <option value="">-- ব্যাচ নির্বাচন করুন (খোলা থাকলে) --</option>
                         @foreach($activeBatches as $batch)
                             @if($batch->is_admission_open)
-                                <option value="{{ $batch->id }}" data-course-id="{{ $batch->course_id }}" {{ old('batch_id') == $batch->id ? 'selected' : '' }}>
+                                <option value="{{ $batch->id }}"
+                                        data-course-id="{{ $batch->course_id }}"
+                                        data-fee="{{ $batch->admission_fee !== null ? (float)$batch->admission_fee : '' }}"
+                                        {{ old('batch_id') == $batch->id ? 'selected' : '' }}>
                                     {{ $batch->name }} ({{ $batch->batch_code }})
+                                    @if($batch->admission_fee !== null && $batch->admission_fee > 0)
+                                        — ফি: ৳{{ number_format($batch->admission_fee, 0) }}
+                                    @endif
                                 </option>
                             @endif
                         @endforeach
@@ -266,7 +363,7 @@
                     </div>
                 </div>
 
-                {{-- Coupon / Waiver Code (Placed at the end) --}}
+                {{-- Coupon / Waiver Code (Placed at the end of personal details) --}}
                 <div class="waiver-box" style="margin-top:16px;margin-bottom:18px">
                     <label style="color:#047857;font-weight:700;margin-bottom:6px;display:block">
                         <i class="fa-solid fa-ticket"></i> কুপন কোড / ছাড় কোড (ঐচ্ছিক)
@@ -277,6 +374,71 @@
                     </div>
                     <div id="waiver-status-msg" style="font-size:12px;margin-top:6px;font-weight:600"></div>
                 </div>
+
+                {{-- Fee Summary Breakdown Box --}}
+                <div class="fee-summary-card">
+                    <div style="font-weight:700;font-size:14px;color:#0f172a;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-calculator text-teal-600"></i> ভর্তি ফি হিসাব বিবরণী
+                    </div>
+                    <div class="fee-row">
+                        <span>কোর্স/ব্যাচ ভর্তি ফি:</span>
+                        <span>৳ <span id="summary-base-fee">0.00</span></span>
+                    </div>
+                    <div class="fee-row" id="summary-discount-row" style="display:none;color:#047857">
+                        <span>কুপন / স্কলারশিপ ছাড়:</span>
+                        <span>- ৳ <span id="summary-discount-fee">0.00</span></span>
+                    </div>
+                    <div class="fee-row total-row">
+                        <span>মোট প্রদেয় ফি (Net Payable):</span>
+                        <span>৳ <span id="summary-net-fee">0.00</span></span>
+                    </div>
+                </div>
+
+                {{-- Active Payment Gateway Selection --}}
+                @if($sslActive || $bkashActive)
+                <div class="payment-gateways-wrap" id="payment-gateways-wrap">
+                    <label style="font-weight:700;font-size:14px;color:#0f172a;display:flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-credit-card text-teal-600"></i>
+                        পেমেন্ট মাধ্যম নির্বাচন করুন <span class="req">*</span>
+                    </label>
+
+                    <div class="payment-grid">
+                        {{-- SSLCommerz Option --}}
+                        @if($sslActive)
+                        <label class="payment-card {{ !$bkashActive || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
+                            <input type="radio" name="payment_gateway" value="sslcommerz"
+                                   {{ !$bkashActive || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'checked' : '' }}>
+                            <div>
+                                <div class="gateway-title">
+                                    <i class="fa-solid fa-building-columns text-blue-600"></i>
+                                    SSLCommerz
+                                </div>
+                                <div class="gateway-desc">
+                                    কার্ড, বিকাশ, নগদ, রকেট ও সব ব্যাংকের মাধ্যমে পেমেন্ট
+                                </div>
+                            </div>
+                        </label>
+                        @endif
+
+                        {{-- Direct bKash Option --}}
+                        @if($bkashActive)
+                        <label class="payment-card {{ (!$sslActive || old('payment_gateway') === 'bkash') ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
+                            <input type="radio" name="payment_gateway" value="bkash"
+                                   {{ (!$sslActive || old('payment_gateway') === 'bkash') ? 'checked' : '' }}>
+                            <div>
+                                <div class="gateway-title">
+                                    <i class="fa-solid fa-mobile-screen-button" style="color:#d82a6b"></i>
+                                    Direct bKash (বিকাশ)
+                                </div>
+                                <div class="gateway-desc">
+                                    বিকাশ ওয়ালেট ও পিন দিয়ে সরাসরি দ্রুত পেমেন্ট
+                                </div>
+                            </div>
+                        </label>
+                        @endif
+                    </div>
+                </div>
+                @endif
 
                 @if(!empty($terms))
                 <div class="form-group" style="margin-top:10px">
@@ -293,8 +455,9 @@
                 </div>
 
                 <div style="margin-top:24px">
-                    <button type="submit" class="btn-submit">
-                        <i class="fa-solid fa-paper-plane"></i> আবেদন জমা দিন (Submit Application)
+                    <button type="submit" class="btn-submit" id="btn-submit">
+                        <i class="fa-solid fa-lock"></i>
+                        <span id="btn-submit-text">পেমেন্ট সম্পন্ন করে আবেদন দাখিল করুন</span>
                     </button>
                 </div>
             </form>
@@ -307,6 +470,11 @@
 </footer>
 
 <script>
+let currentBaseFee = 0.0;
+let currentDiscountAmount = 0.0;
+let currentDiscountPercent = 0.0;
+let waiverApprovedFee = null;
+
 function filterBatchesByCourse(courseId) {
     const select = document.getElementById('batch_id');
     const options = select.querySelectorAll('option');
@@ -324,6 +492,79 @@ function filterBatchesByCourse(courseId) {
     });
 
     if (!hasMatch) select.value = '';
+    recalculateFee();
+}
+
+function onCourseChange(courseSelect) {
+    filterBatchesByCourse(courseSelect.value);
+}
+
+function onBatchChange(batchSelect) {
+    recalculateFee();
+}
+
+function recalculateFee() {
+    const courseSelect = document.getElementById('course_id');
+    const batchSelect  = document.getElementById('batch_id');
+
+    let base = 0.0;
+
+    const selectedCourseOpt = courseSelect.options[courseSelect.selectedIndex];
+    if (selectedCourseOpt && selectedCourseOpt.value) {
+        base = parseFloat(selectedCourseOpt.getAttribute('data-fee') || '0');
+    }
+
+    const selectedBatchOpt = batchSelect.options[batchSelect.selectedIndex];
+    if (selectedBatchOpt && selectedBatchOpt.value) {
+        const batchFeeAttr = selectedBatchOpt.getAttribute('data-fee');
+        if (batchFeeAttr !== '' && batchFeeAttr !== null) {
+            base = parseFloat(batchFeeAttr);
+        }
+    }
+
+    currentBaseFee = Math.max(0, base);
+
+    // Apply waiver discount
+    let discount = 0.0;
+    if (waiverApprovedFee !== null) {
+        const payable = Math.min(currentBaseFee, waiverApprovedFee);
+        discount = Math.max(0, currentBaseFee - payable);
+    } else if (currentDiscountPercent > 0) {
+        discount = Math.round((currentBaseFee * currentDiscountPercent) / 100 * 100) / 100;
+    }
+
+    currentDiscountAmount = Math.min(currentBaseFee, discount);
+    const net = Math.max(0, currentBaseFee - currentDiscountAmount);
+
+    // Update DOM
+    document.getElementById('summary-base-fee').innerText = currentBaseFee.toFixed(2);
+    const discountRow = document.getElementById('summary-discount-row');
+    if (currentDiscountAmount > 0) {
+        discountRow.style.display = 'flex';
+        document.getElementById('summary-discount-fee').innerText = currentDiscountAmount.toFixed(2);
+    } else {
+        discountRow.style.display = 'none';
+    }
+    document.getElementById('summary-net-fee').innerText = net.toFixed(2);
+
+    // Update Submit Button Text & Gateways visibility
+    const submitBtnText = document.getElementById('btn-submit-text');
+    const gatewayWrap = document.getElementById('payment-gateways-wrap');
+
+    if (net > 0) {
+        submitBtnText.innerText = '৳' + net.toFixed(0) + ' পেমেন্ট করে আবেদন সম্পন্ন করুন';
+        if (gatewayWrap) gatewayWrap.style.display = 'block';
+    } else {
+        submitBtnText.innerText = 'বিনামূল্যে আবেদন জমা দিন (Submit Application)';
+        if (gatewayWrap) gatewayWrap.style.display = 'none';
+    }
+}
+
+function selectGatewayCard(cardElement) {
+    document.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
+    cardElement.classList.add('selected');
+    const radio = cardElement.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
 }
 
 function applyWaiverCode() {
@@ -331,7 +572,7 @@ function applyWaiverCode() {
     const msg = document.getElementById('waiver-status-msg');
     if (!code) {
         msg.style.color = '#dc2626';
-        msg.innerText = 'দয়া করে পুওর ফান্ড কোডটি লিখুন।';
+        msg.innerText = 'দয়া করে কুপন বা পুওর ফান্ড কোডটি লিখুন।';
         return;
     }
     msg.style.color = '#047857';
@@ -342,21 +583,34 @@ function applyWaiverCode() {
         .then(res => {
             if (res.valid) {
                 msg.style.color = '#047857';
-                msg.innerText = `✓ কোড গৃহীত! আপনি ${res.discount_percent}% স্কলারশিপ পাবেন (${res.applicant_name})।`;
+                if (res.approved_admission_fee !== undefined && res.approved_admission_fee !== null) {
+                    waiverApprovedFee = parseFloat(res.approved_admission_fee);
+                    currentDiscountPercent = 0.0;
+                    msg.innerText = `✓ কোড গৃহীত! আপনার নির্ধারিত ভর্তি ফি: ৳${waiverApprovedFee.toFixed(0)} (${res.applicant_name})।`;
+                } else {
+                    currentDiscountPercent = parseFloat(res.discount_percent || 0);
+                    waiverApprovedFee = null;
+                    msg.innerText = `✓ কোড গৃহীত! আপনি ${currentDiscountPercent}% স্কলারশিপ পাবেন (${res.applicant_name})।`;
+                }
+                recalculateFee();
             } else {
                 msg.style.color = '#dc2626';
                 msg.innerText = '✕ ' + (res.message || 'অকার্যকর অথবা মেয়াদোত্তীর্ণ কোড।');
+                currentDiscountPercent = 0.0;
+                waiverApprovedFee = null;
+                recalculateFee();
             }
         })
         .catch(() => {
             msg.style.color = '#dc2626';
-            msg.innerText = 'যাচাইকালে ত্রুটি ঘটেছে। কোডটি ম্যানুয়ালি যাচাই করা হবে।';
+            msg.innerText = 'যাচাইকালে ত্রুটি ঘটেছে। কোডটি অ্যাডমিন দ্বারা যাচাই করা হবে।';
         });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const courseSelect = document.getElementById('course_id');
     if (courseSelect.value) filterBatchesByCourse(courseSelect.value);
+    recalculateFee();
 });
 </script>
 </body>

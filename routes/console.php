@@ -14,3 +14,10 @@ Schedule::command('sessions:generate --weeks=8')
     ->dailyAt('00:05')
     ->withoutOverlapping()
     ->runInBackground();
+
+// ✅ 3-Minute Fail-Safe Payment Auto-Reconciler for network drops
+Schedule::command('payment:reconcile-pending --minutes=3')
+    ->everyThreeMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
