@@ -44,43 +44,128 @@ class AdmissionFormController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'course_id'               => 'required|exists:courses,id',
-            'batch_id'                => 'nullable|exists:batches,id',
-            'academic_session_id'     => 'nullable|exists:academic_sessions,id',
-            'applicant_name'          => 'required|string|max:200',
-            'phone'                   => 'required|string|max:30',
-            'email'                   => 'required|email|max:150',
-            'gender'                  => 'required|in:Male,Female,Other,male,female,other',
-            'waiver_code'             => 'nullable|string|max:50',
-            'payment_gateway'         => 'nullable|in:sslcommerz,bkash',
-            'terms_agreed'            => 'nullable',
+            'course_id'           => 'required|exists:courses,id',
+            'batch_id'            => 'nullable|exists:batches,id',
+            'academic_session_id' => 'nullable|exists:academic_sessions,id',
+            'applicant_name'      => 'required|string|max:200',
+            'phone'               => 'required|string|max:30',
+            'email'               => 'required|email|max:150',
+            'gender'              => 'required|in:Male,Female,Other,male,female,other',
+            'terms_agreed'        => 'required',
+        ], [
+            'terms_agreed.required' => 'মাদ্রাসার নিয়ম ও ভর্তির শর্তাবলীতে সম্মতি প্রদান করা আবশ্যক।'
         ]);
 
         $course = Course::findOrFail($validated['course_id']);
-        $batch  = !empty($validated['batch_id']) ? Batch::find($validated['batch_id']) : null;
 
-        // Calculate Admission Fee
+        // Create Application & Lead Student inside Transaction
+        $result = DB::transaction(function () use ($validated, $request) {
+            $sessionId = $validated['academic_session_id']
+                ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
+
+            // 1. Create Student as LEAD
+            $student = Student::create([
+                'name'   => $validated['applicant_name'],
+                'phone'  => $validated['phone'],
+                'email'  => $validated['email'] ?? null,
+                'gender' => $validated['gender'] ?? null,
+                'status' => 'LEAD',
+            ]);
+
+            $student->calculateProfileCompletion();
+
+            // 2. Create AdmissionForm
+            $form = AdmissionForm::create([
+                'source'               => 'PUBLIC',
+                'application_no'       => AdmissionForm::generateApplicationNo(),
+                'student_id'           => $student->id,
+                'interested_course_id' => $validated['course_id'],
+                'batch_id'             => $validated['batch_id'] ?? null,
+                'academic_session_id'  => $sessionId,
+                'attempt_no'           => 1,
+                'lead_source'          => 'Website',
+                'status'               => 'PENDING',
+                'ip_address'           => $request->ip(),
+            ]);
+
+            return ['form' => $form, 'student' => $student];
+        });
+
+        $form = $result['form'];
+
+        // Redirect directly to the dedicated Step 2 Payment / Checkout page!
+        return redirect()->route('apply.payment', $form->application_no);
+    }
+
+    /**
+     * Step 2: Dedicated Payment & Checkout Page
+     */
+    public function paymentView(string $applicationNo)
+    {
+        $form = AdmissionForm::with(['interestedCourse', 'session', 'student', 'batch'])
+            ->where('application_no', $applicationNo)
+            ->where('source', 'PUBLIC')
+            ->firstOrFail();
+
+        if ($form->status === 'APPROVED') {
+            return redirect()->route('apply.success', $form->application_no);
+        }
+
+        $course = $form->interestedCourse;
+        $batch  = $form->batch;
+
+        // Base Fee calculation: prioritize batch fee if > 0, otherwise course admission fee
         $courseFee = (float) ($course->admission_fee ?? 0);
-        $batchFee  = ($batch && $batch->admission_fee !== null) ? (float) $batch->admission_fee : $courseFee;
+        $batchFee  = ($batch && (float) $batch->admission_fee > 0) ? (float) $batch->admission_fee : $courseFee;
+        $baseFee   = max(0, $batchFee);
+
+        $discountAmount = (float) ($form->discount_amount ?? 0);
+        $netPayable     = max(0, round($baseFee - $discountAmount, 2));
+
+        $sslActive   = PaymentGatewayService::isSslcommerzActive();
+        $bkashActive = PaymentGatewayService::isBkashActive();
+
+        return view('apply.payment', compact('form', 'course', 'batch', 'baseFee', 'discountAmount', 'netPayable', 'sslActive', 'bkashActive'));
+    }
+
+    /**
+     * Process Admission Payment (SSLCommerz / Direct bKash / Free)
+     */
+    public function processPayment(Request $request, string $applicationNo)
+    {
+        $form = AdmissionForm::with(['interestedCourse', 'session', 'student', 'batch'])
+            ->where('application_no', $applicationNo)
+            ->where('source', 'PUBLIC')
+            ->firstOrFail();
+
+        if ($form->status === 'APPROVED') {
+            return redirect()->route('apply.success', $form->application_no);
+        }
+
+        $course = $form->interestedCourse;
+        $batch  = $form->batch;
+
+        // Base Fee calculation
+        $courseFee = (float) ($course->admission_fee ?? 0);
+        $batchFee  = ($batch && (float) $batch->admission_fee > 0) ? (float) $batch->admission_fee : $courseFee;
         $baseFee   = max(0, $batchFee);
 
         // Check Waiver / Coupon Code
         $discountAmount  = 0.0;
         $discountPercent = 0.0;
         $waiverCode      = null;
-        $waiverApp       = null;
 
-        if (!empty($validated['waiver_code'])) {
+        if ($request->filled('waiver_code')) {
             if (!$course->is_poor_fund_applicable) {
-                return back()->withInput()->withErrors([
-                    'waiver_code' => 'দুঃখিত, "' . $course->name . '" কোর্সের জন্য পুওর ফান্ড বা স্কলারশিপ কোড প্রযোজ্য নয়।'
-                ]);
+                return back()->withInput()->with('error', 'দুঃখিত, "' . $course->name . '" কোর্সের জন্য পুওর ফান্ড বা স্কলারশিপ কোড প্রযোজ্য নয়।');
             }
 
-            $code = strtoupper(trim($validated['waiver_code']));
+            $code = strtoupper(trim($request->input('waiver_code')));
             $waiverApp = WaiverApplication::where('application_no', $code)
                 ->where('status', 'APPROVED')
-                ->where('is_used', false)
+                ->where(function ($q) use ($form) {
+                    $q->where('is_used', false)->orWhere('admission_form_id', $form->id);
+                })
                 ->first();
 
             if ($waiverApp) {
@@ -93,66 +178,31 @@ class AdmissionFormController extends Controller
                     $discountPercent = (float) ($waiverApp->approved_discount_percent ?? 0);
                     $discountAmount  = round(($baseFee * $discountPercent) / 100, 2);
                 }
+
+                $waiverApp->update([
+                    'is_used'           => true,
+                    'admission_form_id' => $form->id,
+                ]);
+            } else {
+                return back()->withInput()->with('error', 'প্রদত্ত কুপন বা ছাড় কোডটি সঠিক নয় অথবা ইতিমধ্যে ব্যবহৃত।');
             }
         }
 
         $netPayable = max(0, round($baseFee - $discountAmount, 2));
 
-        // Create Application & Lead Student inside Transaction
-        $result = DB::transaction(function () use ($validated, $request, $waiverCode, $discountPercent, $discountAmount, $netPayable, $waiverApp) {
-            $sameAsPresent = $request->boolean('same_as_present');
-            $sessionId     = $validated['academic_session_id']
-                ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
+        $form->update([
+            'waiver_code'      => $waiverCode,
+            'discount_percent' => $discountPercent,
+            'discount_amount'  => $discountAmount,
+        ]);
 
-            // 1. Create Student as LEAD
-            $student = Student::create([
-                'name'          => $validated['applicant_name'],
-                'phone'         => $validated['phone'],
-                'email'         => $validated['email'] ?? null,
-                'gender'        => $validated['gender'] ?? null,
-                'status'        => 'LEAD',
-            ]);
-
-            $student->calculateProfileCompletion();
-
-            // 2. Create AdmissionForm
-            $form = AdmissionForm::create([
-                'source'                  => 'PUBLIC',
-                'application_no'          => AdmissionForm::generateApplicationNo(),
-                'student_id'              => $student->id,
-                'interested_course_id'    => $validated['course_id'],
-                'batch_id'                => $validated['batch_id'] ?? null,
-                'academic_session_id'     => $sessionId,
-                'attempt_no'              => 1,
-                'lead_source'             => 'Website',
-                'waiver_code'             => $waiverCode,
-                'discount_percent'        => $discountPercent,
-                'discount_amount'         => $discountAmount,
-                'status'                  => 'PENDING',
-                'ip_address'              => $request->ip(),
-            ]);
-
-            if ($waiverApp) {
-                $waiverApp->update([
-                    'is_used'           => true,
-                    'admission_form_id' => $form->id,
-                ]);
-            }
-
-            return ['form' => $form, 'student' => $student];
-        });
-
-        $form    = $result['form'];
-        $student = $result['student'];
-
-        // ── ONLINE PAYMENT WORKFLOW ──────────────────────────────────────
-        $chosenGateway = $validated['payment_gateway'] ?? null;
-        $sslActive     = PaymentGatewayService::isSslcommerzActive();
-        $bkashActive   = PaymentGatewayService::isBkashActive();
+        $student = $form->student;
+        $sslActive   = PaymentGatewayService::isSslcommerzActive();
+        $bkashActive = PaymentGatewayService::isBkashActive();
 
         if ($netPayable > 0 && ($sslActive || $bkashActive)) {
-            // Default gateway fallback if student didn't explicitly pick one
-            if (empty($chosenGateway)) {
+            $chosenGateway = $request->input('payment_gateway');
+            if (empty($chosenGateway) || !in_array($chosenGateway, ['sslcommerz', 'bkash'])) {
                 $chosenGateway = $sslActive ? 'sslcommerz' : 'bkash';
             }
 
@@ -160,7 +210,6 @@ class AdmissionFormController extends Controller
                 ? PaymentGatewayService::getBkashConfig()['mode']
                 : PaymentGatewayService::getSslcommerzConfig()['mode'];
 
-            // 1. Create Gateway Transaction Record
             $transaction = GatewayTransaction::create([
                 'tran_id'           => GatewayTransaction::generateTranId('ADM'),
                 'gateway'           => $chosenGateway,
@@ -176,7 +225,6 @@ class AdmissionFormController extends Controller
                 'ip_address'        => $request->ip(),
             ]);
 
-            // 2. Initiate Payment Session with Gateway
             if ($chosenGateway === 'sslcommerz') {
                 $initRes = PaymentGatewayService::initiateSslcommerz(
                     $transaction, $form, $student->phone, $student->email, $student->name
@@ -191,15 +239,15 @@ class AdmissionFormController extends Controller
                 return redirect()->away($initRes['redirect_url']);
             }
 
-            // If initiation failed, redirect to status screen with error details
             Log::error("Payment Initiation Failed for {$chosenGateway}: " . ($initRes['message'] ?? ''));
             return redirect()->route('payment.status', $transaction->tran_id)
                 ->with('error', $initRes['message'] ?? 'পেমেন্ট গেটওয়েতে সংযোগ করতে ত্রুটি হয়েছে।');
         }
 
-        // ── FREE ADMISSION (Net Payable is 0.00) ──────────────────────────
+        // 100% Free / Full Waiver Admission
+        PaymentGatewayService::approvePaidAdmission($form, null);
         return redirect()->route('apply.success', $form->application_no)
-            ->with('success', 'আপনার ভর্তি আবেদন সফলভাবে জমা হয়েছে।');
+            ->with('success', 'আপনার ভর্তি আবেদন ও স্কলারশিপ সফলভাবে নিশ্চিত হয়েছে!');
     }
 
     public function success(string $applicationNo)

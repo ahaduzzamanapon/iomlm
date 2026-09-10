@@ -484,7 +484,7 @@ class PaymentGatewayService
     /**
      * Auto-approve student admission upon verified payment and mark invoice as PAID.
      */
-    public static function approvePaidAdmission(AdmissionForm $form, GatewayTransaction $transaction): void
+    public static function approvePaidAdmission(AdmissionForm $form, ?GatewayTransaction $transaction = null): void
     {
         $student = $form->student;
         $batch = $form->batch ?: Batch::where('course_id', $form->interested_course_id)->where('status', 'ACTIVE')->first();
@@ -580,17 +580,21 @@ class PaymentGatewayService
             }
 
             // Settle Admission Invoice with this verified payment
-            $trxId = $transaction->gateway_trx_id ?: $transaction->tran_id;
-            $method = strtoupper($transaction->gateway) === 'BKASH' ? 'BKASH' : 'ONLINE';
-            AccountingService::receivePayment(
-                $admissionInv,
-                (float) $transaction->amount,
-                $method,
-                $trxId,
-                "Online Payment via " . strtoupper($transaction->gateway) . " (Tran ID: {$transaction->tran_id})"
-            );
+            if ($transaction) {
+                $trxId = $transaction->gateway_trx_id ?: $transaction->tran_id;
+                $method = strtoupper($transaction->gateway) === 'BKASH' ? 'BKASH' : 'ONLINE';
+                AccountingService::receivePayment(
+                    $admissionInv,
+                    (float) $transaction->amount,
+                    $method,
+                    $trxId,
+                    "Online Payment via " . strtoupper($transaction->gateway) . " (Tran ID: {$transaction->tran_id})"
+                );
 
-            $transaction->update(['invoice_id' => $admissionInv->id]);
+                $transaction->update(['invoice_id' => $admissionInv->id]);
+            } elseif ($admissionInv && $admissionInv->payable_amount == 0) {
+                $admissionInv->update(['status' => 'PAID']);
+            }
         }
 
         // 5. Send celebratory credentials email
