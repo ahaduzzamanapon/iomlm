@@ -275,6 +275,35 @@
         align-items: center;
         gap: 6px;
     }
+    .gateway-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+        min-height: 32px;
+    }
+    .gateway-img {
+        display: block;
+        object-fit: contain;
+    }
+    .gateway-tag {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 20px;
+        white-space: nowrap;
+    }
+    .gateway-tag-ssl {
+        background: #e0f2fe;
+        color: #0369a1;
+        border: 1px solid #bae6fd;
+    }
+    .gateway-tag-bkash {
+        background: #fce7f3;
+        color: #be185d;
+        border: 1px solid #fbcfe8;
+    }
     .gateway-desc {
         font-size: 11px;
         color: #64748b;
@@ -440,10 +469,10 @@
                     <label class="payment-card {{ !$bkashActive || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
                         <input type="radio" name="payment_gateway" value="sslcommerz"
                                {{ !$bkashActive || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'checked' : '' }}>
-                        <div>
-                            <div class="gateway-title">
-                                <i class="fa-solid fa-building-columns text-blue-600"></i>
-                                SSLCommerz
+                        <div style="flex:1">
+                            <div class="gateway-header">
+                                <img src="{{ asset('images/gateways/sslcommerz.png') }}" alt="SSLCommerz" class="gateway-img" style="height:26px;max-width:135px">
+                                <span class="gateway-tag gateway-tag-ssl">কার্ড / নেট ব্যাংকিং</span>
                             </div>
                             <div class="gateway-desc">
                                 কার্ড, বিকাশ, নগদ, রকেট ও সব ব্যাংকের মাধ্যমে পেমেন্ট
@@ -456,10 +485,10 @@
                     <label class="payment-card {{ (!$sslActive || old('payment_gateway') === 'bkash') ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
                         <input type="radio" name="payment_gateway" value="bkash"
                                {{ (!$sslActive || old('payment_gateway') === 'bkash') ? 'checked' : '' }}>
-                        <div>
-                            <div class="gateway-title">
-                                <i class="fa-solid fa-mobile-screen-button" style="color:#d82a6b"></i>
-                                Direct bKash (বিকাশ)
+                        <div style="flex:1">
+                            <div class="gateway-header">
+                                <img src="{{ asset('images/gateways/bkash.png') }}" alt="bKash" class="gateway-img" style="height:28px;max-width:100px">
+                                <span class="gateway-tag gateway-tag-bkash">সরাসরি বিকাশ</span>
                             </div>
                             <div class="gateway-desc">
                                 বিকাশ ওয়ালেট ও পিন দিয়ে সরাসরি দ্রুত পেমেন্ট

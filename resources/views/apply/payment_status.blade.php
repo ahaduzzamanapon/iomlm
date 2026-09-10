@@ -146,7 +146,17 @@
         </div>
         <div class="trx-row">
             <span class="trx-label">পেমেন্ট মাধ্যম:</span>
-            <span class="trx-val">{{ strtoupper($transaction->gateway) }} ({{ strtoupper($transaction->gateway_mode) }})</span>
+            <span class="trx-val" style="display:inline-flex;align-items:center;gap:6px">
+                @if(strtolower($transaction->gateway) === 'bkash')
+                    <img src="{{ asset('images/gateways/bkash.png') }}" alt="bKash" style="height:18px;max-width:65px;object-fit:contain;vertical-align:middle">
+                    <span>(Direct bKash - {{ strtoupper($transaction->gateway_mode) }})</span>
+                @elseif(strtolower($transaction->gateway) === 'sslcommerz')
+                    <img src="{{ asset('images/gateways/sslcommerz.png') }}" alt="SSLCommerz" style="height:16px;max-width:85px;object-fit:contain;vertical-align:middle">
+                    <span>({{ strtoupper($transaction->gateway_mode) }})</span>
+                @else
+                    {{ strtoupper($transaction->gateway) }} ({{ strtoupper($transaction->gateway_mode) }})
+                @endif
+            </span>
         </div>
         <div class="trx-row">
             <span class="trx-label">টাকার পরিমাণ:</span>
