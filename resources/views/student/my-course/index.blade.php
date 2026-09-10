@@ -146,6 +146,7 @@
             <h1>My Courses</h1>
             <p>Overview of your enrolled courses, subjects, attendance and results</p>
         </div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
             <a href="{{ route('student.course-transfers.index') }}"
                 style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:8px">
                 <i class="fa-solid fa-arrow-right-arrow-left"></i> কোর্স পরিবর্তন (Transfer)

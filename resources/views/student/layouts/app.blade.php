@@ -85,9 +85,8 @@
         border-bottom: 1px solid #d1fae5 !important;
     }
     .user-avatar {
-        background: linear-gradient(135deg, #047857, #064e3b) !important;
+        background: #f1f5f9 !important;
         border: 2px solid #a7f3d0 !important;
-        color: #ffffff !important;
         width: 36px !important;
         height: 36px !important;
         border-radius: 50% !important;
