@@ -14,7 +14,7 @@ class NoticeController extends Controller
     {
         $notices   = Notice::with(['batch', 'semester', 'creator'])->latest()->paginate(20);
         $batches   = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
-        $semesters = Semester::orderBy('sort_order')->orderBy('name')->get();
+        $semesters = Semester::orderBy('sequence_no')->orderBy('name')->get();
         return view('admin.notices.index', compact('notices', 'batches', 'semesters'));
     }
 
