@@ -209,21 +209,6 @@
             <form method="POST" action="{{ route('apply.store') }}" id="applyForm">
                 @csrf
 
-                {{-- Poor Fund / Waiver Box --}}
-                <div class="waiver-box">
-                    <label style="color:#047857;font-weight:700;margin-bottom:6px;display:block">
-                        <i class="fa-solid fa-gift"></i> পুওর ফান্ড / ওয়েভার কোড আছে? (ঐচ্ছিক)
-                    </label>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                        <input type="text" id="waiver_code_input" name="waiver_code" value="{{ old('waiver_code') }}" placeholder="যেমন: POOR-2026-0001" style="text-transform:uppercase;max-width:200px">
-                        <button type="button" class="btn-outline-sm" onclick="applyWaiverCode()" style="padding:8px 14px;cursor:pointer">যাচাই করুন</button>
-                        <a href="{{ route('poor_fund.admission') }}" target="_blank" style="font-size:12px;color:#047857;font-weight:600;text-decoration:underline">ভর্তি ফি মওকুফ ↗</a>
-                        <span style="color:#cbd5e1">|</span>
-                        <a href="{{ route('poor_fund.tuition') }}" target="_blank" style="font-size:12px;color:#047857;font-weight:600;text-decoration:underline">টিউশন ফি মওকুফ ↗</a>
-                    </div>
-                    <div id="waiver-status-msg" style="font-size:12px;margin-top:6px;font-weight:600"></div>
-                </div>
-
                 {{-- Course Selection --}}
                 <div class="form-group">
                     <label>ভর্তি হতে ইচ্ছুক কোর্স / প্রোগ্রাম <span class="req">*</span></label>
@@ -279,6 +264,18 @@
                             <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>বোন শাখা (মহিলা)</option>
                         </select>
                     </div>
+                </div>
+
+                {{-- Coupon / Waiver Code (Placed at the end) --}}
+                <div class="waiver-box" style="margin-top:16px;margin-bottom:18px">
+                    <label style="color:#047857;font-weight:700;margin-bottom:6px;display:block">
+                        <i class="fa-solid fa-ticket"></i> কুপন কোড / ছাড় কোড (ঐচ্ছিক)
+                    </label>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <input type="text" id="waiver_code_input" name="waiver_code" value="{{ old('waiver_code') }}" placeholder="কুপন কোড থাকলে লিখুন" style="text-transform:uppercase;max-width:240px">
+                        <button type="button" class="btn-outline-sm" onclick="applyWaiverCode()" style="padding:8px 16px;cursor:pointer">যাচাই করুন (Apply)</button>
+                    </div>
+                    <div id="waiver-status-msg" style="font-size:12px;margin-top:6px;font-weight:600"></div>
                 </div>
 
                 @if(!empty($terms))
