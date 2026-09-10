@@ -9,8 +9,15 @@ class Course extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'admission_fee' => 'float',
+        'admission_fee'             => 'float',
+        'is_poor_fund_applicable'   => 'boolean',
+        'is_active'                 => 'boolean',
     ];
+
+    public function scopePoorFundApplicable($query)
+    {
+        return $query->where('is_poor_fund_applicable', true);
+    }
 
     public function semesters()
     {

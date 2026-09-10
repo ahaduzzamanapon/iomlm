@@ -497,6 +497,10 @@ function filterBatchesByCourse(courseId) {
 
 function onCourseChange(courseSelect) {
     filterBatchesByCourse(courseSelect.value);
+    const code = document.getElementById('waiver_code_input').value.trim();
+    if (code) {
+        applyWaiverCode();
+    }
 }
 
 function onBatchChange(batchSelect) {
@@ -578,7 +582,14 @@ function applyWaiverCode() {
     msg.style.color = '#047857';
     msg.innerText = 'যাচাই করা হচ্ছে...';
 
-    fetch('/api/waiver-lookup?code=' + encodeURIComponent(code))
+    const courseSelect = document.getElementById('course_id');
+    const courseId = courseSelect ? courseSelect.value : '';
+    let lookupUrl = '/api/waiver-lookup?code=' + encodeURIComponent(code);
+    if (courseId) {
+        lookupUrl += '&course_id=' + encodeURIComponent(courseId);
+    }
+
+    fetch(lookupUrl)
         .then(r => r.json())
         .then(res => {
             if (res.valid) {

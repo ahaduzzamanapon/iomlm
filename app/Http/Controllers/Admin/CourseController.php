@@ -30,12 +30,13 @@ class CourseController extends Controller
         ]);
 
         $course = Course::create([
-            'name'           => $validated['name'],
-            'type'           => $validated['type'],
-            'duration_value' => $validated['duration_value'],
-            'duration_unit'  => $validated['duration_unit'],
-            'admission_fee'  => $validated['admission_fee'] ?? 0.00,
-            'is_active'      => $request->boolean('is_active', true),
+            'name'                    => $validated['name'],
+            'type'                    => $validated['type'],
+            'duration_value'          => $validated['duration_value'],
+            'duration_unit'           => $validated['duration_unit'],
+            'admission_fee'           => $validated['admission_fee'] ?? 0.00,
+            'is_poor_fund_applicable' => $request->boolean('is_poor_fund_applicable'),
+            'is_active'               => $request->boolean('is_active'),
         ]);
 
         // Auto-generate semesters if semester-based
@@ -102,12 +103,13 @@ class CourseController extends Controller
         ]);
 
         $course->update([
-            'name'           => $validated['name'],
-            'type'           => $validated['type'],
-            'duration_value' => $validated['duration_value'],
-            'duration_unit'  => $validated['duration_unit'],
-            'admission_fee'  => $validated['admission_fee'] ?? $course->admission_fee,
-            'is_active'      => $request->boolean('is_active'),
+            'name'                    => $validated['name'],
+            'type'                    => $validated['type'],
+            'duration_value'          => $validated['duration_value'],
+            'duration_unit'           => $validated['duration_unit'],
+            'admission_fee'           => $validated['admission_fee'] ?? $course->admission_fee,
+            'is_poor_fund_applicable' => $request->boolean('is_poor_fund_applicable'),
+            'is_active'               => $request->boolean('is_active'),
         ]);
 
         return back()->with('success', 'Course updated successfully.');

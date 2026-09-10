@@ -23,6 +23,7 @@
                         <th>Duration</th>
                         <th>Semesters / Structure</th>
                         <th>Mapped Subjects</th>
+                        <th>Poor Fund</th>
                         <th>Status</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
@@ -52,6 +53,13 @@
                             <span class="badge badge-active no-dot">{{ $course->courseSubjectMaps->count() }} Subjects</span>
                         </td>
                         <td>
+                            @if($course->is_poor_fund_applicable)
+                                <span class="badge badge-active no-dot" title="পুওর ফান্ড স্কলারশিপ প্রযোজ্য"><i class="fa-solid fa-hand-holding-heart"></i> প্রযোজ্য</span>
+                            @else
+                                <span class="badge badge-secondary no-dot" title="পুওর ফান্ড প্রযোজ্য নয়"><i class="fa-solid fa-ban"></i> প্রযোজ্য নয়</span>
+                            @endif
+                        </td>
+                        <td>
                             @if($course->is_active)
                                 <span class="badge badge-active">Active</span>
                             @else
@@ -64,7 +72,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No courses found. Click "New Course" to create one.</td></tr>
+                    <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted)">No courses found. Click "New Course" to create one.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -130,6 +138,14 @@
                         <small style="color:var(--text-muted);font-size:12px">Admission fee for this course (overridable per batch)</small>
                     </div>
 
+                    <label class="form-check" style="margin-bottom:8px">
+                        <input type="checkbox" name="is_poor_fund_applicable" value="1" checked>
+                        <strong>পুওর ফান্ড প্রযোজ্য (Poor Fund Applicable)</strong>
+                    </label>
+                    <small style="display:block;color:var(--text-muted);font-size:12px;margin-bottom:14px">
+                        অন থাকলে এই কোর্সের জন্য শিক্ষার্থীরা পুওর ফান্ড / স্কলারশিপ আবেদন করতে পারবে।
+                    </small>
+
                     <label class="form-check">
                         <input type="checkbox" name="is_active" value="1" checked> Active Course
                     </label>
@@ -184,6 +200,14 @@
                         <input type="number" name="admission_fee" id="edit_course_admission_fee" class="form-control" min="0" step="0.01">
                     </div>
 
+                    <label class="form-check" style="margin-bottom:8px">
+                        <input type="checkbox" name="is_poor_fund_applicable" id="edit_course_is_poor_fund_applicable" value="1">
+                        <strong>পুওর ফান্ড প্রযোজ্য (Poor Fund Applicable)</strong>
+                    </label>
+                    <small style="display:block;color:var(--text-muted);font-size:12px;margin-bottom:14px">
+                        অন থাকলে এই কোর্সের জন্য শিক্ষার্থীরা পুওর ফান্ড / স্কলারশিপ আবেদন করতে পারবে।
+                    </small>
+
                     <label class="form-check">
                         <input type="checkbox" name="is_active" id="edit_course_is_active" value="1"> Active Course
                     </label>
@@ -216,6 +240,7 @@
         document.getElementById('edit_course_duration_value').value = course.duration_value;
         document.getElementById('edit_course_duration_unit').value = course.duration_unit;
         document.getElementById('edit_course_admission_fee').value = course.admission_fee || 0;
+        document.getElementById('edit_course_is_poor_fund_applicable').checked = (course.is_poor_fund_applicable !== false && course.is_poor_fund_applicable !== 0);
         document.getElementById('edit_course_is_active').checked = !!course.is_active;
         openModal('editCourseModal');
     }

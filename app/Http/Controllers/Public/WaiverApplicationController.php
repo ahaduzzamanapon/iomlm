@@ -18,7 +18,7 @@ class WaiverApplicationController extends Controller
         }
 
         try {
-            $courses = \App\Models\Course::where('is_active', true)->orderBy('name')->get();
+            $courses = \App\Models\Course::where('is_active', true)->where('is_poor_fund_applicable', true)->orderBy('name')->get();
         } catch (\Throwable $e) {
             $courses = collect();
         }
@@ -84,6 +84,15 @@ class WaiverApplicationController extends Controller
             'convenient_monthly_fee'         => 'nullable|numeric|min:0',
             'course_id'                      => 'nullable|exists:courses,id',
         ]);
+
+        if (!empty($validated['course_id'])) {
+            $selectedCourse = \App\Models\Course::find($validated['course_id']);
+            if ($selectedCourse && !$selectedCourse->is_poor_fund_applicable) {
+                return back()->withInput()->withErrors([
+                    'course_id' => 'দুঃখিত, "' . $selectedCourse->name . '" কোর্সের জন্য পুওর ফান্ড বা স্কলারশিপ আবেদন প্রযোজ্য নয়।'
+                ]);
+            }
+        }
 
         // Map old apply_reason_type values to new apply_for enum
         $applyForMap = [
@@ -177,6 +186,30 @@ class WaiverApplicationController extends Controller
                 'status'  => 'REJECTED',
                 'message' => '✕ আপনার পুওর ফান্ড আবেদনটি ('.$code.') গৃহিত হয়নি (Not Approved)। নোট: '.($app->reviewer_notes ?? 'শর্তাবলী পূরণ হয়নি।')
             ], 422);
+        }
+
+        // Check if course is poor fund applicable
+        if ($app->course_id) {
+            $linkedCourse = \App\Models\Course::find($app->course_id);
+            if ($linkedCourse && !$linkedCourse->is_poor_fund_applicable) {
+                return response()->json([
+                    'valid'   => false,
+                    'status'  => 'NOT_APPLICABLE',
+                    'message' => '✕ দুঃখিত, "' . $linkedCourse->name . '" কোর্সের জন্য পুওর ফান্ড স্কলারশিপ প্রযোজ্য নয়।'
+                ], 422);
+            }
+        }
+
+        $targetCourseId = $request->query('course_id');
+        if ($targetCourseId) {
+            $targetCourse = \App\Models\Course::find($targetCourseId);
+            if ($targetCourse && !$targetCourse->is_poor_fund_applicable) {
+                return response()->json([
+                    'valid'   => false,
+                    'status'  => 'NOT_APPLICABLE',
+                    'message' => '✕ দুঃখিত, "' . $targetCourse->name . '" কোর্সের জন্য পুওর ফান্ড স্কলারশিপ কোড প্রযোজ্য নয়।'
+                ], 422);
+            }
         }
 
         // Build approval message based on apply_for type

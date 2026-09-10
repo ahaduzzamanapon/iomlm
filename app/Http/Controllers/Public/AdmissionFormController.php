@@ -71,6 +71,12 @@ class AdmissionFormController extends Controller
         $waiverApp       = null;
 
         if (!empty($validated['waiver_code'])) {
+            if (!$course->is_poor_fund_applicable) {
+                return back()->withInput()->withErrors([
+                    'waiver_code' => 'দুঃখিত, "' . $course->name . '" কোর্সের জন্য পুওর ফান্ড বা স্কলারশিপ কোড প্রযোজ্য নয়।'
+                ]);
+            }
+
             $code = strtoupper(trim($validated['waiver_code']));
             $waiverApp = WaiverApplication::where('application_no', $code)
                 ->where('status', 'APPROVED')
