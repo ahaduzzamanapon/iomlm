@@ -152,6 +152,19 @@
                 <i class="fa-solid fa-house"></i>
                 Dashboard
             </a>
+            @php
+                $sidebarStudent = \App\Models\Student::where('email', auth()->user()?->email)->first();
+                $sidebarPct = $sidebarStudent ? ($sidebarStudent->profile_completed_percent ?? 0) : 0;
+            @endphp
+            <a href="{{ route('student.profile.index') }}" class="nav-item {{ request()->routeIs('student.profile.*') ? 'active' : '' }}" style="{{ $sidebarPct < 95 ? 'border-left:3px solid #fbbf24' : '' }}">
+                <i class="fa-solid fa-user-check"></i>
+                আমার প্রোফাইল
+                @if($sidebarPct < 95)
+                    <span class="nav-badge" style="background:#ef4444;color:#fff;font-size:11px">{{ $sidebarPct }}%</span>
+                @else
+                    <span class="nav-badge" style="background:#10b981;color:#fff;font-size:11px">১০০%</span>
+                @endif
+            </a>
 
             <!-- My Learning -->
             <div class="nav-group-label">My Learning</div>
@@ -262,6 +275,10 @@
                         <i class="fa-solid fa-chevron-down" style="font-size:11px;opacity:0.7"></i>
                     </div>
                     <div class="dropdown-menu" id="studentUserMenu">
+                        <a href="{{ route('student.profile.index') }}" class="dropdown-item" style="display:flex;align-items:center;gap:8px;padding:8px 14px;color:var(--text);text-decoration:none;font-weight:600">
+                            <i class="fa-solid fa-user-gear" style="color:#047857"></i>
+                            আমার প্রোফাইল ({{ $sidebarPct ?? 0 }}%)
+                        </a>
                         <div class="dropdown-divider"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
@@ -346,6 +363,60 @@ if(window.fetch){
     };
 }
 </script>
+
+@php
+    $portalStudent = \App\Models\Student::where('email', auth()->user()?->email)->first();
+    $isProfileIncomplete = $portalStudent && !$portalStudent->isProfileCompleted();
+@endphp
+
+@if($isProfileIncomplete && !request()->routeIs('student.profile.*'))
+<!-- ═══ MANDATORY PROFILE COMPLETION POPUP MODAL ═══ -->
+<div id="profileCompletionModal" style="position:fixed;inset:0;background:rgba(2,44,34,0.88);backdrop-filter:blur(8px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Kalpurush',sans-serif;">
+    <div style="background:#ffffff;border-radius:20px;max-width:520px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,0.6);overflow:hidden;border:2px solid #34d399;animation:popInModal 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+        <div style="background:linear-gradient(135deg,#047857,#064e3b);padding:24px 22px;color:#ffffff;text-align:center;">
+            <div style="width:68px;height:68px;background:rgba(255,255,255,0.15);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;border:2px solid rgba(251,191,36,0.6);">
+                <i class="fa-solid fa-id-card" style="font-size:30px;color:#fbbf24;"></i>
+            </div>
+            <h3 style="margin:0 0 6px;font-size:22px;font-weight:700;letter-spacing:-0.3px;">প্রোফাইল সম্পূর্ণ করা আবশ্যক</h3>
+            <p style="margin:0;font-size:14px;opacity:0.92;line-height:1.45;">ইসলামিক অনলাইন মাদ্রাসা (IOM) পোর্টালে আপনার ভর্তি নিশ্চিত হয়েছে। তবে অন্যান্য অ্যাকাডেমিক সেবায় প্রবেশের পূর্বে প্রোফাইল অন্তত ৯৫% সম্পূর্ণ করতে হবে।</p>
+        </div>
+
+        <div style="padding:22px 24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:14px;font-weight:600;color:#374151;">বর্তমান প্রোফাইল সম্পূর্ণতা:</span>
+                <span style="font-size:16px;font-weight:800;color:#047857;">{{ $portalStudent->profile_completed_percent ?? 0 }}% সম্পন্ন</span>
+            </div>
+            <div style="width:100%;height:12px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-bottom:18px;">
+                <div style="width:{{ $portalStudent->profile_completed_percent ?? 0 }}%;height:100%;background:linear-gradient(90deg,#047857,#10b981);transition:width 0.6s ease;"></div>
+            </div>
+
+            <div style="background:#fef2f2;border-left:4px solid #ef4444;padding:12px 14px;border-radius:8px;margin-bottom:20px;">
+                <div style="font-size:13px;color:#991b1b;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    কেন ৯৫% সম্পূর্ণ করা জরুরি?
+                </div>
+                <div style="font-size:12.5px;color:#b91c1c;line-height:1.5;">
+                    মাদ্রাসার নিয়মিত পাঠদান, পরীক্ষা ও ক্লাসরুটিন সেবা নির্বিঘ্নে ব্যবহারের জন্য আপনার স্থায়ী ঠিকানা, শিক্ষাগত যোগ্যতা ও অভিভাবকের তথ্যাদি নথিভুক্ত থাকা আবশ্যক।
+                </div>
+            </div>
+
+            <div style="text-align:center;">
+                <a href="{{ route('student.profile.index') }}" style="display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px 20px;background:linear-gradient(135deg,#047857,#064e3b);color:#ffffff;font-size:16px;font-weight:700;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px rgba(4,120,87,0.35);transition:all .2s;">
+                    <i class="fa-solid fa-user-pen"></i>
+                    এখনই প্রোফাইল তথ্য প্রদান করুন ({{ $portalStudent->profile_completed_percent ?? 0 }}%)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+@keyframes popInModal {
+    0% { transform: scale(0.88); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+</style>
+@endif
+
 <x-fcm-initializer />
 @stack('scripts')
 </body>

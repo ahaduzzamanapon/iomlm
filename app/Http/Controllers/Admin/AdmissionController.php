@@ -75,7 +75,7 @@ class AdmissionController extends Controller
             'phone'                   => 'required|string|max:30',
             'email'                   => 'nullable|email|max:150',
             'date_of_birth'           => 'nullable|date',
-            'gender'                  => 'nullable|in:Male,Female,Other',
+            'gender'                  => 'nullable|in:Male,Female,Other,male,female,other',
             'device_type'             => 'nullable|string|max:50',
             'occupation'              => 'nullable|string|max:100',
             'education_qualification' => 'nullable|string|max:100',
@@ -153,6 +153,8 @@ class AdmissionController extends Controller
                 'hsc_gpa'          => $validated['hsc_gpa'] ?? null,
                 'status'           => 'PENDING',
             ]);
+
+            $student->calculateProfileCompletion();
 
             // Create Admission Form with source=ADMIN
             $form = AdmissionForm::create([
@@ -291,6 +293,7 @@ class AdmissionController extends Controller
 
             $student->status = 'ACTIVE';
             $student->save();
+            $student->calculateProfileCompletion();
 
             // ── AUTO-CREATE USER ACCOUNT ──────────────────────────────────
             // Only create if not already linked to a user account

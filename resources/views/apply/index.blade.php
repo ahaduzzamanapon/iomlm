@@ -4,683 +4,361 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Online Admission Form — IOM</title>
+    <title>অনলাইন ভর্তি আবেদন — ইসলামিক অনলাইন মাদ্রাসা</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-        --blue: #047857;          /* IOM Brand Emerald Green */
-        --blue-dark: #064e3b;     /* IOM Deep Forest */
-        --green: #057a55;
-        --gold: #fbbf24;          /* IOM Gold */
-        --red: #e02424;
-        --yellow-bg: #ecfdf5;
-        --yellow-border: #a7f3d0;
-        --card-bg: #fff;
+        --iom-green: #047857;
+        --iom-dark: #064e3b;
+        --iom-light: #ecfdf5;
+        --iom-mint: #d1fae5;
         --border: #e2e8f0;
         --text: #1e293b;
         --muted: #64748b;
         --bg: #f8fafc;
+        --red: #dc2626;
     }
-    body { font-family: 'Kalpurush', 'Inter', 'Noto Sans Bengali', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-
-    /* Header */
-    .site-header { background: #fff; border-bottom: 1px solid #d1fae5; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    body {
+        font-family: 'Kalpurush', 'Noto Sans Bengali', 'Inter', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+    }
+    .site-header {
+        background: #fff;
+        border-bottom: 1px solid var(--iom-mint);
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 68px;
+    }
     .site-logo { display: flex; align-items: center; gap: 12px; }
-    .site-logo-name { font-size: 15px; font-weight: 700; color: #047857; line-height: 1.2; }
-    .site-logo-sub  { font-size: 11px; color: var(--muted); }
-    .header-actions { display: flex; gap: 8px; }
-    .btn-outline-sm { padding: 6px 14px; border: 1.5px solid var(--blue); border-radius: 6px; color: var(--blue); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; background: #fff; transition: all .15s; }
-    .btn-outline-sm:hover { background: var(--blue); color: #fff; }
-    .btn-primary-sm { padding: 6px 14px; background: var(--blue); border: none; border-radius: 6px; color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all .15s; }
-    .btn-primary-sm:hover { background: var(--blue-dark); }
+    .site-logo-name { font-size: 16px; font-weight: 700; color: var(--iom-green); line-height: 1.2; }
+    .site-logo-sub { font-size: 11px; color: var(--muted); }
+    .btn-outline-sm {
+        padding: 7px 16px;
+        border: 1.5px solid var(--iom-green);
+        border-radius: 6px;
+        color: var(--iom-green);
+        font-size: 13px;
+        font-weight: 600;
+        text-decoration: none;
+        background: #fff;
+        transition: all .15s;
+    }
+    .btn-outline-sm:hover { background: var(--iom-green); color: #fff; }
 
-    /* Steps bar */
-    .steps-bar { background: #064e3b; padding: 0 24px; border-bottom: 2px solid #047857; }
-    .steps-inner { display: flex; align-items: center; gap: 0; max-width: 900px; margin: 0 auto; }
-    .step-item { display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.6); position: relative; cursor: default; white-space: nowrap; }
-    .step-item.active { color: #fff; }
-    .step-item.done { color: #34d399; }
-    .step-num { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
-    .step-item.active .step-num { background: #047857; border-color: #34d399; color: #fff; }
-    .step-item.done .step-num { background: #047857; border-color: #047857; color: #fff; }
-    .step-sep { color: rgba(255,255,255,.2); font-size: 16px; margin: 0 4px; }
+    .hero-banner {
+        background: linear-gradient(135deg, #022c22 0%, #064e3b 100%);
+        color: #fff;
+        padding: 24px 20px;
+        text-align: center;
+    }
+    .hero-banner h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .hero-banner p { font-size: 13px; opacity: 0.9; max-width: 600px; margin: 0 auto; line-height: 1.6; }
 
-    /* Notice banner */
-    .notice-banner { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 0; padding: 12px 24px; font-size: 13px; line-height: 1.7; color: #065f46; }
+    .apply-container { max-width: 680px; margin: -20px auto 40px; padding: 0 16px; }
+    .form-card {
+        background: #fff;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 16px rgba(0,0,0,.06);
+        overflow: hidden;
+    }
+    .form-card-header {
+        background: #fff;
+        padding: 18px 24px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .form-card-title { font-size: 17px; font-weight: 700; color: #064e3b; }
+    .form-card-body { padding: 24px; }
 
-    /* Main container */
-    .apply-container { max-width: 780px; margin: 0 auto; padding: 24px 16px 60px; }
-
-    /* Form card */
-    .form-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.05); overflow: hidden; }
-    .form-card-header { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .form-card-title { font-size: 17px; font-weight: 700; }
-    .form-card-step  { font-size: 13px; color: var(--blue); font-weight: 600; }
-    .form-card-body  { padding: 28px; }
-    .form-card-footer { padding: 16px 28px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-
-    /* Form elements */
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-    @media(max-width:600px) { .form-row, .form-row-3 { grid-template-columns: 1fr; } }
-    .form-group { margin-bottom: 16px; }
+    @media(max-width:600px) { .form-row { grid-template-columns: 1fr; gap: 12px; } }
+    .form-group { margin-bottom: 18px; }
     .form-group:last-child { margin-bottom: 0; }
-    label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 5px; }
-    label .req { color: var(--red); margin-left: 2px; }
-    input[type="text"], input[type="email"], input[type="date"], input[type="number"],
-    select, textarea {
-        width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 7px;
-        font-size: 13px; color: var(--text); background: #fff; outline: none;
+    label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    label .req { color: var(--red); margin-left: 3px; font-weight: 700; }
+    input[type="text"], input[type="email"], select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        color: var(--text);
+        background: #fff;
+        outline: none;
         transition: border-color .15s;
         font-family: inherit;
     }
-    input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,.08); }
-    textarea { resize: vertical; min-height: 80px; }
-    .form-check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
-    .form-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--blue); cursor: pointer; }
+    input:focus, select:focus {
+        border-color: var(--iom-green);
+        box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.12);
+    }
 
-    /* Section divider */
-    .section-title { font-size: 13px; font-weight: 700; color: var(--blue); border-bottom: 1.5px solid #dbeafe; padding-bottom: 6px; margin: 20px 0 16px; letter-spacing: .03em; text-transform: uppercase; }
-
-    /* Terms box */
-    .terms-box { background: var(--yellow-bg); border: 1px solid var(--yellow-border); border-radius: 8px; padding: 14px 16px; font-size: 13px; line-height: 1.9; color: #713f12; white-space: pre-line; }
-
-    /* Step panel visibility */
-    .step-panel { display: none; }
-    .step-panel.active { display: block; }
-
-    /* Buttons */
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
-    .btn-primary { background: var(--blue); color: #fff; }
-    .btn-primary:hover { background: var(--blue-dark); }
-    .btn-secondary { background: #f3f4f6; color: #374151; }
-    .btn-secondary:hover { background: #e5e7eb; }
-
-    /* Error messages */
-    .error-msg { font-size: 12px; color: var(--red); margin-top: 4px; }
-    @if(count($errors))
-    .has-error input, .has-error select { border-color: var(--red); }
-    @endif
-
-    /* Address copy button */
-    .copy-btn { font-size: 12px; color: var(--blue); cursor: pointer; text-decoration: underline; }
-
-    /* Footer */
-    .site-footer { background: #064e3b; border-top: 1px solid #047857; color: rgba(255,255,255,.8); text-align: center; padding: 18px; font-size: 12px; margin-top: 32px; }
+    .waiver-box {
+        background: #f0fdf4;
+        border: 1.5px dashed #86efac;
+        padding: 14px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .terms-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-size: 12px;
+        line-height: 1.7;
+        color: #475569;
+        max-height: 110px;
+        overflow-y: auto;
+        margin-bottom: 12px;
+    }
+    .info-callout {
+        background: #ecfdf5;
+        border-left: 4px solid var(--iom-green);
+        padding: 12px 16px;
+        border-radius: 0 8px 8px 0;
+        font-size: 13px;
+        color: #065f46;
+        margin-bottom: 20px;
+        line-height: 1.6;
+    }
+    .btn-submit {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all .2s;
+        box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
+    }
+    .btn-submit:hover {
+        background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+        box-shadow: 0 4px 12px rgba(4, 120, 87, 0.35);
+    }
+    .site-footer {
+        background: #022c22;
+        color: rgba(255,255,255,.7);
+        text-align: center;
+        padding: 20px;
+        font-size: 12px;
+    }
     </style>
 </head>
 <body>
 
-    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 {{-- Header --}}
 <header class="site-header">
     <div class="site-logo">
-        <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:48px;width:auto;object-fit:contain">
+        <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:44px;width:auto;object-fit:contain">
         <div>
             <div class="site-logo-name">ISLAMIC ONLINE MADRASAH</div>
             <div class="site-logo-sub">Through Knowledge, Towards Jannah</div>
         </div>
     </div>
     <div class="header-actions">
-        <a href="/" class="btn-outline-sm">Home</a>
-        <a href="#" class="btn-primary-sm">Website</a>
+        <a href="/" class="btn-outline-sm">মূলপাতা (Home)</a>
     </div>
 </header>
 
-{{-- Steps bar --}}
-<div class="steps-bar">
-    <div class="steps-inner">
-        <div class="step-item active" id="step-tab-1"><span class="step-num">1</span> Course Choice</div>
-        <span class="step-sep">›</span>
-        <div class="step-item" id="step-tab-2"><span class="step-num">2</span> Education Info</div>
-        <span class="step-sep">›</span>
-        <div class="step-item" id="step-tab-3"><span class="step-num">3</span> Personal Information</div>
-        <span class="step-sep">›</span>
-        <div class="step-item" id="step-tab-4"><span class="step-num">4</span> Application Download</div>
-    </div>
-</div>
-
-{{-- Notice banner --}}
-@php $terms = \App\Models\AppSetting::get('admission_terms', ''); @endphp
-<div class="notice-banner" style="text-align:center;font-weight:500">
-    ফর্ম পূরণ করার আগে নির্দেশিকা মনোযোগ দিয়ে পড়ুন। সকল তারকা চিহ্নিত (<span style="color:#dc2626">*</span>) তথ্য পূরণ বাধ্যতামূলক।
+{{-- Hero Banner --}}
+<div class="hero-banner">
+    <h1>অনলাইন সংক্ষিপ্ত ভর্তি আবেদন</h1>
+    <p>সহজ ও দ্রুত ভর্তি প্রক্রিয়া। প্রয়োজনীয় মৌলিক তথ্য প্রদান করে আবেদন সম্পন্ন করুন।</p>
 </div>
 
 <div class="apply-container">
-    <form method="POST" action="{{ route('apply.store') }}" id="applyForm">
-        @csrf
+    <div class="form-card">
+        <div class="form-card-header">
+            <span class="form-card-title"><i class="fa-solid fa-file-pen" style="color:var(--iom-green)"></i> ভর্তির প্রাথমিক আবেদন ফর্ম</span>
+            <span style="font-size:12px;color:var(--iom-green);font-weight:600">আইওএম শিক্ষা বিভাগ</span>
+        </div>
 
-        {{-- ══════════════════════════════════════
-             STEP 1: Course Choice
-        ══════════════════════════════════════ --}}
-        <div class="step-panel active" id="step-1">
-            <div class="form-card">
-                <div class="form-card-header">
-                    <span class="form-card-title">Online Application Form</span>
-                    <span class="form-card-step">Step 1: Course Choice</span>
+        <div class="form-card-body">
+            @if($errors->any())
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#991b1b">
+                <strong>অনুগ্রহ করে ত্রুটিগুলো সংশোধন করুন:</strong>
+                <ul style="margin-top:6px;margin-left:18px">
+                    @foreach($errors->all() as $err) <li>{{ $err }}</li> @endforeach
+                </ul>
+            </div>
+            @endif
+
+            <div class="info-callout">
+                <strong>📌 তথ্য নির্দেশিকা:</strong> শুধুমাত্র প্রয়োজনীয় আবশ্যকীয় তথ্যগুলো প্রদান করে আবেদন সম্পন্ন করুন। ভর্তি অনুমোদনের পর স্টুডেন্ট পোর্টালে লগইন করে প্রোফাইল ৯৫% সম্পন্ন করতে হবে।
+            </div>
+
+            <form method="POST" action="{{ route('apply.store') }}" id="applyForm">
+                @csrf
+
+                {{-- Poor Fund / Waiver Box --}}
+                <div class="waiver-box">
+                    <label style="color:#047857;font-weight:700;margin-bottom:6px;display:block">
+                        <i class="fa-solid fa-gift"></i> পুওর ফান্ড / ওয়েভার কোড আছে? (ঐচ্ছিক)
+                    </label>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <input type="text" id="waiver_code_input" name="waiver_code" value="{{ old('waiver_code') }}" placeholder="যেমন: POOR-2026-0001" style="text-transform:uppercase;max-width:220px">
+                        <button type="button" class="btn-outline-sm" onclick="applyWaiverCode()" style="padding:8px 14px;cursor:pointer">যাচাই করুন</button>
+                        <a href="/poor-fund" target="_blank" style="font-size:12px;color:#047857;text-decoration:underline">পুওর ফান্ড আবেদন ↗</a>
+                    </div>
+                    <div id="waiver-status-msg" style="font-size:12px;margin-top:6px;font-weight:600"></div>
                 </div>
-                <div class="form-card-body">
 
-                    @if($errors->any())
-                    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#991b1b">
-                        <strong>Please fix the following errors:</strong>
-                        <ul style="margin-top:6px;margin-left:16px">
-                            @foreach($errors->all() as $err)<li>{{ $err }}</li>@endforeach
-                        </ul>
-                    </div>
-                    @endif
+                {{-- Course Selection --}}
+                <div class="form-group">
+                    <label>ভর্তি হতে ইচ্ছুক কোর্স / প্রোগ্রাম <span class="req">*</span></label>
+                    <select name="course_id" id="course_id" required onchange="filterBatchesByCourse(this.value)">
+                        <option value="">-- কোর্স নির্বাচন করুন --</option>
+                        @foreach($courses as $course)
+                            <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>
+                                {{ $course->name }} ({{ $course->duration_value }} {{ strtolower($course->duration_unit) }}s)
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                    {{-- Poor Fund / Waiver Code Box --}}
-                    <div style="background:#f0f9ff;border:1px solid #bae6fd;padding:16px;border-radius:10px;margin-bottom:24px">
-                        <label style="color:#0369a1;font-weight:700;margin-bottom:6px;display:block">
-                            Have a Poor Fund / Waiver Code? (পুওর ফান্ড কোড আছে?)
-                        </label>
-                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                            <input type="text" id="waiver_code_input" name="waiver_code" value="{{ old('waiver_code') }}" placeholder="e.g. POOR-2026-0001" style="text-transform:uppercase;max-width:240px">
-                            <button type="button" class="btn btn-primary" onclick="applyWaiverCode()" style="padding:10px 18px;white-space:nowrap;font-weight:700">Apply Waiver Code</button>
-                            <a href="/poor-fund" target="_blank" style="font-size:12px;color:#0284c7;text-decoration:underline">আবেদন করুন (Apply Poor Fund) ↗</a>
-                        </div>
-                        <div id="waiver-status-msg" style="font-size:13px;margin-top:8px;font-weight:600"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Program / Course <span class="req">*</span></label>
-                        <select name="course_id" id="course_id" required onchange="filterBatchesByCourse(this.value)">
-                            <option value="">-- Select Course --</option>
-                            @foreach($courses as $course)
-                                <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>
-                                    {{ $course->name }} ({{ $course->duration_value }} {{ strtolower($course->duration_unit) }}s)
+                {{-- Batch Selection --}}
+                <div class="form-group">
+                    <label>নির্ধারিত ব্যাচ (টার্গেট ব্যাচ)</label>
+                    <select name="batch_id" id="batch_id">
+                        <option value="">-- ব্যাচ নির্বাচন করুন (খোলা থাকলে) --</option>
+                        @foreach($activeBatches as $batch)
+                            @if($batch->is_admission_open)
+                                <option value="{{ $batch->id }}" data-course-id="{{ $batch->course_id }}" {{ old('batch_id') == $batch->id ? 'selected' : '' }}>
+                                    {{ $batch->name }} ({{ $batch->batch_code }})
                                 </option>
-                            @endforeach
+                            @endif
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Name & Phone --}}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>আবেদনকারীর পূর্ণ নাম <span class="req">*</span></label>
+                        <input type="text" name="applicant_name" value="{{ old('applicant_name') }}" placeholder="আপনার পূর্ণ নাম লিখুন" required>
+                    </div>
+                    <div class="form-group">
+                        <label>মোবাইল নম্বর <span class="req">*</span></label>
+                        <input type="text" name="phone" value="{{ old('phone') }}" placeholder="01XXXXXXXXX" required>
+                    </div>
+                </div>
+
+                {{-- Email & Gender --}}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ইমেইল ঠিকানা <span class="req">*</span></label>
+                        <input type="email" name="email" value="{{ old('email') }}" placeholder="name@example.com" required>
+                        <small style="color:var(--muted);font-size:11px">পাসওয়ার্ড ও লগইন তথ্য এই ইমেইলে পাঠানো হবে</small>
+                    </div>
+                    <div class="form-group">
+                        <label>লিঙ্গ / শাখা <span class="req">*</span></label>
+                        <select name="gender" required>
+                            <option value="">-- শাখা নির্বাচন করুন --</option>
+                            <option value="Male" {{ old('gender') == 'Male' ? 'selected' : '' }}>ভাই শাখা (পুরুষ)</option>
+                            <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>বোন শাখা (মহিলা)</option>
                         </select>
                     </div>
-
-                    <div class="form-group">
-                        <label>Admission Batch (Target Batch)</label>
-                        <select name="batch_id" id="batch_id">
-                            <option value="">-- Select Open Batch --</option>
-                            @foreach($activeBatches as $batch)
-                                @if($batch->is_admission_open)
-                                    <option value="{{ $batch->id }}" data-course-id="{{ $batch->course_id }}" {{ old('batch_id') == $batch->id ? 'selected' : '' }}>
-                                        {{ $batch->name }} ({{ $batch->batch_code }})
-                                    </option>
-                                @endif
-                            @endforeach
-                        </select>
-                    </div>
-
-                    @if($terms)
-                    <div class="form-group">
-                        <div class="section-title">ভর্তির শর্তাবলী</div>
-                        <div class="terms-box">{{ $terms }}</div>
-                    </div>
-                    @endif
-
                 </div>
-                <div class="form-card-footer">
-                    <div></div>
-                    <button type="button" class="btn btn-primary" onclick="goStep(2)">Next →</button>
+
+                @if(!empty($terms))
+                <div class="form-group" style="margin-top:10px">
+                    <label>মাদ্রাসার নিয়ম ও ভর্তির শর্তাবলী</label>
+                    <div class="terms-box">{{ $terms }}</div>
                 </div>
-            </div>
+                @endif
+
+                <div class="form-group" style="margin-top:14px">
+                    <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-weight:normal;font-size:13px">
+                        <input type="checkbox" name="terms_agreed" value="1" required style="width:18px;height:18px;margin-top:2px;accent-color:var(--iom-green)">
+                        <span>আমি সাক্ষ্য দিচ্ছি যে উপরোক্ত সকল তথ্য সত্য এবং আমি মাদ্রাসার সকল নিয়ম-কানুন মেনে চলতে সম্মত। <span class="req">*</span></span>
+                    </label>
+                </div>
+
+                <div style="margin-top:24px">
+                    <button type="submit" class="btn-submit">
+                        <i class="fa-solid fa-paper-plane"></i> আবেদন জমা দিন (Submit Application)
+                    </button>
+                </div>
+            </form>
         </div>
-
-        {{-- ══════════════════════════════════════
-             STEP 2: Education Info
-        ══════════════════════════════════════ --}}
-        <div class="step-panel" id="step-2">
-            <div class="form-card">
-                <div class="form-card-header">
-                    <span class="form-card-title">Step-2: Job and Education</span>
-                    <span class="form-card-step">Step 2 of 3</span>
-                </div>
-                <div class="form-card-body">
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Applicant Name <span class="req">*</span></label>
-                            <input type="text" name="applicant_name" value="{{ old('applicant_name') }}" placeholder="Enter full name" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Student Cell Phone <span class="req">*</span></label>
-                            <input type="text" name="phone" value="{{ old('phone') }}" placeholder="01XXXXXXXXX" required>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Date of Birth</label>
-                            <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}">
-                        </div>
-                        <div class="form-group">
-                            <label>You will join class using <span class="req">*</span></label>
-                            <select name="device_type">
-                                <option value="">-- Select Device --</option>
-                                <option value="Desktop/Laptop PC" {{ old('device_type') == 'Desktop/Laptop PC' ? 'selected' : '' }}>Desktop/Laptop PC</option>
-                                <option value="Mobile" {{ old('device_type') == 'Mobile' ? 'selected' : '' }}>Mobile</option>
-                                <option value="Tablet" {{ old('device_type') == 'Tablet' ? 'selected' : '' }}>Tablet</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Present Occupation</label>
-                            <select name="occupation">
-                                <option value="">-- Select --</option>
-                                @foreach(['Student','Service Holder','Business','Unemployed','Other'] as $occ)
-                                <option value="{{ $occ }}" {{ old('occupation') == $occ ? 'selected' : '' }}>{{ $occ }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Educational Qualification</label>
-                            <select name="education_qualification">
-                                <option value="">-- Select --</option>
-                                @foreach(['Below SSC','SSC / Equivalent','HSC / Equivalent','Bachelor Equivalent','Master Equivalent','Other'] as $eq)
-                                <option value="{{ $eq }}" {{ old('education_qualification') == $eq ? 'selected' : '' }}>{{ $eq }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="section-title">Academic Records</div>
-
-                    <div class="form-row-3">
-                        <div class="form-group">
-                            <label>SSC/Equivalent School Name</label>
-                            <input type="text" name="ssc_school" value="{{ old('ssc_school') }}" placeholder="School name">
-                        </div>
-                        <div class="form-group">
-                            <label>SSC Board</label>
-                            <select name="ssc_board">
-                                <option value="">-- Select Board --</option>
-                                @foreach(['Dhaka','Chittagong','Rajshahi','Jessore','Comilla','Barisal','Sylhet','Dinajpur','Mymensingh','Madrasah','Technical','Other'] as $b)
-                                <option value="{{ $b }}" {{ old('ssc_board') == $b ? 'selected' : '' }}>{{ $b }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>SSC Year</label>
-                            <input type="number" name="ssc_year" value="{{ old('ssc_year') }}" placeholder="e.g. 2018" min="1990" max="{{ now()->year }}">
-                        </div>
-                    </div>
-
-                    <div class="form-row-3">
-                        <div class="form-group">
-                            <label>HSC/Equivalent College Name</label>
-                            <input type="text" name="hsc_college" value="{{ old('hsc_college') }}" placeholder="College name">
-                        </div>
-                        <div class="form-group">
-                            <label>HSC Board</label>
-                            <select name="hsc_board">
-                                <option value="">-- Select Board --</option>
-                                @foreach(['Dhaka','Chittagong','Rajshahi','Jessore','Comilla','Barisal','Sylhet','Dinajpur','Mymensingh','Madrasah','Technical','Other'] as $b)
-                                <option value="{{ $b }}" {{ old('hsc_board') == $b ? 'selected' : '' }}>{{ $b }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>HSC Year</label>
-                            <input type="number" name="hsc_year" value="{{ old('hsc_year') }}" placeholder="e.g. 2020" min="1990" max="{{ now()->year }}">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>University/Equivalent Institute Name</label>
-                            <input type="text" name="university_name" value="{{ old('university_name') }}" placeholder="University name">
-                        </div>
-                        <div class="form-group">
-                            <label>Department Name</label>
-                            <input type="text" name="department_name" value="{{ old('department_name') }}" placeholder="e.g. CSE, BBA, EE">
-                        </div>
-                    </div>
-
-                </div>
-                <div class="form-card-footer">
-                    <button type="button" class="btn btn-secondary" onclick="goStep(1)">← Back</button>
-                    <button type="button" class="btn btn-primary" onclick="goStep(3)">I Agree, Next →</button>
-                </div>
-            </div>
-        </div>
-
-        {{-- ══════════════════════════════════════
-             STEP 3: Personal Information
-        ══════════════════════════════════════ --}}
-        <div class="step-panel" id="step-3">
-            <div class="form-card">
-                <div class="form-card-header">
-                    <span class="form-card-title">Step-3: Personal Information</span>
-                    <span class="form-card-step">Step 3 of 3</span>
-                </div>
-                <div class="form-card-body">
-
-                    <div class="section-title">Basic Information</div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <select name="gender">
-                                <option value="">-- Select Gender --</option>
-                                <option value="Male" {{ old('gender') == 'Male' ? 'selected' : '' }}>Male</option>
-                                <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>Female</option>
-                                <option value="Other" {{ old('gender') == 'Other' ? 'selected' : '' }}>Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Student Email</label>
-                            <input type="email" name="email" value="{{ old('email') }}" placeholder="email@example.com">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Blood Group</label>
-                            <select name="blood_group_id">
-                                <option value="">-- Select --</option>
-                                @foreach($bloodGroups as $bg)
-                                <option value="{{ $bg->id }}" {{ old('blood_group_id') == $bg->id ? 'selected' : '' }}>{{ $bg->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>National ID Card No</label>
-                            <input type="text" name="national_id" value="{{ old('national_id') }}" placeholder="NID Number">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Nationality</label>
-                            <select name="nationality">
-                                <option value="Bangladeshi" {{ old('nationality','Bangladeshi') == 'Bangladeshi' ? 'selected' : '' }}>Bangladeshi</option>
-                                <option value="Other" {{ old('nationality') == 'Other' ? 'selected' : '' }}>Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Passport No</label>
-                            <input type="text" name="passport_no" value="{{ old('passport_no') }}" placeholder="Passport Number">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Religion</label>
-                            <select name="religion_id">
-                                <option value="">-- Select Religion --</option>
-                                @foreach($religions as $rel)
-                                <option value="{{ $rel->id }}" {{ old('religion_id') == $rel->id ? 'selected' : '' }}>{{ $rel->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Birth Certificate No</label>
-                            <input type="text" name="birth_certificate_no" value="{{ old('birth_certificate_no') }}" placeholder="Birth Certificate No">
-                        </div>
-                    </div>
-
-                    {{-- Present Address --}}
-                    <div class="section-title">Present Address</div>
-
-                    <div class="form-group">
-                        <label>House/Street/Village</label>
-                        <input type="text" name="present_house" id="present_house" value="{{ old('present_house') }}" placeholder="House/Street/Village">
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Post Office</label>
-                            <input type="text" name="present_post_office" id="present_post_office" value="{{ old('present_post_office') }}" placeholder="Post Office">
-                        </div>
-                        <div class="form-group">
-                            <label>Police Station (Thana)</label>
-                            <input type="text" name="present_police_station" id="present_police_station" value="{{ old('present_police_station') }}" placeholder="Police Station">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Division</label>
-                            <select name="present_division_id" id="present_division_id" onchange="loadDistricts('present')">
-                                <option value="">-- Select Division --</option>
-                                @foreach($divisions as $div)
-                                <option value="{{ $div->id }}" {{ old('present_division_id') == $div->id ? 'selected' : '' }}>{{ $div->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>District</label>
-                            <select name="present_district_id" id="present_district_id">
-                                <option value="">-- Select District --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {{-- Permanent Address --}}
-                    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between">
-                        Permanent Address
-                        <label class="form-check" style="text-transform:none;font-size:12px;font-weight:400">
-                            <input type="checkbox" id="same_as_present" name="same_as_present" value="1" onchange="togglePermanent(this)">
-                            Same as Present Address
-                        </label>
-                    </div>
-
-                    <div id="permanent-fields">
-                        <div class="form-group">
-                            <label>House/Street/Village</label>
-                            <input type="text" name="permanent_house" id="permanent_house" value="{{ old('permanent_house') }}" placeholder="House/Street/Village">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Post Office</label>
-                                <input type="text" name="permanent_post_office" id="permanent_post_office" value="{{ old('permanent_post_office') }}" placeholder="Post Office">
-                            </div>
-                            <div class="form-group">
-                                <label>Police Station (Thana)</label>
-                                <input type="text" name="permanent_police_station" id="permanent_police_station" value="{{ old('permanent_police_station') }}" placeholder="Police Station">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Division</label>
-                                <select name="permanent_division_id" id="permanent_division_id" onchange="loadDistricts('permanent')">
-                                    <option value="">-- Select Division --</option>
-                                    @foreach($divisions as $div)
-                                    <option value="{{ $div->id }}" {{ old('permanent_division_id') == $div->id ? 'selected' : '' }}>{{ $div->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>District</label>
-                                <select name="permanent_district_id" id="permanent_district_id">
-                                    <option value="">-- Select District --</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-                <div class="form-card-footer">
-                    <button type="button" class="btn btn-secondary" onclick="goStep(2)">← Back</button>
-                    <button type="submit" class="btn btn-primary">Submit Application</button>
-                </div>
-            </div>
-        </div>
-
-    </form>
+    </div>
 </div>
 
-{{-- Footer --}}
 <footer class="site-footer">
-    Copyright © Islamic Online Madrasah, All Rights Reserved.
+    <p>&copy; {{ date('Y') }} Islamic Online Madrasah (IOM). All Rights Reserved.</p>
 </footer>
 
 <script>
-let currentStep = 1;
+function filterBatchesByCourse(courseId) {
+    const select = document.getElementById('batch_id');
+    const options = select.querySelectorAll('option');
+    let hasMatch = false;
 
-function goStep(step) {
-    // Mark old step done
-    document.getElementById('step-tab-' + currentStep).classList.remove('active');
-    document.getElementById('step-tab-' + currentStep).classList.add('done');
-    document.getElementById('step-' + currentStep).classList.remove('active');
-
-    currentStep = step;
-
-    // Activate new step
-    document.querySelectorAll('.step-item').forEach((el, i) => {
-        el.classList.remove('active');
-        if (i + 1 < step) el.classList.add('done');
-        else el.classList.remove('done');
+    options.forEach(opt => {
+        if (!opt.value) { opt.style.display = ''; return; }
+        const cId = opt.getAttribute('data-course-id');
+        if (!courseId || cId === courseId) {
+            opt.style.display = '';
+            if (!hasMatch && opt.value) { opt.selected = true; hasMatch = true; }
+        } else {
+            opt.style.display = 'none';
+        }
     });
-    document.getElementById('step-tab-' + step).classList.add('active');
-    document.getElementById('step-' + step).classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (!hasMatch) select.value = '';
 }
 
 function applyWaiverCode() {
-    const codeInput = document.getElementById('waiver_code_input');
-    const code = codeInput ? codeInput.value.trim() : '';
-    const msgDiv = document.getElementById('waiver-status-msg');
+    const code = document.getElementById('waiver_code_input').value.trim();
+    const msg = document.getElementById('waiver-status-msg');
     if (!code) {
-        msgDiv.style.color = '#dc2626';
-        msgDiv.innerHTML = 'অনুগ্রহ করে আপনার পুওর ফান্ড কোডটি লিখুন।';
+        msg.style.color = '#dc2626';
+        msg.innerText = 'দয়া করে পুওর ফান্ড কোডটি লিখুন।';
         return;
     }
-    msgDiv.style.color = '#0284c7';
-    msgDiv.innerHTML = 'Searching waiver code...';
+    msg.style.color = '#047857';
+    msg.innerText = 'যাচাই করা হচ্ছে...';
 
     fetch('/api/waiver-lookup?code=' + encodeURIComponent(code))
         .then(r => r.json())
-        .then(data => {
-            if (data.valid) {
-                msgDiv.style.color = '#059669';
-                msgDiv.innerHTML = data.message;
-                
-                // Auto fill fields
-                if (data.full_name) {
-                    const el = document.querySelector('input[name="applicant_name"]');
-                    if (el) el.value = data.full_name;
-                }
-                if (data.phone) {
-                    const el = document.querySelector('input[name="phone"]');
-                    if (el) el.value = data.phone;
-                }
-                if (data.email) {
-                    const el = document.querySelector('input[name="email"]');
-                    if (el) el.value = data.email;
-                }
-                if (data.date_of_birth) {
-                    const el = document.querySelector('input[name="date_of_birth"]');
-                    if (el) el.value = data.date_of_birth;
-                }
-                if (data.national_id) {
-                    const el = document.querySelector('input[name="national_id"]');
-                    if (el) el.value = data.national_id;
-                }
-                if (data.gender) {
-                    const el = document.querySelector('select[name="gender"]');
-                    if (el) el.value = data.gender;
-                }
-                if (data.present_address) {
-                    const el = document.getElementById('present_house');
-                    if (el) el.value = data.present_address;
-                }
-                if (data.permanent_address) {
-                    const el = document.getElementById('permanent_house');
-                    if (el) el.value = data.permanent_address;
-                }
-                if (data.occupation) {
-                    const el = document.querySelector('select[name="occupation"]');
-                    if (el) el.value = data.occupation;
-                }
-                if (data.division_id) {
-                    const el = document.getElementById('present_division_id');
-                    if (el) {
-                        el.value = data.division_id;
-                        loadDistricts('present');
-                    }
-                }
+        .then(res => {
+            if (res.valid) {
+                msg.style.color = '#047857';
+                msg.innerText = `✓ কোড গৃহীত! আপনি ${res.discount_percent}% স্কলারশিপ পাবেন (${res.applicant_name})।`;
             } else {
-                msgDiv.style.color = '#dc2626';
-                msgDiv.innerHTML = data.message;
+                msg.style.color = '#dc2626';
+                msg.innerText = '✕ ' + (res.message || 'অকার্যকর অথবা মেয়াদোত্তীর্ণ কোড।');
             }
         })
-        .catch(err => {
-            msgDiv.style.color = '#dc2626';
-            msgDiv.innerHTML = 'কোড সার্চ করতে ত্রুটি হয়েছে।';
+        .catch(() => {
+            msg.style.color = '#dc2626';
+            msg.innerText = 'যাচাইকালে ত্রুটি ঘটেছে। কোডটি ম্যানুয়ালি যাচাই করা হবে।';
         });
 }
 
-function filterBatchesByCourse(courseId) {
-    const batchSel = document.getElementById('batch_id');
-    if (!batchSel) return;
-    const options = batchSel.querySelectorAll('option');
-    let firstValid = null;
-    options.forEach(opt => {
-        if (!opt.value) return; // skip default option
-        const match = !courseId || opt.dataset.courseId === courseId;
-        opt.style.display = match ? '' : 'none';
-        if (match && !firstValid) firstValid = opt.value;
-    });
-    if (courseId && firstValid) {
-        batchSel.value = firstValid;
-    }
-}
-document.addEventListener('DOMContentLoaded', () => {
-    const cId = document.getElementById('course_id').value;
-    if (cId) filterBatchesByCourse(cId);
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('course_id');
+    if (courseSelect.value) filterBatchesByCourse(courseSelect.value);
 });
-
-// AJAX load districts
-function loadDistricts(prefix) {
-    const divId = document.getElementById(prefix + '_division_id').value;
-    const distSel = document.getElementById(prefix + '_district_id');
-    distSel.innerHTML = '<option value="">Loading...</option>';
-    if (!divId) { distSel.innerHTML = '<option value="">-- Select District --</option>'; return; }
-    fetch('/api/districts?division_id=' + divId)
-        .then(r => r.json())
-        .then(data => {
-            distSel.innerHTML = '<option value="">-- Select District --</option>';
-            data.forEach(d => {
-                distSel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
-            });
-        });
-}
-
-// Same as present address toggle
-function togglePermanent(cb) {
-    const fields = document.getElementById('permanent-fields');
-    if (cb.checked) {
-        // Copy present to permanent
-        document.getElementById('permanent_house').value          = document.getElementById('present_house').value;
-        document.getElementById('permanent_post_office').value    = document.getElementById('present_post_office').value;
-        document.getElementById('permanent_police_station').value = document.getElementById('present_police_station').value;
-        const presDiv  = document.getElementById('present_division_id').value;
-        const presDist = document.getElementById('present_district_id').value;
-        const perDiv   = document.getElementById('permanent_division_id');
-        const perDist  = document.getElementById('permanent_district_id');
-        perDiv.value = presDiv;
-        perDist.innerHTML = document.getElementById('present_district_id').innerHTML;
-        perDist.value = presDist;
-        fields.style.opacity = '.5';
-        fields.style.pointerEvents = 'none';
-    } else {
-        fields.style.opacity = '1';
-        fields.style.pointerEvents = '';
-    }
-}
-
-// If form has errors, jump to correct step
-@if($errors->hasAny(['course_id','academic_session_id']))
-    goStep(1);
-@elseif($errors->hasAny(['applicant_name','phone','date_of_birth','occupation','education_qualification','ssc_school','ssc_board','ssc_year','hsc_college','hsc_board','hsc_year','university_name','department_name','device_type']))
-    goStep(1); goStep(2);
-@elseif($errors->any())
-    goStep(1); goStep(2); goStep(3);
-@endif
 </script>
 </body>
 </html>

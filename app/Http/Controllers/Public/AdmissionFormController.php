@@ -40,38 +40,10 @@ class AdmissionFormController extends Controller
             'academic_session_id'     => 'nullable|exists:academic_sessions,id',
             'applicant_name'          => 'required|string|max:200',
             'phone'                   => 'required|string|max:30',
-            'date_of_birth'           => 'nullable|date',
-            'occupation'              => 'nullable|string|max:100',
-            'education_qualification' => 'nullable|string|max:100',
-            'ssc_school'              => 'nullable|string|max:200',
-            'ssc_board'               => 'nullable|string|max:100',
-            'ssc_year'                => 'nullable|integer|min:1990|max:' . now()->year,
-            'hsc_college'             => 'nullable|string|max:200',
-            'hsc_board'               => 'nullable|string|max:100',
-            'hsc_year'                => 'nullable|integer|min:1990|max:' . now()->year,
-            'university_name'         => 'nullable|string|max:200',
-            'department_name'         => 'nullable|string|max:100',
-            'device_type'             => 'nullable|string|max:50',
-            'gender'                  => 'nullable|in:Male,Female,Other',
-            'blood_group_id'          => 'nullable|exists:blood_groups,id',
-            'email'                   => 'nullable|email|max:150',
-            'national_id'             => 'nullable|string|max:50',
-            'passport_no'             => 'nullable|string|max:50',
-            'birth_certificate_no'    => 'nullable|string|max:50',
-            'nationality'             => 'nullable|string|max:50',
-            'religion_id'             => 'nullable|exists:religions,id',
-            'present_house'           => 'nullable|string|max:300',
-            'present_post_office'     => 'nullable|string|max:100',
-            'present_police_station'  => 'nullable|string|max:100',
-            'present_district_id'     => 'nullable|exists:districts,id',
-            'present_division_id'     => 'nullable|exists:divisions,id',
-            'same_as_present'         => 'nullable|boolean',
-            'permanent_house'         => 'nullable|string|max:300',
-            'permanent_post_office'   => 'nullable|string|max:100',
-            'permanent_police_station'=> 'nullable|string|max:100',
-            'permanent_district_id'   => 'nullable|exists:districts,id',
-            'permanent_division_id'   => 'nullable|exists:divisions,id',
+            'email'                   => 'required|email|max:150',
+            'gender'                  => 'required|in:Male,Female,Other,male,female,other',
             'waiver_code'             => 'nullable|string|max:50',
+            'terms_agreed'            => 'nullable',
         ]);
 
         $form = DB::transaction(function () use ($validated, $request) {
@@ -103,6 +75,8 @@ class AdmissionFormController extends Controller
                 'national_id'   => $validated['national_id'] ?? null,
                 'status'        => 'LEAD',
             ]);
+
+            $student->calculateProfileCompletion();
 
             // Create AdmissionForm with source=PUBLIC
             $form = AdmissionForm::create([
