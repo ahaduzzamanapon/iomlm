@@ -105,6 +105,12 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('readmissions/{readmission}/continue-retake', [\App\Http\Controllers\Admin\ReadmissionController::class, 'continueWithRetake'])->name('readmissions.continue-retake');
     Route::post('readmissions/auto-detect', [\App\Http\Controllers\Admin\ReadmissionController::class, 'autoDetect'])->name('readmissions.auto-detect');
 
+    // ── Course Transfers (কোর্স পরিবর্তন ও স্থানান্তর) ──────────────────────
+    Route::resource('course-transfers', \App\Http\Controllers\Admin\CourseTransferController::class)->only(['index']);
+    Route::post('course-transfers/{courseTransfer}/approve', [\App\Http\Controllers\Admin\CourseTransferController::class, 'approve'])->name('course-transfers.approve');
+    Route::post('course-transfers/{courseTransfer}/mark-paid', [\App\Http\Controllers\Admin\CourseTransferController::class, 'markPaid'])->name('course-transfers.mark-paid');
+    Route::post('course-transfers/{courseTransfer}/reject', [\App\Http\Controllers\Admin\CourseTransferController::class, 'reject'])->name('course-transfers.reject');
+
     Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class)->only(['index', 'store']);
 
     // ── Routine ────────────────────────────────────────────────────────────

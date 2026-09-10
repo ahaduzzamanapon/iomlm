@@ -316,10 +316,11 @@
 
             {{-- ── 3. People ── --}}
             @php 
-                $peopleActive = request()->routeIs('admin.admissions*','admin.students*','admin.teachers*','admin.waiver-applications*'); 
+                $peopleActive = request()->routeIs('admin.admissions*','admin.students*','admin.teachers*','admin.waiver-applications*','admin.course-transfers*'); 
                 try { $pendingCount = \App\Models\AdmissionForm::where('status','PENDING')->count(); } catch(\Exception $e) { $pendingCount = 0; }
                 try { $waiverPending = \App\Models\WaiverApplication::where('status','PENDING')->count(); } catch(\Exception) { $waiverPending = 0; }
-                $peopleBadge = $pendingCount + $waiverPending;
+                try { $transferPending = \App\Models\CourseTransfer::where('status','PENDING')->count(); } catch(\Exception) { $transferPending = 0; }
+                $peopleBadge = $pendingCount + $waiverPending + $transferPending;
             @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $peopleActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
@@ -335,6 +336,11 @@
                         <i class="fa-solid fa-user-plus"></i>
                         Admissions
                         @if($pendingCount > 0)<span class="nav-badge">{{ $pendingCount }}</span>@endif
+                    </a>
+                    <a href="{{ route('admin.course-transfers.index') }}" class="nav-item {{ request()->routeIs('admin.course-transfers*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        Course Transfers (কোর্স পরিবর্তন)
+                        @if($transferPending > 0)<span class="nav-badge" style="background:#0284c7">{{ $transferPending }}</span>@endif
                     </a>
                     <a href="{{ route('admin.waiver-applications.index') }}" class="nav-item {{ request()->routeIs('admin.waiver-applications*') ? 'active' : '' }}">
                         <i class="fa-solid fa-hand-holding-dollar"></i>

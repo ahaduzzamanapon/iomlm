@@ -172,6 +172,10 @@
                 <i class="fa-solid fa-book-open"></i>
                 My Course
             </a>
+            <a href="{{ route('student.course-transfers.index') }}" class="nav-item {{ request()->routeIs('student.course-transfers*') ? 'active' : '' }}">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                কোর্স পরিবর্তন (Transfer)
+            </a>
             <a href="{{ route('student.classes.today') }}" class="nav-item {{ request()->routeIs('student.classes.today') ? 'active' : '' }}" style="{{ !request()->routeIs('student.classes.today') ? 'border-left:3px solid #f59e0b' : '' }}">
                 <i class="fa-solid fa-sun"></i>
                 Today's Classes

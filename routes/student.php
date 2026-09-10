@@ -36,6 +36,11 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::get('my-course',       [\App\Http\Controllers\Student\MyCourseController::class, 'index'])->name('my-course.index');
         Route::post('my-course/apply', [\App\Http\Controllers\Student\MyCourseController::class, 'applyStore'])->name('my-course.apply');
 
+        // Course Transfer (কোর্স পরিবর্তন)
+        Route::get('course-transfers',                    [\App\Http\Controllers\Student\CourseTransferController::class, 'index'])->name('course-transfers.index');
+        Route::post('course-transfers',                   [\App\Http\Controllers\Student\CourseTransferController::class, 'store'])->name('course-transfers.store');
+        Route::delete('course-transfers/{courseTransfer}', [\App\Http\Controllers\Student\CourseTransferController::class, 'cancel'])->name('course-transfers.cancel');
+
         // Subjects
         Route::get('subjects',           [\App\Http\Controllers\Student\SubjectController::class, 'index'])->name('subjects.index');
         Route::get('subjects/{subject}', [\App\Http\Controllers\Student\SubjectController::class, 'show'])->name('subjects.show');

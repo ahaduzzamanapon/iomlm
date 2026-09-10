@@ -20,6 +20,16 @@ class Course extends Model
         return $this->hasMany(Readmission::class, 'course_id');
     }
 
+    public function courseTransfersFrom()
+    {
+        return $this->hasMany(CourseTransfer::class, 'from_course_id');
+    }
+
+    public function courseTransfersTo()
+    {
+        return $this->hasMany(CourseTransfer::class, 'to_course_id');
+    }
+
     public function scopePoorFundApplicable($query)
     {
         return $query->where('is_poor_fund_applicable', true);

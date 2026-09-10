@@ -189,6 +189,42 @@ class AccountingService
     }
 
     /**
+     * Auto-generate Course Transfer Fee Invoice.
+     */
+    public static function createCourseTransferInvoice(Student $student, \App\Models\CourseTransfer $transfer, float $feeRate = 0.00): Invoice
+    {
+        $invNo = 'INV-TRANS-' . date('Ymd') . '-' . rand(1000, 9999);
+        $fromName = $transfer->fromCourse?->name ?? 'Previous Course';
+        $toName   = $transfer->toCourse?->name ?? 'New Course';
+        $isFree   = ($feeRate <= 0);
+
+        $invoice = Invoice::create([
+            'invoice_no'     => $invNo,
+            'student_id'     => $student->id,
+            'enrollment_id'  => $transfer->from_enrollment_id,
+            'category'       => 'COURSE_TRANSFER',
+            'title'          => "Course Transfer Fee — {$fromName} → {$toName}",
+            'amount'         => $feeRate,
+            'discount'       => 0.00,
+            'payable_amount' => $feeRate,
+            'paid_amount'    => $isFree ? 0.00 : 0.00,
+            'due_amount'     => $isFree ? 0.00 : $feeRate,
+            'status'         => $isFree ? 'PAID' : 'UNPAID',
+            'due_date'       => $isFree ? null : Carbon::now()->addDays(7),
+            'source_type'    => \App\Models\CourseTransfer::class,
+            'source_id'      => $transfer->id,
+            'created_by'     => auth()->id(),
+        ]);
+
+        $transfer->update([
+            'invoice_id'   => $invoice->id,
+            'transfer_fee' => $feeRate,
+        ]);
+
+        return $invoice;
+    }
+
+    /**
      * Auto-generate Semester Fee Invoice.
      * If the student has an approved waiver with a package, uses the package total.
      */
@@ -363,6 +399,14 @@ class AccountingService
                 'status'      => $status,
             ]);
 
+            // Trigger Course Transfer completion if transfer invoice is paid
+            if ($status === 'PAID' && $invoice->category === 'COURSE_TRANSFER') {
+                $transfer = \App\Models\CourseTransfer::where('invoice_id', $invoice->id)->first();
+                if ($transfer && in_array($transfer->status, ['APPROVED_PENDING_PAYMENT', 'PENDING'])) {
+                    \App\Services\CourseTransferService::executeTransfer($transfer);
+                }
+            }
+
             $payment->update([
                 'status'      => 'APPROVED',
                 'approved_at' => now(),
@@ -423,6 +467,14 @@ class AccountingService
                 'due_amount'  => $newDueAmount,
                 'status'      => $status,
             ]);
+
+            // Trigger Course Transfer completion if transfer invoice is paid
+            if ($status === 'PAID' && $invoice->category === 'COURSE_TRANSFER') {
+                $transfer = \App\Models\CourseTransfer::where('invoice_id', $invoice->id)->first();
+                if ($transfer && in_array($transfer->status, ['APPROVED_PENDING_PAYMENT', 'PENDING'])) {
+                    \App\Services\CourseTransferService::executeTransfer($transfer);
+                }
+            }
 
             return $payment;
         });

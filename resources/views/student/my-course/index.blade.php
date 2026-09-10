@@ -146,7 +146,10 @@
             <h1>My Courses</h1>
             <p>Overview of your enrolled courses, subjects, attendance and results</p>
         </div>
-        <div style="display:flex; align-items:center; gap:12px">
+            <a href="{{ route('student.course-transfers.index') }}"
+                style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd; padding:9px 18px; border-radius:10px; font-size:13px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:8px">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> কোর্স পরিবর্তন (Transfer)
+            </a>
             <button onclick="document.getElementById('applyCourseModal').style.display='flex'"
                 style="background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; border:none; padding:10px 20px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(37,99,235,0.25)">
                 Apply for New Course
@@ -194,7 +197,7 @@
     <div class="enrollment-card">
 
         {{-- Card Header --}}
-        <div class="enrollment-card-header">
+        <div class="enrollment-card-header" style="{{ $enrollment->status === 'TRANSFERRED' ? 'background:linear-gradient(90deg, #475569 0%, #64748b 100%)' : '' }}">
             <div>
                 <div style="font-size:11px; opacity:.7; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px">
                     {{ $batch?->name ?? '—' }}
@@ -204,11 +207,24 @@
             <div style="display:flex; gap:8px; flex-wrap:wrap">
                 <span class="stat-pill"><i class="fa-solid fa-book"></i> {{ $enrollment->_total_subjects }} Subjects</span>
                 <span class="stat-pill"><i class="fa-solid fa-bullseye"></i> {{ $enrollment->_result_count }} Results</span>
-                <span class="stat-pill" style="background:{{ $enrollment->status === 'ACTIVE' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)' }}; border-color:rgba(255,255,255,0.2)">
-                    {{ $enrollment->status }}
-                </span>
+                @if($enrollment->status === 'TRANSFERRED')
+                    <span class="stat-pill" style="background:rgba(254,243,199,0.25); border-color:rgba(255,255,255,0.4); color:#fef3c7">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i> স্থানান্তরিত (Transferred)
+                    </span>
+                @else
+                    <span class="stat-pill" style="background:{{ $enrollment->status === 'ACTIVE' ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)' }}; border-color:rgba(255,255,255,0.2)">
+                        {{ $enrollment->status }}
+                    </span>
+                @endif
             </div>
         </div>
+
+        @if($enrollment->status === 'TRANSFERRED')
+            <div style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:12px 24px; font-size:13px; color:#475569; display:flex; align-items:center; gap:8px">
+                <i class="fa-solid fa-circle-info" style="color:#0284c7"></i>
+                <span>এই কোর্সটি থেকে নতুন কোর্সে সফলভাবে স্থানান্তর সম্পন্ন হয়েছে। বিস্তারিত তথ্যের জন্য <a href="{{ route('student.course-transfers.index') }}" style="color:#0284c7; font-weight:700">কোর্স পরিবর্তন ইতিহাস</a> দেখুন।</span>
+            </div>
+        @endif
 
         {{-- Info Grid --}}
         <div class="info-grid">
