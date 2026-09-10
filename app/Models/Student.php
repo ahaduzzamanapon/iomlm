@@ -51,6 +51,11 @@ class Student extends Model
         return $this->hasMany(StudentDocument::class, 'student_id');
     }
 
+    public function readmissions()
+    {
+        return $this->hasMany(\App\Models\Readmission::class, 'student_id')->latest();
+    }
+
     // ── Profile Completion Logic ──────────────────────────────────────────
     public static function profileFieldsDefinition(): array
     {

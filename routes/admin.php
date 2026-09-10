@@ -93,10 +93,18 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('questions/bulk-upload', [\App\Http\Controllers\Admin\QuestionController::class, 'bulkUpload'])->name('questions.bulk-upload');
     Route::post('questions/aiken-upload', [\App\Http\Controllers\Admin\QuestionController::class, 'importAiken'])->name('questions.aiken-upload');
 
-    // ── Exams, Results, Retakes, Promotions ───────────────────────────
+    // ── Exams, Results, Retakes, Re-admissions, Promotions ────────────
     Route::resource('exams', \App\Http\Controllers\Admin\ExamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
     Route::get('retakes',  [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'index'])->name('retakes.index');
     Route::post('retakes', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'store'])->name('retakes.store');
+    Route::patch('retakes/{retake}/approve', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'approve'])->name('retakes.approve');
+
+    // ── Re-admissions (রি-এডমিশন) ───────────────────────────────────────
+    Route::resource('readmissions', \App\Http\Controllers\Admin\ReadmissionController::class)->only(['index', 'store', 'destroy']);
+    Route::post('readmissions/{readmission}/approve', [\App\Http\Controllers\Admin\ReadmissionController::class, 'approve'])->name('readmissions.approve');
+    Route::post('readmissions/{readmission}/continue-retake', [\App\Http\Controllers\Admin\ReadmissionController::class, 'continueWithRetake'])->name('readmissions.continue-retake');
+    Route::post('readmissions/auto-detect', [\App\Http\Controllers\Admin\ReadmissionController::class, 'autoDetect'])->name('readmissions.auto-detect');
+
     Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class)->only(['index', 'store']);
 
     // ── Routine ────────────────────────────────────────────────────────────
@@ -165,10 +173,6 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::put('courses/packages/items/{item}',                       [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'updateItem'])->name('courses.packages.items.update');
     Route::delete('courses/packages/items/{item}',                    [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'destroyItem'])->name('courses.packages.items.destroy');
     Route::post('courses/{course}/packages/from-template',            [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'fromTemplate'])->name('courses.packages.from-template');
-
-    // ── Retake Approve ────────────────────────────────────────────
-    Route::patch('retakes/{retake}/approve', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'approve'])->name('retakes.approve');
-
 
     // ── Public Applications (from /apply form) — now handled via AdmissionForm (source=PUBLIC) ──
     // Admin reviews these from admin/admissions tab=public, no separate controller needed.

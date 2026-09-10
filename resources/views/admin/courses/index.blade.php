@@ -21,8 +21,8 @@
                         <th>Course Name</th>
                         <th>Type</th>
                         <th>Duration</th>
-                        <th>Semesters / Structure</th>
-                        <th>Mapped Subjects</th>
+                        <th>Semesters</th>
+                        <th>Fee (ভর্তি / রি-এডমিশন)</th>
                         <th>Poor Fund</th>
                         <th>Status</th>
                         <th style="text-align:right">Actions</th>
@@ -50,7 +50,10 @@
                             @endif
                         </td>
                         <td>
-                            <span class="badge badge-active no-dot">{{ $course->courseSubjectMaps->count() }} Subjects</span>
+                            <div style="font-size:13px;line-height:1.4">
+                                <span title="ভর্তি ফি">ভর্তি: <strong>৳{{ number_format($course->admission_fee, 2) }}</strong></span><br>
+                                <span title="রি-এডমিশন ফি" style="color:var(--warning, #b45309)">রি-এডমিশন: <strong>৳{{ number_format($course->readmission_fee ?? 0, 2) }}</strong></span>
+                            </div>
                         </td>
                         <td>
                             @if($course->is_poor_fund_applicable)
@@ -132,10 +135,17 @@
                         <input type="number" name="total_semesters" class="form-control" value="8" min="1" max="12" placeholder="e.g. 8">
                     </div>
 
-                    <div class="form-group">
-                        <label>Admission Fee (৳)</label>
-                        <input type="number" name="admission_fee" class="form-control" value="0" min="0" step="0.01" placeholder="e.g. 5000.00">
-                        <small style="color:var(--text-muted);font-size:12px">Admission fee for this course (overridable per batch)</small>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Admission Fee (৳)</label>
+                            <input type="number" name="admission_fee" class="form-control" value="0" min="0" step="0.01" placeholder="e.g. 5000.00">
+                            <small style="color:var(--text-muted);font-size:12px">ভর্তি ফি (Default admission fee)</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Re-admission Fee (৳)</label>
+                            <input type="number" name="readmission_fee" class="form-control" value="0" min="0" step="0.01" placeholder="e.g. 3000.00">
+                            <small style="color:var(--text-muted);font-size:12px">রি-এডমিশন ফি (>২ বিষয়ে ফেল করলে)</small>
+                        </div>
                     </div>
 
                     <label class="form-check" style="margin-bottom:8px">
@@ -195,9 +205,15 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>Admission Fee (৳)</label>
-                        <input type="number" name="admission_fee" id="edit_course_admission_fee" class="form-control" min="0" step="0.01">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Admission Fee (৳)</label>
+                            <input type="number" name="admission_fee" id="edit_course_admission_fee" class="form-control" min="0" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Re-admission Fee (৳)</label>
+                            <input type="number" name="readmission_fee" id="edit_course_readmission_fee" class="form-control" min="0" step="0.01">
+                        </div>
                     </div>
 
                     <label class="form-check" style="margin-bottom:8px">
@@ -240,6 +256,7 @@
         document.getElementById('edit_course_duration_value').value = course.duration_value;
         document.getElementById('edit_course_duration_unit').value = course.duration_unit;
         document.getElementById('edit_course_admission_fee').value = course.admission_fee || 0;
+        document.getElementById('edit_course_readmission_fee').value = course.readmission_fee || 0;
         document.getElementById('edit_course_is_poor_fund_applicable').checked = (course.is_poor_fund_applicable !== false && course.is_poor_fund_applicable !== 0);
         document.getElementById('edit_course_is_active').checked = !!course.is_active;
         openModal('editCourseModal');

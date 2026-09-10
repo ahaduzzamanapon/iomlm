@@ -26,7 +26,8 @@ class CourseController extends Controller
             'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
             'duration_value' => 'required|numeric|min:0.5',
             'duration_unit'  => 'required|in:MONTH,YEAR',
-            'admission_fee'  => 'nullable|numeric|min:0',
+            'admission_fee'   => 'nullable|numeric|min:0',
+            'readmission_fee' => 'nullable|numeric|min:0',
         ]);
 
         $course = Course::create([
@@ -35,6 +36,7 @@ class CourseController extends Controller
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],
             'admission_fee'           => $validated['admission_fee'] ?? 0.00,
+            'readmission_fee'         => $validated['readmission_fee'] ?? 0.00,
             'is_poor_fund_applicable' => $request->boolean('is_poor_fund_applicable'),
             'is_active'               => $request->boolean('is_active'),
         ]);
@@ -99,7 +101,8 @@ class CourseController extends Controller
             'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
             'duration_value' => 'required|numeric|min:0.5',
             'duration_unit'  => 'required|in:MONTH,YEAR',
-            'admission_fee'  => 'nullable|numeric|min:0',
+            'admission_fee'   => 'nullable|numeric|min:0',
+            'readmission_fee' => 'nullable|numeric|min:0',
         ]);
 
         $course->update([
@@ -108,6 +111,7 @@ class CourseController extends Controller
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],
             'admission_fee'           => $validated['admission_fee'] ?? $course->admission_fee,
+            'readmission_fee'         => $validated['readmission_fee'] ?? $course->readmission_fee,
             'is_poor_fund_applicable' => $request->boolean('is_poor_fund_applicable'),
             'is_active'               => $request->boolean('is_active'),
         ]);

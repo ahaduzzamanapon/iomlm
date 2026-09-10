@@ -10,9 +10,15 @@ class Course extends Model
 
     protected $casts = [
         'admission_fee'             => 'float',
+        'readmission_fee'           => 'float',
         'is_poor_fund_applicable'   => 'boolean',
         'is_active'                 => 'boolean',
     ];
+
+    public function readmissions()
+    {
+        return $this->hasMany(Readmission::class, 'course_id');
+    }
 
     public function scopePoorFundApplicable($query)
     {

@@ -144,6 +144,51 @@ class AccountingService
     }
 
     /**
+     * Auto-generate Re-admission Fee Invoice.
+     */
+    public static function createReadmissionInvoice(Student $student, \App\Models\Readmission $readmission, float $feeOverride = 0.00): Invoice
+    {
+        $course = $readmission->course;
+        $batch  = $readmission->toBatch ?? $readmission->fromBatch;
+        $feeRate = $feeOverride > 0
+            ? $feeOverride
+            : (float)($readmission->readmission_fee > 0
+                ? $readmission->readmission_fee
+                : ($course?->readmission_fee ?: ($batch?->admission_fee ?: ($course?->admission_fee ?: 0.00))));
+
+        $invNo = 'INV-READM-' . date('Ymd') . '-' . rand(1000, 9999);
+        $courseName   = $course?->name ?? 'Course';
+        $batchName    = $batch?->name ?? 'New Batch';
+        $semesterName = $readmission->semester?->name ?? 'Semester';
+        $isFree       = ($feeRate <= 0);
+
+        $invoice = Invoice::create([
+            'invoice_no'     => $invNo,
+            'student_id'     => $student->id,
+            'enrollment_id'  => $readmission->enrollment_id,
+            'category'       => 'READMISSION',
+            'title'          => "Re-admission Fee — {$courseName} ({$batchName}, {$semesterName})",
+            'amount'         => $feeRate,
+            'discount'       => 0.00,
+            'payable_amount' => $feeRate,
+            'paid_amount'    => $isFree ? 0.00 : 0.00,
+            'due_amount'     => $isFree ? 0.00 : $feeRate,
+            'status'         => $isFree ? 'PAID' : 'UNPAID',
+            'due_date'       => $isFree ? null : Carbon::now()->addDays(7),
+            'source_type'    => \App\Models\Readmission::class,
+            'source_id'      => $readmission->id,
+            'created_by'     => auth()->id(),
+        ]);
+
+        $readmission->update([
+            'invoice_id'      => $invoice->id,
+            'readmission_fee' => $feeRate,
+        ]);
+
+        return $invoice;
+    }
+
+    /**
      * Auto-generate Semester Fee Invoice.
      * If the student has an approved waiver with a package, uses the package total.
      */

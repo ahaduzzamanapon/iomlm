@@ -383,11 +383,17 @@
             </div>
 
             {{-- ── 5. Exams & Results ── --}}
-            @php $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.promotions*','admin.final-marks*'); @endphp
+            @php 
+                $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.readmissions*','admin.promotions*','admin.final-marks*'); 
+                try { $readmissionPending = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch(\Exception) { $readmissionPending = 0; }
+            @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $examsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                     <i class="fa-solid fa-file-signature"></i>
                     Exams &amp; Results
+                    @if($readmissionPending > 0)
+                        <span class="nav-badge" style="margin-left:auto;margin-right:6px;background:#dc2626">{{ $readmissionPending }}</span>
+                    @endif
                     <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
                 </div>
                 <div class="tree-children {{ $examsActive ? 'open' : '' }}">
@@ -402,6 +408,11 @@
                     <a href="{{ route('admin.retakes.index') }}" class="nav-item {{ request()->routeIs('admin.retakes*') ? 'active' : '' }}">
                         <i class="fa-solid fa-rotate-left"></i>
                         Retakes
+                    </a>
+                    <a href="{{ route('admin.readmissions.index') }}" class="nav-item {{ request()->routeIs('admin.readmissions*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-user-clock"></i>
+                        Re-admissions (রি-এডমিশন)
+                        @if($readmissionPending > 0)<span class="nav-badge" style="background:#dc2626">{{ $readmissionPending }}</span>@endif
                     </a>
                     <a href="{{ route('admin.promotions.index') }}" class="nav-item {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
                         <i class="fa-solid fa-arrow-trend-up"></i>
