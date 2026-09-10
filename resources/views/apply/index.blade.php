@@ -215,9 +215,11 @@
                         <i class="fa-solid fa-gift"></i> পুওর ফান্ড / ওয়েভার কোড আছে? (ঐচ্ছিক)
                     </label>
                     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                        <input type="text" id="waiver_code_input" name="waiver_code" value="{{ old('waiver_code') }}" placeholder="যেমন: POOR-2026-0001" style="text-transform:uppercase;max-width:220px">
+                        <input type="text" id="waiver_code_input" name="waiver_code" value="{{ old('waiver_code') }}" placeholder="যেমন: POOR-2026-0001" style="text-transform:uppercase;max-width:200px">
                         <button type="button" class="btn-outline-sm" onclick="applyWaiverCode()" style="padding:8px 14px;cursor:pointer">যাচাই করুন</button>
-                        <a href="/poor-fund" target="_blank" style="font-size:12px;color:#047857;text-decoration:underline">পুওর ফান্ড আবেদন ↗</a>
+                        <a href="{{ route('poor_fund.admission') }}" target="_blank" style="font-size:12px;color:#047857;font-weight:600;text-decoration:underline">ভর্তি ফি মওকুফ ↗</a>
+                        <span style="color:#cbd5e1">|</span>
+                        <a href="{{ route('poor_fund.tuition') }}" target="_blank" style="font-size:12px;color:#047857;font-weight:600;text-decoration:underline">টিউশন ফি মওকুফ ↗</a>
                     </div>
                     <div id="waiver-status-msg" style="font-size:12px;margin-top:6px;font-weight:600"></div>
                 </div>

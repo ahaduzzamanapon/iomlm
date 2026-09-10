@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class WaiverApplicationController extends Controller
 {
-    public function show()
+    public function show(Request $request, ?string $type = null)
     {
         try {
             $divisions = Division::orderBy('name')->get();
@@ -23,7 +23,34 @@ class WaiverApplicationController extends Controller
             $courses = collect();
         }
 
-        return view('public.poor_fund', compact('divisions', 'courses'));
+        // Determine active waiver type
+        $routeName = $request->route()?->getName();
+        $queryType = strtolower(trim((string) $request->query('type', '')));
+
+        if ($routeName === 'poor_fund.admission' || $type === 'admission' || in_array($queryType, ['admission', 'admission-fee', 'admission_fee'])) {
+            $activeType = 'admission';
+        } elseif ($routeName === 'poor_fund.tuition' || $routeName === 'poor_fund.monthly' || in_array($type, ['tuition', 'monthly']) || in_array($queryType, ['tuition', 'monthly', 'tuition-fee', 'monthly-fee'])) {
+            $activeType = 'tuition';
+        } else {
+            $activeType = 'both';
+        }
+
+        return view('public.poor_fund', compact('divisions', 'courses', 'activeType'));
+    }
+
+    public function showAdmission(Request $request)
+    {
+        return $this->show($request, 'admission');
+    }
+
+    public function showTuition(Request $request)
+    {
+        return $this->show($request, 'tuition');
+    }
+
+    public function showBoth(Request $request)
+    {
+        return $this->show($request, 'both');
     }
 
     public function store(Request $request)

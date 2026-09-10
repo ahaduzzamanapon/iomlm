@@ -35,6 +35,10 @@ Route::get('/api/districts', [\App\Http\Controllers\Public\AdmissionFormControll
 
 // ── Public Poor Fund / Waiver Form ────────────────────────────────────
 Route::get('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'show'])->name('poor_fund.show');
+Route::get('/poor-fund/admission', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showAdmission'])->name('poor_fund.admission');
+Route::get('/poor-fund/tuition', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.tuition');
+Route::get('/poor-fund/monthly', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.monthly');
+Route::get('/poor-fund/both', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showBoth'])->name('poor_fund.both');
 Route::post('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store'])->name('poor_fund.store');
 Route::get('/poor-fund/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('poor_fund.success');
 Route::get('/api/waiver-lookup', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'lookup'])->name('api.waiver-lookup');

@@ -7,6 +7,7 @@
     <title>Online Poor Fund Application — Islamic Online Madrasah</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     <style>
     html, body { width: 100%; max-width: 100vw; overflow-x: hidden; }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -22,7 +23,8 @@
         --text: #1e293b;
         --muted: #64748b;
     }
-    body { font-family: 'Kalpurush', 'Inter', 'Noto Sans Bengali', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+    body, input, select, textarea, button { font-family: 'Kalpurush', 'Inter', 'Noto Sans Bengali', sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
 
     /* Top Nav */
     .nav-bar { background: #064e3b; color: #fff; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #047857; flex-wrap: wrap; gap: 10px; }
@@ -37,6 +39,45 @@
     .instruction-card p { margin-bottom: 10px; }
     .instruction-card p:last-child { margin-bottom: 0; }
     .note-tag { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: 8px; font-weight: 600; margin-top: 12px; font-size: 12px; }
+
+    /* 3 Type Switcher Tabs */
+    .type-switcher {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    .type-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-size: 13.5px;
+        font-weight: 700;
+        text-decoration: none;
+        color: #064e3b;
+        background: #ffffff;
+        border: 1.5px solid #a7f3d0;
+        box-shadow: 0 2px 6px rgba(4, 120, 87, 0.08);
+        transition: all .2s ease;
+    }
+    .type-tab:hover {
+        background: #ecfdf5;
+        border-color: #34d399;
+        color: #022c22;
+        transform: translateY(-1px);
+    }
+    .type-tab.active {
+        background: linear-gradient(135deg, #047857 0%, #064e3b 100%);
+        color: #ffffff !important;
+        border-color: #047857;
+        box-shadow: 0 4px 14px rgba(4, 120, 87, 0.32);
+    }
+    .type-tab.active i {
+        color: #fbbf24;
+    }
 
     /* Form card */
     .form-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.04); overflow: hidden; width: 100%; }
@@ -111,7 +152,7 @@
         </div>
     </div>
 
-    @if($errors->any())
+    @if(isset($errors) && $errors->any())
     <div class="alert-error">
         <strong>অনুরোধ: অনুগ্রহ করে নিচের ভুলগুলো সংশোধন করুন:</strong>
         <ul style="margin-top:6px;margin-left:18px">
@@ -120,10 +161,44 @@
     </div>
     @endif
 
+    @php
+        $activeType = $activeType ?? 'both';
+    @endphp
+
+    {{-- 3 Dedicated Links Switcher --}}
+    <div class="type-switcher">
+        <a href="{{ route('poor_fund.admission') }}" class="type-tab {{ $activeType === 'admission' ? 'active' : '' }}">
+            <i class="fa-solid fa-graduation-cap"></i> ১. শুধুমাত্র ভর্তি ফি কমানো
+        </a>
+        <a href="{{ route('poor_fund.tuition') }}" class="type-tab {{ $activeType === 'tuition' ? 'active' : '' }}">
+            <i class="fa-solid fa-book-open-reader"></i> ২. শুধুমাত্র টিউশন ফি কমানো
+        </a>
+        <a href="{{ route('poor_fund.both') }}" class="type-tab {{ $activeType === 'both' ? 'active' : '' }}">
+            <i class="fa-solid fa-layer-group"></i> ৩. উভয় ফি কমানোর আবেদন (সকল)
+        </a>
+    </div>
+
     <div class="form-card">
         <div class="form-header">
-            <h1>Poor Fund Apply Form (পুওর ফান্ড আবেদনপত্র)</h1>
-            <p>সবগুলো তথ্যই আল্লাহর সন্তুষ্টির জন্য সঠিক ও নির্ভুলভাবে পূরণ করুন। আবেদন গোপন রাখা হবে।</p>
+            @if($activeType === 'admission')
+                <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:20px;font-size:12.5px;font-weight:700;margin-bottom:8px;">
+                    <i class="fa-solid fa-graduation-cap"></i> শুধুমাত্র ভর্তি ফি মওকুফ
+                </div>
+                <h1>ভর্তি ফি কমানোর আবেদন ফরম (Admission Fee Waiver)</h1>
+                <p>দরিদ্র, এতিম ও অসচ্ছল শিক্ষার্থীদের ভর্তি ফি কমানোর অনলাইন আবেদন। তথ্য গোপন রাখা হবে।</p>
+            @elseif($activeType === 'tuition')
+                <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:20px;font-size:12.5px;font-weight:700;margin-bottom:8px;">
+                    <i class="fa-solid fa-book-open-reader"></i> শুধুমাত্র টিউশন / মাসিক ফি মওকুফ
+                </div>
+                <h1>টিউশন ফি কমানোর আবেদন ফরম (Tuition Fee Waiver)</h1>
+                <p>দরিদ্র ও অসচ্ছল শিক্ষার্থীদের মাসিক সেমিস্টার/টিউশন ফি কমানোর অনলাইন আবেদন। তথ্য গোপন রাখা হবে।</p>
+            @else
+                <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 14px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:20px;font-size:12.5px;font-weight:700;margin-bottom:8px;">
+                    <i class="fa-solid fa-hand-holding-heart"></i> পুওর ফান্ড ও ওয়েভার তহবিল
+                </div>
+                <h1>Poor Fund Apply Form (পুওর ফান্ড আবেদনপত্র)</h1>
+                <p>সবগুলো তথ্যই আল্লাহর সন্তুষ্টির জন্য সঠিক ও নির্ভুলভাবে পূরণ করুন। আবেদন গোপন রাখা হবে।</p>
+            @endif
         </div>
 
         <form method="POST" action="{{ route('poor_fund.store') }}" id="poorFundForm">
@@ -323,23 +398,42 @@
                 <fieldset class="fieldset-sec">
                     <legend class="legend-title">৫. পুওর ফান্ড আবেদনের বিবরণ (Waiver Amount)</legend>
 
+                    @php
+                        $selectedReason = old('apply_reason_type');
+                        if (!$selectedReason) {
+                            if ($activeType === 'admission') {
+                                $selectedReason = 'Admission Fee';
+                            } elseif ($activeType === 'tuition') {
+                                $selectedReason = 'Monthly Fee';
+                            } else {
+                                $selectedReason = 'Both';
+                            }
+                        }
+                    @endphp
+
                     <div class="form-group">
                         <label>আপনি যে জন্য পুওর ফান্ডে আবেদন করতে চাচ্ছেন <span class="req">*</span></label>
                         <select name="apply_reason_type" id="apply_reason_type" onchange="toggleFeeFields(this.value)" required>
-                            <option value="Both" {{ old('apply_reason_type') == 'Both' ? 'selected' : '' }}>ভর্তি ফি ও মাসিক সেমিস্টার ফি উভয়ই (Both)</option>
-                            <option value="Admission Fee" {{ old('apply_reason_type') == 'Admission Fee' ? 'selected' : '' }}>শুধুমাত্র ভর্তি ফি (Admission Fee Only)</option>
-                            <option value="Monthly Fee" {{ old('apply_reason_type') == 'Monthly Fee' ? 'selected' : '' }}>শুধুমাত্র মাসিক ফি (Monthly Fee Only)</option>
+                            @if($activeType === 'admission')
+                                <option value="Admission Fee" selected>শুধুমাত্র ভর্তি ফি (Admission Fee Only)</option>
+                            @elseif($activeType === 'tuition')
+                                <option value="Monthly Fee" selected>শুধুমাত্র মাসিক / টিউশন ফি (Monthly Fee Only)</option>
+                            @else
+                                <option value="Both" {{ $selectedReason === 'Both' ? 'selected' : '' }}>ভর্তি ফি ও মাসিক সেমিস্টার ফি উভয়ই (Both)</option>
+                                <option value="Admission Fee" {{ $selectedReason === 'Admission Fee' ? 'selected' : '' }}>শুধুমাত্র ভর্তি ফি (Admission Fee Only)</option>
+                                <option value="Monthly Fee" {{ $selectedReason === 'Monthly Fee' ? 'selected' : '' }}>শুধুমাত্র মাসিক ফি (Monthly Fee Only)</option>
+                            @endif
                         </select>
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group" id="admission-fee-group">
+                        <div class="form-group" id="admission-fee-group" style="{{ $activeType === 'tuition' ? 'display:none' : '' }}">
                             <label>IOM এর ভর্তি ফি কত টাকা প্রদান করা সুবিধাজনক?</label>
-                            <input type="number" name="convenient_admission_fee" value="{{ old('convenient_admission_fee', 0) }}" placeholder="e.g. 500">
+                            <input type="number" name="convenient_admission_fee" id="convenient_admission_fee" value="{{ old('convenient_admission_fee', 0) }}" placeholder="e.g. 500">
                         </div>
-                        <div class="form-group" id="monthly-fee-group">
+                        <div class="form-group" id="monthly-fee-group" style="{{ $activeType === 'admission' ? 'display:none' : '' }}">
                             <label>IOM এর মাসিক সেমিস্টার ফি কত টাকা প্রদান করা সুবিধাজনক?</label>
-                            <input type="number" name="convenient_monthly_fee" value="{{ old('convenient_monthly_fee', 0) }}" placeholder="e.g. 300">
+                            <input type="number" name="convenient_monthly_fee" id="convenient_monthly_fee" value="{{ old('convenient_monthly_fee', 0) }}" placeholder="e.g. 300">
                         </div>
                     </div>
                 </fieldset>
@@ -384,17 +478,30 @@ function toggleRoll(isStudent) {
 function toggleFeeFields(type) {
     const adm = document.getElementById('admission-fee-group');
     const mth = document.getElementById('monthly-fee-group');
+    if (!adm || !mth) return;
+
     if (type === 'Admission Fee') {
         adm.style.display = 'block';
         mth.style.display = 'none';
+        const mthInp = document.getElementById('convenient_monthly_fee');
+        if (mthInp && !mthInp.value) mthInp.value = '0';
     } else if (type === 'Monthly Fee') {
         adm.style.display = 'none';
         mth.style.display = 'block';
+        const admInp = document.getElementById('convenient_admission_fee');
+        if (admInp && !admInp.value) admInp.value = '0';
     } else {
         adm.style.display = 'block';
         mth.style.display = 'block';
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const sel = document.getElementById('apply_reason_type');
+    if (sel) {
+        toggleFeeFields(sel.value);
+    }
+});
 </script>
 </body>
 </html>
