@@ -8,6 +8,10 @@ class Student extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'date_of_birth' => 'date',
+    ];
+
     // ── Relationships ───────────────────────────────────────────────────
     public function user()
     {

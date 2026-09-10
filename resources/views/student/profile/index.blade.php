@@ -108,7 +108,19 @@
                 <div class="form-row-3" style="margin-top:12px">
                     <div class="form-group">
                         <label>জন্ম তারিখ <span class="text-danger">*</span></label>
-                        <input type="date" name="date_of_birth" class="form-control" value="{{ old('date_of_birth', $student->date_of_birth?->format('Y-m-d') ?? $student->date_of_birth) }}" required>
+                        @php
+                            $dobVal = old('date_of_birth');
+                            if (!$dobVal && !empty($student->date_of_birth)) {
+                                try {
+                                    $dobVal = ($student->date_of_birth instanceof \DateTimeInterface)
+                                        ? $student->date_of_birth->format('Y-m-d')
+                                        : \Carbon\Carbon::parse($student->date_of_birth)->format('Y-m-d');
+                                } catch (\Throwable $e) {
+                                    $dobVal = (string) $student->date_of_birth;
+                                }
+                            }
+                        @endphp
+                        <input type="date" name="date_of_birth" class="form-control" value="{{ $dobVal }}" required>
                     </div>
                     <div class="form-group">
                         <label>রক্তের গ্রুপ <span class="text-danger">*</span></label>
