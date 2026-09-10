@@ -581,14 +581,145 @@
                 @endif
             </div>
             <div class="topbar-right">
+                @php
+                    try { $notifPendingAdmissions = \App\Models\AdmissionForm::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingAdmissions = 0; }
+                    try { $notifPendingWaivers = \App\Models\WaiverApplication::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingWaivers = 0; }
+                    try { $notifPendingTransfers = \App\Models\CourseTransfer::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingTransfers = 0; }
+                    try { $notifPendingReadmissions = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingReadmissions = 0; }
+                    try { $notifPendingSupport = \App\Models\SupportTicket::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingSupport = 0; }
+                    $notifTotalActions = $notifPendingAdmissions + $notifPendingWaivers + $notifPendingTransfers + $notifPendingReadmissions + $notifPendingSupport;
+                    try { $recentNotifs = \App\Models\SentNotification::latest()->take(4)->get(); } catch (\Throwable) { $recentNotifs = collect(); }
+                @endphp
                 <div class="dropdown">
-                    <button class="topbar-btn" onclick="toggleDropdown('adminNotif')" title="Notifications">
+                    <button class="topbar-btn" onclick="toggleDropdown('adminNotif')" title="নোটিফিকেশন ও অ্যাকশন সেন্টার" style="position:relative">
                         <i class="fa-solid fa-bell"></i>
-                        <span class="notif-dot"></span>
+                        @if($notifTotalActions > 0)
+                            <span style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:#ffffff;font-size:10px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:16px;line-height:1.2;text-align:center;box-shadow:0 2px 4px rgba(239,68,68,0.4);border:2px solid #ffffff">
+                                {{ $notifTotalActions > 99 ? '99+' : $notifTotalActions }}
+                            </span>
+                        @elseif($recentNotifs->isNotEmpty())
+                            <span class="notif-dot"></span>
+                        @endif
                     </button>
-                    <div class="dropdown-menu" id="adminNotif" style="min-width:260px;right:0">
-                        <div style="padding:11px 14px;border-bottom:1px solid var(--card-border);font-size:13px;font-weight:600">Notifications</div>
-                        <div style="padding:20px;text-align:center;font-size:12px;color:var(--text-muted)">No new notifications</div>
+                    <div class="dropdown-menu" id="adminNotif" style="min-width:340px;max-width:380px;right:0;padding:0;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.18);border:1px solid #e2e8f0">
+                        <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc">
+                            <div style="font-weight:700;font-size:13.5px;color:#0f172a;display:flex;align-items:center;gap:7px">
+                                <i class="fa-solid fa-bell" style="color:#047857"></i> নোটিফিকেশন ও অ্যাকশন সেন্টার
+                            </div>
+                            @if($notifTotalActions > 0)
+                                <span class="badge badge-danger no-dot" style="font-size:10.5px;padding:3px 8px;font-weight:700">
+                                    {{ $notifTotalActions }}টি অপেক্ষমাণ
+                                </span>
+                            @endif
+                        </div>
+
+                        <div style="max-height:380px;overflow-y:auto">
+                            @if($notifTotalActions > 0)
+                                <div style="padding:8px 16px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;background:#fff">
+                                    জরুরি অ্যাকশন ও অনুমোদন
+                                </div>
+
+                                @if($notifPendingAdmissions > 0)
+                                    <a href="{{ route('admin.admissions.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
+                                        <div style="width:34px;height:34px;border-radius:8px;background:#ecfdf5;color:#047857;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                            <i class="fa-solid fa-user-plus"></i>
+                                        </div>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:13px;font-weight:600;color:#0f172a">নতুন ভর্তি আবেদন</div>
+                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingAdmissions }}টি ফর্ম পর্যালোচনার অপেক্ষায়</div>
+                                        </div>
+                                        <span class="badge badge-danger no-dot" style="font-size:10px;padding:2px 6px">অনুমোদন</span>
+                                    </a>
+                                @endif
+
+                                @if($notifPendingWaivers > 0)
+                                    <a href="{{ route('admin.waiver-applications.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">
+                                        <div style="width:34px;height:34px;border-radius:8px;background:#f5f3ff;color:#8b5cf6;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                                        </div>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:13px;font-weight:600;color:#0f172a">পুওর ফান্ড / ওয়েভার</div>
+                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingWaivers }}টি আবেদন সিদ্ধান্তহীন</div>
+                                        </div>
+                                        <span class="badge badge-pending no-dot" style="font-size:10px;padding:2px 6px">সিদ্ধান্ত</span>
+                                    </a>
+                                @endif
+
+                                @if($notifPendingTransfers > 0)
+                                    <a href="{{ route('admin.course-transfers.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">
+                                        <div style="width:34px;height:34px;border-radius:8px;background:#f0f9ff;color:#0284c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                                        </div>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:13px;font-weight:600;color:#0f172a">কোর্স পরিবর্তন আবেদন</div>
+                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingTransfers }}টি ট্রান্সফার অপেক্ষমাণ</div>
+                                        </div>
+                                        <span class="badge badge-scheduled no-dot" style="font-size:10px;padding:2px 6px">ট্রান্সফার</span>
+                                    </a>
+                                @endif
+
+                                @if($notifPendingReadmissions > 0)
+                                    <a href="{{ route('admin.readmissions.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
+                                        <div style="width:34px;height:34px;border-radius:8px;background:#fef2f2;color:#dc2626;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                            <i class="fa-solid fa-user-clock"></i>
+                                        </div>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:13px;font-weight:600;color:#0f172a">রি-এডমিশন আবেদন</div>
+                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingReadmissions }}টি আবেদন অপেক্ষমাণ</div>
+                                        </div>
+                                        <span class="badge badge-danger no-dot" style="font-size:10px;padding:2px 6px">রি-এডমিট</span>
+                                    </a>
+                                @endif
+
+                                @if($notifPendingSupport > 0)
+                                    <a href="{{ route('admin.support-tickets.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='transparent'">
+                                        <div style="width:34px;height:34px;border-radius:8px;background:#fffbeb;color:#d97706;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                            <i class="fa-solid fa-headset"></i>
+                                        </div>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:13px;font-weight:600;color:#0f172a">সাপোর্ট টিকেট</div>
+                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingSupport }}টি নতুন টিকেট এসেছে</div>
+                                        </div>
+                                        <span class="badge badge-pending no-dot" style="font-size:10px;padding:2px 6px">টিকেট</span>
+                                    </a>
+                                @endif
+                            @endif
+
+                            @if($recentNotifs->isNotEmpty())
+                                <div style="padding:8px 16px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;background:#f8fafc">
+                                    সাম্প্রতিক ব্রডকাস্ট
+                                </div>
+                                @foreach($recentNotifs as $rn)
+                                    <a href="{{ route('admin.notifications.index') }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                                        <div style="width:28px;height:28px;border-radius:50%;background:#ecfdf5;color:#047857;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;margin-top:2px">
+                                            <i class="fa-solid fa-bullhorn"></i>
+                                        </div>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:12.5px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $rn->title }}</div>
+                                            <div style="font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ Str::limit($rn->message, 45) }}</div>
+                                            <div style="font-size:10px;color:#94a3b8;margin-top:2px">{{ $rn->created_at?->diffForHumans() ?? '—' }}</div>
+                                        </div>
+                                    </a>
+                                @endforeach
+                            @endif
+
+                            @if($notifTotalActions === 0 && $recentNotifs->isEmpty())
+                                <div style="padding:32px 16px;text-align:center;color:#64748b">
+                                    <i class="fa-solid fa-circle-check" style="font-size:28px;color:#10b981;margin-bottom:8px;display:block"></i>
+                                    <div style="font-size:13px;font-weight:600;color:#0f172a">সবকিছু হালনাগাদ আছে!</div>
+                                    <div style="font-size:11.5px;color:#94a3b8;margin-top:3px">বর্তমানে কোনো অপেক্ষমাণ অ্যাকশন বা নোটিফিকেশন নেই।</div>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div style="padding:10px 16px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:12px">
+                            <a href="{{ route('admin.notifications.index') }}" style="color:#047857;font-weight:600;text-decoration:none">
+                                <i class="fa-solid fa-paper-plane" style="margin-right:4px"></i> নতুন নোটিফিকেশন পাঠান
+                            </a>
+                            <a href="{{ route('admin.notices.index') }}" style="color:#64748b;text-decoration:none">
+                                নোটিশ বোর্ড →
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="dropdown">
