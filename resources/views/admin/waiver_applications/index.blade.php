@@ -51,74 +51,76 @@
     </div>
 
     <!-- Table -->
-    <div class="card" style="overflow:visible">
-        <table>
-            <thead>
-                <tr>
-                    <th>App No</th>
-                    <th>Applicant Name</th>
-                    <th>Phone / Email</th>
-                    <th>Monthly Income</th>
-                    <th>Reason / Fee Convenience</th>
-                    <th>Status</th>
-                    <th style="text-align:right">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($applications as $app)
-                <tr>
-                    <td><span class="badge badge-scheduled no-dot"><strong>{{ $app->application_no }}</strong></span></td>
-                    <td class="td-primary">
-                        <a href="{{ route('admin.waiver-applications.show', $app) }}" style="font-weight:600;color:var(--blue)">{{ $app->full_name }}</a>
-                        @if($app->is_abroad) <span class="badge badge-secondary no-dot" style="font-size:10px">Abroad</span> @endif
-                    </td>
-                    <td>
-                        <div>{{ $app->phone }}</div>
-                        <div class="td-muted" style="font-size:11px">{{ $app->email }}</div>
-                    </td>
-                    <td><strong>৳ {{ number_format($app->monthly_income, 0) }}</strong></td>
-                    <td>
-                        @php
-                            $applyLabel = match($app->apply_for ?? '') {
-                                'ADMISSION_FEE' => 'Admission Fee Only',
-                                'TUITION_FEE'   => 'Tuition Fee Only',
-                                'BOTH'          => 'Both (Admission + Tuition)',
-                                default         => $app->apply_reason_type ?? '—',
-                            };
-                        @endphp
-                        <span class="badge badge-secondary no-dot">{{ $applyLabel }}</span>
-                        <div class="td-muted" style="font-size:11px">
-                            @if($app->convenient_admission_fee) Adm: ৳{{ $app->convenient_admission_fee }} @endif
-                            @if($app->convenient_monthly_fee) Monthly: ৳{{ $app->convenient_monthly_fee }} @endif
-                        </div>
-                    </td>
-                    <td>
-                        @if($app->status === 'PENDING')
-                            <span class="badge badge-pending">⏳ Pending Review</span>
-                        @elseif($app->status === 'APPROVED')
+    <div class="card">
+        <div class="table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+            <table style="min-width:1050px;width:100%">
+                <thead>
+                    <tr>
+                        <th style="white-space:nowrap">App No</th>
+                        <th style="white-space:nowrap">Applicant Name</th>
+                        <th style="white-space:nowrap">Phone / Email</th>
+                        <th style="white-space:nowrap">Monthly Income</th>
+                        <th style="white-space:nowrap">Reason / Fee Convenience</th>
+                        <th style="white-space:nowrap">Status</th>
+                        <th style="text-align:right;white-space:nowrap">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($applications as $app)
+                    <tr>
+                        <td style="white-space:nowrap"><span class="badge badge-scheduled no-dot"><strong>{{ $app->application_no }}</strong></span></td>
+                        <td class="td-primary">
+                            <a href="{{ route('admin.waiver-applications.show', $app) }}" style="font-weight:600;color:var(--blue)">{{ $app->full_name }}</a>
+                            @if($app->is_abroad) <span class="badge badge-secondary no-dot" style="font-size:10px">Abroad</span> @endif
+                        </td>
+                        <td>
+                            <div>{{ $app->phone }}</div>
+                            <div class="td-muted" style="font-size:11px">{{ $app->email }}</div>
+                        </td>
+                        <td style="white-space:nowrap"><strong>৳ {{ number_format($app->monthly_income, 0) }}</strong></td>
+                        <td>
                             @php
-                                $parts = [];
-                                if ($app->approved_admission_fee !== null) $parts[] = 'Adm: ৳'.number_format($app->approved_admission_fee, 0);
-                                if ($app->approved_package_id) $parts[] = 'Pkg: #'.$app->approved_package_id;
-                                if (empty($parts) && $app->approved_discount_value > 0) {
-                                    $parts[] = ($app->discount_type === 'FIXED' ? '৳'.number_format($app->approved_discount_value,0).' Fixed' : $app->approved_discount_value.'%');
-                                }
-                                $discDisplay = implode(' | ', $parts) ?: '—';
+                                $applyLabel = match($app->apply_for ?? '') {
+                                    'ADMISSION_FEE' => 'Admission Fee Only',
+                                    'TUITION_FEE'   => 'Tuition Fee Only',
+                                    'BOTH'          => 'Both (Admission + Tuition)',
+                                    default         => $app->apply_reason_type ?? '—',
+                                };
                             @endphp
-                            <span class="badge badge-active">Approved ({{ $discDisplay }})</span>
-                        @else
-                            <span class="badge badge-danger">Rejected</span>
-                        @endif
-                    </td>
-                    <td style="text-align:right">
-                        <a href="{{ route('admin.waiver-applications.show', $app) }}" class="btn btn-outline btn-sm">Review App →</a>
-                    </td>
-                </tr>
-                @empty
-                <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No poor fund applications found matching filter.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                            <span class="badge badge-secondary no-dot">{{ $applyLabel }}</span>
+                            <div class="td-muted" style="font-size:11px">
+                                @if($app->convenient_admission_fee) Adm: ৳{{ $app->convenient_admission_fee }} @endif
+                                @if($app->convenient_monthly_fee) Monthly: ৳{{ $app->convenient_monthly_fee }} @endif
+                            </div>
+                        </td>
+                        <td style="white-space:nowrap">
+                            @if($app->status === 'PENDING')
+                                <span class="badge badge-pending">⏳ Pending Review</span>
+                            @elseif($app->status === 'APPROVED')
+                                @php
+                                    $parts = [];
+                                    if ($app->approved_admission_fee !== null) $parts[] = 'Adm: ৳'.number_format($app->approved_admission_fee, 0);
+                                    if ($app->approved_package_id) $parts[] = 'Pkg: #'.$app->approved_package_id;
+                                    if (empty($parts) && $app->approved_discount_value > 0) {
+                                        $parts[] = ($app->discount_type === 'FIXED' ? '৳'.number_format($app->approved_discount_value,0).' Fixed' : $app->approved_discount_value.'%');
+                                    }
+                                    $discDisplay = implode(' | ', $parts) ?: '—';
+                                @endphp
+                                <span class="badge badge-active">Approved ({{ $discDisplay }})</span>
+                            @else
+                                <span class="badge badge-danger">Rejected</span>
+                            @endif
+                        </td>
+                        <td style="text-align:right;white-space:nowrap">
+                            <a href="{{ route('admin.waiver-applications.show', $app) }}" class="btn btn-outline btn-sm">Review App →</a>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No poor fund applications found matching filter.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
         <div style="padding:16px">
             {{ $applications->links() }}
         </div>
