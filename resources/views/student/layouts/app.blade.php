@@ -344,32 +344,96 @@ const lf=document.getElementById('lp-flash');
 if(lf) setTimeout(()=>{ lf.style.opacity='0'; lf.style.transition='opacity .4s'; setTimeout(()=>lf.remove(),400); },4000);
 
 /* ── Global Page Loader Logic ── */
-function showLoader(){
-    const loader = document.getElementById('globalPageLoader');
-    const bar = document.getElementById('globalTopBar');
-    if(loader) loader.classList.add('active');
-    if(bar) bar.classList.add('active');
+let loaderTimer = null;
+
+function isDownloadUrl(url) {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    const downloadKeywords = [
+        'download', 'export', 'template', 'sample', 'backup', 'aiken',
+        '.csv', '.xlsx', '.xls', '.pdf', '.zip', '.txt', '.doc', '.docx'
+    ];
+    return downloadKeywords.some(kw => lower.includes(kw));
 }
+
+function showLoader(isDownload = false){
+    const bar = document.getElementById('globalTopBar');
+    const loader = document.getElementById('globalPageLoader');
+    
+    if (loaderTimer) {
+        clearTimeout(loaderTimer);
+        loaderTimer = null;
+    }
+    
+    if (isDownload) {
+        if (bar) bar.classList.add('active');
+        loaderTimer = setTimeout(hideLoader, 2500);
+        return;
+    }
+    
+    if (loader) loader.classList.add('active');
+    if (bar) bar.classList.add('active');
+    
+    // Safety auto-dismiss: unfreeze after 3.5s so downloads or slow requests never permanently block the screen
+    loaderTimer = setTimeout(hideLoader, 3500);
+}
+
 function hideLoader(){
+    if (loaderTimer) {
+        clearTimeout(loaderTimer);
+        loaderTimer = null;
+    }
     const loader = document.getElementById('globalPageLoader');
     const bar = document.getElementById('globalTopBar');
     if(loader) loader.classList.remove('active');
     if(bar) bar.classList.remove('active');
 }
-window.addEventListener('pageshow', function(){ hideLoader(); });
+
+window.addEventListener('pageshow', hideLoader);
+window.addEventListener('focus', function(){ setTimeout(hideLoader, 500); });
+window.addEventListener('blur', function(){ setTimeout(hideLoader, 1500); });
+
 document.addEventListener('DOMContentLoaded', function(){
     hideLoader();
+    
+    const loaderEl = document.getElementById('globalPageLoader');
+    if (loaderEl) {
+        loaderEl.style.cursor = 'pointer';
+        loaderEl.setAttribute('title', 'ক্লিক করে বন্ধ করুন (Click to dismiss)');
+        loaderEl.addEventListener('click', hideLoader);
+    }
+    
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape') hideLoader();
+    });
+    
     document.addEventListener('click', function(e){
         const a = e.target.closest('a');
-        if(a && a.href && !a.href.startsWith('javascript:') && !a.href.includes('#') && a.target !== '_blank' && !a.hasAttribute('download')){
-            showLoader();
+        if (!a || !a.href || a.href.startsWith('javascript:') || a.href.includes('#') || a.target !== '_blank') {
+            return;
         }
+        if (a.hasAttribute('download') || a.hasAttribute('data-no-loader') || a.classList.contains('no-loader') || a.closest('.no-loader')) {
+            showLoader(true);
+            return;
+        }
+        if (isDownloadUrl(a.href)) {
+            showLoader(true);
+            return;
+        }
+        showLoader(false);
     });
+    
     document.addEventListener('submit', function(e){
         if (e.defaultPrevented || e.target.hasAttribute('data-ajax') || e.target.closest('.modal') || e.target.closest('.modal-overlay')) {
             return;
         }
-        showLoader();
+        const action = e.target.getAttribute('action') || '';
+        const isExportForm = isDownloadUrl(action) || e.target.querySelector('button[name="export"], input[name="export"], [data-action="export"]');
+        if (isExportForm) {
+            showLoader(true);
+            return;
+        }
+        showLoader(false);
     });
 });
 if(window.fetch){
