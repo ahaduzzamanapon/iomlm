@@ -1,6 +1,28 @@
 <x-admin-layout>
     <x-slot name="title">Courses & Setup</x-slot>
 
+    <style>
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-menu {
+            position: absolute;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+            min-width: 175px;
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+            padding: 4px 0;
+        }
+        .dropdown-menu.open { display: block !important; }
+        .table-wrapper:has(.dropdown-menu.open),
+        .card:has(.dropdown-menu.open),
+        td:has(.dropdown-menu.open) {
+            overflow: visible !important;
+        }
+    </style>
+
     <div class="page-header">
         <div class="page-header-left">
             <h1>Courses Management</h1>
@@ -69,13 +91,30 @@
                                 <span class="badge badge-secondary">Inactive</span>
                             @endif
                         </td>
-                        <td style="text-align:right;white-space:nowrap">
-                            <button class="btn btn-outline btn-sm" onclick='openEditCourseModal(@json($course))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-                            <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm">Configure</a>
-                            <form method="POST" action="{{ route('admin.courses.destroy', $course) }}" style="display:inline" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই কোর্সটি মুছে ফেলতে চান?')">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-ghost btn-sm text-red" title="কোর্স ডিলিট করুন"><i class="fa-solid fa-trash"></i> Delete</button>
-                            </form>
+                        <td style="text-align:right">
+                            <div class="dropdown" style="display:inline-block;position:relative">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="toggleDropdown('cact-{{ $course->id }}')" style="gap:6px;display:inline-flex;align-items:center;font-family:'Kalpurush',sans-serif">
+                                    অ্যাকশন (Actions) <i class="fa-solid fa-chevron-down" style="font-size:10px"></i>
+                                </button>
+                                <div class="dropdown-menu" id="cact-{{ $course->id }}" style="right:0;min-width:170px;text-align:left;font-family:'Kalpurush',sans-serif">
+                                    <a href="{{ route('admin.courses.show', $course) }}" class="dropdown-item">
+                                        <i class="fa-solid fa-sliders" style="color:#047857;width:16px"></i>
+                                        Configure (কনফিগার)
+                                    </a>
+                                    <button type="button" class="dropdown-item" onclick='openEditCourseModal(@json($course));toggleDropdown("cact-{{ $course->id }}")'>
+                                        <i class="fa-solid fa-pen-to-square" style="color:#2563eb;width:16px"></i>
+                                        Edit (এডিট)
+                                    </button>
+                                    <div class="dropdown-divider"></div>
+                                    <form method="POST" action="{{ route('admin.courses.destroy', $course) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই কোর্সটি মুছে ফেলতে চান?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="dropdown-item danger" style="width:100%;border:none;background:none;text-align:left;color:#dc2626">
+                                            <i class="fa-solid fa-trash" style="color:#dc2626;width:16px"></i>
+                                            Delete (ডিলিট)
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     @empty
