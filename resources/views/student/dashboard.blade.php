@@ -40,6 +40,65 @@
         </div>
     </div>
 
+    {{-- Semester & Monthly Fees Overview Widget --}}
+    @if(isset($dashboardMonthly) && count($dashboardMonthly) > 0)
+    <div class="card" style="margin-bottom:24px;border-top:4px solid #2563eb;font-family:'Kalpurush',sans-serif">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+                <span class="card-title" style="display:flex;align-items:center;gap:8px;font-size:15px">
+                    <i class="fa-solid fa-receipt" style="color:#2563eb"></i> {{ $runningSemesterName }} — মাসিক ফি কিস্তির বিবরণ (Monthly Fees)
+                </span>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+                    চলতি সেমিস্টারের মাসভিত্তিক কিস্তির অবস্থা ও পরিশোধের বিবরণ
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                @if($runningSemDue > 0)
+                    <span class="badge badge-danger no-dot" style="font-size:12px;padding:4px 10px">
+                        বকেয়া: ৳{{ number_format($runningSemDue, 0) }}
+                    </span>
+                @else
+                    <span class="badge badge-success no-dot" style="font-size:12px;padding:4px 10px">
+                        সব পরিশোধিত (Cleared)
+                    </span>
+                @endif
+                <a href="{{ route('student.fees.index') }}" class="btn btn-primary btn-sm" style="font-size:12px">
+                    ফি পোর্টাল দেখুন →
+                </a>
+            </div>
+        </div>
+        <div style="padding:14px 18px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px">
+                @foreach($dashboardMonthly as $dm)
+                    @php
+                        $badgeStyle = match($dm['status']) {
+                            'PAID' => 'background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;',
+                            'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
+                            default => 'background:#fff1f2;color:#be123c;border:1px solid #fecdd3;',
+                        };
+                        $badgeText = match($dm['status']) {
+                            'PAID' => 'পরিশোধিত',
+                            'PARTIAL' => 'আংশিক',
+                            default => 'অপরিশোধিত',
+                        };
+                    @endphp
+                    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                            <strong style="font-size:13px;color:#1e293b">{{ $dm['name'] }}</strong>
+                            <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:12px;{{ $badgeStyle }}">
+                                {{ $badgeText }}
+                            </span>
+                        </div>
+                        <div style="font-size:12px;color:#64748b;font-weight:600">
+                            ফি: ৳{{ number_format($dm['rate'], 0) }}
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Central Notice Board Widget --}}
     @if(isset($notices) && $notices->count() > 0)
     <div class="card" style="margin-bottom:24px;border-top:4px solid #047857">

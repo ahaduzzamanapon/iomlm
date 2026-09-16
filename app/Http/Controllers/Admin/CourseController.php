@@ -171,7 +171,27 @@ class CourseController extends Controller
 
     public function destroy(Course $course)
     {
-        $course->delete();
-        return redirect()->route('admin.courses.index')->with('success', 'Course deleted.');
+        $batchesCount = \App\Models\Batch::where('course_id', $course->id)->count();
+        $enrollmentsCount = \App\Models\Enrollment::where('course_id', $course->id)->count();
+        $admissionsCount = \App\Models\AdmissionForm::where('interested_course_id', $course->id)->count();
+
+        $reasons = [];
+        if ($batchesCount > 0) $reasons[] = "{$batchesCount}টি ব্যাচ বিদ্যমান";
+        if ($enrollmentsCount > 0) $reasons[] = "{$enrollmentsCount} জন শিক্ষার্থী এনরোল করা আছে";
+        if ($admissionsCount > 0) $reasons[] = "ভর্তি আবেদন জমা রয়েছে";
+
+        if (!empty($reasons)) {
+            $reasonText = implode(', ', $reasons);
+            return back()->with('error', "এই কোর্সটি ডিলিট করা যাবে না কারণ এতে: {$reasonText}। আপনি চাইলে কোর্সটিকে নিষ্ক্রিয় (Inactive) করে রাখতে পারেন।");
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($course) {
+            \App\Models\CourseSubjectMap::where('course_id', $course->id)->delete();
+            \App\Models\CourseFeePackage::where('course_id', $course->id)->delete();
+            \App\Models\Semester::where('course_id', $course->id)->delete();
+            $course->delete();
+        });
+
+        return redirect()->route('admin.courses.index')->with('success', 'কোর্সটি সফলভাবে মুছে ফেলা হয়েছে।');
     }
 }

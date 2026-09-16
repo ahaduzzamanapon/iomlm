@@ -69,9 +69,13 @@
                                 <span class="badge badge-secondary">Inactive</span>
                             @endif
                         </td>
-                        <td style="text-align:right">
+                        <td style="text-align:right;white-space:nowrap">
                             <button class="btn btn-outline btn-sm" onclick='openEditCourseModal(@json($course))'><i class="fa-solid fa-pen-to-square"></i> Edit</button>
                             <a href="{{ route('admin.courses.show', $course) }}" class="btn btn-outline btn-sm">Configure</a>
+                            <form method="POST" action="{{ route('admin.courses.destroy', $course) }}" style="display:inline" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই কোর্সটি মুছে ফেলতে চান?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-ghost btn-sm text-red" title="কোর্স ডিলিট করুন"><i class="fa-solid fa-trash"></i> Delete</button>
+                            </form>
                         </td>
                     </tr>
                     @empty

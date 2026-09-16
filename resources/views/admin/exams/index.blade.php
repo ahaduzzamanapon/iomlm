@@ -33,7 +33,21 @@
                         <td class="td-primary"><strong>{{ $exam->subject->name ?? '—' }}</strong></td>
                         <td>{{ $exam->title }}</td>
                         <td><span class="badge badge-secondary no-dot">{{ $exam->type }}</span></td>
-                        <td class="td-muted">{{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }} ({{ $exam->duration_minutes ?? 90 }}m)</td>
+                        <td class="td-muted">
+                            <div><i class="fa-solid fa-calendar-day"></i> {{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }}
+                                @if($exam->end_date && $exam->end_date != $exam->exam_date)
+                                    - {{ \Carbon\Carbon::parse($exam->end_date)->format('d M Y') }}
+                                @endif
+                            </div>
+                            <div style="font-size:11px;color:var(--text-muted)">
+                                @if($exam->start_time)
+                                    <i class="fa-regular fa-clock"></i> {{ date('h:i A', strtotime($exam->start_time)) }}
+                                    @if($exam->end_time) - {{ date('h:i A', strtotime($exam->end_time)) }} @endif
+                                    &middot;
+                                @endif
+                                ⏱️ {{ $exam->duration_minutes ?? 90 }} মি.
+                            </div>
+                        </td>
                         <td>{{ $exam->full_marks }} / {{ $exam->pass_marks }}</td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right">
@@ -85,8 +99,30 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Exam Date <span class="required">*</span></label>
+                            <label>শুরুর তারিখ (Start Date) <span class="required">*</span></label>
                             <input type="date" name="exam_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>শেষের তারিখ (End Date)</label>
+                            <input type="date" name="end_date" class="form-control" value="{{ date('Y-m-d') }}">
+                        </div>
+                        <div class="form-group">
+                            <label>সময়কাল (মিনিট) <span class="required">*</span></label>
+                            <input type="number" name="duration_minutes" class="form-control" value="60" min="5" max="360" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>শুরুর সময় (Start Time)</label>
+                            <input type="time" name="start_time" class="form-control" value="10:00">
+                        </div>
+                        <div class="form-group">
+                            <label>শেষের সময় (End Time)</label>
+                            <input type="time" name="end_time" class="form-control" value="12:00">
                         </div>
                     </div>
 
@@ -99,6 +135,11 @@
                             <label>Pass Marks <span class="required">*</span></label>
                             <input type="number" name="pass_marks" class="form-control" value="40" required>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>নেগেটিভ মার্কিং (MCQ প্রতি ভুল উত্তরের জন্য কর্তন)</label>
+                        <input type="number" step="0.25" name="negative_marking" class="form-control" value="0.00" min="0" max="5">
                     </div>
                 </div>
                 <div class="modal-footer">

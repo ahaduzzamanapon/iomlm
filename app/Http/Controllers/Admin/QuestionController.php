@@ -12,28 +12,50 @@ class QuestionController extends Controller
 {
     public function index(Request $request)
     {
-        $search    = $request->query('search');
-        $subjectId = $request->query('subject_id');
+        $search     = $request->query('search');
+        $subjectId  = $request->query('subject_id');
+        $difficulty = $request->query('difficulty');
+        $examType   = $request->query('exam_type');
+        $sourceTag  = $request->query('source_tag');
         $typeFilter = $request->query('type'); // MCQ or WRITTEN
 
         $query = Question::with('subject')->latest();
 
         if ($search) {
-            $query->where('question_text', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search) {
+                $q->where('question_text', 'like', "%{$search}%")
+                  ->orWhere('source_tag', 'like', "%{$search}%");
+            });
         }
 
         if ($subjectId) {
             $query->where('subject_id', $subjectId);
         }
 
+        if ($difficulty) {
+            $query->where('difficulty', $difficulty);
+        }
+
+        if ($examType) {
+            $query->where('exam_type', $examType);
+        }
+
+        if ($sourceTag) {
+            $query->where('source_tag', $sourceTag);
+        }
+
         if ($typeFilter) {
             $query->where('question_type', strtoupper($typeFilter));
         }
 
-        $questions = $query->paginate(20)->withQueryString();
-        $subjects  = Subject::where('is_active', true)->orderBy('name')->get();
+        $questions  = $query->paginate(20)->withQueryString();
+        $subjects   = Subject::where('is_active', true)->orderBy('name')->get();
+        $sourceTags = Question::whereNotNull('source_tag')->where('source_tag', '!=', '')->distinct()->pluck('source_tag')->filter()->values();
+        $examTypes  = ['CT', 'MID', 'FINAL', 'QUIZ', 'PRACTICE'];
 
-        return view('admin.questions.index', compact('questions', 'subjects', 'search', 'subjectId', 'typeFilter'));
+        return view('admin.questions.index', compact(
+            'questions', 'subjects', 'search', 'subjectId', 'difficulty', 'examType', 'sourceTag', 'typeFilter', 'sourceTags', 'examTypes'
+        ));
     }
 
     public function store(Request $request)
@@ -50,6 +72,9 @@ class QuestionController extends Controller
                 'option_d'          => 'required|string',
                 'correct_option_id' => 'required|in:a,b,c,d',
                 'difficulty'        => 'required|in:easy,medium,hard',
+                'exam_type'         => 'nullable|string|max:50',
+                'source_tag'        => 'nullable|string|max:150',
+                'explanation'       => 'nullable|string',
             ]);
 
             $options = [
@@ -66,12 +91,17 @@ class QuestionController extends Controller
                 'options'           => $options,
                 'correct_option_id' => $validated['correct_option_id'],
                 'difficulty'        => $validated['difficulty'],
+                'exam_type'         => $validated['exam_type'] ?? null,
+                'source_tag'        => $validated['source_tag'] ?? null,
+                'explanation'       => $validated['explanation'] ?? null,
             ]);
         } else {
             $validated = $request->validate([
                 'subject_id'    => 'nullable|exists:subjects,id',
                 'question_text' => 'required|string',
                 'difficulty'    => 'required|in:easy,medium,hard',
+                'exam_type'     => 'nullable|string|max:50',
+                'source_tag'    => 'nullable|string|max:150',
             ]);
 
             Question::create([
@@ -79,12 +109,161 @@ class QuestionController extends Controller
                 'subject_id'        => $validated['subject_id'] ?? null,
                 'question_text'     => $validated['question_text'],
                 'difficulty'        => $validated['difficulty'],
+                'exam_type'         => $validated['exam_type'] ?? null,
+                'source_tag'        => $validated['source_tag'] ?? null,
                 'options'           => [],
                 'correct_option_id' => null,
             ]);
         }
 
         return back()->with('success', 'নতুন প্রশ্ন সফলভাবে যুক্ত হয়েছে।');
+    }
+
+    public function update(Request $request, Question $question)
+    {
+        $oldCorrect = $question->correct_option_id;
+
+        if ($question->question_type === 'MCQ') {
+            $validated = $request->validate([
+                'subject_id'        => 'nullable|exists:subjects,id',
+                'question_text'     => 'required|string',
+                'option_a'          => 'required|string',
+                'option_b'          => 'required|string',
+                'option_c'          => 'required|string',
+                'option_d'          => 'required|string',
+                'correct_option_id' => 'required|in:a,b,c,d',
+                'difficulty'        => 'required|in:easy,medium,hard',
+                'exam_type'         => 'nullable|string|max:50',
+                'source_tag'        => 'nullable|string|max:150',
+                'explanation'       => 'nullable|string',
+            ]);
+
+            $options = [
+                ['id' => 'a', 'text' => $validated['option_a']],
+                ['id' => 'b', 'text' => $validated['option_b']],
+                ['id' => 'c', 'text' => $validated['option_c']],
+                ['id' => 'd', 'text' => $validated['option_d']],
+            ];
+
+            $question->update([
+                'subject_id'        => $validated['subject_id'] ?? null,
+                'question_text'     => $validated['question_text'],
+                'options'           => $options,
+                'correct_option_id' => $validated['correct_option_id'],
+                'difficulty'        => $validated['difficulty'],
+                'exam_type'         => $validated['exam_type'] ?? null,
+                'source_tag'        => $validated['source_tag'] ?? null,
+                'explanation'       => $validated['explanation'] ?? null,
+            ]);
+        } else {
+            $validated = $request->validate([
+                'subject_id'    => 'nullable|exists:subjects,id',
+                'question_text' => 'required|string',
+                'difficulty'    => 'required|in:easy,medium,hard',
+                'exam_type'     => 'nullable|string|max:50',
+                'source_tag'    => 'nullable|string|max:150',
+            ]);
+
+            $question->update([
+                'subject_id'    => $validated['subject_id'] ?? null,
+                'question_text' => $validated['question_text'],
+                'difficulty'    => $validated['difficulty'],
+                'exam_type'     => $validated['exam_type'] ?? null,
+                'source_tag'    => $validated['source_tag'] ?? null,
+            ]);
+        }
+
+        $msg = 'প্রশ্নটি সফলভাবে আপডেট করা হয়েছে।';
+
+        // Auto regrade if requested or if correct option changed and requested
+        if ($question->question_type === 'MCQ' && $request->boolean('auto_regrade')) {
+            $regradedCount = $this->performRegrade($question);
+            $msg .= " এবং {$regradedCount}টি পরীক্ষার খাতা সফলভাবে পুনরায় মূল্যায়ন (Re-graded) করা হয়েছে।";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    public function regrade(Request $request, Question $question)
+    {
+        if ($question->question_type !== 'MCQ') {
+            return back()->with('error', 'শুধুমাত্র MCQ প্রশ্নের ক্ষেত্রে স্বয়ংক্রিয় রি-গ্রেডিং প্রযোজ্য।');
+        }
+
+        $regradedCount = $this->performRegrade($question);
+
+        return back()->with('success', "প্রশ্নটির সঠিক উত্তর ({$question->correct_option_id}) অনুযায়ী {$regradedCount}টি পরীক্ষার খাতা সফলভাবে রি-গ্রেড (Re-graded) করা হয়েছে।");
+    }
+
+    protected function performRegrade(Question $question): int
+    {
+        $answers = \App\Models\ExamAnswer::where('question_id', $question->id)->with('submission')->get();
+        if ($answers->isEmpty()) {
+            return 0;
+        }
+
+        $correctOption = strtolower($question->correct_option_id ?? '');
+        $affectedSubmissions = [];
+
+        foreach ($answers as $ans) {
+            $sub = $ans->submission;
+            if (!$sub) continue;
+
+            $exam = \App\Models\Exam::find($sub->exam_id);
+            if (!$exam) continue;
+
+            $eq = \App\Models\ExamQuestion::where('exam_id', $exam->id)->where('question_id', $question->id)->first();
+            $qMarks = $eq ? (float) $eq->marks : 1.0;
+
+            $selected = strtolower($ans->selected_option_id ?? '');
+            $isCorrect = ($selected !== '' && $selected === $correctOption);
+            $marksAwarded = $isCorrect ? $qMarks : 0.00;
+
+            $ans->update([
+                'is_correct'    => $isCorrect ? 1 : 0,
+                'marks_awarded' => $marksAwarded,
+            ]);
+
+            $affectedSubmissions[$sub->id] = $exam;
+        }
+
+        foreach ($affectedSubmissions as $subId => $exam) {
+            $submission = \App\Models\ExamSubmission::find($subId);
+            if (!$submission) continue;
+
+            $allAnswers = \App\Models\ExamAnswer::where('submission_id', $subId)->get();
+
+            $correctCount = 0;
+            $wrongCount   = 0;
+            $totalEarned  = 0.00;
+
+            foreach ($allAnswers as $ans) {
+                if ($ans->is_correct) {
+                    $correctCount++;
+                    $totalEarned += (float) $ans->marks_awarded;
+                } else {
+                    if ($ans->selected_option_id !== null && $ans->selected_option_id !== '') {
+                        $wrongCount++;
+                    }
+                    if ($ans->teacher_marks !== null) {
+                        $totalEarned += (float) $ans->teacher_marks;
+                    }
+                }
+            }
+
+            $negativeRate     = (float) ($exam->negative_marking ?? 0.00);
+            $negativeDeducted = $wrongCount * $negativeRate;
+            $finalScore       = max(0, $totalEarned - $negativeDeducted);
+
+            $submission->update([
+                'total_score'             => $finalScore,
+                'correct_count'           => $correctCount,
+                'wrong_count'             => $wrongCount,
+                'negative_marks_deducted' => $negativeDeducted,
+            ]);
+        }
+
+        return count($affectedSubmissions);
     }
 
     /**
@@ -94,12 +273,17 @@ class QuestionController extends Controller
     public function bulkUpload(Request $request)
     {
         $request->validate([
-            'csv_file' => 'nullable|file|mimes:csv,txt',
+            'csv_file'   => 'nullable|file|mimes:csv,txt',
+            'exam_type'  => 'nullable|string|max:50',
+            'source_tag' => 'nullable|string|max:150',
         ]);
 
         if (!$request->hasFile('csv_file')) {
             return back()->with('error', 'অনুগ্রহ করে একটি CSV ফাইল নির্বাচন করুন।');
         }
+
+        $defaultExamType  = $request->input('exam_type');
+        $defaultSourceTag = $request->input('source_tag');
 
         $path = $request->file('csv_file')->getRealPath();
         $file = fopen($path, 'r');
@@ -144,6 +328,9 @@ class QuestionController extends Controller
                 $difficulty = 'easy';
             }
 
+            $rowExamType  = !empty($data['exam_type']) ? trim($data['exam_type']) : $defaultExamType;
+            $rowSourceTag = !empty($data['source_tag']) ? trim($data['source_tag']) : $defaultSourceTag;
+
             if ($type === 'WRITTEN') {
                 Question::firstOrCreate(
                     ['question_text' => $questionText],
@@ -151,6 +338,8 @@ class QuestionController extends Controller
                         'question_type'     => 'WRITTEN',
                         'subject_id'        => $subject?->id,
                         'difficulty'        => $difficulty,
+                        'exam_type'         => $rowExamType,
+                        'source_tag'        => $rowSourceTag,
                         'options'           => [],
                         'correct_option_id' => null,
                     ]
@@ -182,6 +371,8 @@ class QuestionController extends Controller
                         'options'           => $options,
                         'correct_option_id' => $correct,
                         'difficulty'        => $difficulty,
+                        'exam_type'         => $rowExamType,
+                        'source_tag'        => $rowSourceTag,
                     ]
                 );
             }
@@ -218,20 +409,20 @@ class QuestionController extends Controller
             fputcsv($file, [
                 'question_type', 'subject_code', 'question_text',
                 'option_a', 'option_b', 'option_c', 'option_d',
-                'correct_option', 'difficulty',
+                'correct_option', 'difficulty', 'exam_type', 'source_tag',
             ]);
             // MCQ example
             fputcsv($file, [
                 'MCQ', 'BUS101',
                 'ব্যবস্থাপনার জনক (Father of Modern Management) কাকে বলা হয়?',
                 'হেনরি ফেওল', 'এফ. ডব্লিউ. টেলর', 'এলটন মেও', 'পিটার ড্রাকার',
-                'a', 'easy',
+                'a', 'easy', 'MID', 'Chapter 1 Set A',
             ]);
             // Written example
             fputcsv($file, [
                 'WRITTEN', 'BUS101',
                 'ব্যবস্থাপনার প্রকৃতি ও বৈশিষ্ট্য সম্পর্কে আলোচনা করো।',
-                '', '', '', '', '', 'medium',
+                '', '', '', '', '', 'medium', 'FINAL', 'Final Prep 2024',
             ]);
             fclose($file);
         };
@@ -251,6 +442,8 @@ class QuestionController extends Controller
         ];
 
         $content = "\xEF\xBB\xBF" // UTF-8 BOM
+            . "// TAG: Set A - 2024\r\n"
+            . "// EXAM_TYPE: MID\r\n"
             . "ব্যবস্থাপনার জনক (Father of Modern Management) কাকে বলা হয়?\r\n"
             . "A. হেনরি ফেওল\r\n"
             . "B. এফ. ডব্লিউ. টেলর\r\n"
@@ -296,6 +489,8 @@ class QuestionController extends Controller
             'aiken_text' => 'nullable|string',
             'subject_id' => 'nullable|exists:subjects,id',
             'difficulty' => 'nullable|in:easy,medium,hard',
+            'exam_type'  => 'nullable|string|max:50',
+            'source_tag' => 'nullable|string|max:150',
         ]);
 
         $content = '';
@@ -314,6 +509,9 @@ class QuestionController extends Controller
         if (!in_array($difficulty, ['easy', 'medium', 'hard'])) {
             $difficulty = 'easy';
         }
+
+        $defaultExamType  = $request->input('exam_type');
+        $defaultSourceTag = $request->input('source_tag');
 
         $defaultSubject = $subjectId ? Subject::find($subjectId) : null;
 
@@ -357,6 +555,9 @@ class QuestionController extends Controller
                 ];
             }
 
+            $itemExamType  = $item['exam_type'] ?? $defaultExamType;
+            $itemSourceTag = $item['source_tag'] ?? $defaultSourceTag;
+
             $question = Question::firstOrCreate(
                 [
                     'question_text' => $qText,
@@ -369,6 +570,8 @@ class QuestionController extends Controller
                     'options'           => $options,
                     'correct_option_id' => strtolower($ansLetter),
                     'difficulty'        => $difficulty,
+                    'exam_type'         => $itemExamType,
+                    'source_tag'        => $itemSourceTag,
                     'explanation'       => $item['explanation'] ?? null,
                     'is_active'         => true,
                 ]
@@ -406,6 +609,8 @@ class QuestionController extends Controller
         $parsedQuestions    = [];
         $currentQuestion    = null;
         $currentSubjectCode = null;
+        $currentSourceTag   = null;
+        $currentExamType    = null;
 
         foreach ($lines as $rawLine) {
             $line = trim($rawLine);
@@ -417,6 +622,18 @@ class QuestionController extends Controller
             // Metadata: // SUBJECT: BUS101 or [SUBJECT: BUS101]
             if (preg_match('/^(?:\/\/|#|\[)\s*(?:SUBJECT|বিষয়)\s*[:=]\s*([^\]\r\n]+)(?:\])?$/iu', $line, $m)) {
                 $currentSubjectCode = trim($m[1]);
+                continue;
+            }
+
+            // Metadata: // TAG: Set A or // SOURCE: Chapter 1
+            if (preg_match('/^(?:\/\/|#|\[)\s*(?:TAG|SOURCE|সেট|ট্যাগ)\s*[:=]\s*([^\]\r\n]+)(?:\])?$/iu', $line, $m)) {
+                $currentSourceTag = trim($m[1]);
+                continue;
+            }
+
+            // Metadata: // EXAM_TYPE: MID or // TYPE: FINAL
+            if (preg_match('/^(?:\/\/|#|\[)\s*(?:EXAM_TYPE|EXAM|পরীক্ষার_ধরন)\s*[:=]\s*([^\]\r\n]+)(?:\])?$/iu', $line, $m)) {
+                $currentExamType = trim($m[1]);
                 continue;
             }
 
@@ -457,6 +674,8 @@ class QuestionController extends Controller
                     'options'       => [],
                     'answer'        => null,
                     'subject_code'  => $currentSubjectCode,
+                    'source_tag'    => $currentSourceTag,
+                    'exam_type'     => $currentExamType,
                     'explanation'   => null,
                 ];
             } else {

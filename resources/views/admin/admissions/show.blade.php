@@ -28,8 +28,17 @@
                 <span class="card-title">Applicant & Application Details</span>
                 <div>
                     <span class="badge badge-{{ $admission->source === 'PUBLIC' ? 'scheduled' : 'active' }} no-dot">Source: {{ $admission->source }}</span>
-                    @if($admission->student->student_code)
-                        <span class="badge badge-active no-dot">Student ID: {{ $admission->student->student_code }}</span>
+                    @if($admission->student && $admission->student->student_code)
+                        <a href="{{ route('admin.students.impersonate', $admission->student) }}" 
+                           class="badge badge-active no-dot" 
+                           style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#ecfdf5;border:1px solid #10b981;color:#047857;text-decoration:none;padding:5px 12px;border-radius:20px;font-weight:700;transition:all 0.2s;"
+                           title="শিক্ষার্থী হিসেবে সরাসরি লগইন করুন (Click to login as this student)"
+                           onmouseover="this.style.background='#047857';this.style.color='#fff';"
+                           onmouseout="this.style.background='#ecfdf5';this.style.color='#047857';">
+                            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                            <span>Student ID: <strong>{{ $admission->student->student_code }}</strong></span>
+                            <span style="font-size:11px;background:rgba(4,120,87,0.15);padding:1px 6px;border-radius:10px;">লগইন ↗</span>
+                        </a>
                     @endif
                 </div>
             </div>

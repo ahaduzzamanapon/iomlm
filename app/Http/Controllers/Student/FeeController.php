@@ -175,20 +175,62 @@ class FeeController extends Controller
 
         if ($courseType === 'SEMESTER_BASED') {
             // 1. All course semesters (whether invoiced or not)
+            $totalSemMonths = 6;
+            if ($course && $course->semesters->count() > 0) {
+                $totalCourseMonths = $course->duration_unit === 'YEAR' ? $course->duration_value * 12 : $course->duration_value;
+                $totalSemMonths = max(1, (int) round($totalCourseMonths / $course->semesters->count()));
+            }
+
             foreach ($allSemesters as $sem) {
                 $semInvoices = collect($invoicesBySemester[$sem->id] ?? []);
                 $firstUnpaid = $semInvoices->where('due_amount', '>', 0)->first() ?? $semInvoices->first();
                 $isRunning   = $runningSemester && $sem->id == $runningSemester->id;
 
+                $semPayable = (float) $semInvoices->sum('payable_amount');
+                $semPaid    = (float) $semInvoices->sum('paid_amount');
+                $monthlyRate = $totalSemMonths > 0 && $semPayable > 0 ? round($semPayable / $totalSemMonths, 2) : 500;
+
+                $pool = $semPaid;
+                $monthlyItems = [];
+                $bnDigits = ['0'=>'০','1'=>'১','2'=>'২','3'=>'৩','4'=>'৪','5'=>'৫','6'=>'৬','7'=>'৭','8'=>'৮','9'=>'৯'];
+                for ($m = 1; $m <= $totalSemMonths; $m++) {
+                    $mBn = strtr((string)$m, $bnDigits);
+                    if ($pool >= $monthlyRate) {
+                        $mStatus = 'PAID';
+                        $mPaidAmt = $monthlyRate;
+                        $mDueAmt = 0;
+                        $pool -= $monthlyRate;
+                    } elseif ($pool > 0) {
+                        $mStatus = 'PARTIAL';
+                        $mPaidAmt = $pool;
+                        $mDueAmt = $monthlyRate - $pool;
+                        $pool = 0;
+                    } else {
+                        $mStatus = 'UNPAID';
+                        $mPaidAmt = 0;
+                        $mDueAmt = $monthlyRate;
+                    }
+
+                    $monthlyItems[] = [
+                        'month_no' => $m,
+                        'label'    => "{$mBn}ম মাস (Month {$m})",
+                        'payable'  => $monthlyRate,
+                        'paid'     => $mPaidAmt,
+                        'due'      => $mDueAmt,
+                        'status'   => $mStatus,
+                    ];
+                }
+
                 $semesterBreakdown->push([
-                    'label'      => $sem->name . ($isRunning ? ' 🔵' : ''),
-                    'category'   => 'SEMESTER',
-                    'isRunning'  => $isRunning,
-                    'payable'    => $semInvoices->sum('payable_amount'),
-                    'paid'       => $semInvoices->sum('paid_amount'),
-                    'due'        => $semInvoices->sum('due_amount'),
-                    'hasInvoice' => $semInvoices->isNotEmpty(),
-                    'invoice'    => $firstUnpaid,
+                    'label'        => $sem->name . ($isRunning ? ' 🔵' : ''),
+                    'category'     => 'SEMESTER',
+                    'isRunning'    => $isRunning,
+                    'payable'      => $semPayable,
+                    'paid'         => $semPaid,
+                    'due'          => (float) $semInvoices->sum('due_amount'),
+                    'hasInvoice'   => $semInvoices->isNotEmpty(),
+                    'invoice'      => $firstUnpaid,
+                    'monthlyItems' => $monthlyItems,
                 ]);
             }
         } else {

@@ -21,6 +21,16 @@ class Question extends Model
         return $this->belongsTo(Subject::class, 'subject_id');
     }
 
+    public function examQuestions()
+    {
+        return $this->hasMany(ExamQuestion::class, 'question_id');
+    }
+
+    public function examAnswers()
+    {
+        return $this->hasMany(ExamAnswer::class, 'question_id');
+    }
+
     public function isMcq(): bool
     {
         return $this->question_type === 'MCQ';

@@ -74,4 +74,56 @@
             </div>
         </div>
     </div>
+
+    <!-- Online Exam Submissions & Retake Reset -->
+    <div class="card" style="margin-top:24px">
+        <div class="card-header">
+            <span class="card-title"><i class="fa-solid fa-file-signature" style="color:#6366f1"></i> অনলাইন পরীক্ষার খাতা ও পুনরায় সুযোগ (Submissions & Retake Reset)</span>
+            <span class="badge badge-primary no-dot">{{ $exam->submissions->count() }} Submissions</span>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>শিক্ষার্থী</th>
+                        <th>আইডি</th>
+                        <th>প্রাপ্ত স্কোর</th>
+                        <th>সঠিক / ভুল</th>
+                        <th>জমা দেওয়ার সময়</th>
+                        <th>স্ট্যাটাস</th>
+                        <th style="text-align:right">অ্যাকশন</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($exam->submissions as $sub)
+                    <tr>
+                        <td class="td-primary"><strong>{{ $sub->student?->name ?? '—' }}</strong></td>
+                        <td><span style="font-family:monospace;font-weight:700">{{ $sub->student?->student_code ?? $sub->student?->student_id ?? '—' }}</span></td>
+                        <td><strong style="color:#4338ca;font-size:15px">{{ number_format($sub->total_score, 1) }}</strong></td>
+                        <td>
+                            <span style="color:#166534;font-weight:600"><i class="fa-solid fa-check"></i> {{ $sub->correct_count }}</span> /
+                            <span style="color:#991b1b;font-weight:600"><i class="fa-solid fa-xmark"></i> {{ $sub->wrong_count }}</span>
+                        </td>
+                        <td class="td-muted">{{ $sub->submitted_at ? \Carbon\Carbon::parse($sub->submitted_at)->format('d M Y, h:i A') : 'চলমান' }}</td>
+                        <td>
+                            <span class="badge badge-{{ str_contains($sub->status, 'VIOLATION') ? 'danger' : 'active' }} no-dot">
+                                {{ $sub->status }}
+                            </span>
+                        </td>
+                        <td style="text-align:right">
+                            <form method="POST" action="{{ route('admin.exams.submissions.reset', [$exam, $sub]) }}" style="display:inline" onsubmit="return confirm('এই শিক্ষার্থীর পরীক্ষার খাতা মুছে পুনরায় পরীক্ষা দেওয়ার সুযোগ (Retake Reset) দিতে চান?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-outline btn-sm" style="color:#e11d48;border-color:#fecdd3" title="পুনরায় পরীক্ষার সুযোগ দিন">
+                                    <i class="fa-solid fa-rotate-left"></i> পুনরায় সুযোগ দিন (Reset)
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">এখনো কোনো শিক্ষার্থী এই পরীক্ষায় অংশ নেয়নি।</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
 </x-admin-layout>

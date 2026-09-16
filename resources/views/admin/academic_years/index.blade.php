@@ -17,7 +17,35 @@
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
             {{ session('success') }}
         </div>
-    @endif
+    {{-- Academic Year & Session Bengali Clarification Guide --}}
+    <div class="card" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;padding:16px 20px;border-radius:12px;margin-bottom:20px;font-family:'Kalpurush',sans-serif">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+            <div style="width:38px;height:38px;border-radius:8px;background:#059669;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">
+                <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <div style="flex:1">
+                <h3 style="font-size:15px;font-weight:700;color:#065f46;margin:0 0 8px 0">একাডেমিক বর্ষ ও ভর্তি সেশন নির্দেশিকা (Guide)</h3>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:14px;font-size:13px">
+                    <div style="background:#fff;padding:12px 14px;border-radius:8px;border:1px solid #a7f3d0;box-shadow:0 1px 3px rgba(0,0,0,0.03)">
+                        <strong style="color:#065f46;display:flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-calendar-days"></i> ১. একাডেমিক বর্ষ (Academic Year):
+                        </strong>
+                        <div style="margin-top:5px;color:#334155;line-height:1.5">
+                            মাদরাসার পূর্ণ ১২ মাসের শিক্ষা বর্ষ বা ক্যালেন্ডার বছর (যেমন: <strong>২০২৫-২০২৬ শিক্ষাবর্ষ</strong>)। শুরু ও শেষের তারিখ দিয়ে পুরো বছরের শিক্ষা ক্যালেন্ডার নির্ধারণ করা হয়।
+                        </div>
+                    </div>
+                    <div style="background:#fff;padding:12px 14px;border-radius:8px;border:1px solid #a7f3d0;box-shadow:0 1px 3px rgba(0,0,0,0.03)">
+                        <strong style="color:#065f46;display:flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-user-graduate"></i> ২. ভর্তি সেশন (Intake Session):
+                        </strong>
+                        <div style="margin-top:5px;color:#334155;line-height:1.5">
+                            একটি একাডেমিক বর্ষের অধীনে শিক্ষার্থী ভর্তির নির্দিষ্ট সময়কাল বা ইনটেক (যেমন: <strong>স্প্রিং / জানুয়ারি সেশন</strong> অথবা <strong>ফল / জুলাই সেশন</strong>)। প্রতিটি নতুন ব্যাচ একটি নির্দিষ্ট সেশনের অন্তর্ভুক্ত থাকে।
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="card">
         <div class="table-wrapper">

@@ -104,41 +104,72 @@
         </div>
     </div>
 
+    {{-- Course Transfer Guidance Banner --}}
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 18px;margin-bottom:20px;font-family:'Kalpurush',sans-serif">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+            <i class="fa-solid fa-circle-info" style="color:#16a34a;font-size:20px;margin-top:2px"></i>
+            <div style="font-size:13px;color:#166534;line-height:1.6">
+                <strong>কোর্স পরিবর্তন ও স্থানান্তর (Course Transfer) নির্দেশিকা:</strong><br>
+                ১. শিক্ষার্থী এক কোর্স বা ব্যাচ থেকে অন্য কোর্স/ব্যাচে স্থানান্তরের আবেদন করলে এডমিন তা পর্যালোচনা করে টার্গেট ব্যাচ, সেমিস্টার ও ট্রান্সফার ফি নির্ধারণ করে <strong>অনুমোদন (Approve)</strong> করবেন।<br>
+                ২. অনুমোদনের পর নির্ধারিত <strong>স্থানান্তর ফি ইনভয়েস</strong> স্বয়ংক্রিয়ভাবে তৈরি হবে। শিক্ষার্থী অনলাইন/অফলাইনে ফি পরিশোধ করলে বা এডমিন 'পেইড চিহ্নিত' করলে সাথে সাথে নতুন কোর্সে এনরোলমেন্ট সক্রিয় হবে।
+            </div>
+        </div>
+    </div>
+
     {{-- Filters --}}
-    <div class="filter-card-ct">
+    <div class="filter-card-ct" style="display:flex;flex-direction:column;gap:12px">
         <div style="display:flex;gap:6px;flex-wrap:wrap">
             <a href="{{ route('admin.course-transfers.index') }}" class="tab-btn-ct {{ empty($statusFilter) ? 'active' : '' }}">
                 সকল ({{ $totalCount }})
             </a>
-            <a href="{{ route('admin.course-transfers.index', ['status' => 'PENDING', 'to_course_id' => $courseFilter, 'search' => $search]) }}" class="tab-btn-ct {{ $statusFilter === 'PENDING' ? 'active' : '' }}">
+            <a href="{{ route('admin.course-transfers.index', array_merge(request()->query(), ['status' => 'PENDING'])) }}" class="tab-btn-ct {{ $statusFilter === 'PENDING' ? 'active' : '' }}">
                 <i class="fa-solid fa-clock"></i> অপেক্ষমাণ ({{ $pendingCount }})
             </a>
-            <a href="{{ route('admin.course-transfers.index', ['status' => 'APPROVED_PENDING_PAYMENT', 'to_course_id' => $courseFilter, 'search' => $search]) }}" class="tab-btn-ct {{ $statusFilter === 'APPROVED_PENDING_PAYMENT' ? 'active' : '' }}">
+            <a href="{{ route('admin.course-transfers.index', array_merge(request()->query(), ['status' => 'APPROVED_PENDING_PAYMENT'])) }}" class="tab-btn-ct {{ $statusFilter === 'APPROVED_PENDING_PAYMENT' ? 'active' : '' }}">
                 <i class="fa-solid fa-money-bill-wave"></i> ফি বকেয়া ({{ $waitingPaymentCount }})
             </a>
-            <a href="{{ route('admin.course-transfers.index', ['status' => 'COMPLETED', 'to_course_id' => $courseFilter, 'search' => $search]) }}" class="tab-btn-ct {{ $statusFilter === 'COMPLETED' ? 'active' : '' }}">
+            <a href="{{ route('admin.course-transfers.index', array_merge(request()->query(), ['status' => 'COMPLETED'])) }}" class="tab-btn-ct {{ $statusFilter === 'COMPLETED' ? 'active' : '' }}">
                 <i class="fa-solid fa-check-double"></i> সম্পন্ন ({{ $completedCount }})
             </a>
-            <a href="{{ route('admin.course-transfers.index', ['status' => 'REJECTED', 'to_course_id' => $courseFilter, 'search' => $search]) }}" class="tab-btn-ct {{ $statusFilter === 'REJECTED' ? 'active' : '' }}">
+            <a href="{{ route('admin.course-transfers.index', array_merge(request()->query(), ['status' => 'REJECTED'])) }}" class="tab-btn-ct {{ $statusFilter === 'REJECTED' ? 'active' : '' }}">
                 বাতিলকৃত ({{ $rejectedCount }})
             </a>
         </div>
 
-        <form method="GET" action="{{ route('admin.course-transfers.index') }}" style="display:flex;gap:8px;flex:1;min-width:280px">
+        <form method="GET" action="{{ route('admin.course-transfers.index') }}" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             @if($statusFilter)
                 <input type="hidden" name="status" value="{{ $statusFilter }}">
             @endif
-            <select name="to_course_id" class="form-control" style="width:200px" onchange="this.form.submit()">
-                <option value="">সকল টার্গেট কোর্স</option>
+
+            <select name="from_course_id" class="form-control" style="width:190px;font-size:13px" onchange="this.form.submit()">
+                <option value="">সকল বর্তমান কোর্স (From)</option>
+                @foreach($courses as $c)
+                    <option value="{{ $c->id }}" {{ ($fromCourseFilter ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                @endforeach
+            </select>
+
+            <select name="to_course_id" class="form-control" style="width:190px;font-size:13px" onchange="this.form.submit()">
+                <option value="">সকল টার্গেট কোর্স (To)</option>
                 @foreach($courses as $c)
                     <option value="{{ $c->id }}" {{ $courseFilter == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                 @endforeach
             </select>
-            <div class="search-wrap-ct">
+
+            <select name="batch_id" class="form-control" style="width:180px;font-size:13px" onchange="this.form.submit()">
+                <option value="">সকল ব্যাচ (Batch)</option>
+                @foreach($batches as $b)
+                    <option value="{{ $b->id }}" {{ ($batchFilter ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                @endforeach
+            </select>
+
+            <div class="search-wrap-ct" style="flex:1;min-width:200px">
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" name="search" value="{{ $search }}" placeholder="শিক্ষার্থীর নাম, আইডি বা মোবাইল...">
             </div>
-            <button type="submit" class="btn btn-outline btn-sm">খুঁজুন</button>
+            <button type="submit" class="btn btn-primary btn-sm" style="height:38px;padding:0 16px">ফিল্টার</button>
+            @if($search || $courseFilter || ($fromCourseFilter ?? '') || ($batchFilter ?? '') || $statusFilter)
+                <a href="{{ route('admin.course-transfers.index') }}" class="btn btn-outline btn-sm" style="height:38px;display:inline-flex;align-items:center">রিসেট</a>
+            @endif
         </form>
     </div>
 

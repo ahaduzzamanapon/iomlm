@@ -71,6 +71,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::post('command', [\App\Http\Controllers\Admin\CommandRunnerController::class, 'run'])->name('command.run');
 
     Route::resource('students', \App\Http\Controllers\Admin\StudentController::class);
+    Route::get('students/{student}/impersonate', [\App\Http\Controllers\Admin\StudentController::class, 'impersonate'])->name('students.impersonate');
+    Route::get('students/{student}/accounts', [\App\Http\Controllers\Admin\AccountsController::class, 'studentLedger'])->name('students.accounts');
     Route::get('students/{student}/grade-sheet', [\App\Http\Controllers\Admin\StudentController::class, 'printGradeSheet'])->name('students.grade-sheet');
     Route::get('students/{student}/certificate', [\App\Http\Controllers\Admin\StudentController::class, 'printCertificate'])->name('students.certificate');
     Route::get('students/{student}/id-card', [\App\Http\Controllers\Admin\StudentController::class, 'printIdCard'])->name('students.id-card');
@@ -89,12 +91,14 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     // ── Question Bank ────────────────────────────────────────────────
     Route::get('questions/template-download', [\App\Http\Controllers\Admin\QuestionController::class, 'downloadTemplate'])->name('questions.template-download');
     Route::get('questions/aiken-template-download', [\App\Http\Controllers\Admin\QuestionController::class, 'downloadAikenTemplate'])->name('questions.aiken-template-download');
-    Route::resource('questions', \App\Http\Controllers\Admin\QuestionController::class)->only(['index', 'store', 'destroy']);
+    Route::resource('questions', \App\Http\Controllers\Admin\QuestionController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('questions/{question}/regrade', [\App\Http\Controllers\Admin\QuestionController::class, 'regrade'])->name('questions.regrade');
     Route::post('questions/bulk-upload', [\App\Http\Controllers\Admin\QuestionController::class, 'bulkUpload'])->name('questions.bulk-upload');
     Route::post('questions/aiken-upload', [\App\Http\Controllers\Admin\QuestionController::class, 'importAiken'])->name('questions.aiken-upload');
 
     // ── Exams, Results, Retakes, Re-admissions, Promotions ────────────
     Route::resource('exams', \App\Http\Controllers\Admin\ExamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::delete('exams/{exam}/submissions/{submission}', [\App\Http\Controllers\Admin\ExamController::class, 'resetSubmission'])->name('exams.submissions.reset');
     Route::get('retakes', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'index'])->name('retakes.index');
     Route::post('retakes', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'store'])->name('retakes.store');
     Route::patch('retakes/{retake}/approve', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'approve'])->name('retakes.approve');
@@ -128,7 +132,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::get('accounts', [\App\Http\Controllers\Admin\AccountsController::class, 'dashboard'])->name('accounts.dashboard');
     Route::get('accounts/invoices', [\App\Http\Controllers\Admin\AccountsController::class, 'invoices'])->name('accounts.invoices');
     Route::post('accounts/invoices', [\App\Http\Controllers\Admin\AccountsController::class, 'storeInvoice'])->name('accounts.invoices.store');
+    Route::put('accounts/invoices/{invoice}', [\App\Http\Controllers\Admin\AccountsController::class, 'updateInvoice'])->name('accounts.invoices.update');
+    Route::delete('accounts/invoices/{invoice}', [\App\Http\Controllers\Admin\AccountsController::class, 'destroyInvoice'])->name('accounts.invoices.destroy');
     Route::post('accounts/invoices/{invoice}/collect', [\App\Http\Controllers\Admin\AccountsController::class, 'collectPayment'])->name('accounts.invoices.collect');
+    Route::post('accounts/apply-activation-fees', [\App\Http\Controllers\Admin\AccountsController::class, 'applyActivationFees'])->name('accounts.apply-activation-fees');
     Route::get('accounts/fee-structures', [\App\Http\Controllers\Admin\AccountsController::class, 'feeStructures'])->name('accounts.fee-structures');
     Route::post('accounts/fee-structures', [\App\Http\Controllers\Admin\AccountsController::class, 'storeFeeStructure'])->name('accounts.fee-structures.store');
     Route::get('accounts/reports', [\App\Http\Controllers\Admin\AccountsController::class, 'reports'])->name('accounts.reports');
@@ -179,6 +186,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::put('courses/packages/items/{item}', [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'updateItem'])->name('courses.packages.items.update');
     Route::delete('courses/packages/items/{item}', [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'destroyItem'])->name('courses.packages.items.destroy');
     Route::post('courses/{course}/packages/from-template', [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'fromTemplate'])->name('courses.packages.from-template');
+    Route::post('courses/{course}/packages/{package}/clone', [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'clonePackage'])->name('courses.packages.clone');
 
     // ── Public Applications (from /apply form) — now handled via AdmissionForm (source=PUBLIC) ──
     // Admin reviews these from admin/admissions tab=public, no separate controller needed.

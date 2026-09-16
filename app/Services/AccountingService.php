@@ -479,4 +479,106 @@ class AccountingService
             return $payment;
         });
     }
+
+    /**
+     * Apply ৳100 "কোর্স এক্টিভিশন ফি (Course Activation Fee)" for active students whose tuition is unpaid past the 10th.
+     */
+    public static function applyCourseActivationFees(?Carbon $targetDate = null, bool $force = false): array
+    {
+        $now = $targetDate ?: Carbon::now();
+        $day = (int) $now->format('d');
+
+        // Rule: past 10th of the month (i.e. day >= 11), unless forced
+        if ($day <= 10 && !$force) {
+            return [
+                'status'  => 'skipped',
+                'applied' => 0,
+                'message' => 'মাসের ১০ তারিখ পার না হওয়া পর্যন্ত কোর্স এক্টিভিশন ফি প্রযোজ্য নয়। বর্তমান তারিখ: ' . $now->format('d M Y'),
+            ];
+        }
+
+        $monthNameBn = [
+            1 => 'জানুয়ারি', 2 => 'ফেব্রুয়ারি', 3 => 'মার্চ', 4 => 'এপ্রিল',
+            5 => 'মে', 6 => 'জুন', 7 => 'জুলাই', 8 => 'আগস্ট',
+            9 => 'সেপ্টেম্বর', 10 => 'অক্টোবর', 11 => 'নভেম্বর', 12 => 'ডিসেম্বর'
+        ][$now->month] ?? $now->format('F');
+
+        $monthYearTitle = "কোর্স এক্টিভিশন ফি - {$monthNameBn} {$now->year}";
+
+        $activeStudents = Student::where('status', 'ACTIVE')
+            ->whereHas('enrollments', function($q) {
+                $q->where('status', 'ACTIVE');
+            })
+            ->with(['enrollments' => function($q) {
+                $q->where('status', 'ACTIVE')->with('course');
+            }])
+            ->get();
+
+        $appliedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($activeStudents as $student) {
+            // Check if student already has activation fee for this month
+            $alreadyHasActivationFee = Invoice::where('student_id', $student->id)
+                ->where(function($q) use ($now, $monthYearTitle) {
+                    $q->where('title', 'like', "%{$monthYearTitle}%")
+                      ->orWhere(function($sub) use ($now) {
+                          $sub->where('category', 'FINE')
+                              ->whereYear('created_at', $now->year)
+                              ->whereMonth('created_at', $now->month)
+                              ->where('amount', 100.00);
+                      });
+                })
+                ->where('status', '!=', 'CANCELLED')
+                ->exists();
+
+            if ($alreadyHasActivationFee) {
+                $skippedCount++;
+                continue;
+            }
+
+            // Check if student has unpaid tuition / installment due for this month or earlier
+            $hasDue = Invoice::where('student_id', $student->id)
+                ->whereIn('status', ['UNPAID', 'PARTIAL'])
+                ->where('due_amount', '>', 0)
+                ->where(function($q) use ($now) {
+                    $q->whereDate('due_date', '<=', $now->copy()->day(10))
+                      ->orWhereDate('created_at', '<=', $now);
+                })
+                ->exists();
+
+            if (!$hasDue) {
+                $skippedCount++;
+                continue;
+            }
+
+            $activeEnrollment = $student->enrollments->where('status', 'ACTIVE')->first();
+            $invNo = 'INV-ACT-' . $now->format('Ymd') . '-' . rand(1000, 9999);
+
+            Invoice::create([
+                'invoice_no'     => $invNo,
+                'student_id'     => $student->id,
+                'enrollment_id'  => $activeEnrollment?->id,
+                'category'       => 'FINE',
+                'title'          => "{$monthYearTitle} (১০ তারিখের পর ফি বকেয়া থাকায় বিলম্ব এক্টিভিশন চার্জ)",
+                'amount'         => 100.00,
+                'discount'       => 0.00,
+                'payable_amount' => 100.00,
+                'paid_amount'    => 0.00,
+                'due_amount'     => 100.00,
+                'status'         => 'UNPAID',
+                'due_date'       => $now->copy()->endOfMonth(),
+                'created_by'     => auth()->id(),
+            ]);
+
+            $appliedCount++;
+        }
+
+        return [
+            'status'  => 'success',
+            'applied' => $appliedCount,
+            'skipped' => $skippedCount,
+            'message' => "{$appliedCount} জন শিক্ষার্থীর জন্য ১০০ টাকার কোর্স এক্টিভিশন ফি সফলভাবে যুক্ত করা হয়েছে। ({$skippedCount} জন বাদ পড়েছেন)",
+        ];
+    }
 }

@@ -119,6 +119,19 @@
         </div>
     </div>
 
+    {{-- Readmission Policy Guidance Banner --}}
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 18px;margin-bottom:20px;font-family:'Kalpurush',sans-serif">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+            <i class="fa-solid fa-circle-info" style="color:#2563eb;font-size:20px;margin-top:2px"></i>
+            <div style="font-size:13px;color:#1e40af;line-height:1.6">
+                <strong>রি-এডমিশন ও ব্যাচ পরিবর্তন নীতিমালা নির্দেশিকা:</strong><br>
+                ১. কোনো শিক্ষার্থী সেমিস্টার ফাইনাল পরীক্ষায় <strong>২ টির বেশি বিষয়ে অনুত্তীর্ণ (Failed &gt; 2 Subjects)</strong> হলে একাডেমিক রেগুলেশন অনুযায়ী রি-এডমিশন তালিকায় অন্তর্ভুক্ত হয়।<br>
+                ২. <strong>অনুমোদন (Approve):</strong> শিক্ষার্থীকে পরবর্তী জুনিয়র ব্যাচে স্থানান্তরিত করে নতুন ব্যাচের রোল ও রি-এডমিশন ফি ইনভয়েস জেনারেট করা হয়।<br>
+                ৩. <strong>রিটেক নিয়ে কন্টিনিউ (Continue with Retake):</strong> বিশেষ বিবেচনায় ফেল করা বিষয়গুলোর রিটেক দিয়ে বর্তমান ব্যাচেই কন্টিনিউ করার অনুমতি দেওয়া যায়।
+            </div>
+        </div>
+    </div>
+
     {{-- Filter Bar --}}
     <form method="GET" action="{{ route('admin.readmissions.index') }}" class="filter-card-ra">
         <div class="search-wrap-ra">
@@ -126,10 +139,17 @@
             <input type="text" name="search" placeholder="শিক্ষার্থীর নাম, রোল বা মোবাইল দিয়ে খুঁজুন..." value="{{ $search }}">
         </div>
 
-        <select name="course_id" class="form-control" style="width:220px;height:40px;border-radius:8px;font-size:13px" onchange="this.form.submit()">
-            <option value="">সকল কোর্স</option>
+        <select name="course_id" class="form-control" style="width:200px;height:40px;border-radius:8px;font-size:13px" onchange="this.form.submit()">
+            <option value="">সকল কোর্স (Course)</option>
             @foreach($courses as $c)
                 <option value="{{ $c->id }}" {{ $courseFilter == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+            @endforeach
+        </select>
+
+        <select name="batch_id" class="form-control" style="width:200px;height:40px;border-radius:8px;font-size:13px" onchange="this.form.submit()">
+            <option value="">সকল ব্যাচ (Batch)</option>
+            @foreach($batches as $b)
+                <option value="{{ $b->id }}" {{ ($batchFilter ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
             @endforeach
         </select>
 
@@ -145,7 +165,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary" style="height:40px;padding:0 16px">ফিল্টার</button>
-        @if($search || $courseFilter || $statusFilter)
+        @if($search || $courseFilter || ($batchFilter ?? '') || $statusFilter)
             <a href="{{ route('admin.readmissions.index') }}" class="btn btn-outline" style="height:40px;display:inline-flex;align-items:center">রিসেট</a>
         @endif
     </form>

@@ -223,27 +223,86 @@ class AccountsController extends Controller
     }
 
     /**
-     * Financial Reports & Statements
+     * Financial Reports & Statements with Course, Month & Date Range Filters
      */
     public function reports(Request $request)
     {
-        $fromDate = $request->query('from_date', Carbon::today()->startOfMonth()->toDateString());
-        $toDate   = $request->query('to_date', Carbon::today()->toDateString());
+        $courseId = $request->query('course_id');
+        $month    = $request->query('month'); // format: YYYY-MM
+        $fromDate = $request->query('from_date');
+        $toDate   = $request->query('to_date');
+        $category = $request->query('category');
 
-        $payments = Payment::with(['student', 'invoice'])
+        // If month is selected, compute fromDate and toDate from that month
+        if ($month && preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $carbonMonth = Carbon::createFromFormat('Y-m', $month);
+            $fromDate = $carbonMonth->copy()->startOfMonth()->toDateString();
+            $toDate   = $carbonMonth->copy()->endOfMonth()->toDateString();
+        } else {
+            if (!$fromDate) {
+                $fromDate = Carbon::today()->startOfMonth()->toDateString();
+            }
+            if (!$toDate) {
+                $toDate = Carbon::today()->toDateString();
+            }
+        }
+
+        $query = Payment::with(['student.enrollments.batch.course', 'invoice.enrollment.course'])
+            ->where('status', 'APPROVED')
             ->whereDate('paid_at', '>=', $fromDate)
-            ->whereDate('paid_at', '<=', $toDate)
-            ->latest('paid_at')
-            ->get();
+            ->whereDate('paid_at', '<=', $toDate);
 
-        $categorySummary = Payment::join('invoices', 'payments.invoice_id', '=', 'invoices.id')
-            ->whereDate('payments.paid_at', '>=', $fromDate)
-            ->whereDate('payments.paid_at', '<=', $toDate)
-            ->selectRaw('invoices.category, SUM(payments.amount) as total_amount')
-            ->groupBy('invoices.category')
-            ->pluck('total_amount', 'category');
+        if ($category) {
+            $query->whereHas('invoice', function ($q) use ($category) {
+                $q->where('category', $category);
+            });
+        }
 
-        return view('admin.accounts.reports', compact('payments', 'categorySummary', 'fromDate', 'toDate'));
+        if ($courseId) {
+            $query->where(function ($q) use ($courseId) {
+                $q->whereHas('invoice.enrollment', function ($sq) use ($courseId) {
+                    $sq->where('course_id', $courseId);
+                })->orWhereHas('student.enrollments', function ($sq) use ($courseId) {
+                    $sq->where('course_id', $courseId);
+                });
+            });
+        }
+
+        $payments = $query->latest('paid_at')->get();
+
+        // Calculate Totals
+        $totalCollected = $payments->sum('amount');
+
+        // Category Breakdown
+        $categorySummary = [];
+        foreach ($payments as $pay) {
+            $cat = $pay->invoice->category ?? 'OTHER';
+            $categorySummary[$cat] = ($categorySummary[$cat] ?? 0) + $pay->amount;
+        }
+
+        // Course Breakdown
+        $courseSummary = [];
+        foreach ($payments as $pay) {
+            $courseName = $pay->invoice?->enrollment?->course?->name
+                ?? $pay->student?->enrollments?->first()?->course?->name
+                ?? 'সাধারণ / অন্যান্য';
+            $courseSummary[$courseName] = ($courseSummary[$courseName] ?? 0) + $pay->amount;
+        }
+
+        $courses = Course::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.accounts.reports', compact(
+            'payments',
+            'categorySummary',
+            'courseSummary',
+            'totalCollected',
+            'courses',
+            'courseId',
+            'month',
+            'fromDate',
+            'toDate',
+            'category'
+        ));
     }
 
     /**
@@ -253,5 +312,112 @@ class AccountsController extends Controller
     {
         $payment->load(['invoice', 'student', 'receivedBy']);
         return view('admin.accounts.print_receipt', compact('payment'));
+    }
+
+    /**
+     * Dedicated Student Accounts Ledger (Full CRUD)
+     */
+    public function studentLedger(Student $student)
+    {
+        $student->load([
+            'enrollments.batch.course',
+            'enrollments.semester',
+            'user',
+        ]);
+
+        $invoices = Invoice::where('student_id', $student->id)
+            ->with(['payments', 'enrollment.course'])
+            ->latest()
+            ->get();
+
+        $payments = Payment::where('student_id', $student->id)
+            ->with(['invoice', 'receivedBy'])
+            ->latest('paid_at')
+            ->get();
+
+        $activeInvoices = $invoices->where('status', '!=', 'CANCELLED');
+        $totalBilled = $activeInvoices->sum('payable_amount');
+        $totalPaid   = $activeInvoices->sum('paid_amount');
+        $totalDue    = $activeInvoices->sum('due_amount');
+
+        return view('admin.accounts.student_ledger', compact(
+            'student',
+            'invoices',
+            'payments',
+            'totalBilled',
+            'totalPaid',
+            'totalDue'
+        ));
+    }
+
+    /**
+     * Update an existing Invoice (Edit Title, Amount, Discount, Due Date)
+     */
+    public function updateInvoice(Request $request, Invoice $invoice)
+    {
+        $validated = $request->validate([
+            'title'      => 'required|string|max:200',
+            'category'   => 'required|in:ADMISSION,SEMESTER,RETAKE,EXAM,DOCUMENT,FINE,MANUAL,COURSE_TRANSFER',
+            'amount'     => 'required|numeric|min:0',
+            'discount'   => 'nullable|numeric|min:0',
+            'due_date'   => 'nullable|date',
+        ]);
+
+        $amount   = (float) $validated['amount'];
+        $discount = (float) ($validated['discount'] ?? 0);
+        $payable  = max(0, $amount - $discount);
+
+        if ($payable < $invoice->paid_amount) {
+            return back()->with('error', "প্রদেয় পরিমাণ (৳{$payable}) ইতোমধ্যে পরিশোধিত পরিমাণের (৳{$invoice->paid_amount}) চেয়ে কম হতে পারে না।");
+        }
+
+        $due = max(0, $payable - $invoice->paid_amount);
+
+        $status = 'UNPAID';
+        if ($due <= 0 && $payable > 0) {
+            $status = 'PAID';
+        } elseif ($invoice->paid_amount > 0) {
+            $status = 'PARTIAL';
+        }
+
+        $invoice->update([
+            'title'          => $validated['title'],
+            'category'       => $validated['category'],
+            'amount'         => $amount,
+            'discount'       => $discount,
+            'payable_amount' => $payable,
+            'due_amount'     => $due,
+            'status'         => $status,
+            'due_date'       => $validated['due_date'] ?? $invoice->due_date,
+        ]);
+
+        return back()->with('success', "ইনভয়েস {$invoice->invoice_no} সফলভাবে আপডেট করা হয়েছে।");
+    }
+
+    /**
+     * Delete an Invoice (Safe Deletion with Payment Audit Check)
+     */
+    public function destroyInvoice(Invoice $invoice)
+    {
+        // If payments already exist, prevent direct accidental deletion
+        if ($invoice->paid_amount > 0 || $invoice->payments()->exists()) {
+            return back()->with('error', "এই ইনভয়েসে ইতোমধ্যে ৳{$invoice->paid_amount} টাকা পেমেন্ট জমা রয়েছে। সরাসরি ডিলিট করা যাবে না। প্রয়োজনে ইনভয়েসের পরিমাণ পরিবর্তন করুন বা পেমেন্ট সমন্বয় করুন।");
+        }
+
+        $invNo = $invoice->invoice_no;
+        $invoice->delete();
+
+        return back()->with('success', "ইনভয়েস {$invNo} সফলভাবে মুছে ফেলা হয়েছে।");
+    }
+
+    /**
+     * Manually Trigger ৳100 Monthly Course Activation Fee
+     */
+    public function applyActivationFees(Request $request)
+    {
+        $force = $request->boolean('force', true);
+        $result = AccountingService::applyCourseActivationFees(now(), $force);
+
+        return back()->with($result['status'] === 'success' ? 'success' : 'info', $result['message']);
     }
 }

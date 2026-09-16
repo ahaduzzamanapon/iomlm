@@ -38,7 +38,8 @@ class ExamGradingController extends Controller
     public function grade(Request $request, ExamAnswer $answer)
     {
         $validated = $request->validate([
-            'teacher_marks' => 'required|numeric|min:0',
+            'teacher_marks'    => 'required|numeric|min:0',
+            'teacher_feedback' => 'nullable|string|max:1000',
         ]);
 
         $teacher = $this->teacher();
@@ -52,9 +53,10 @@ class ExamGradingController extends Controller
         $marks = min((float) $validated['teacher_marks'], (float) $maxMarks);
 
         $answer->update([
-            'teacher_marks' => $marks,
-            'marks_awarded'  => $marks,  // sync for total score calculation
-            'graded_by'      => $teacher?->user_id ?? auth()->id(),
+            'teacher_marks'    => $marks,
+            'teacher_feedback' => $validated['teacher_feedback'] ?? null,
+            'marks_awarded'    => $marks,  // sync for total score calculation
+            'graded_by'        => $teacher?->user_id ?? auth()->id(),
         ]);
 
         // Recalculate submission total_score
@@ -64,6 +66,6 @@ class ExamGradingController extends Controller
 
         $submission->update(['total_score' => $totalScore]);
 
-        return back()->with('success', 'নম্বর সফলভাবে সেভ হয়েছে।');
+        return back()->with('success', 'নম্বর ও শিক্ষক মূল্যায়ন সফলভাবে সংরক্ষিত হয়েছে।');
     }
 }

@@ -43,7 +43,7 @@
                     Semesters & Subjects
                 </h3>
                 <div style="font-size:12px;color:var(--text-muted)">
-                    {{ $course->semesters->count() }} Semesters · {{ $course->courseSubjectMaps->count() }} Subjects
+                    {{ $course->semesters->count() }} Semesters · {{ $course->courseSubjectMaps->pluck('subject_id')->unique()->count() }} Subjects
                 </div>
             </div>
 
@@ -72,6 +72,9 @@
                             @endif
                             <span class="badge badge-secondary no-dot" style="font-size:10px;padding:2px 6px">{{ $semSubjects->count() }} Subjects</span>
                             <span class="badge badge-scheduled no-dot" style="font-size:10px;padding:2px 6px">{{ $totalCredit }} Cr</span>
+                            <button type="button" class="btn btn-outline btn-sm" style="font-size:11px;padding:2px 8px;color:var(--blue);border-color:var(--blue)" onclick="openAddSingleSubjectModal({{ $sem->id }}, '{{ addslashes($sem->name) }}')">
+                                <i class="fa-solid fa-plus"></i> বিষয় যোগ করুন
+                            </button>
                             <form method="POST" action="{{ route('admin.courses.semesters.destroy', [$course, $sem]) }}" style="display:inline" onsubmit="return confirm('Delete semester?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-ghost btn-sm text-red" style="padding:2px 6px;font-size:11px" title="Delete Semester">Delete</button>
@@ -218,6 +221,10 @@
                                 @endif
                                 <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px" onclick="openAddItemModal({{ $pkg->id }})">+ Item</button>
                                 <button class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px" onclick="openEditPackageModal({{ $pkg->id }}, {{ json_encode($pkg->name) }}, {{ json_encode($pkg->description) }}, {{ $pkg->is_default ? 'true' : 'false' }})">Edit</button>
+                                <form method="POST" action="{{ route('admin.courses.packages.clone', [$course, $pkg]) }}" style="display:inline">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline btn-sm" style="font-size:10px;padding:2px 6px;color:#0284c7;border-color:#bae6fd" title="এই প্যাকেজটি কপি করে দ্রুত নতুন ফি স্ট্রাকচার তৈরি করুন"><i class="fa-solid fa-clone"></i> কপি</button>
+                                </form>
                                 <form method="POST" action="{{ route('admin.courses.packages.destroy', $pkg) }}" onsubmit="return confirm('Delete this package?')">
                                     @csrf @method('DELETE')
                                     <button type="submit" class="btn btn-outline btn-sm" style="color:var(--red);font-size:10px;padding:2px 6px">Delete</button>
@@ -318,11 +325,70 @@
                             <option value="GENDER">লিঙ্গভিত্তিক (ভাই ও বোন শাখা)</option>
                             <option value="SPLIT">বিভাজন ভিত্তিক (গ্রুপ ক ও খ)</option>
                         </select>
+                        <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;font-family:'Kalpurush',sans-serif">
+                            <div style="font-weight:700;color:var(--blue);margin-bottom:6px"><i class="fa-solid fa-circle-info"></i> গ্রুপিং মোড নির্দেশিকা:</div>
+                            <ul style="margin:0;padding-left:16px;line-height:1.6;color:#334155">
+                                <li><strong>সেমিস্টার ডিফল্ট:</strong> সেমিস্টারে নির্ধারিত শাখা নিয়ম (যেমন ভাই/বোন শাখা) স্বয়ংক্রিয়ভাবে পাবে।</li>
+                                <li><strong>যৌথ / সাধারণ:</strong> সকল শিক্ষার্থী (ছেলে-মেয়ে বা সব শাখা) একসাথে এই ক্লাস করবে।</li>
+                                <li><strong>লিঙ্গভিত্তিক:</strong> ভাই ও বোনদের জন্য সম্পূর্ণ আলাদা ক্লাস শাখা তৈরি হবে।</li>
+                                <li><strong>বিভাজনভিত্তিক:</strong> রোল/শাখা অনুযায়ী গ্রুপ ক ও গ্রুপ খ আলাদা ক্লাস করবে।</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('mapSubjectModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Map Subjects</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Single Subject to Semester Modal -->
+    <div class="modal-overlay" id="addSingleSubjectModal">
+        <div class="modal" style="max-width:540px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header">
+                <span class="modal-title" id="singleSubModalTitle">+ সেমিস্টারে নতুন বিষয় যোগ করুন</span>
+                <button class="modal-close" onclick="closeModal('addSingleSubjectModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.courses.subjects.assign', $course) }}">
+                @csrf
+                <input type="hidden" name="semester_id" id="single_sub_semester_id" value="">
+                <div class="modal-body">
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#1e40af;font-size:13px">
+                        নির্বাচিত সেমিস্টার: <strong id="single_sub_sem_name">সেমিস্টার</strong> (বিদ্যমান বিষয়গুলো মুছে যাবে না, এটি নতুন হিসেবে যুক্ত হবে)
+                    </div>
+
+                    <div class="form-group">
+                        <label>বিষয় নির্বাচন করুন <span class="required">*</span></label>
+                        <select name="subject_ids[]" class="form-control" style="font-size:13px" required>
+                            <option value="">-- বিষয় সিলেক্ট করুন --</option>
+                            @foreach($availableSubjects as $subj)
+                                <option value="{{ $subj->id }}">{{ $subj->code }}: {{ $subj->name }} ({{ $subj->credit }} Credit)</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>গ্রুপিং মোড (Grouping Mode)</label>
+                        <select name="group_mode" class="form-control" style="font-size:13px">
+                            <option value="INHERIT">সেমিস্টার ডিফল্ট অনুসরণ করবে (Inherit from Semester)</option>
+                            <option value="NONE">যৌথ / সাধারণ (No Grouping for this subject)</option>
+                            <option value="GENDER">লিঙ্গভিত্তিক (ভাই ও বোন শাখা)</option>
+                            <option value="SPLIT">বিভাজন ভিত্তিক (গ্রুপ ক ও খ)</option>
+                        </select>
+                    </div>
+
+                    <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px">
+                        <div style="font-weight:700;color:var(--blue);margin-bottom:4px"><i class="fa-solid fa-circle-info"></i> গ্রুপিং নিয়ম:</div>
+                        <div style="color:#334155;line-height:1.5">
+                            সাধারণত <strong>সেমিস্টার ডিফল্ট</strong> রাখলে সেমিস্টারের ভাই/বোন বা গ্রুপ শাখা স্বয়ংক্রিয়ভাবে কার্যকর হবে। বিশেষ কোনো বিষয়ের জন্য যৌথ বা আলাদা করতে চাইলে তা বেছে নিতে পারেন।
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addSingleSubjectModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> বিষয় যুক্ত করুন</button>
                 </div>
             </form>
         </div>
@@ -669,6 +735,13 @@
         document.getElementById('pkg_amt_fixed').value = 0;
         setMode('fixed');
         openModal('addItemModal');
+    }
+
+    function openAddSingleSubjectModal(semesterId, semesterName) {
+        document.getElementById('single_sub_semester_id').value = semesterId;
+        document.getElementById('single_sub_sem_name').textContent = semesterName;
+        document.getElementById('singleSubModalTitle').textContent = '+ ' + semesterName + ' এ নতুন বিষয় যোগ করুন';
+        openModal('addSingleSubjectModal');
     }
 
     function onFeeHeadChange(sel) {

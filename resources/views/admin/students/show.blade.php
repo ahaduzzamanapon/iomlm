@@ -10,6 +10,12 @@
             <p>Code: <strong>{{ $student->student_code ?? 'Unassigned' }}</strong> · Status: <span class="badge badge-{{ strtolower($student->status) }} no-dot">{{ ucfirst(strtolower($student->status)) }}</span></p>
         </div>
         <div class="page-header-actions">
+            <a href="{{ route('admin.students.impersonate', $student) }}" class="btn btn-outline" style="color:#047857;border-color:#10b981;font-weight:700" title="শিক্ষার্থী হিসেবে সরাসরি লগইন করুন">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> লগইন করুন (Login as Student)
+            </a>
+            <a href="{{ route('admin.students.accounts', $student) }}" class="btn btn-outline" style="color:#4f46e5;border-color:#818cf8;font-weight:700">
+                <i class="fa-solid fa-wallet"></i> একাউন্ট লেজার (Accounts)
+            </a>
             <a href="{{ route('admin.students.id-card', $student) }}" target="_blank" class="btn btn-outline" style="color:#4338ca">🆔 Print ID Card</a>
             <a href="{{ route('admin.students.grade-sheet', $student) }}" target="_blank" class="btn btn-outline">Grade Sheet</a>
             <a href="{{ route('admin.students.certificate', $student) }}" target="_blank" class="btn btn-outline" style="color:#d97706">Certificate</a>

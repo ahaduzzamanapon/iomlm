@@ -73,9 +73,55 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Running semester fee status & monthly breakdown for dashboard
+        $activeEnrollment = Enrollment::with(['course.semesters', 'batch.semesterPosition.currentSemester'])
+            ->where('student_id', $studentId)
+            ->where('status', 'ACTIVE')
+            ->first();
+
+        $runningSemester = $activeEnrollment?->batch?->semesterPosition?->currentSemester;
+        $runningSemesterName = $runningSemester?->name ?? 'চলতি সেমিস্টার';
+        $runningSemesterInvoices = collect();
+        if ($runningSemester && $studentId) {
+            $runningSemesterInvoices = \App\Models\Invoice::where('student_id', $studentId)
+                ->where('status', '!=', 'CANCELLED')
+                ->where(function($q) use ($runningSemester) {
+                    $q->where('source_id', $runningSemester->id)
+                      ->orWhere('title', 'like', "%{$runningSemester->name}%");
+                })->get();
+        }
+
+        $runningSemPayable = (float) $runningSemesterInvoices->sum('payable_amount');
+        $runningSemPaid    = (float) $runningSemesterInvoices->sum('paid_amount');
+        $runningSemDue     = (float) $runningSemesterInvoices->sum('due_amount');
+
+        $monthlyRate = $runningSemPayable > 0 ? round($runningSemPayable / 6, 2) : 500;
+        $pool = $runningSemPaid;
+        $dashboardMonthly = [];
+        $bnDigits = ['0'=>'০','1'=>'১','2'=>'২','3'=>'৩','4'=>'৪','5'=>'৫','6'=>'৬','7'=>'৭','8'=>'৮','9'=>'৯'];
+        for ($m = 1; $m <= 6; $m++) {
+            $mBn = strtr((string)$m, $bnDigits);
+            if ($pool >= $monthlyRate) {
+                $status = 'PAID';
+                $pool -= $monthlyRate;
+            } elseif ($pool > 0) {
+                $status = 'PARTIAL';
+                $pool = 0;
+            } else {
+                $status = 'UNPAID';
+            }
+            $dashboardMonthly[] = [
+                'month_no' => $m,
+                'name'     => "{$mBn}ম মাস",
+                'rate'     => $monthlyRate,
+                'status'   => $status,
+            ];
+        }
+
         return view('student.dashboard', compact(
             'student', 'stats', 'currentModules', 'upcomingClasses',
-            'recentResults', 'upcomingExamsList', 'notices'
+            'recentResults', 'upcomingExamsList', 'notices',
+            'dashboardMonthly', 'runningSemesterName', 'runningSemDue', 'runningSemPaid'
         ));
     }
 

@@ -68,7 +68,51 @@ class SubjectController extends Controller
 
     public function destroy(Subject $subject)
     {
-        $subject->delete();
-        return redirect()->route('admin.subjects.index')->with('success', 'Subject deleted.');
+        $reasons = [];
+
+        $examsCount = \App\Models\Exam::where('subject_id', $subject->id)->count();
+        if ($examsCount > 0) {
+            $reasons[] = "{$examsCount}টি পরীক্ষার সাথে যুক্ত";
+        }
+
+        $routineCount = \App\Models\RoutineEntry::where('subject_id', $subject->id)->count();
+        if ($routineCount > 0) {
+            $reasons[] = "{$routineCount}টি ক্লাস রুটিন এন্ট্রির সাথে যুক্ত";
+        }
+
+        $finalMarksCount = \Illuminate\Support\Facades\DB::table('final_marks')->where('subject_id', $subject->id)->count();
+        if ($finalMarksCount > 0) {
+            $reasons[] = "শিক্ষার্থীদের পরীক্ষার ফলাফলের রেকর্ডের সাথে যুক্ত";
+        }
+
+        $classSessionsCount = \App\Models\ClassSession::where('subject_id', $subject->id)->count();
+        if ($classSessionsCount > 0) {
+            $reasons[] = "{$classSessionsCount}টি লাইভ ক্লাস সেশনের সাথে যুক্ত";
+        }
+
+        $retakesCount = \Illuminate\Support\Facades\DB::table('subject_retakes')->where('subject_id', $subject->id)->count();
+        if ($retakesCount > 0) {
+            $reasons[] = "শিক্ষার্থীদের রিটেক আবেদনের সাথে যুক্ত";
+        }
+
+        $questionsCount = \App\Models\Question::where('subject_id', $subject->id)->count();
+        if ($questionsCount > 0) {
+            $reasons[] = "প্রশ্নব্যাংকে {$questionsCount}টি প্রশ্নের সাথে যুক্ত";
+        }
+
+        if (!empty($reasons)) {
+            $reasonText = implode(', ', $reasons);
+            return back()->with('error', "এই বিষয়টি ডিলিট করা যাবে না কারণ এটি: {$reasonText}। আপনি চাইলে বিষয়টির স্ট্যাটাস নিষ্ক্রিয় (Inactive) করে রাখতে পারেন।");
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($subject) {
+            \App\Models\CourseSubjectMap::where('subject_id', $subject->id)->delete();
+            \App\Models\SubjectTeacherAssignment::where('subject_id', $subject->id)->delete();
+            \App\Models\SubjectModule::where('subject_id', $subject->id)->delete();
+            \Illuminate\Support\Facades\DB::table('timelines')->where('subject_id', $subject->id)->delete();
+            $subject->delete();
+        });
+
+        return redirect()->route('admin.subjects.index')->with('success', 'বিষয়টি সফলভাবে মুছে ফেলা হয়েছে।');
     }
 }

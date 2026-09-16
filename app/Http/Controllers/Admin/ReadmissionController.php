@@ -25,6 +25,7 @@ class ReadmissionController extends Controller
     {
         $statusFilter = $request->query('status');
         $courseFilter = $request->query('course_id');
+        $batchFilter  = $request->query('batch_id');
         $search       = $request->query('search');
 
         $query = Readmission::with([
@@ -43,6 +44,13 @@ class ReadmissionController extends Controller
 
         if ($courseFilter) {
             $query->where('course_id', $courseFilter);
+        }
+
+        if ($batchFilter) {
+            $query->where(function ($q) use ($batchFilter) {
+                $q->where('from_batch_id', $batchFilter)
+                  ->orWhere('to_batch_id', $batchFilter);
+            });
         }
 
         if ($search) {
@@ -81,6 +89,7 @@ class ReadmissionController extends Controller
             'students',
             'statusFilter',
             'courseFilter',
+            'batchFilter',
             'search'
         ));
     }

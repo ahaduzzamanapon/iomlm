@@ -42,14 +42,22 @@
                 <div>
                     <span class="card-title">{{ $submission->student?->name }}</span>
                     <div style="font-size:12px;color:#64748b;margin-top:2px">
-                        ID: {{ $submission->student?->student_id ?? '—' }} &middot;
+                        ID: {{ $submission->student?->student_code ?? $submission->student?->student_id ?? '—' }} &middot;
                         Submitted: {{ $submission->submitted_at?->format('d M Y, h:i A') ?? '—' }} &middot;
                         Status: <span style="color:#10b981;font-weight:700">{{ $submission->status }}</span>
                     </div>
                 </div>
-                <div style="text-align:right">
-                    <div style="font-size:11px;color:#64748b">MCQ Score</div>
-                    <div style="font-size:18px;font-weight:800;color:#4338ca">{{ number_format($submission->total_score, 1) }}</div>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <form method="POST" action="{{ route('teacher.exams.submissions.reset', [$exam, $submission]) }}" onsubmit="return confirm('এই শিক্ষার্থীর পরীক্ষার খাতা মুছে পুনরায় পরীক্ষা দেওয়ার সুযোগ (Retake Reset) দিতে চান?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="btn btn-outline btn-sm" style="color:#e11d48;border-color:#fecdd3;background:#fff;font-size:12px" title="রিসেট করে পুনরায় সুযোগ দিন">
+                            <i class="fa-solid fa-rotate-left"></i> পরীক্ষা রিসেট করুন
+                        </button>
+                    </form>
+                    <div style="text-align:right">
+                        <div style="font-size:11px;color:#64748b">মোট স্কোর</div>
+                        <div style="font-size:18px;font-weight:800;color:#4338ca">{{ number_format($submission->total_score, 1) }}</div>
+                    </div>
                 </div>
             </div>
 
@@ -89,23 +97,31 @@
                         </div>
 
                         {{-- Grading Form --}}
-                        <form method="POST" action="{{ route('teacher.exam-answers.grade', $answer) }}" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                        <form method="POST" action="{{ route('teacher.exam-answers.grade', $answer) }}" style="display:flex;flex-direction:column;gap:10px;background:#fff;padding:12px;border-radius:8px;border:1px solid #fbcfe8">
                             @csrf @method('PATCH')
-                            <div style="display:flex;align-items:center;gap:8px">
-                                <label style="font-size:13px;font-weight:600;color:#475569">নম্বর দিন:</label>
-                                <input type="number" name="teacher_marks"
-                                       value="{{ $answer->teacher_marks ?? '' }}"
-                                       min="0" max="{{ $eq->marks }}" step="0.5"
-                                       class="form-control" style="width:100px;height:36px;font-size:14px;font-weight:700"
-                                       placeholder="0">
-                                <span style="font-size:13px;color:#64748b">/ {{ $eq->marks }}</span>
+                            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                                <div style="display:flex;align-items:center;gap:8px">
+                                    <label style="font-size:13px;font-weight:600;color:#475569">প্রাপ্ত নম্বর দিন:</label>
+                                    <input type="number" name="teacher_marks"
+                                           value="{{ $answer->teacher_marks ?? '' }}"
+                                           min="0" max="{{ $eq->marks }}" step="0.5"
+                                           class="form-control" style="width:100px;height:36px;font-size:14px;font-weight:700"
+                                           placeholder="0" required>
+                                    <span style="font-size:13px;color:#64748b">/ {{ $eq->marks }}</span>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="fa-solid fa-floppy-disk"></i> নম্বর ও মূল্যায়ন সেভ করুন
+                                </button>
+                                @if($answer->teacher_marks !== null)
+                                    <span style="color:#10b981;font-weight:700;font-size:13px">
+                                        <i class="fa-solid fa-circle-check"></i> প্রদত্ত নম্বর: {{ $answer->teacher_marks }}
+                                    </span>
+                                @endif
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                নম্বর সেভ করুন
-                            </button>
-                            @if($answer->teacher_marks !== null)
-                                <span style="color:#10b981;font-weight:700;font-size:13px">দেওয়া নম্বর: {{ $answer->teacher_marks }}</span>
-                            @endif
+                            <div>
+                                <label style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:4px;display:block">শিক্ষকের মন্তব্য / সংশোধন নির্দেশিকা (Teacher Feedback):</label>
+                                <textarea name="teacher_feedback" class="form-control" rows="2" style="font-size:12px;width:100%" placeholder="শিক্ষার্থীর উত্তরের ভুলত্রুটি বা সংশোধনমূলক পরামর্শ লিখুন...">{{ $answer->teacher_feedback ?? '' }}</textarea>
+                            </div>
                         </form>
                     @else
                         <div style="color:#94a3b8;font-size:13px;padding:12px;background:#fff;border-radius:6px;border:1px solid #f1f5f9">

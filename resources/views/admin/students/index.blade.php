@@ -34,7 +34,10 @@
                     <tr>
                         <td>
                             @if($st->student_code)
-                                <span class="badge badge-active no-dot"><strong>{{ $st->student_code }}</strong></span>
+                                <a href="{{ route('admin.students.impersonate', $st) }}" class="badge badge-active no-dot" style="text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="শিক্ষার্থী হিসেবে সরাসরি লগইন করুন (Click to login as student)">
+                                    <i class="fa-solid fa-arrow-right-to-bracket" style="font-size:10px"></i>
+                                    <strong>{{ $st->student_code }}</strong>
+                                </a>
                             @else
                                 <span class="td-muted">Unassigned</span>
                             @endif
@@ -55,8 +58,14 @@
                         <td>
                             <span class="badge badge-{{ strtolower($st->status) }}">{{ ucfirst(strtolower($st->status)) }}</span>
                         </td>
-                        <td style="text-align:right">
-                            <a href="{{ route('admin.students.show', $st) }}" class="btn btn-outline btn-sm">View Profile →</a>
+                        <td style="text-align:right;white-space:nowrap">
+                            <a href="{{ route('admin.students.impersonate', $st) }}" class="btn btn-outline btn-sm" style="color:#047857;margin-right:4px" title="শিক্ষার্থী হিসেবে সরাসরি লগইন">
+                                <i class="fa-solid fa-arrow-right-to-bracket"></i> লগইন
+                            </a>
+                            <a href="{{ route('admin.students.accounts', $st) }}" class="btn btn-outline btn-sm" style="color:#4f46e5;margin-right:4px" title="লেজার ও ফি হিসাব">
+                                <i class="fa-solid fa-wallet"></i> লেজার
+                            </a>
+                            <a href="{{ route('admin.students.show', $st) }}" class="btn btn-outline btn-sm">প্রোফাইল →</a>
                         </td>
                     </tr>
                     @empty

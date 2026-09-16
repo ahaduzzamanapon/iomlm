@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Enrollment;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
 {
@@ -77,5 +80,65 @@ class StudentController extends Controller
     {
         $student->load(['enrollments.batch.course']);
         return view('admin.students.id_card', compact('student'));
+    }
+
+    /**
+     * Impersonate Student (Login directly as student)
+     */
+    public function impersonate(Student $student)
+    {
+        if (!Auth::check() || !Auth::user()->isAdmin()) {
+            abort(403, 'অননুমোদিত অনুরোধ। শুধুমাত্র অ্যাডমিন এই সুবিধা ব্যবহার করতে পারবেন।');
+        }
+
+        $adminId = Auth::id();
+
+        // Get or create associated User
+        $user = $student->user;
+        if (!$user) {
+            $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
+            if (User::where('email', $loginEmail)->exists()) {
+                $user = User::where('email', $loginEmail)->first();
+            } else {
+                $user = User::create([
+                    'name'     => $student->name,
+                    'email'    => $loginEmail,
+                    'password' => Hash::make($student->phone ?: 'iom@1234'),
+                    'role'     => 'student',
+                ]);
+            }
+            $student->user_id = $user->id;
+            $student->save();
+        }
+
+        // Save admin user ID to session
+        session()->put('admin_impersonator_id', $adminId);
+
+        // Login as the student
+        Auth::login($user);
+
+        return redirect()->route('student.dashboard')
+            ->with('success', "আপনি শিক্ষার্থী '{$student->name}' (আইডি: {$student->student_code}) হিসেবে সরাসরি প্রবেশ করেছেন।");
+    }
+
+    /**
+     * Return back to Admin panel from impersonated student session
+     */
+    public function leaveImpersonation()
+    {
+        if (!session()->has('admin_impersonator_id')) {
+            return redirect()->route('student.dashboard');
+        }
+
+        $adminId = session()->pull('admin_impersonator_id');
+        $adminUser = User::find($adminId);
+
+        if ($adminUser && $adminUser->isAdmin()) {
+            Auth::login($adminUser);
+            return redirect()->route('admin.dashboard')
+                ->with('success', 'অ্যাডমিন প্যানেলে সফলভাবে ফিরে এসেছেন।');
+        }
+
+        return redirect()->route('login');
     }
 }

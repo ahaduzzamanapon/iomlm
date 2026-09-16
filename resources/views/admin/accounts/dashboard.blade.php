@@ -50,6 +50,27 @@
         </div>
     </div>
 
+    {{-- Course Activation Fee Automation Banner --}}
+    <div class="card" style="margin-bottom:24px;border:1px solid #fde68a;background:#fffbeb;font-family:'Kalpurush',sans-serif">
+        <div style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
+            <div style="display:flex;align-items:center;gap:12px">
+                <i class="fa-solid fa-clock-rotate-left" style="font-size:24px;color:#d97706"></i>
+                <div>
+                    <strong style="font-size:15px;color:#92400e">কোর্স এক্টিভিশন ফি (৳১০০) অটোমেশন</strong>
+                    <div style="font-size:13px;color:#78350f">
+                        প্রতি মাসের ১০ তারিখের মধ্যে চলতি মাসের বেতন পরিশোধ না করলে বকেয়া শিক্ষার্থীদের পোর্টালে ১০০ টাকার “কোর্স এক্টিভিশন ফি” যুক্ত করার নিয়ম।
+                    </div>
+                </div>
+            </div>
+            <form action="{{ route('admin.accounts.apply-activation-fees') }}" method="POST" onsubmit="return confirm('আপনি কি চলতি মাসের সকল বকেয়া শিক্ষার্থীর পোর্টালে ১০০ টাকার কোর্স এক্টিভিশন ফি প্রয়োগ করতে চান?')">
+                @csrf
+                <button type="submit" class="btn btn-warning" style="font-weight:700;background:#d97706;border-color:#b45309;color:#fff">
+                    <i class="fa-solid fa-bolt"></i> এক্টিভিশন ফি প্রয়োগ করুন (৳১০০)
+                </button>
+            </form>
+        </div>
+    </div>
+
     {{-- Instant Student Search Counter --}}
     <div class="card" style="margin-bottom:24px;border-top:4px solid #6366f1">
         <div class="card-header">

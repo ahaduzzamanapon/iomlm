@@ -537,11 +537,11 @@ class PaymentGatewayService
                 }
             }
 
-            $filterPrefix = "{$yearCode}-{$batchCode}-{$courseCode}-";
+            $filterPrefix = "{$yearCode}-{$courseCode}-{$batchCode}-";
             $existingCount = Student::where('student_code', 'like', "{$filterPrefix}%")->count();
             $seqNo = str_pad($existingCount + 1, 4, '0', STR_PAD_LEFT);
 
-            $student->student_code = "{$yearCode}-{$batchCode}-{$courseCode}-{$genderCode}-{$seqNo}";
+            $student->student_code = "{$yearCode}-{$courseCode}-{$batchCode}-{$genderCode}-{$seqNo}";
         }
 
         // Sync details to Student

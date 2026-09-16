@@ -103,13 +103,34 @@
     <form method="GET" action="{{ route('admin.questions.index') }}" class="filter-card">
         <div class="search-input-wrap">
             <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8"></i>
-            <input type="text" name="search" class="search-input" placeholder="প্রশ্ন দিয়ে অনুসন্ধান করুন..." value="{{ $search }}">
+            <input type="text" name="search" class="search-input" placeholder="প্রশ্ন বা ট্যাগ দিয়ে অনুসন্ধান করুন..." value="{{ $search }}">
         </div>
 
-        <select name="subject_id" class="form-control" style="width:200px;height:40px;border-radius:8px;font-size:13px">
+        <select name="subject_id" class="form-control" style="width:170px;height:40px;border-radius:8px;font-size:13px">
             <option value="">সকল বিষয়</option>
             @foreach($subjects as $sub)
                 <option value="{{ $sub->id }}" {{ $subjectId == $sub->id ? 'selected' : '' }}>{{ $sub->name }} ({{ $sub->code }})</option>
+            @endforeach
+        </select>
+
+        <select name="difficulty" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
+            <option value="">সকল কঠিনতা</option>
+            <option value="easy" {{ ($difficulty ?? '') === 'easy' ? 'selected' : '' }}>Easy (সহজ)</option>
+            <option value="medium" {{ ($difficulty ?? '') === 'medium' ? 'selected' : '' }}>Medium (মধ্যম)</option>
+            <option value="hard" {{ ($difficulty ?? '') === 'hard' ? 'selected' : '' }}>Hard (কঠিন)</option>
+        </select>
+
+        <select name="exam_type" class="form-control" style="width:140px;height:40px;border-radius:8px;font-size:13px">
+            <option value="">সকল পরীক্ষার ধরন</option>
+            @foreach($examTypes as $et)
+                <option value="{{ $et }}" {{ ($examType ?? '') === $et ? 'selected' : '' }}>{{ $et }}</option>
+            @endforeach
+        </select>
+
+        <select name="source_tag" class="form-control" style="width:150px;height:40px;border-radius:8px;font-size:13px">
+            <option value="">সকল প্রশ্ন ট্যাগ</option>
+            @foreach($sourceTags as $st)
+                <option value="{{ $st }}" {{ ($sourceTag ?? '') === $st ? 'selected' : '' }}>{{ $st }}</option>
             @endforeach
         </select>
 
@@ -123,7 +144,7 @@
         </div>
 
         <button type="submit" class="btn-purple" style="height:40px">ফিল্টার</button>
-        @if($search || $subjectId || $typeFilter)
+        @if($search || $subjectId || $difficulty || $examType || $sourceTag || $typeFilter)
             <a href="{{ route('admin.questions.index') }}" class="btn-ghost-purple" style="height:40px">Reset</a>
         @endif
     </form>
@@ -132,12 +153,12 @@
     <table class="q-card-table">
         <thead>
             <tr>
-                <th style="width:70px">#</th>
+                <th style="width:60px">#</th>
                 <th>প্রশ্ন</th>
-                <th style="width:200px">বিষয় ও কঠিনতা</th>
-                <th style="width:320px">অপশন / ধরন</th>
-                <th style="width:80px;text-align:center">সঠিক</th>
-                <th style="width:60px;text-align:center">অ্যাকশন</th>
+                <th style="width:180px">বিষয় ও কঠিনতা</th>
+                <th style="width:300px">অপশন / ধরন</th>
+                <th style="width:70px;text-align:center">সঠিক</th>
+                <th style="width:110px;text-align:center">অ্যাকশন</th>
             </tr>
         </thead>
         <tbody>
@@ -145,12 +166,31 @@
             <tr>
                 <td class="q-id">{{ $q->id }}</td>
                 <td>
-                    @if($q->question_type === 'WRITTEN')
-                        <span class="type-badge-written"><i class="fa-solid fa-pen-nib"></i> Written</span>
-                    @else
-                        <span class="type-badge-mcq"><i class="fa-solid fa-list-check"></i> MCQ</span>
-                    @endif
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+                        @if($q->question_type === 'WRITTEN')
+                            <span class="type-badge-written"><i class="fa-solid fa-pen-nib"></i> Written</span>
+                        @else
+                            <span class="type-badge-mcq"><i class="fa-solid fa-list-check"></i> MCQ</span>
+                        @endif
+
+                        @if($q->exam_type)
+                            <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:#ede9fe;color:#6d28d9">
+                                {{ $q->exam_type }}
+                            </span>
+                        @endif
+
+                        @if($q->source_tag)
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:#f1f5f9;color:#475569">
+                                <i class="fa-solid fa-tag" style="font-size:9px"></i> {{ $q->source_tag }}
+                            </span>
+                        @endif
+                    </div>
                     <div class="q-text">{!! e($q->question_text) !!}</div>
+                    @if($q->explanation)
+                        <div style="font-size:12px;color:#0369a1;background:#f0f9ff;padding:4px 8px;border-radius:6px;margin-top:6px">
+                            <i class="fa-solid fa-circle-info"></i> <strong>ব্যাখ্যা:</strong> {{ $q->explanation }}
+                        </div>
+                    @endif
                 </td>
                 <td>
                     @if($q->subject)
@@ -187,11 +227,30 @@
                     @endif
                 </td>
                 <td style="text-align:center">
-                    <form method="POST" action="{{ route('admin.questions.destroy', $q) }}" onsubmit="return confirm('প্রশ্নটি মুছে ফেলতে চান?')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="btn-delete" title="Delete">
+                    <div style="display:inline-flex;align-items:center;gap:6px">
+                        {{-- Edit Button --}}
+                        <button type="button" class="btn-edit" title="প্রশ্ন সম্পাদনা করুন" onclick='openEditQuestionModal(@json($q))' style="color:#4f46e5;background:#eef2ff;border:1px solid #c7d2fe;cursor:pointer;padding:6px 9px;border-radius:6px;font-size:12px">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+
+                        {{-- Regrade Button (MCQ only) --}}
+                        @if($q->question_type === 'MCQ')
+                        <form method="POST" action="{{ route('admin.questions.regrade', $q) }}" onsubmit="return confirm('এই প্রশ্নের বর্তমান সঠিক উত্তর অনুযায়ী সংশ্লিষ্ট সকল শিক্ষার্থীর পরীক্ষার খাতা পুনরায় মূল্যায়ন (Re-grade) করতে চান?')">
+                            @csrf
+                            <button type="submit" class="btn-regrade" title="পরীক্ষার খাতা রি-গ্রেড করুন" style="color:#0284c7;background:#f0f9ff;border:1px solid #bae6fd;cursor:pointer;padding:6px 9px;border-radius:6px;font-size:12px">
+                                <i class="fa-solid fa-rotate"></i>
                             </button>
-                    </form>
+                        </form>
+                        @endif
+
+                        {{-- Delete Button --}}
+                        <form method="POST" action="{{ route('admin.questions.destroy', $q) }}" onsubmit="return confirm('প্রশ্নটি মুছে ফেলতে চান?')">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn-delete" title="মুছে ফেলুন" style="color:#ef4444;background:#fef2f2;border:1px solid #fecaca;cursor:pointer;padding:6px 9px;border-radius:6px;font-size:12px">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             @empty
@@ -205,11 +264,10 @@
         </tbody>
     </table>
 
-    @if(method_exists($questions, 'links'))
+    @if(is_object($questions) && method_exists($questions, 'links'))
         <div style="margin-top:20px">{{ $questions->links() }}</div>
     @endif
 
-    {{-- Create MCQ Modal --}}
     {{-- Create MCQ Modal --}}
     <div class="modal-overlay" id="createMcqModal">
         <div class="modal" style="max-width:650px">
@@ -238,6 +296,22 @@
                                 <option value="medium">Medium (মধ্যম)</option>
                                 <option value="hard">Hard (কঠিন)</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>পরীক্ষার ধরন (Exam Type)</label>
+                            <select name="exam_type" class="form-control">
+                                <option value="">-- ধরন নির্বাচন করুন --</option>
+                                @foreach($examTypes as $et)
+                                    <option value="{{ $et }}">{{ $et }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>প্রশ্ন সেট / সোর্স ট্যাগ</label>
+                            <input type="text" name="source_tag" class="form-control" placeholder="যেমন: সেট ক, ২০২৪ ফাইনাল">
                         </div>
                     </div>
 
@@ -273,6 +347,11 @@
                             <option value="c">C</option>
                             <option value="d">D</option>
                         </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ব্যাখ্যা (Explanation) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                        <textarea name="explanation" class="form-control" rows="2" placeholder="সঠিক উত্তরের ব্যাখ্যা লিখুন..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -318,6 +397,22 @@
                         </div>
                     </div>
 
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>পরীক্ষার ধরন (Exam Type)</label>
+                            <select name="exam_type" class="form-control">
+                                <option value="">-- ধরন নির্বাচন করুন --</option>
+                                @foreach($examTypes as $et)
+                                    <option value="{{ $et }}">{{ $et }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>প্রশ্ন সেট / সোর্স ট্যাগ</label>
+                            <input type="text" name="source_tag" class="form-control" placeholder="যেমন: মিডটার্ম লিখিত">
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>প্রশ্ন (Question Text) <span class="required">*</span></label>
                         <textarea name="question_text" class="form-control" rows="4" required placeholder="Written প্রশ্ন লিখুন..."></textarea>
@@ -343,7 +438,7 @@
                 <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
                     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;font-size:13px;color:#166534">
                         <strong><i class="fa-solid fa-clipboard-list"></i> CSV ফরম্যাট:</strong><br>
-                        <code style="font-size:11px">question_type, subject_code, question_text, option_a, option_b, option_c, option_d, correct_option, difficulty</code><br><br>
+                        <code style="font-size:11px">question_type, subject_code, question_text, option_a, option_b, option_c, option_d, correct_option, difficulty, exam_type, source_tag</code><br><br>
                         • MCQ: সব column fill করুন<br>
                         • Written: option_a-d ও correct_option ফাঁকা রাখুন
                     </div>
@@ -352,6 +447,22 @@
                         <a href="{{ route('admin.questions.template-download') }}" class="btn-teal" style="font-size:12px">
                             Template Download করুন
                         </a>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>ডিফল্ট পরীক্ষার ধরন (Exam Type)</label>
+                            <select name="exam_type" class="form-control">
+                                <option value="">-- ফাইলে না থাকলে এটি হবে --</option>
+                                @foreach($examTypes as $et)
+                                    <option value="{{ $et }}">{{ $et }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ডিফল্ট প্রশ্ন ট্যাগ (Source Tag)</label>
+                            <input type="text" name="source_tag" class="form-control" placeholder="যেমন: ২০২৪ ফাইনাল">
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -386,8 +497,10 @@
                                 <i class="fa-solid fa-download"></i> ডেমো ফরম্যাট ডাউনলোড
                             </a>
                         </div>
-                        প্রতিটি প্রশ্নের পর পর অপশনগুলো (A. B. C. D.) থাকবে এবং প্রতিটি প্রশ্নের শেষে <code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;font-weight:700">ANSWER: X</code> থাকবে। প্রতিটি প্রশ্নের মাঝে ১টি ফাঁকা লাইন থাকবে।
-                        <pre style="background:#0f172a;color:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;margin-top:8px;line-height:1.5;overflow-x:auto;font-family:monospace">ব্যবস্থাপনার জনক কাকে বলা হয়?
+                        প্রতিটি প্রশ্নের পর পর অপশনগুলো (A. B. C. D.) থাকবে এবং প্রতিটি প্রশ্নের শেষে <code style="background:#e0f2fe;padding:2px 6px;border-radius:4px;font-weight:700">ANSWER: X</code> থাকবে। প্রতিটি প্রশ্নের মাঝে ১টি ফাঁকা লাইন থাকবে। ফাইলে <code style="background:#e0f2fe;padding:2px 4px">// TAG: সেট ক</code> বা <code style="background:#e0f2fe;padding:2px 4px">// EXAM_TYPE: MID</code> দিয়ে মেটাডাটা দেওয়া যায়।
+                        <pre style="background:#0f172a;color:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;margin-top:8px;line-height:1.5;overflow-x:auto;font-family:monospace">// TAG: সেট ক
+// EXAM_TYPE: MID
+ব্যবস্থাপনার জনক কাকে বলা হয়?
 A. হেনরি ফেওল
 B. এফ. ডব্লিউ. টেলর
 C. এলটন মেও
@@ -404,7 +517,7 @@ ANSWER: A</pre>
                                     <option value="{{ $sub->id }}">{{ $sub->name }} ({{ $sub->code }})</option>
                                 @endforeach
                             </select>
-                            <small style="color:var(--text-muted);font-size:11px">ফাইলে নির্দিষ্ট বিষয় উল্লেখ না থাকলে সব প্রশ্ন এতে যুক্ত হবে</small>
+                            <small style="color:var(--text-muted);font-size:11px">ফাইলে বিষয় না থাকলে সব প্রশ্ন এতে যুক্ত হবে</small>
                         </div>
                         <div class="form-group">
                             <label style="font-weight:600;margin-bottom:4px;display:block">কঠিনতা (Difficulty) <span class="required">*</span></label>
@@ -413,6 +526,22 @@ ANSWER: A</pre>
                                 <option value="medium">Medium (মধ্যম)</option>
                                 <option value="hard">Hard (কঠিন)</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">পরীক্ষার ধরন (Exam Type)</label>
+                            <select name="exam_type" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="">-- ধরন নির্বাচন করুন --</option>
+                                @foreach($examTypes as $et)
+                                    <option value="{{ $et }}">{{ $et }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">প্রশ্ন ট্যাগ / সেট (Source Tag)</label>
+                            <input type="text" name="source_tag" class="form-control" placeholder="যেমন: সেট ক, ২০২৪ ফাইনাল" style="width:100%;height:40px;border-radius:8px;font-size:13px">
                         </div>
                     </div>
 
@@ -438,4 +567,152 @@ ANSWER: A</pre>
             </form>
         </div>
     </div>
+
+    {{-- Edit Question Modal --}}
+    <div class="modal-overlay" id="editQuestionModal">
+        <div class="modal" style="max-width:650px">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fa-solid fa-pen-to-square" style="color:#6366f1"></i> প্রশ্ন সম্পাদনা (Edit Question)</span>
+                <button class="modal-close" onclick="closeModal('editQuestionModal')">&times;</button>
+            </div>
+            <form id="editQuestionForm" method="POST" action="">
+                @csrf
+                @method('PUT')
+                <input type="hidden" id="edit_question_type" name="question_type" value="MCQ">
+
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>বিষয় (Subject)</label>
+                            <select id="edit_subject_id" name="subject_id" class="form-control">
+                                <option value="">-- বিষয় নির্বাচন করুন --</option>
+                                @foreach($subjects as $sub)
+                                    <option value="{{ $sub->id }}">{{ $sub->name }} ({{ $sub->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>কঠিনতা <span class="required">*</span></label>
+                            <select id="edit_difficulty" name="difficulty" class="form-control" required>
+                                <option value="easy">Easy (সহজ)</option>
+                                <option value="medium">Medium (মধ্যম)</option>
+                                <option value="hard">Hard (কঠিন)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>পরীক্ষার ধরন (Exam Type)</label>
+                            <select id="edit_exam_type" name="exam_type" class="form-control">
+                                <option value="">-- ধরন নির্বাচন করুন --</option>
+                                @foreach($examTypes as $et)
+                                    <option value="{{ $et }}">{{ $et }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>প্রশ্ন সেট / সোর্স ট্যাগ</label>
+                            <input type="text" id="edit_source_tag" name="source_tag" class="form-control" placeholder="যেমন: সেট ক, ২০২৪ ফাইনাল">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>প্রশ্ন (Question Text) <span class="required">*</span></label>
+                        <textarea id="edit_question_text" name="question_text" class="form-control" rows="3" required placeholder="প্রশ্ন লিখুন..."></textarea>
+                    </div>
+
+                    <div id="edit_mcq_fields">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                            <div class="form-group">
+                                <label>অপশন A <span class="required">*</span></label>
+                                <input type="text" id="edit_option_a" name="option_a" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>অপশন B <span class="required">*</span></label>
+                                <input type="text" id="edit_option_b" name="option_b" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>অপশন C <span class="required">*</span></label>
+                                <input type="text" id="edit_option_c" name="option_c" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label>অপশন D <span class="required">*</span></label>
+                                <input type="text" id="edit_option_d" name="option_d" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top:12px">
+                            <label>সঠিক অপশন <span class="required">*</span></label>
+                            <select id="edit_correct_option_id" name="correct_option_id" class="form-control">
+                                <option value="a">A</option>
+                                <option value="b">B</option>
+                                <option value="c">C</option>
+                                <option value="d">D</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="edit_explanation_group">
+                        <label>ব্যাখ্যা (Explanation) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                        <textarea id="edit_explanation" name="explanation" class="form-control" rows="2" placeholder="সঠিক উত্তরের ব্যাখ্যা লিখুন..."></textarea>
+                    </div>
+
+                    <div id="edit_regrade_group" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:12px 14px;font-size:13px;color:#0369a1">
+                        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+                            <input type="checkbox" name="auto_regrade" value="1" checked style="margin-top:3px">
+                            <span>
+                                <strong>স্বয়ংক্রিয় রি-গ্রেডিং (Auto Regrade):</strong> সঠিক উত্তর পরিবর্তন হলে অতীতের সকল শিক্ষার্থীর পরীক্ষার ফলাফল স্বয়ংক্রিয়ভাবে পুনরায় মূল্যায়ন করে মার্কস আপডেট করুন।
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-ghost-purple" onclick="closeModal('editQuestionModal')">বাতিল</button>
+                    <button type="submit" class="btn-purple">পরিবর্তন সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEditQuestionModal(q) {
+            const form = document.getElementById('editQuestionForm');
+            form.action = '/admin/questions/' + q.id;
+            document.getElementById('edit_question_type').value = q.question_type;
+            document.getElementById('edit_question_text').value = q.question_text || '';
+            document.getElementById('edit_subject_id').value = q.subject_id || '';
+            document.getElementById('edit_difficulty').value = q.difficulty || 'easy';
+            document.getElementById('edit_exam_type').value = q.exam_type || '';
+            document.getElementById('edit_source_tag').value = q.source_tag || '';
+
+            if (q.question_type === 'MCQ') {
+                document.getElementById('edit_mcq_fields').style.display = 'block';
+                document.getElementById('edit_explanation_group').style.display = 'block';
+                document.getElementById('edit_regrade_group').style.display = 'block';
+
+                let optA = '', optB = '', optC = '', optD = '';
+                if (Array.isArray(q.options)) {
+                    q.options.forEach(opt => {
+                        if (opt.id === 'a') optA = opt.text;
+                        if (opt.id === 'b') optB = opt.text;
+                        if (opt.id === 'c') optC = opt.text;
+                        if (opt.id === 'd') optD = opt.text;
+                    });
+                }
+                document.getElementById('edit_option_a').value = optA;
+                document.getElementById('edit_option_b').value = optB;
+                document.getElementById('edit_option_c').value = optC;
+                document.getElementById('edit_option_d').value = optD;
+                document.getElementById('edit_correct_option_id').value = (q.correct_option_id || 'a').toLowerCase();
+                document.getElementById('edit_explanation').value = q.explanation || '';
+            } else {
+                document.getElementById('edit_mcq_fields').style.display = 'none';
+                document.getElementById('edit_explanation_group').style.display = 'none';
+                document.getElementById('edit_regrade_group').style.display = 'none';
+            }
+
+            openModal('editQuestionModal');
+        }
+    </script>
 </x-admin-layout>

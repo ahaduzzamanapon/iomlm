@@ -18,7 +18,10 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        $inputs = $request->except(['_token', '_method']);
+        // Explicitly handle weekend_days (allow empty string for no weekends)
+        if ($request->has('weekend_days')) {
+            $inputs['weekend_days'] = trim((string)$request->input('weekend_days', ''));
+        }
 
         foreach ($inputs as $key => $val) {
             // Skip zoom_client_secret if blank — keep existing
@@ -28,7 +31,7 @@ class SettingController extends Controller
 
             Setting::updateOrCreate(
                 ['key' => $key],
-                ['value' => is_array($val) ? json_encode($val) : $val]
+                ['value' => is_array($val) ? json_encode($val) : (string)$val]
             );
         }
 

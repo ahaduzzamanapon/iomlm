@@ -18,9 +18,11 @@ class CourseTransferController extends Controller
      */
     public function index(Request $request)
     {
-        $statusFilter = $request->query('status');
-        $courseFilter = $request->query('to_course_id');
-        $search       = $request->query('search');
+        $statusFilter     = $request->query('status');
+        $courseFilter     = $request->query('to_course_id');
+        $fromCourseFilter = $request->query('from_course_id');
+        $batchFilter      = $request->query('batch_id');
+        $search           = $request->query('search');
 
         $query = CourseTransfer::with([
             'student',
@@ -40,6 +42,17 @@ class CourseTransferController extends Controller
 
         if ($courseFilter) {
             $query->where('to_course_id', $courseFilter);
+        }
+
+        if ($fromCourseFilter) {
+            $query->where('from_course_id', $fromCourseFilter);
+        }
+
+        if ($batchFilter) {
+            $query->where(function ($q) use ($batchFilter) {
+                $q->where('from_batch_id', $batchFilter)
+                  ->orWhere('to_batch_id', $batchFilter);
+            });
         }
 
         if ($search) {
@@ -78,6 +91,8 @@ class CourseTransferController extends Controller
             'batches',
             'statusFilter',
             'courseFilter',
+            'fromCourseFilter',
+            'batchFilter',
             'search'
         ));
     }

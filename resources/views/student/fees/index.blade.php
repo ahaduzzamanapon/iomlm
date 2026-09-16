@@ -177,6 +177,45 @@
                                 @endif
                             </td>
                         </tr>
+                        @if(!empty($row['monthlyItems']))
+                        <tr style="background:#f8fafc">
+                            <td colspan="6" style="padding:10px 16px 14px 28px;border-top:none">
+                                <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:8px;display:flex;align-items:center;gap:6px;font-family:'Kalpurush',sans-serif">
+                                    <i class="fa-solid fa-calendar-days" style="color:var(--blue)"></i> {{ $cleanName }} — মাসভিত্তিক ফি কিস্তি (Monthly Installments):
+                                </div>
+                                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:8px">
+                                    @foreach($row['monthlyItems'] as $mi)
+                                        @php
+                                            $mStatusBadge = match($mi['status']) {
+                                                'PAID' => 'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;',
+                                                'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
+                                                default => 'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;',
+                                            };
+                                            $mStatusText = match($mi['status']) {
+                                                'PAID' => 'পরিশোধিত',
+                                                'PARTIAL' => 'আংশিক',
+                                                default => 'অপরিশোধিত',
+                                            };
+                                        @endphp
+                                        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
+                                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                                                <strong style="font-size:12px;color:#1e293b">{{ $mi['label'] }}</strong>
+                                                <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;{{ $mStatusBadge }}">{{ $mStatusText }}</span>
+                                            </div>
+                                            <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b">
+                                                <span>ফি: ৳{{ number_format($mi['payable'], 0) }}</span>
+                                                @if($mi['due'] > 0)
+                                                    <span style="color:#e11d48;font-weight:700">বকেয়া: ৳{{ number_format($mi['due'], 0) }}</span>
+                                                @else
+                                                    <span style="color:#10b981;font-weight:700">ক্লিয়ার</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </td>
+                        </tr>
+                        @endif
                     @empty
                         <tr>
                             <td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted)">No breakdown available.</td>

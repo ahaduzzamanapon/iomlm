@@ -24,11 +24,42 @@
                             value="{{ $settings['institute_name']->value ?? 'Learning Plus Institute of Technology' }}">
                     </div>
                     <div class="form-group">
-                        <label>Weekend Days</label>
-                        <input type="text" name="weekend_days" class="form-control"
-                            placeholder="e.g. FRI,SAT"
-                            value="{{ $settings['weekend_days']->value ?? 'FRI,SAT' }}">
-                        <span class="form-help">Comma-separated day codes (FRI, SAT, SUN …)</span>
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+                            <label style="font-weight:600;margin-bottom:0">সাপ্তাহিক ছুটির দিন (Weekend Days)</label>
+                            <button type="button" onclick="clearWeekendDays()" style="font-size:12px;padding:3px 12px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:4px">
+                                <i class="fa-solid fa-xmark"></i> কোনো ছুটি নেই (সব দিন খোলা / Empty)
+                            </button>
+                        </div>
+                        @php
+                            $settingWeekend = $settings['weekend_days'] ?? null;
+                            // If the setting exists in DB (even if empty string ''), respect its exact value!
+                            $weekendVal = $settingWeekend ? (string)$settingWeekend->value : 'FRI,SAT';
+                            $currentWeekends = ($weekendVal !== '') ? array_map('trim', explode(',', $weekendVal)) : [];
+                            $daysMap = [
+                                'FRI' => 'শুক্রবার (Friday)',
+                                'SAT' => 'শনিবার (Saturday)',
+                                'SUN' => 'রবিবার (Sunday)',
+                                'MON' => 'সোমবার (Monday)',
+                                'TUE' => 'মঙ্গলবার (Tuesday)',
+                                'WED' => 'বুধবার (Wednesday)',
+                                'THU' => 'বৃহস্পতিবার (Thursday)'
+                            ];
+                        @endphp
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 10px 0">
+                            @foreach($daysMap as $code => $dName)
+                                @php $isSelected = in_array($code, $currentWeekends); @endphp
+                                <label class="weekend-pill" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;border:1px solid {{ $isSelected ? '#10b981' : '#cbd5e1' }};background:{{ $isSelected ? '#ecfdf5' : '#fff' }};cursor:pointer;font-size:12px;font-weight:{{ $isSelected ? '700' : '500' }};color:{{ $isSelected ? '#047857' : '#475569' }};transition:all .15s">
+                                    <input type="checkbox" class="weekend-cb" value="{{ $code }}" {{ $isSelected ? 'checked' : '' }} onchange="updateWeekendDays()" style="display:none">
+                                    <i class="fa-solid {{ $isSelected ? 'fa-circle-check text-emerald-600' : 'fa-circle text-slate-300' }}" style="font-size:11px"></i>
+                                    {{ $dName }}
+                                </label>
+                            @endforeach
+                        </div>
+                        <input type="text" id="weekend_days_input" name="weekend_days" class="form-control"
+                            placeholder="e.g. FRI,SAT বা খালি রাখুন (ছুটি নেই)"
+                            value="{{ $weekendVal }}" style="background:#f8fafc;font-family:monospace;font-size:13px"
+                            oninput="syncCheckboxesFromInput()">
+                        <span class="form-help" style="margin-top:4px;display:block">ক্লাস রুটিন ও শিক্ষাক্রম তৈরিতে এই দিনগুলো স্বয়ংক্রিয়ভাবে ছুটির দিন হিসেবে গণ্য হবে। খালি রাখলে কোনো সাপ্তাহিক ছুটি থাকবে না (সব দিন ক্লাস/অফিস খোলা)।</span>
                     </div>
                 </div>
             </div>
@@ -182,6 +213,68 @@
         document.getElementById('zoom_config').style.display   = val === 'zoom'        ? '' : 'none';
         document.getElementById('gmeet_config').style.display  = val === 'google_meet' ? '' : 'none';
         document.getElementById('manual_config').style.display = val === 'manual'      ? '' : 'none';
+    }
+
+    function updateWeekendDays() {
+        const cbs = document.querySelectorAll('.weekend-cb');
+        const selected = [];
+        cbs.forEach(cb => {
+            const pill = cb.closest('.weekend-pill');
+            const icon = pill.querySelector('i');
+            if (cb.checked) {
+                selected.push(cb.value);
+                pill.style.borderColor = '#10b981';
+                pill.style.background = '#ecfdf5';
+                pill.style.color = '#047857';
+                pill.style.fontWeight = '700';
+                if (icon) icon.className = 'fa-solid fa-circle-check text-emerald-600';
+            } else {
+                pill.style.borderColor = '#cbd5e1';
+                pill.style.background = '#fff';
+                pill.style.color = '#475569';
+                pill.style.fontWeight = '500';
+                if (icon) icon.className = 'fa-solid fa-circle text-slate-300';
+            }
+        });
+        document.getElementById('weekend_days_input').value = selected.join(',');
+    }
+
+    function clearWeekendDays() {
+        document.querySelectorAll('.weekend-cb').forEach(cb => {
+            cb.checked = false;
+            const pill = cb.closest('.weekend-pill');
+            const icon = pill.querySelector('i');
+            pill.style.borderColor = '#cbd5e1';
+            pill.style.background = '#fff';
+            pill.style.color = '#475569';
+            pill.style.fontWeight = '500';
+            if (icon) icon.className = 'fa-solid fa-circle text-slate-300';
+        });
+        document.getElementById('weekend_days_input').value = '';
+    }
+
+    function syncCheckboxesFromInput() {
+        const val = document.getElementById('weekend_days_input').value.toUpperCase();
+        const parts = val.split(',').map(s => s.trim()).filter(Boolean);
+        document.querySelectorAll('.weekend-cb').forEach(cb => {
+            const isChecked = parts.includes(cb.value);
+            cb.checked = isChecked;
+            const pill = cb.closest('.weekend-pill');
+            const icon = pill.querySelector('i');
+            if (isChecked) {
+                pill.style.borderColor = '#10b981';
+                pill.style.background = '#ecfdf5';
+                pill.style.color = '#047857';
+                pill.style.fontWeight = '700';
+                if (icon) icon.className = 'fa-solid fa-circle-check text-emerald-600';
+            } else {
+                pill.style.borderColor = '#cbd5e1';
+                pill.style.background = '#fff';
+                pill.style.color = '#475569';
+                pill.style.fontWeight = '500';
+                if (icon) icon.className = 'fa-solid fa-circle text-slate-300';
+            }
+        });
     }
     </script>
 </x-admin-layout>

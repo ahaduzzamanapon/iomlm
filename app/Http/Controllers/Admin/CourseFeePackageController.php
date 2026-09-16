@@ -189,4 +189,32 @@ class CourseFeePackageController extends Controller
 
         return back()->with('success', "✅ Template package '{$package->name}' created with " . $feeHeads->count() . " fee heads. Edit the amounts below.");
     }
+
+    /**
+     * Clone an existing fee package with all its items.
+     */
+    public function clonePackage(Course $course, CourseFeePackage $package)
+    {
+        $newPackage = CourseFeePackage::create([
+            'course_id'   => $course->id,
+            'name'        => "Copy of " . $package->name,
+            'description' => $package->description,
+            'is_default'  => false,
+            'is_active'   => true,
+        ]);
+
+        foreach ($package->items as $item) {
+            CourseFeePackageItem::create([
+                'package_id'      => $newPackage->id,
+                'fee_head_id'     => $item->fee_head_id,
+                'label'           => $item->label,
+                'quantity'        => $item->quantity,
+                'amount_per_unit' => $item->amount_per_unit,
+                'total_amount'    => $item->total_amount,
+                'sort_order'      => $item->sort_order,
+            ]);
+        }
+
+        return back()->with('success', "ফি প্যাকেজ '{$package->name}' সফলভাবে কপি করা হয়েছে। (নতুন প্যাকেজ: {$newPackage->name})");
+    }
 }

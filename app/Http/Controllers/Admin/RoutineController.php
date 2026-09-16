@@ -21,10 +21,16 @@ class RoutineController extends Controller
     private function weekends(): array
     {
         try {
-            $v = Setting::where('key', 'weekend_days')->value('value');
-            return $v ? explode(',', $v) : ['FRI', 'SAT'];
-        } catch (\Exception $e) {
+            $setting = Setting::where('key', 'weekend_days')->first();
+            if ($setting && $setting->value !== null) {
+                if (trim($setting->value) === '') {
+                    return []; // Explicitly configured as NO weekends
+                }
+                return array_values(array_filter(explode(',', $setting->value), fn($d) => trim($d) !== ''));
+            }
             return ['FRI', 'SAT'];
+        } catch (\Exception $e) {
+            return [];
         }
     }
 

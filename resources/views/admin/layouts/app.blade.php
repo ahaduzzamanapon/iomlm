@@ -287,7 +287,7 @@
             </a>
 
             {{-- ── 2. Academic Setup ── --}}
-            @php $academicActive = request()->routeIs('admin.academic-years*','admin.subjects*','admin.courses*','admin.semesters*','admin.holiday-calendar*'); @endphp
+            @php $academicActive = request()->routeIs('admin.academic-years*','admin.subjects*','admin.courses*','admin.semesters*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $academicActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                     <i class="fa-solid fa-graduation-cap"></i>
@@ -306,10 +306,6 @@
                     <a href="{{ route('admin.subjects.index') }}" class="nav-item {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}">
                         <i class="fa-solid fa-book-bookmark"></i>
                         Subjects &amp; Modules
-                    </a>
-                    <a href="{{ route('admin.holiday-calendar.index') }}" class="nav-item {{ request()->routeIs('admin.holiday-calendar*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-calendar-xmark"></i>
-                        Holiday Calendar
                     </a>
                 </div>
             </div>

@@ -136,6 +136,22 @@
     </div>
 </div>
 
+@if(session()->has('admin_impersonator_id'))
+<div style="background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #b91c1c 100%); color: #ffffff; padding: 10px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 9999999; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4); font-family: 'Kalpurush', sans-serif;">
+    <div style="display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600;">
+        <i class="fa-solid fa-user-shield" style="font-size: 18px; background: rgba(255,255,255,0.25); padding: 7px; border-radius: 50%;"></i>
+        <span>
+            <strong>অ্যাডমিন প্রিভিউ মোড:</strong> আপনি বর্তমানে শিক্ষার্থী হিসেবে লগইন আছেন (শিক্ষার্থী: <strong>{{ auth()->user()->name }}</strong> @if(auth()->user()->student?->student_code)| আইডি: <strong>{{ auth()->user()->student->student_code }}</strong>@endif)
+        </span>
+    </div>
+    <div>
+        <a href="{{ route('admin.impersonate.leave') }}" style="background: #ffffff; color: #b91c1c; font-weight: 700; font-size: 13px; padding: 7px 18px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#ffffff'">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> এডমিন প্যানেলে ফিরুন (Back to Admin)
+        </a>
+    </div>
+</div>
+@endif
+
 <div class="app-wrapper">
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
