@@ -316,25 +316,6 @@
                         </select>
                         <small style="color:var(--text-muted);font-size:11px">Ctrl / Cmd চেপে একাধিক সাবজেক্ট একসাথে সিলেক্ট করতে পারবেন</small>
                     </div>
-
-                    <div class="form-group">
-                        <label>গ্রুপিং মোড (Grouping Mode)</label>
-                        <select name="group_mode" class="form-control">
-                            <option value="INHERIT">সেমিস্টার ডিফল্ট অনুসরণ করবে (Inherit from Semester)</option>
-                            <option value="NONE">যৌথ / সাধারণ (No Grouping for this subject)</option>
-                            <option value="GENDER">লিঙ্গভিত্তিক (ভাই ও বোন শাখা)</option>
-                            <option value="SPLIT">বিভাজন ভিত্তিক (গ্রুপ ক ও খ)</option>
-                        </select>
-                        <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;font-family:'Kalpurush',sans-serif">
-                            <div style="font-weight:700;color:var(--blue);margin-bottom:6px"><i class="fa-solid fa-circle-info"></i> গ্রুপিং মোড নির্দেশিকা:</div>
-                            <ul style="margin:0;padding-left:16px;line-height:1.6;color:#334155">
-                                <li><strong>সেমিস্টার ডিফল্ট:</strong> সেমিস্টারে নির্ধারিত শাখা নিয়ম (যেমন ভাই/বোন শাখা) স্বয়ংক্রিয়ভাবে পাবে।</li>
-                                <li><strong>যৌথ / সাধারণ:</strong> সকল শিক্ষার্থী (ছেলে-মেয়ে বা সব শাখা) একসাথে এই ক্লাস করবে।</li>
-                                <li><strong>লিঙ্গভিত্তিক:</strong> ভাই ও বোনদের জন্য সম্পূর্ণ আলাদা ক্লাস শাখা তৈরি হবে।</li>
-                                <li><strong>বিভাজনভিত্তিক:</strong> রোল/শাখা অনুযায়ী গ্রুপ ক ও গ্রুপ খ আলাদা ক্লাস করবে।</li>
-                            </ul>
-                        </div>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('mapSubjectModal')">Cancel</button>
@@ -367,23 +348,6 @@
                                 <option value="{{ $subj->id }}">{{ $subj->code }}: {{ $subj->name }} ({{ $subj->credit }} Credit)</option>
                             @endforeach
                         </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label>গ্রুপিং মোড (Grouping Mode)</label>
-                        <select name="group_mode" class="form-control" style="font-size:13px">
-                            <option value="INHERIT">সেমিস্টার ডিফল্ট অনুসরণ করবে (Inherit from Semester)</option>
-                            <option value="NONE">যৌথ / সাধারণ (No Grouping for this subject)</option>
-                            <option value="GENDER">লিঙ্গভিত্তিক (ভাই ও বোন শাখা)</option>
-                            <option value="SPLIT">বিভাজন ভিত্তিক (গ্রুপ ক ও খ)</option>
-                        </select>
-                    </div>
-
-                    <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px">
-                        <div style="font-weight:700;color:var(--blue);margin-bottom:4px"><i class="fa-solid fa-circle-info"></i> গ্রুপিং নিয়ম:</div>
-                        <div style="color:#334155;line-height:1.5">
-                            সাধারণত <strong>সেমিস্টার ডিফল্ট</strong> রাখলে সেমিস্টারের ভাই/বোন বা গ্রুপ শাখা স্বয়ংক্রিয়ভাবে কার্যকর হবে। বিশেষ কোনো বিষয়ের জন্য যৌথ বা আলাদা করতে চাইলে তা বেছে নিতে পারেন।
-                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">

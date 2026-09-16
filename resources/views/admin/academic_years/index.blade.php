@@ -17,6 +17,8 @@
         <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:600">
             {{ session('success') }}
         </div>
+    @endif
+
     {{-- Academic Year & Session Bengali Clarification Guide --}}
     <div class="card" style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;padding:16px 20px;border-radius:12px;margin-bottom:20px;font-family:'Kalpurush',sans-serif">
         <div style="display:flex;align-items:flex-start;gap:14px">
