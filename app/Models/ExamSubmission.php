@@ -9,8 +9,9 @@ class ExamSubmission extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'started_at'   => 'datetime',
-        'submitted_at' => 'datetime',
+        'assigned_question_ids' => 'array',
+        'started_at'            => 'datetime',
+        'submitted_at'          => 'datetime',
     ];
 
     public function exam()

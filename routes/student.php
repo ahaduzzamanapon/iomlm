@@ -60,6 +60,7 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::get('exams',                       [\App\Http\Controllers\Student\ExamController::class, 'index'])->name('exams.index');
         Route::get('exams/{exam}/take',           [\App\Http\Controllers\Student\ExamController::class, 'take'])->name('exams.take');
         Route::post('exams/{exam}/submit',        [\App\Http\Controllers\Student\ExamController::class, 'submit'])->name('exams.submit');
+        Route::post('exams/{exam}/appeal',        [\App\Http\Controllers\Student\ExamController::class, 'appeal'])->name('exams.appeal');
         Route::get('exams/{exam}/result/{submission}', [\App\Http\Controllers\Student\ExamController::class, 'result'])->name('exams.result');
 
         // Results

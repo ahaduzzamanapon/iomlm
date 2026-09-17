@@ -9,6 +9,7 @@ use App\Models\Exam;
 use App\Models\Subject;
 use App\Models\Question;
 use App\Models\ExamQuestion;
+use App\Models\ExamAppeal;
 use Illuminate\Http\Request;
 
 
@@ -165,7 +166,7 @@ class ExamController extends Controller
 
     public function show(Request $request, Exam $exam)
     {
-        $exam->load(['subject', 'examQuestions.question', 'submissions.student']);
+        $exam->load(['subject', 'examQuestions.question', 'submissions.student', 'appeals.student']);
 
         $subjectId  = $request->query('pool_subject_id');
         $difficulty = $request->query('difficulty');
@@ -242,5 +243,76 @@ class ExamController extends Controller
         $submission->delete();
 
         return back()->with('success', "{$studentName}-এর পরীক্ষার খাতা সফলভাবে রিসেট করা হয়েছে। শিক্ষার্থী এখন পুনরায় পরীক্ষা দিতে পারবেন।");
+    }
+
+    /**
+     * View appeals for teacher's exams
+     */
+    public function allAppeals(Request $request)
+    {
+        $teacher = $this->teacher();
+        $assignedSubjectIds = SubjectTeacherAssignment::where('teacher_id', $teacher?->id)->pluck('subject_id');
+        if ($assignedSubjectIds->isEmpty()) {
+            $assignedSubjectIds = Subject::where('is_active', true)->pluck('id');
+        }
+
+        $status = $request->query('status', 'PENDING');
+        $query = ExamAppeal::whereHas('exam', function ($q) use ($assignedSubjectIds) {
+                $q->whereIn('subject_id', $assignedSubjectIds);
+            })
+            ->with(['exam.subject', 'student', 'reviewer'])
+            ->latest();
+
+        if ($status !== 'ALL') {
+            $query->where('status', $status);
+        }
+
+        $appeals = $query->paginate(20);
+        return view('teacher.exams.appeals', compact('appeals', 'status'));
+    }
+
+    /**
+     * Approve re-exam appeal
+     */
+    public function approveAppeal(Request $request, ExamAppeal $appeal)
+    {
+        if ($appeal->submission_id) {
+            \App\Models\ExamAnswer::where('submission_id', $appeal->submission_id)->delete();
+            \App\Models\ExamSubmission::where('id', $appeal->submission_id)->delete();
+        } else {
+            $existing = \App\Models\ExamSubmission::where('exam_id', $appeal->exam_id)
+                ->where('student_id', $appeal->student_id)
+                ->first();
+            if ($existing) {
+                \App\Models\ExamAnswer::where('submission_id', $existing->id)->delete();
+                $existing->delete();
+            }
+        }
+
+        $appeal->update([
+            'status'        => 'APPROVED',
+            'reviewed_by'   => auth()->id(),
+            'reviewed_at'   => now(),
+            'admin_remarks' => $request->input('remarks'),
+        ]);
+
+        $studentName = $appeal->student?->name ?? 'শিক্ষার্থী';
+        return back()->with('success', "{$studentName}-এর পুনরায় পরীক্ষার আপিল সফলভাবে অনুমোদন করা হয়েছে এবং পূর্বের খাতা রিসেট করা হয়েছে।");
+    }
+
+    /**
+     * Reject re-exam appeal
+     */
+    public function rejectAppeal(Request $request, ExamAppeal $appeal)
+    {
+        $appeal->update([
+            'status'        => 'REJECTED',
+            'reviewed_by'   => auth()->id(),
+            'reviewed_at'   => now(),
+            'admin_remarks' => $request->input('remarks'),
+        ]);
+
+        $studentName = $appeal->student?->name ?? 'শিক্ষার্থী';
+        return back()->with('success', "{$studentName}-এর পুনরায় পরীক্ষার আপিল বাতিল করা হয়েছে।");
     }
 }

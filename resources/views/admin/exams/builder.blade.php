@@ -1,10 +1,11 @@
-<x-teacher-layout>
-    <x-slot name="title">Exam Builder — {{ $exam->title }}</x-slot>
+<x-admin-layout>
+    <x-slot name="title">Exam Paper Builder — {{ $exam->title }}</x-slot>
 
     <div class="page-header">
         <div class="page-header-left">
             <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">
-                <a href="{{ route('teacher.exams.index') }}">← Back to Exams</a>
+                <a href="{{ route('admin.exams.index') }}">← Back to Exams</a> &middot;
+                <a href="{{ route('admin.exams.show', $exam) }}">Inspect Exam</a>
             </div>
             <h1>Exam Question Paper Builder</h1>
             <p>
@@ -14,11 +15,9 @@
             </p>
         </div>
         <div class="page-header-actions">
-            @if($exam->examQuestions->where('question.question_type', 'WRITTEN')->count() > 0)
-                <a href="{{ route('teacher.exams.grade', $exam) }}" class="btn btn-outline" style="color:#9d174d;border-color:#f9a8d4">
-                    Grade Written Answers
-                </a>
-            @endif
+            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline">
+                <i class="fa-solid fa-eye"></i> View Exam Details
+            </a>
         </div>
     </div>
 
@@ -45,13 +44,13 @@
             <div style="padding:10px 16px;background:#eef2ff;border-top:1px solid #e0e7ff;font-size:12px;color:#3730a3;display:flex;align-items:center;gap:10px">
                 <i class="fa-solid fa-shuffle" style="font-size:15px;color:#4f46e5"></i>
                 <span>
-                    <strong>র‍্যান্ডম প্রশ্ন পুল সক্রিয়:</strong> আপনি পুলে {{ $poolMarks }} নম্বরের মোট {{ $exam->examQuestions->count() }}টি প্রশ্ন যুক্ত করেছেন। শিক্ষার্থীরা পরীক্ষায় প্রবেশ করলে তাদের প্রত্যেকের জন্য প্রশ্নগুলো স্বয়ংক্রিয়ভাবে এলোমেলো (Shuffle) হয়ে নির্ধারিত <strong>{{ $exam->full_marks }} নম্বরের</strong> প্রশ্নপত্র তৈরি হবে।
+                    <strong>র‍্যান্ডম প্রশ্ন পুল সক্রিয়:</strong> আপনি পুলে {{ $poolMarks }} নম্বরের মোট {{ $exam->examQuestions->count() }}টি প্রশ্ন যুক্ত করেছেন। শিক্ষার্থীরা পরীক্ষায় প্রবেশ করলে সিস্টেম স্বয়ংক্রিয়ভাবে প্রশ্নগুলো সাফল (Shuffle) করে প্রতিটি শিক্ষার্থীর জন্য নির্ধারিত <strong>{{ $exam->full_marks }} নম্বরের</strong> ইউনিক প্রশ্নপত্র প্রদান করবে।
                 </span>
             </div>
         @endif
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 400px;gap:20px">
+    <div style="display:grid;grid-template-columns:1fr 420px;gap:20px">
 
         {{-- Attached Question Paper --}}
         <div class="card">
@@ -71,6 +70,16 @@
                             @else
                                 <span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e0e7ff;color:#4338ca">MCQ</span>
                             @endif
+                            @if($q?->subject)
+                                <span style="font-size:10px;background:#f1f5f9;color:#334155;padding:2px 6px;border-radius:4px">
+                                    {{ $q->subject->code }}
+                                </span>
+                            @endif
+                            @if($q?->source_tag)
+                                <span style="font-size:10px;background:#f8fafc;color:#64748b;padding:2px 6px;border-radius:4px;border:1px solid #e2e8f0">
+                                    #{{ $q->source_tag }}
+                                </span>
+                            @endif
                         </div>
                         <div style="font-weight:600;font-size:14px;color:#0f172a;margin-bottom:6px">
                             {!! e($q?->question_text) !!}
@@ -79,15 +88,15 @@
                             @if($q?->question_type === 'MCQ')
                                 Correct: <strong style="color:#10b981">{{ strtoupper($q->correct_option_id) }}</strong> &middot;
                             @else
-                                <em>Teacher graded</em> &middot;
+                                <em>Subjective / Teacher graded</em> &middot;
                             @endif
                             Marks: <strong>{{ $eq->marks }}</strong>
                         </div>
                     </div>
                     <div>
-                        <form method="POST" action="{{ route('teacher.exams.questions.detach', [$exam, $eq]) }}">
+                        <form method="POST" action="{{ route('admin.exams.questions.detach', [$exam, $eq]) }}">
                             @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444" title="Remove question">
+                            <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444" title="Remove question" onsubmit="return confirm('Remove question?')">
                                 <i class="fa-solid fa-trash"></i> Remove
                             </button>
                         </form>
@@ -109,7 +118,7 @@
             </div>
             <div style="padding:14px">
                 {{-- Filter Bar --}}
-                <form method="GET" action="{{ route('teacher.exams.show', $exam) }}" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;background:#f8fafc;border:1px solid #e2e8f0;padding:10px;border-radius:8px">
+                <form method="GET" action="{{ route('admin.exams.builder', $exam) }}" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;background:#f8fafc;border:1px solid #e2e8f0;padding:10px;border-radius:8px">
                     <input type="text" name="search" class="form-control" placeholder="প্রশ্ন অনুসন্ধান করুন..." value="{{ $search }}" style="height:32px;font-size:12px">
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
@@ -141,7 +150,7 @@
                                 <i class="fa-solid fa-filter"></i> ফিল্টার
                             </button>
                             @if($search || $difficulty || $examType || ($subjectId && $subjectId !== $exam->subject_id))
-                                <a href="{{ route('teacher.exams.show', $exam) }}" class="btn btn-outline btn-sm" style="height:32px;padding:4px 8px;font-size:11px" title="Reset">
+                                <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-outline btn-sm" style="height:32px;padding:4px 8px;font-size:11px" title="Reset">
                                     <i class="fa-solid fa-rotate-left"></i>
                                 </a>
                             @endif
@@ -180,7 +189,7 @@
                         <div style="font-weight:600;font-size:13px;color:#1e293b;margin-bottom:8px;line-height:1.4">
                             {!! e($q->question_text) !!}
                         </div>
-                        <form method="POST" action="{{ route('teacher.exams.questions.attach', $exam) }}" style="display:flex;gap:8px;align-items:center">
+                        <form method="POST" action="{{ route('admin.exams.questions.attach', $exam) }}" style="display:flex;gap:8px;align-items:center">
                             @csrf
                             <input type="hidden" name="question_id" value="{{ $q->id }}">
                             <input type="number" step="0.5" name="marks" value="{{ $q->question_type === 'WRITTEN' ? 5 : 1 }}"
@@ -200,4 +209,4 @@
         </div>
 
     </div>
-</x-teacher-layout>
+</x-admin-layout>

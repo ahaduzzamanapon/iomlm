@@ -399,9 +399,13 @@
                     <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
                 </div>
                 <div class="tree-children {{ $examsActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.exams.index') }}" class="nav-item {{ request()->routeIs('admin.exams*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.exams.index') }}" class="nav-item {{ request()->routeIs('admin.exams.index', 'admin.exams.show', 'admin.exams.builder') ? 'active' : '' }}">
                         <i class="fa-solid fa-file-pen"></i>
                         Exams &amp; Results
+                    </a>
+                    <a href="{{ route('admin.exams.appeals.index') }}" class="nav-item {{ request()->routeIs('admin.exams.appeals*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-file-circle-question"></i>
+                        Re-Exam Appeals (আপিল)
                     </a>
                     <a href="{{ route('admin.questions.index') }}" class="nav-item {{ request()->routeIs('admin.questions*') ? 'active' : '' }}">
                         <i class="fa-solid fa-database"></i>

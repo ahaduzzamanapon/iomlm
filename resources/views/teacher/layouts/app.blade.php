@@ -202,9 +202,13 @@
 
             <!-- Assessments -->
             <div class="nav-group-label">Assessments</div>
-            <a href="{{ route('teacher.exams.index') }}" class="nav-item {{ request()->routeIs('teacher.exams*') ? 'active' : '' }}">
+            <a href="{{ route('teacher.exams.index') }}" class="nav-item {{ request()->routeIs('teacher.exams.index', 'teacher.exams.show') ? 'active' : '' }}">
                 <i class="fa-solid fa-file-pen"></i>
                 Exams
+            </a>
+            <a href="{{ route('teacher.exams.appeals.index') }}" class="nav-item {{ request()->routeIs('teacher.exams.appeals*') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-circle-question"></i>
+                Re-Exam Appeals (আপিল)
             </a>
             <a href="{{ route('teacher.results.index') }}" class="nav-item {{ request()->routeIs('teacher.results*') ? 'active' : '' }}">
                 <i class="fa-solid fa-square-poll-horizontal"></i>

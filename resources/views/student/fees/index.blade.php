@@ -166,7 +166,11 @@
                             </td>
                             <td style="text-align:center">
                                 @if($hasInvoice && $gDue > 0 && $invObj)
-                                    <button onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}')"
+                                    @php
+                                        $firstDueMonth = collect($row['monthlyItems'] ?? [])->where('due', '>', 0)->first();
+                                        $mRate = $firstDueMonth['due'] ?? ($row['monthlyRate'] ?? 0);
+                                    @endphp
+                                    <button onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mRate > 0 ? $mRate : $gDue, $gDue) }}', '{{ $firstDueMonth['label'] ?? '' }} কিস্তি', '{{ $mRate }}')"
                                         style="background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; border:none; padding:5px 12px; border-radius:7px; font-weight:700; font-size:12px; cursor:pointer; box-shadow:0 2px 6px rgba(22,163,74,0.3); display:inline-flex; align-items:center; gap:4px">
                                         Pay Now
                                     </button>
@@ -179,13 +183,39 @@
                         </tr>
                         @if(!empty($row['monthlyItems']))
                         <tr style="background:#f8fafc">
-                            <td colspan="6" style="padding:10px 16px 14px 28px;border-top:none">
-                                <div style="font-size:12px;font-weight:700;color:#334155;margin-bottom:8px;display:flex;align-items:center;gap:6px;font-family:'Kalpurush',sans-serif">
-                                    <i class="fa-solid fa-calendar-days" style="color:var(--blue)"></i> {{ $cleanName }} — মাসভিত্তিক ফি কিস্তি (Monthly Installments):
+                            <td colspan="6" style="padding:12px 18px 16px 28px;border-top:none">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+                                    <div style="font-size:12.5px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:6px;font-family:'Kalpurush',sans-serif">
+                                        <i class="fa-solid fa-calendar-days" style="color:#2563eb"></i> {{ $cleanName }} — মাসভিত্তিক ফি কিস্তি (Monthly Installments):
+                                    </div>
+                                    @if($hasInvoice && $gDue > 0 && $invObj)
+                                    <div style="display:flex;align-items:center;gap:8px;font-family:'Kalpurush',sans-serif">
+                                        @php
+                                            $firstDueMonth = collect($row['monthlyItems'])->where('due', '>', 0)->first();
+                                            $mRate = $firstDueMonth['due'] ?? ($row['monthlyRate'] ?? 0);
+                                        @endphp
+                                        @if($firstDueMonth)
+                                        <button type="button" 
+                                                onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }} — {{ $firstDueMonth['label'] }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mRate, $gDue) }}', '{{ $firstDueMonth['label'] }} কিস্তি', '{{ $mRate }}')"
+                                                style="background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8;padding:4px 12px;border-radius:7px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(37,99,235,0.1)">
+                                            <i class="fa-solid fa-bolt" style="color:#2563eb"></i> চলতি {{ $firstDueMonth['label'] }} দিন (৳{{ number_format(min($mRate, $gDue), 0) }})
+                                        </button>
+                                        @endif
+                                        <div id="bulkPayBar_{{ $loop->index }}" style="display:none;align-items:center;gap:6px">
+                                            <span id="bulkPayText_{{ $loop->index }}" style="font-size:11.5px;font-weight:700;color:#047857;background:#ecfdf5;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0"></span>
+                                            <button type="button" id="bulkPayBtn_{{ $loop->index }}"
+                                                    style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 4px rgba(16,185,129,0.3)">
+                                                <i class="fa-solid fa-credit-card"></i> নির্বাচিত কিস্তি পরিশোধ করুন
+                                            </button>
+                                        </div>
+                                    </div>
+                                    @endif
                                 </div>
-                                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:8px">
+                                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px">
                                     @foreach($row['monthlyItems'] as $mi)
                                         @php
+                                            $isPaid = ($mi['status'] === 'PAID');
+                                            $isPartial = ($mi['status'] === 'PARTIAL');
                                             $mStatusBadge = match($mi['status']) {
                                                 'PAID' => 'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;',
                                                 'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
@@ -197,17 +227,52 @@
                                                 default => 'অপরিশোধিত',
                                             };
                                         @endphp
-                                        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
-                                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                                                <strong style="font-size:12px;color:#1e293b">{{ $mi['label'] }}</strong>
-                                                <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;{{ $mStatusBadge }}">{{ $mStatusText }}</span>
+                                        <div style="background:#fff;border:1.5px solid {{ $isPaid ? '#bbf7d0' : '#e2e8f0' }};border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.03);display:flex;flex-direction:column;justify-content:space-between;transition:all .15s" class="month-card-box">
+                                            <div>
+                                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                                                    <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:{{ $isPaid ? 'default' : 'pointer' }}">
+                                                        @if(!$isPaid && $hasInvoice && $gDue > 0 && $invObj)
+                                                            <input type="checkbox" class="month-chk-sem-{{ $loop->parent->index }}" 
+                                                                   data-label="{{ $mi['label'] }}" 
+                                                                   data-due="{{ min($mi['due'], $gDue) }}" 
+                                                                   data-invid="{{ $invObj->id }}" 
+                                                                   data-invno="{{ $invObj->invoice_no }}" 
+                                                                   data-sem="{{ e($cleanName) }}" 
+                                                                   data-gdue="{{ $gDue }}"
+                                                                   data-mrate="{{ $row['monthlyRate'] ?? $mi['payable'] }}"
+                                                                   onchange="onMonthCheckChange({{ $loop->parent->index }})" 
+                                                                   style="cursor:pointer;accent-color:#2563eb;width:14px;height:14px">
+                                                        @endif
+                                                        <strong style="font-size:12.5px;color:#1e293b">{{ $mi['label'] }}</strong>
+                                                    </label>
+                                                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;{{ $mStatusBadge }}">
+                                                        @if($isPaid) <i class="fa-solid fa-check" style="font-size:9px"></i> @endif
+                                                        {{ $mStatusText }}
+                                                    </span>
+                                                </div>
+                                                <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:4px">
+                                                    <span>নির্ধারিত: ৳{{ number_format($mi['payable'], 0) }}</span>
+                                                    @if($mi['due'] > 0)
+                                                        <span style="color:#e11d48;font-weight:700">বকেয়া: ৳{{ number_format($mi['due'], 0) }}</span>
+                                                    @else
+                                                        <span style="color:#10b981;font-weight:700">ক্লিয়ার</span>
+                                                    @endif
+                                                </div>
                                             </div>
-                                            <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b">
-                                                <span>ফি: ৳{{ number_format($mi['payable'], 0) }}</span>
-                                                @if($mi['due'] > 0)
-                                                    <span style="color:#e11d48;font-weight:700">বকেয়া: ৳{{ number_format($mi['due'], 0) }}</span>
+                                            <div style="margin-top:8px;padding-top:6px;border-top:1px dashed #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+                                                @if($isPaid)
+                                                    <span style="color:#16a34a;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px">
+                                                        <i class="fa-solid fa-circle-check"></i> পরিশোধ সম্পন্ন
+                                                    </span>
+                                                @elseif($hasInvoice && $gDue > 0 && $invObj)
+                                                    <span style="font-size:10.5px;color:#64748b">কিস্তি নং {{ $mi['month_no'] }}</span>
+                                                    <button type="button" 
+                                                            onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }} — {{ $mi['label'] }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mi['due'], $gDue) }}', '{{ $mi['label'] }} কিস্তি', '{{ $row['monthlyRate'] ?? $mi['payable'] }}')"
+                                                            style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 4px rgba(16,185,129,0.25)">
+                                                        <i class="fa-solid fa-credit-card" style="font-size:10px"></i> পে করুন
+                                                    </button>
                                                 @else
-                                                    <span style="color:#10b981;font-weight:700">ক্লিয়ার</span>
+                                                    <span style="color:#94a3b8;font-size:11px">—</span>
                                                 @endif
                                             </div>
                                         </div>
@@ -434,6 +499,21 @@
                     </div>
                 </div>
 
+                <input type="hidden" name="remarks" id="modalRemarksInput" value="">
+
+                {{-- Month / Installment Quick Presets --}}
+                <div id="modalInstallmentOptions" style="margin-bottom:16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; font-family:'Kalpurush',sans-serif">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px">
+                        <label style="font-size:12px; font-weight:700; color:#334155; margin:0">
+                            <i class="fa-solid fa-calendar-check" style="color:#2563eb"></i> কিস্তির বিকল্প বেছে নিন:
+                        </label>
+                        <span id="modalSelectedMonthLabel" style="font-size:11.5px; color:#2563eb; font-weight:700"></span>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px" id="modalPresetChips">
+                        <!-- Rendered dynamically by JS -->
+                    </div>
+                </div>
+
                 {{-- Amount to Pay --}}
                 <div style="margin-bottom:16px">
                     <label style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px">
@@ -593,12 +673,38 @@
         }
     }
 
-    function openPayModal(invId, title, invNo, dueAmt) {
+    function openPayModal(invId, title, invNo, dueAmt, suggestedAmt, remarks, monthlyRate) {
+        dueAmt = parseFloat(dueAmt) || 0;
+        monthlyRate = parseFloat(monthlyRate) || 0;
+
         document.getElementById('modalInvNo').innerText = invNo;
         document.getElementById('modalInvTitle').innerText = title;
-        document.getElementById('modalDueAmount').innerText = parseFloat(dueAmt).toLocaleString('en-IN', {minimumFractionDigits: 2});
-        document.getElementById('payAmountInput').value = dueAmt;
+        document.getElementById('modalDueAmount').innerText = dueAmt.toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+        let targetAmt;
+        if (suggestedAmt !== undefined && suggestedAmt !== null && suggestedAmt !== '') {
+            targetAmt = parseFloat(suggestedAmt);
+        } else if (monthlyRate > 0 && monthlyRate <= dueAmt) {
+            targetAmt = monthlyRate;
+        } else {
+            targetAmt = dueAmt;
+        }
+        targetAmt = Math.min(targetAmt, dueAmt);
+
+        document.getElementById('payAmountInput').value = targetAmt;
         document.getElementById('payAmountInput').max = dueAmt;
+
+        const remarksEl = document.getElementById('modalRemarksInput');
+        if (remarksEl) {
+            remarksEl.value = remarks || '';
+        }
+
+        const labelEl = document.getElementById('modalSelectedMonthLabel');
+        if (labelEl) {
+            labelEl.innerText = remarks ? '📌 ' + remarks : '';
+        }
+
+        renderPresetChips(dueAmt, targetAmt, monthlyRate, remarks);
 
         let actionUrl = "{{ route('student.fees.pay', ':id') }}".replace(':id', invId);
         document.getElementById('payForm').action = actionUrl;
@@ -606,6 +712,124 @@
         selectModalGateway('sslcommerz');
 
         document.getElementById('payInvoiceModal').style.display = 'flex';
+    }
+
+    function renderPresetChips(dueAmt, currentAmt, monthlyRate, remarks) {
+        const container = document.getElementById('modalPresetChips');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const chips = [];
+
+        if (monthlyRate > 0 && monthlyRate < dueAmt) {
+            chips.push({
+                label: '১ মাসের কিস্তি',
+                amount: Math.min(monthlyRate, dueAmt),
+                note: '১ মাসের কিস্তি'
+            });
+
+            if (dueAmt >= monthlyRate * 1.5) {
+                chips.push({
+                    label: '২ মাসের কিস্তি',
+                    amount: Math.min(Math.round(monthlyRate * 2 * 100) / 100, dueAmt),
+                    note: '২ মাসের কিস্তি'
+                });
+            }
+
+            if (dueAmt >= monthlyRate * 2.5) {
+                chips.push({
+                    label: '৩ মাসের কিস্তি',
+                    amount: Math.min(Math.round(monthlyRate * 3 * 100) / 100, dueAmt),
+                    note: '৩ মাসের কিস্তি'
+                });
+            }
+        }
+
+        chips.push({
+            label: 'পূর্ণ বকেয়া পরিশোধ',
+            amount: dueAmt,
+            note: 'পূর্ণ বকেয়া'
+        });
+
+        chips.forEach((c) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            const isMatch = Math.abs(currentAmt - c.amount) < 0.5;
+            btn.className = 'preset-chip' + (isMatch ? ' active' : '');
+            btn.style.padding = '5px 12px';
+            btn.style.borderRadius = '20px';
+            btn.style.fontSize = '12px';
+            btn.style.fontWeight = '600';
+            btn.style.cursor = 'pointer';
+            btn.style.border = isMatch ? '1.5px solid #2563eb' : '1px solid #cbd5e1';
+            btn.style.background = isMatch ? '#eff6ff' : '#fff';
+            btn.style.color = isMatch ? '#1d4ed8' : '#334155';
+            btn.style.display = 'inline-flex';
+            btn.style.alignItems = 'center';
+            btn.style.gap = '4px';
+
+            btn.innerHTML = c.label + ' (<strong>৳' + Math.round(c.amount).toLocaleString('en-BD') + '</strong>)';
+
+            btn.onclick = function() {
+                document.getElementById('payAmountInput').value = c.amount;
+                if (document.getElementById('modalRemarksInput')) {
+                    document.getElementById('modalRemarksInput').value = c.note;
+                }
+                if (document.getElementById('modalSelectedMonthLabel')) {
+                    document.getElementById('modalSelectedMonthLabel').innerText = '📌 ' + c.note;
+                }
+                document.querySelectorAll('.preset-chip').forEach(b => {
+                    b.style.border = '1px solid #cbd5e1';
+                    b.style.background = '#fff';
+                    b.style.color = '#334155';
+                    b.classList.remove('active');
+                });
+                btn.style.border = '1.5px solid #2563eb';
+                btn.style.background = '#eff6ff';
+                btn.style.color = '#1d4ed8';
+                btn.classList.add('active');
+
+                updateModalButtonAmount();
+            };
+
+            container.appendChild(btn);
+        });
+    }
+
+    function onMonthCheckChange(semIdx) {
+        const chks = document.querySelectorAll('.month-chk-sem-' + semIdx + ':checked');
+        const bar = document.getElementById('bulkPayBar_' + semIdx);
+        const text = document.getElementById('bulkPayText_' + semIdx);
+        const btn = document.getElementById('bulkPayBtn_' + semIdx);
+
+        if (!bar || !btn) return;
+
+        if (chks.length === 0) {
+            bar.style.display = 'none';
+            return;
+        }
+
+        let totalDue = 0;
+        let labels = [];
+        let invId = '', invNo = '', semName = '', gDue = 0, mRate = 0;
+
+        chks.forEach(chk => {
+            totalDue += parseFloat(chk.dataset.due) || 0;
+            labels.push(chk.dataset.label);
+            invId = chk.dataset.invid;
+            invNo = chk.dataset.invno;
+            semName = chk.dataset.sem;
+            gDue = parseFloat(chk.dataset.gdue) || totalDue;
+            mRate = parseFloat(chk.dataset.mrate) || 0;
+        });
+
+        const formatted = '৳' + Math.round(totalDue).toLocaleString('en-BD');
+        text.innerText = 'নির্বাচিত ' + chks.length + 'টি মাস: ' + formatted;
+        bar.style.display = 'inline-flex';
+
+        btn.onclick = function() {
+            openPayModal(invId, semName + ' — ' + labels.join(', '), invNo, gDue, Math.min(totalDue, gDue), labels.join(', ') + ' কিস্তি', mRate);
+        };
     }
 
     function closePayModal() {

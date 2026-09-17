@@ -48,6 +48,9 @@ Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')
     Route::post('exams/{exam}/questions',          [\App\Http\Controllers\Teacher\ExamController::class, 'attachQuestion'])->name('exams.questions.attach');
     Route::delete('exams/{exam}/questions/{examQuestion}', [\App\Http\Controllers\Teacher\ExamController::class, 'detachQuestion'])->name('exams.questions.detach');
     Route::delete('exams/{exam}/submissions/{submission}', [\App\Http\Controllers\Teacher\ExamController::class, 'resetSubmission'])->name('exams.submissions.reset');
+    Route::get('exam-appeals',                             [\App\Http\Controllers\Teacher\ExamController::class, 'allAppeals'])->name('exams.appeals.index');
+    Route::post('exam-appeals/{appeal}/approve',           [\App\Http\Controllers\Teacher\ExamController::class, 'approveAppeal'])->name('exams.appeals.approve');
+    Route::post('exam-appeals/{appeal}/reject',            [\App\Http\Controllers\Teacher\ExamController::class, 'rejectAppeal'])->name('exams.appeals.reject');
 
     // Exam Grading (Written Questions)
     Route::get('exams/{exam}/grade',               [\App\Http\Controllers\Teacher\ExamGradingController::class, 'index'])->name('exams.grade');

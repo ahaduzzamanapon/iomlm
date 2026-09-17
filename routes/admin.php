@@ -98,7 +98,14 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
 
     // ── Exams, Results, Retakes, Re-admissions, Promotions ────────────
     Route::resource('exams', \App\Http\Controllers\Admin\ExamController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::post('exams/{exam}/regrade', [\App\Http\Controllers\Admin\ExamController::class, 'regradeAll'])->name('exams.regrade');
+    Route::get('exams/{exam}/builder', [\App\Http\Controllers\Admin\ExamController::class, 'builder'])->name('exams.builder');
+    Route::post('exams/{exam}/questions', [\App\Http\Controllers\Admin\ExamController::class, 'attachQuestion'])->name('exams.questions.attach');
+    Route::delete('exams/{exam}/questions/{examQuestion}', [\App\Http\Controllers\Admin\ExamController::class, 'detachQuestion'])->name('exams.questions.detach');
     Route::delete('exams/{exam}/submissions/{submission}', [\App\Http\Controllers\Admin\ExamController::class, 'resetSubmission'])->name('exams.submissions.reset');
+    Route::get('exam-appeals', [\App\Http\Controllers\Admin\ExamController::class, 'allAppeals'])->name('exams.appeals.index');
+    Route::post('exam-appeals/{appeal}/approve', [\App\Http\Controllers\Admin\ExamController::class, 'approveAppeal'])->name('exams.appeals.approve');
+    Route::post('exam-appeals/{appeal}/reject', [\App\Http\Controllers\Admin\ExamController::class, 'rejectAppeal'])->name('exams.appeals.reject');
     Route::get('retakes', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'index'])->name('retakes.index');
     Route::post('retakes', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'store'])->name('retakes.store');
     Route::patch('retakes/{retake}/approve', [\App\Http\Controllers\Admin\SubjectRetakeController::class, 'approve'])->name('retakes.approve');

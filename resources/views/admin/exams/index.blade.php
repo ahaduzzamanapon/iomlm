@@ -51,7 +51,12 @@
                         <td>{{ $exam->full_marks }} / {{ $exam->pass_marks }}</td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right">
-                            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline btn-sm">Inspect Exam</a>
+                            <div style="display:flex;gap:6px;justify-content:flex-end">
+                                <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-outline btn-sm" style="color:#4f46e5;border-color:#c7d2fe;font-weight:600">
+                                    <i class="fa-solid fa-puzzle-piece"></i> Paper Builder
+                                </a>
+                                <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline btn-sm">Inspect Exam</a>
+                            </div>
                         </td>
                     </tr>
                     @empty
