@@ -287,6 +287,7 @@
             </a>
 
             {{-- ── 2. Academic Setup ── --}}
+            @if(auth()->user()->canAccess('academic'))
             @php $academicActive = request()->routeIs('admin.academic-years*','admin.subjects*','admin.courses*','admin.semesters*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $academicActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
@@ -309,8 +310,10 @@
                     </a>
                 </div>
             </div>
+            @endif
 
             {{-- ── 3. People ── --}}
+            @if(auth()->user()->canAccess('admissions') || auth()->user()->canAccess('students') || auth()->user()->canAccess('teachers'))
             @php 
                 $peopleActive = request()->routeIs('admin.admissions*','admin.students*','admin.teachers*','admin.waiver-applications*','admin.course-transfers*'); 
                 try { $pendingCount = \App\Models\AdmissionForm::where('status','PENDING')->count(); } catch(\Exception $e) { $pendingCount = 0; }
@@ -328,6 +331,7 @@
                     <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
                 </div>
                 <div class="tree-children {{ $peopleActive ? 'open' : '' }}">
+                    @if(auth()->user()->canAccess('admissions'))
                     <a href="{{ route('admin.admissions.index') }}" class="nav-item {{ request()->routeIs('admin.admissions*') ? 'active' : '' }}">
                         <i class="fa-solid fa-user-plus"></i>
                         Admissions
@@ -343,18 +347,25 @@
                         Poor Fund / Waivers
                         @if($waiverPending > 0)<span class="nav-badge" style="background:#8b5cf6">{{ $waiverPending }}</span>@endif
                     </a>
+                    @endif
+                    @if(auth()->user()->canAccess('students'))
                     <a href="{{ route('admin.students.index') }}" class="nav-item {{ request()->routeIs('admin.students*') ? 'active' : '' }}">
                         <i class="fa-solid fa-user-graduate"></i>
                         Students
                     </a>
+                    @endif
+                    @if(auth()->user()->canAccess('teachers'))
                     <a href="{{ route('admin.teachers.index') }}" class="nav-item {{ request()->routeIs('admin.teachers*') ? 'active' : '' }}">
                         <i class="fa-solid fa-chalkboard-user"></i>
                         Teachers
                     </a>
+                    @endif
                 </div>
             </div>
+            @endif
 
             {{-- ── 4. Classes & Batches ── --}}
+            @if(auth()->user()->canAccess('classes_batches'))
             @php $classesActive = request()->routeIs('admin.batches*','admin.classes*','admin.routine*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $classesActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
@@ -374,7 +385,7 @@
                     <a href="{{ route('admin.classes.index') }}?date={{ today()->toDateString() }}" class="nav-item {{ request()->routeIs('admin.classes*') && request()->query('date') === today()->toDateString() ? 'active' : '' }}">
                         <i class="fa-solid fa-sun"></i>
                         Today's Classes
-                        @php try { $adminTodayCount = \App\Models\ClassSession::whereDate('session_date', today())->count(); } catch (\Exception) { $adminTodayCount = 0; } @endphp
+                        @php try { $adminTodayCount = \App\Models\ClassSession::whereDate('session_date', today())->count(); } catch (\Exception $e) { $adminTodayCount = 0; } @endphp
                         @if($adminTodayCount > 0)<span class="nav-badge" style="background:#f59e0b">{{ $adminTodayCount }}</span>@endif
                     </a>
                     <a href="{{ route('admin.classes.index') }}" class="nav-item {{ request()->routeIs('admin.classes*') && !request()->query('date') ? 'active' : '' }}">
@@ -383,11 +394,13 @@
                     </a>
                 </div>
             </div>
+            @endif
 
             {{-- ── 5. Exams & Results ── --}}
+            @if(auth()->user()->canAccess('exams'))
             @php 
                 $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.readmissions*','admin.promotions*','admin.final-marks*'); 
-                try { $readmissionPending = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch(\Exception) { $readmissionPending = 0; }
+                try { $readmissionPending = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch(\Exception $e) { $readmissionPending = 0; }
             @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $examsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
@@ -430,8 +443,10 @@
                     </a>
                 </div>
             </div>
+            @endif
 
             {{-- ── 6. Communication ── --}}
+            @if(auth()->user()->canAccess('communication'))
             @php $commActive = request()->routeIs('admin.notices*','admin.notifications*','admin.surveys*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $commActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
@@ -454,8 +469,10 @@
                     </a>
                 </div>
             </div>
+            @endif
 
             {{-- ── 7. Accounts & Financials ── --}}
+            @if(auth()->user()->canAccess('accounts'))
             @php $accountsActive = request()->routeIs('admin.accounts*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $accountsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
@@ -479,8 +496,10 @@
                     </a>
                 </div>
             </div>
+            @endif
 
             {{-- ── 7.5. Support & Helpdesk ── --}}
+            @if(auth()->user()->canAccess('support') || auth()->user()->isSupportAgent())
             @php $supportActive = request()->routeIs('admin.support-tickets*','admin.support-departments*','admin.support-agents*','support*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $supportActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
@@ -503,19 +522,23 @@
                         <i class="fa-solid fa-ticket"></i>
                         All Support Tickets
                     </a>
+                    @if(auth()->user()->canAccess('support'))
                     <a href="{{ route('admin.support-departments.index') }}" class="nav-item {{ request()->routeIs('admin.support-departments*','admin.support-agents*') ? 'active' : '' }}">
                         <i class="fa-solid fa-building-user"></i>
                         Departments &amp; Agents
                     </a>
+                    @endif
                     <a href="{{ route('support.dashboard') }}" target="_blank" class="nav-item">
                         <i class="fa-solid fa-comments"></i>
                         Open Agent Live Chat ↗
                     </a>
                 </div>
             </div>
+            @endif
 
             {{-- ── 8. System ── --}}
-            @php $systemActive = request()->routeIs('admin.reports*','admin.settings*','admin.app-settings*','admin.fee-heads*'); @endphp
+            @if(auth()->user()->canAccess('settings') || auth()->user()->canAccess('user_management'))
+            @php $systemActive = request()->routeIs('admin.reports*','admin.settings*','admin.app-settings*','admin.fee-heads*','admin.users*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $systemActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                     <i class="fa-solid fa-gear"></i>
@@ -523,6 +546,14 @@
                     <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
                 </div>
                 <div class="tree-children {{ $systemActive ? 'open' : '' }}">
+                    @if(auth()->user()->canAccess('user_management'))
+                    <a href="{{ route('admin.users.index') }}" class="nav-item {{ request()->routeIs('admin.users*') ? 'active' : '' }}" style="background:rgba(99,102,241,0.06);color:#4f46e5;font-weight:700">
+                        <i class="fa-solid fa-users-gear" style="color:#6366f1"></i>
+                        User Management (ইউজার ও রোল)
+                    </a>
+                    @endif
+
+                    @if(auth()->user()->canAccess('settings'))
                     <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
                         <i class="fa-solid fa-chart-line"></i>
                         Reports
@@ -555,8 +586,10 @@
                         <i class="fa-solid fa-life-ring"></i>
                         Support Setup
                     </a>
+                    @endif
                 </div>
             </div>
+            @endif
 
         </nav>
     </aside>
@@ -728,7 +761,7 @@
                         <div>
                             <div class="user-name">{{ auth()->user()->name ?? 'Admin' }}</div>
                             <div class="user-role" style="color:#047857">
-                                {{ match(strtoupper(auth()->user()->role ?? 'ADMIN')) {
+                                {{ auth()->user()->designation ?: match(strtoupper(auth()->user()->role ?? 'ADMIN')) {
                                     'SUPER_ADMIN' => 'Super Admin',
                                     'ADMIN'       => 'Administrator',
                                     'TEACHER'     => 'Teacher',
@@ -742,6 +775,12 @@
                         <i class="fa-solid fa-chevron-down" style="font-size:11px;opacity:0.7"></i>
                     </div>
                     <div class="dropdown-menu" id="adminUserMenu">
+                        @if(auth()->user()->canAccess('user_management'))
+                        <a href="{{ route('admin.users.index') }}" class="dropdown-item">
+                            <i class="fa-solid fa-users-gear"></i>
+                            User Management
+                        </a>
+                        @endif
                         <a href="{{ route('admin.settings.index') }}" class="dropdown-item">
                             <i class="fa-solid fa-gear"></i>
                             Settings
