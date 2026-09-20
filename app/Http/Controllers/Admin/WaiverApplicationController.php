@@ -21,10 +21,15 @@ class WaiverApplicationController extends Controller
         }
 
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $searchAlt = str_starts_with(strtoupper($search), 'PF-')
+                ? str_ireplace('PF-', 'POOR-', $search)
+                : (str_starts_with(strtoupper($search), 'POOR-') ? str_ireplace('POOR-', 'PF-', $search) : $search);
+
+            $query->where(function ($q) use ($search, $searchAlt) {
                 $q->where('full_name', 'like', "%{$search}%")
                   ->orWhere('phone', 'like', "%{$search}%")
                   ->orWhere('application_no', 'like', "%{$search}%")
+                  ->orWhere('application_no', 'like', "%{$searchAlt}%")
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }

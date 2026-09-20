@@ -122,9 +122,16 @@ class AdmissionController extends Controller
             $waiverApp  = null;
             if (!empty($validated['waiver_code'])) {
                 $code = strtoupper(trim($validated['waiver_code']));
-                $waiverApp = \App\Models\WaiverApplication::where('application_no', $code)->first();
+                $altCode = str_starts_with($code, 'PF-')
+                    ? str_replace('PF-', 'POOR-', $code)
+                    : (str_starts_with($code, 'POOR-') ? str_replace('POOR-', 'PF-', $code) : $code);
+
+                $waiverApp = \App\Models\WaiverApplication::where(function ($q) use ($code, $altCode) {
+                    $q->where('application_no', $code)->orWhere('application_no', $altCode);
+                })->first();
+
                 if ($waiverApp && $waiverApp->status === 'APPROVED' && !$waiverApp->is_used) {
-                    $waiverCode = $code;
+                    $waiverCode = $waiverApp->application_no;
                     if (empty($validated['discount_percent'])) {
                         $validated['discount_percent'] = $waiverApp->approved_discount_percent;
                     }

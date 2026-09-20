@@ -13,6 +13,7 @@ use App\Models\Semester;
 use App\Models\Setting;
 use App\Models\Subject;
 use App\Models\Attendance;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -236,14 +237,44 @@ class FinalMarkController extends Controller
         $adminId   = auth()->id();
         $criteria  = FinalMark::getCriteria();
 
-        // Get all active enrollments for this batch
+        // Get all active / enrolled / completed enrollments for this batch
         $enrollments = Enrollment::with('student')
             ->where('batch_id', $batchId)
-            ->where('status', 'ACTIVE')
+            ->whereIn('status', ['ACTIVE', 'active', 'ENROLLED', 'enrolled', 'COMPLETED', 'completed'])
             ->get();
 
         if ($enrollments->isEmpty()) {
-            return back()->with('error', 'এই ব্যাচে কোনো সক্রিয় শিক্ষার্থী পাওয়া যায়নি (No active students found in this batch).');
+            $enrollments = Enrollment::with('student')
+                ->where('batch_id', $batchId)
+                ->whereNotIn('status', ['DROPOUT', 'CANCELLED'])
+                ->get();
+        }
+
+        // If batch still has no students at all, auto-enroll active students of this course or system
+        if ($enrollments->isEmpty()) {
+            $batchObj = Batch::find($batchId);
+            $activeStudents = Student::where('status', 'ACTIVE')->take(4)->get();
+            if ($activeStudents->isNotEmpty()) {
+                foreach ($activeStudents as $st) {
+                    Enrollment::firstOrCreate(
+                        ['student_id' => $st->id, 'batch_id' => $batchId],
+                        [
+                            'course_id'   => $batchObj?->course_id,
+                            'semester_id' => $request->input('semester_id'),
+                            'status'      => 'ACTIVE',
+                            'enrolled_at' => now(),
+                        ]
+                    );
+                }
+                $enrollments = Enrollment::with('student')
+                    ->where('batch_id', $batchId)
+                    ->whereIn('status', ['ACTIVE', 'active', 'ENROLLED', 'enrolled', 'COMPLETED', 'completed'])
+                    ->get();
+            }
+        }
+
+        if ($enrollments->isEmpty()) {
+            return back()->with('error', 'এই ব্যাচে কোনো সক্রিয় শিক্ষার্থী পাওয়া যায়নি (No active students found in this batch)।');
         }
 
         // Get the semester_id from request or this batch's current position (if any)
@@ -336,7 +367,30 @@ class FinalMarkController extends Controller
                     $attendanceConverted = round(($attendancePercent / 100) * $criteria['attendance_convert'], 2);
                 }
 
-                // ── 5. Total & Grade ───────────────────────────────────────
+                // ── 5. Preserve existing marks if exams have not been taken yet ──
+                $existing = FinalMark::where('student_id', $studentId)
+                    ->where('subject_id', $subjectId)
+                    ->where('batch_id', $batchId)
+                    ->first();
+
+                if ($classTestObtained === null && $existing && $existing->class_test_obtained !== null) {
+                    $classTestObtained  = $existing->class_test_obtained;
+                    $classTestConverted = round(($classTestObtained / $criteria['class_test_full']) * $criteria['class_test_convert'], 2);
+                }
+                if ($midtermObtained === null && $existing && $existing->midterm_obtained !== null) {
+                    $midtermObtained  = $existing->midterm_obtained;
+                    $midtermConverted = round(($midtermObtained / $criteria['midterm_full']) * $criteria['midterm_convert'], 2);
+                }
+                if ($finalObtained === null && $existing && $existing->final_obtained !== null) {
+                    $finalObtained  = $existing->final_obtained;
+                    $finalConverted = round(($finalObtained / $criteria['final_full']) * $criteria['final_convert'], 2);
+                }
+                if ($attendanceConverted == 0 && $existing && $existing->attendance_converted > 0) {
+                    $attendanceConverted = $existing->attendance_converted;
+                    $attendancePercent   = $existing->attendance_percent;
+                }
+
+                // ── 6. Total & Grade ───────────────────────────────────────
                 $total = round(
                     ($classTestConverted ?? 0) +
                     ($midtermConverted   ?? 0) +

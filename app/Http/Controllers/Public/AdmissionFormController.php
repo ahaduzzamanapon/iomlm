@@ -212,7 +212,13 @@ class AdmissionFormController extends Controller
             }
 
             $code = strtoupper(trim($request->input('waiver_code')));
-            $waiverApp = WaiverApplication::where('application_no', $code)
+            $altCode = str_starts_with($code, 'PF-')
+                ? str_replace('PF-', 'POOR-', $code)
+                : (str_starts_with($code, 'POOR-') ? str_replace('POOR-', 'PF-', $code) : $code);
+
+            $waiverApp = WaiverApplication::where(function ($q) use ($code, $altCode) {
+                    $q->where('application_no', $code)->orWhere('application_no', $altCode);
+                })
                 ->where('status', 'APPROVED')
                 ->where(function ($q) use ($form) {
                     $q->where('is_used', false)->orWhere('admission_form_id', $form->id);
@@ -220,7 +226,7 @@ class AdmissionFormController extends Controller
                 ->first();
 
             if ($waiverApp) {
-                $waiverCode = $code;
+                $waiverCode = $waiverApp->application_no;
                 if ($waiverApp->approved_admission_fee !== null && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
                     $approvedFee = (float) $waiverApp->approved_admission_fee;
                     $payableAmount = min($baseFee, $approvedFee);

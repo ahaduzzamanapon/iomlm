@@ -33,6 +33,6 @@ class WaiverApplication extends Model
     {
         $year = now()->year;
         $last = static::whereYear('created_at', $year)->max('id') ?? 0;
-        return 'POOR-' . $year . '-' . str_pad($last + 1, 4, '0', STR_PAD_LEFT);
+        return 'PF-' . $year . '-' . str_pad($last + 1, 4, '0', STR_PAD_LEFT);
     }
 }

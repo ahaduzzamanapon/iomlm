@@ -58,7 +58,14 @@ class AccountingService
         // Check if a waiver code is linked and has an approved_admission_fee set
         $waiverApp = null;
         if ($admission->waiver_code) {
-            $waiverApp = \App\Models\WaiverApplication::where('application_no', $admission->waiver_code)
+            $wCode = $admission->waiver_code;
+            $altWCode = str_starts_with($wCode, 'PF-')
+                ? str_replace('PF-', 'POOR-', $wCode)
+                : (str_starts_with($wCode, 'POOR-') ? str_replace('POOR-', 'PF-', $wCode) : $wCode);
+
+            $waiverApp = \App\Models\WaiverApplication::where(function ($q) use ($wCode, $altWCode) {
+                    $q->where('application_no', $wCode)->orWhere('application_no', $altWCode);
+                })
                 ->where('status', 'APPROVED')
                 ->where('is_used', true)
                 ->first();
@@ -261,7 +268,13 @@ class AccountingService
             ->value('waiver_code');
 
         if ($waiverCode) {
-            $waiverApp = \App\Models\WaiverApplication::where('application_no', $waiverCode)
+            $altWaiverCode = str_starts_with($waiverCode, 'PF-')
+                ? str_replace('PF-', 'POOR-', $waiverCode)
+                : (str_starts_with($waiverCode, 'POOR-') ? str_replace('POOR-', 'PF-', $waiverCode) : $waiverCode);
+
+            $waiverApp = \App\Models\WaiverApplication::where(function ($q) use ($waiverCode, $altWaiverCode) {
+                    $q->where('application_no', $waiverCode)->orWhere('application_no', $altWaiverCode);
+                })
                 ->where('status', 'APPROVED')
                 ->where('is_used', true)
                 ->whereIn('apply_for', ['TUITION_FEE', 'BOTH'])
