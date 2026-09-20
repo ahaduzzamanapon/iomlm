@@ -127,6 +127,9 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('final-marks', [\App\Http\Controllers\Admin\FinalMarkController::class, 'index'])->name('final-marks.index');
         Route::post('final-marks/generate', [\App\Http\Controllers\Admin\FinalMarkController::class, 'generate'])->name('final-marks.generate');
         Route::get('final-marks/export-csv', [\App\Http\Controllers\Admin\FinalMarkController::class, 'exportCsv'])->name('final-marks.export-csv');
+        Route::post('final-marks/update-criteria', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateCriteria'])->name('final-marks.update-criteria');
+        Route::patch('final-marks/{finalMark}/update-attendance', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateAttendance'])->name('final-marks.update-attendance');
+        Route::get('final-marks/batch-subjects', [\App\Http\Controllers\Admin\FinalMarkController::class, 'getBatchSubjects'])->name('final-marks.batch-subjects');
     });
 
     // ── 7. Accounts & Financials ────────────────────────────────────────

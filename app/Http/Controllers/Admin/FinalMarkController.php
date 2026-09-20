@@ -10,6 +10,7 @@ use App\Models\Exam;
 use App\Models\FinalMark;
 use App\Models\Result;
 use App\Models\Semester;
+use App\Models\Setting;
 use App\Models\Subject;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
@@ -17,31 +18,33 @@ use Illuminate\Support\Facades\DB;
 
 class FinalMarkController extends Controller
 {
-    // ── IOM Conversion Criteria ────────────────────────────────────────
-    const CLASS_TEST_FULL    = 30;
-    const CLASS_TEST_CONVERT = 20;
-    const MIDTERM_FULL       = 50;
-    const MIDTERM_CONVERT    = 30;
-    const FINAL_FULL         = 100;
-    const FINAL_CONVERT      = 40;
-    const ATTENDANCE_CONVERT = 10;
-    const PASS_MARK          = 40; // out of 100
-
     /**
      * Show filter form + previously generated results
      */
     public function index(Request $request)
     {
-        $batches  = Batch::orderByDesc('id')->get();
-        $subjects = Subject::where('is_active', true)->orderBy('name')->get();
+        $batches = Batch::with('course.subjects')->orderByDesc('id')->get();
         $semesters = Semester::orderBy('id')->get();
+        $criteria = FinalMark::getCriteria();
 
         $finalMarks = collect();
-        $selectedBatch   = null;
+        $selectedBatch = null;
         $selectedSubject = null;
 
+        if ($request->filled('batch_id')) {
+            $selectedBatch = Batch::with(['course.subjects' => function ($q) {
+                $q->where('subjects.is_active', true)->orderBy('subjects.name');
+            }])->find($request->batch_id);
+        }
+
+        // Determine subjects for the subject dropdown
+        if ($selectedBatch && $selectedBatch->course && $selectedBatch->course->subjects->isNotEmpty()) {
+            $subjects = $selectedBatch->course->subjects;
+        } else {
+            $subjects = Subject::where('is_active', true)->orderBy('name')->get();
+        }
+
         if ($request->filled('batch_id') && $request->filled('subject_id')) {
-            $selectedBatch   = Batch::find($request->batch_id);
             $selectedSubject = Subject::find($request->subject_id);
 
             $finalMarks = FinalMark::with(['student', 'enrollment'])
@@ -52,9 +55,86 @@ class FinalMarkController extends Controller
         }
 
         return view('admin.final-marks.index', compact(
-            'batches', 'subjects', 'semesters',
+            'batches', 'subjects', 'semesters', 'criteria',
             'finalMarks', 'selectedBatch', 'selectedSubject'
         ));
+    }
+
+    /**
+     * Get subjects belonging to a specific batch via AJAX
+     */
+    public function getBatchSubjects(Request $request)
+    {
+        $batchId = $request->query('batch_id');
+        if (!$batchId) {
+            $all = Subject::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+            return response()->json(['subjects' => $all]);
+        }
+
+        $batch = Batch::with(['course.subjects' => function ($q) {
+            $q->where('subjects.is_active', true)->orderBy('subjects.name');
+        }])->find($batchId);
+
+        if ($batch && $batch->course && $batch->course->subjects->isNotEmpty()) {
+            $subjects = $batch->course->subjects->map(function ($s) {
+                return [
+                    'id'   => $s->id,
+                    'name' => $s->name,
+                    'code' => $s->code,
+                ];
+            });
+        } else {
+            $subjects = Subject::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        }
+
+        return response()->json(['subjects' => $subjects]);
+    }
+
+    /**
+     * Update global final mark conversion criteria
+     */
+    public function updateCriteria(Request $request)
+    {
+        $validated = $request->validate([
+            'class_test_full'    => 'required|numeric|min:1',
+            'class_test_convert' => 'required|numeric|min:0',
+            'midterm_full'       => 'required|numeric|min:1',
+            'midterm_convert'    => 'required|numeric|min:0',
+            'final_full'         => 'required|numeric|min:1',
+            'final_convert'      => 'required|numeric|min:0',
+            'attendance_convert' => 'required|numeric|min:0',
+            'pass_mark'          => 'required|numeric|min:0',
+        ]);
+
+        Setting::set('final_mark_class_test_full', $validated['class_test_full']);
+        Setting::set('final_mark_class_test_convert', $validated['class_test_convert']);
+        Setting::set('final_mark_midterm_full', $validated['midterm_full']);
+        Setting::set('final_mark_midterm_convert', $validated['midterm_convert']);
+        Setting::set('final_mark_final_full', $validated['final_full']);
+        Setting::set('final_mark_final_convert', $validated['final_convert']);
+        Setting::set('final_mark_attendance_convert', $validated['attendance_convert']);
+        Setting::set('final_mark_pass_mark', $validated['pass_mark']);
+
+        return back()->with('success', '✅ ফাইনাল মার্ক কনভার্সন ক্রাইটেরিয়া সফলভাবে সংরক্ষণ করা হয়েছে।');
+    }
+
+    /**
+     * Update individual student attendance mark and recalculate total, grade, GPA
+     */
+    public function updateAttendance(Request $request, FinalMark $finalMark)
+    {
+        $validated = $request->validate([
+            'attendance_converted' => 'required|numeric|min:0',
+            'attendance_percent'   => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        $finalMark->recalculate(
+            (float) $validated['attendance_converted'],
+            $request->filled('attendance_percent') ? (float) $validated['attendance_percent'] : null
+        );
+
+        $studentName = $finalMark->student->name ?? 'শিক্ষার্থী';
+        return back()->with('success', "✅ শিক্ষার্থী '{$studentName}'-এর উপস্থিতি নম্বর সফলভাবে আপডেট করা হয়েছে। নতুন মোট নম্বর: {$finalMark->total_mark} (গ্রেড: {$finalMark->grade})");
     }
 
     /**
@@ -70,6 +150,7 @@ class FinalMarkController extends Controller
         $batchId   = $request->batch_id;
         $subjectId = $request->subject_id;
         $adminId   = auth()->id();
+        $criteria  = FinalMark::getCriteria();
 
         // Get all active enrollments for this batch
         $enrollments = Enrollment::with('student')
@@ -78,7 +159,7 @@ class FinalMarkController extends Controller
             ->get();
 
         if ($enrollments->isEmpty()) {
-            return back()->with('error', 'No active students found in this batch.');
+            return back()->with('error', 'এই ব্যাচে কোনো সক্রিয় শিক্ষার্থী পাওয়া যায়নি (No active students found in this batch).');
         }
 
         // Get the semester_id from this batch's current position (if any)
@@ -86,13 +167,9 @@ class FinalMarkController extends Controller
             ->where('batch_id', $batchId)
             ->value('current_semester_id');
 
-        // ── Gather all exams for this subject (any batch-linked by semester or general) ──
-        // Class Test: type = QUIZ  (mapped as class test)
-        // Mid Term:   type = MIDTERM
-        // Final Term: type = FINAL
+        // Gather all exams for this subject (QUIZ, MIDTERM, FINAL)
         $examsByType = Exam::where('subject_id', $subjectId)
             ->whereIn('type', ['QUIZ', 'MIDTERM', 'FINAL'])
-            ->where('status', 'COMPLETED')
             ->when($semesterId, fn($q) => $q->where(function ($q2) use ($semesterId) {
                 $q2->where('semester_id', $semesterId)->orWhereNull('semester_id');
             }))
@@ -106,12 +183,11 @@ class FinalMarkController extends Controller
             ->pluck('id');
 
         $totalSessions = $classSessions->count();
-
         $generated = 0;
 
         DB::transaction(function () use (
             $enrollments, $batchId, $subjectId, $semesterId,
-            $examsByType, $classSessions, $totalSessions, $adminId, &$generated
+            $examsByType, $classSessions, $totalSessions, $adminId, $criteria, &$generated
         ) {
             foreach ($enrollments as $enrollment) {
                 $studentId = $enrollment->student_id;
@@ -125,8 +201,8 @@ class FinalMarkController extends Controller
                         ->where('student_id', $studentId)
                         ->max('marks');
                     if ($best !== null) {
-                        $classTestObtained  = round(min($best, self::CLASS_TEST_FULL), 2);
-                        $classTestConverted = round(($classTestObtained / self::CLASS_TEST_FULL) * self::CLASS_TEST_CONVERT, 2);
+                        $classTestObtained  = round(min($best, $criteria['class_test_full']), 2);
+                        $classTestConverted = round(($classTestObtained / $criteria['class_test_full']) * $criteria['class_test_convert'], 2);
                     }
                 }
 
@@ -139,8 +215,8 @@ class FinalMarkController extends Controller
                         ->where('student_id', $studentId)
                         ->max('marks');
                     if ($best !== null) {
-                        $midtermObtained  = round(min($best, self::MIDTERM_FULL), 2);
-                        $midtermConverted = round(($midtermObtained / self::MIDTERM_FULL) * self::MIDTERM_CONVERT, 2);
+                        $midtermObtained  = round(min($best, $criteria['midterm_full']), 2);
+                        $midtermConverted = round(($midtermObtained / $criteria['midterm_full']) * $criteria['midterm_convert'], 2);
                     }
                 }
 
@@ -153,21 +229,21 @@ class FinalMarkController extends Controller
                         ->where('student_id', $studentId)
                         ->max('marks');
                     if ($best !== null) {
-                        $finalObtained  = round(min($best, self::FINAL_FULL), 2);
-                        $finalConverted = round(($finalObtained / self::FINAL_FULL) * self::FINAL_CONVERT, 2);
+                        $finalObtained  = round(min($best, $criteria['final_full']), 2);
+                        $finalConverted = round(($finalObtained / $criteria['final_full']) * $criteria['final_convert'], 2);
                     }
                 }
 
                 // ── 4. Attendance Mark ──────────────────────────────────────
-                $attendancePercent   = null;
-                $attendanceConverted = null;
+                $attendancePercent   = 0.0;
+                $attendanceConverted = 0.0;
                 if ($totalSessions > 0) {
                     $presentCount = Attendance::whereIn('class_session_id', $classSessions)
                         ->where('student_id', $studentId)
                         ->whereIn('status', ['PRESENT', 'LATE'])
                         ->count();
                     $attendancePercent   = round(($presentCount / $totalSessions) * 100, 2);
-                    $attendanceConverted = round(($attendancePercent / 100) * self::ATTENDANCE_CONVERT, 2);
+                    $attendanceConverted = round(($attendancePercent / 100) * $criteria['attendance_convert'], 2);
                 }
 
                 // ── 5. Total & Grade ───────────────────────────────────────
@@ -179,16 +255,8 @@ class FinalMarkController extends Controller
                     2
                 );
 
-                // Only generate if at least one component has data
-                $hasData = $classTestObtained !== null
-                    || $midtermObtained !== null
-                    || $finalObtained   !== null
-                    || $attendanceConverted !== null;
-
-                if (!$hasData) continue;
-
                 $gradeInfo = FinalMark::calculateGrade($total);
-                $status    = $total >= self::PASS_MARK ? 'PASS' : 'FAIL';
+                $status    = $total >= $criteria['pass_mark'] ? 'PASS' : 'FAIL';
 
                 FinalMark::updateOrCreate(
                     [
@@ -224,7 +292,7 @@ class FinalMarkController extends Controller
                 'batch_id'   => $batchId,
                 'subject_id' => $subjectId,
             ])
-            ->with('success', "✅ Final marks generated for {$generated} students successfully.");
+            ->with('success', "✅ মোট {$generated} জন শিক্ষার্থীর জন্য ফাইনাল মার্ক সফলভাবে জেনারেট / আপডেট করা হয়েছে।");
     }
 
     /**
@@ -236,6 +304,8 @@ class FinalMarkController extends Controller
             'batch_id'   => 'required|exists:batches,id',
             'subject_id' => 'required|exists:subjects,id',
         ]);
+
+        $criteria = FinalMark::getCriteria();
 
         $marks = FinalMark::with('student')
             ->where('batch_id', $request->batch_id)
@@ -249,19 +319,22 @@ class FinalMarkController extends Controller
         $filename = "final_marks_{$batch->name}_{$subject->name}_" . now()->format('Ymd') . ".csv";
 
         $headers = [
-            'Content-Type'        => 'text/csv',
+            'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function () use ($marks) {
+        $callback = function () use ($marks, $criteria) {
             $handle = fopen('php://output', 'w');
+            // Add UTF-8 BOM for proper Bengali character rendering in Excel
+            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+
             fputcsv($handle, [
                 '#', 'Student Name', 'Student Code',
-                'Class Test (/30)', 'Class Test Converted (/20)',
-                'Mid Term (/50)',   'Mid Term Converted (/30)',
-                'Final Term (/100)','Final Term Converted (/40)',
-                'Attendance %',    'Attendance Mark (/10)',
-                'Total (/100)',    'Grade', 'GPA', 'Status',
+                "Class Test (/{$criteria['class_test_full']})", "Class Test Converted (/{$criteria['class_test_convert']})",
+                "Mid Term (/{$criteria['midterm_full']})",   "Mid Term Converted (/{$criteria['midterm_convert']})",
+                "Final Term (/{$criteria['final_full']})",  "Final Term Converted (/{$criteria['final_convert']})",
+                'Attendance %', "Attendance Mark (/{$criteria['attendance_convert']})",
+                'Total (/100)', 'Grade', 'GPA', 'Status',
             ]);
 
             foreach ($marks as $i => $m) {

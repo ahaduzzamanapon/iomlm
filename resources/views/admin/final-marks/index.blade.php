@@ -1,9 +1,12 @@
 <x-admin-layout>
-    <x-slot name="title">Final Mark Generator</x-slot>
+    <x-slot name="title">Final Mark Generator (ফাইনাল মার্ক জেনারেটর)</x-slot>
 
     <style>
+        .fm-page-wrapper {
+            font-family: 'Kalpurush', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
         .fm-header {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            background: linear-gradient(135deg, #064e3b 0%, #065f46 60%, #047857 100%);
             border-radius: 16px;
             padding: 24px 28px;
             color: #fff;
@@ -12,31 +15,37 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 14px;
+            gap: 16px;
+            box-shadow: 0 10px 25px -5px rgba(6, 78, 59, 0.25);
         }
         .criteria-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 14px;
             margin-bottom: 24px;
         }
         .criteria-card {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 14px 18px;
+            border-radius: 14px;
+            padding: 16px 18px;
             text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: transform .15s, box-shadow .15s;
         }
-        .criteria-card .label  { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; }
-        .criteria-card .marks  { font-size: 22px; font-weight: 800; color: #1e293b; }
-        .criteria-card .arrow  { font-size: 11px; color: #94a3b8; margin: 2px 0; }
-        .criteria-card .convert{ font-size: 14px; font-weight: 700; color: #2563eb; }
+        .criteria-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        }
+        .criteria-card .label  { font-size: 13px; color: #64748b; font-weight: 700; margin-bottom: 6px; }
+        .criteria-card .marks  { font-size: 24px; font-weight: 800; color: #1e293b; }
+        .criteria-card .arrow  { font-size: 11px; color: #94a3b8; margin: 3px 0; }
+        .criteria-card .convert{ font-size: 15px; font-weight: 800; color: #047857; }
         .grade-badge {
             display: inline-block;
-            padding: 3px 10px;
+            padding: 4px 11px;
             border-radius: 20px;
-            font-weight: 700;
+            font-weight: 800;
             font-size: 12px;
         }
         .grade-ap  { background:#dcfce7; color:#16a34a; }
@@ -45,248 +54,558 @@
         .grade-b   { background:#fef9c3; color:#ca8a04; }
         .grade-c   { background:#ffedd5; color:#ea580c; }
         .grade-f   { background:#fee2e2; color:#dc2626; }
-        .status-pass { background:#dcfce7; color:#16a34a; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
-        .status-fail { background:#fee2e2; color:#dc2626; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
-        .status-inc  { background:#f1f5f9; color:#64748b; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+        .status-pass { background:#dcfce7; color:#16a34a; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:800; }
+        .status-fail { background:#fee2e2; color:#dc2626; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:800; }
+        .status-inc  { background:#f1f5f9; color:#64748b; padding:4px 12px; border-radius:20px; font-size:12px; font-weight:800; }
+
+        /* Modal Backdrop and Box */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal-card {
+            background: #ffffff;
+            border-radius: 16px;
+            max-width: 580px;
+            width: 100%;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: modalFadeIn 0.2s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 
-    {{-- Header --}}
-    <div class="fm-header">
-        <div>
-            <h1 style="margin:0 0 5px; font-size:22px; font-weight:800">Final Mark Generator</h1>
-            <p style="margin:0; font-size:13px; color:#94a3b8">IOM Marks Conversion — Class Test + Mid Term + Final + Attendance → 100</p>
+    <div class="fm-page-wrapper">
+
+        {{-- Header --}}
+        <div class="fm-header">
+            <div>
+                <h1 style="margin:0 0 6px; font-size:23px; font-weight:800; display:flex; align-items:center; gap:10px">
+                    <i class="fa-solid fa-graduation-cap"></i> ফাইনাল মার্ক জেনারেটর (Final Mark Generator)
+                </h1>
+                <p style="margin:0; font-size:13.5px; color:#d1fae5">
+                    ক্লাস টেস্ট + মিডটার্ম + ফাইনাল পরীক্ষা + উপস্থিতি মার্কস কনভার্সন কাঠামো ও ফলাফল
+                </p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap">
+                <button type="button" onclick="openCriteriaModal()"
+                   style="background:#ffffff; color:#065f46; border:none; padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 10px rgba(0,0,0,0.1)">
+                    <i class="fa-solid fa-sliders"></i> কনভার্সন ক্রাইটেরিয়া পরিবর্তন
+                </button>
+                @if(request('batch_id') && request('subject_id') && $finalMarks->isNotEmpty())
+                    <a href="{{ route('admin.final-marks.export-csv', ['batch_id' => request('batch_id'), 'subject_id' => request('subject_id')]) }}"
+                       style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:10px 18px; border-radius:10px; font-weight:700; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:7px">
+                        <i class="fa-solid fa-file-csv"></i> Export CSV
+                    </a>
+                @endif
+            </div>
         </div>
-        @if(request('batch_id') && request('subject_id') && $finalMarks->isNotEmpty())
-            <a href="{{ route('admin.final-marks.export-csv', ['batch_id' => request('batch_id'), 'subject_id' => request('subject_id')]) }}"
-               style="background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); color:#fff; padding:9px 18px; border-radius:9px; font-weight:700; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:6px">
-                Export CSV
-            </a>
+
+        {{-- IOM Conversion Criteria Display Cards --}}
+        @php
+            $totalFull = $criteria['class_test_full'] + $criteria['midterm_full'] + $criteria['final_full'];
+            $totalConvert = $criteria['class_test_convert'] + $criteria['midterm_convert'] + $criteria['final_convert'] + $criteria['attendance_convert'];
+        @endphp
+        <div class="criteria-grid">
+            <div class="criteria-card">
+                <div class="label">ক্লাস টেস্ট (Class Test)</div>
+                <div class="marks">{{ $criteria['class_test_full'] }}</div>
+                <div class="arrow">↓ রূপান্তর হবে</div>
+                <div class="convert">{{ $criteria['class_test_convert'] }} নম্বরে</div>
+            </div>
+            <div class="criteria-card">
+                <div class="label">মিডটার্ম (Mid Term)</div>
+                <div class="marks">{{ $criteria['midterm_full'] }}</div>
+                <div class="arrow">↓ রূপান্তর হবে</div>
+                <div class="convert">{{ $criteria['midterm_convert'] }} নম্বরে</div>
+            </div>
+            <div class="criteria-card">
+                <div class="label">ফাইনাল পরীক্ষা (Final Term)</div>
+                <div class="marks">{{ $criteria['final_full'] }}</div>
+                <div class="arrow">↓ রূপান্তর হবে</div>
+                <div class="convert">{{ $criteria['final_convert'] }} নম্বরে</div>
+            </div>
+            <div class="criteria-card">
+                <div class="label">উপস্থিতি (Attendance)</div>
+                <div class="marks">১০০%</div>
+                <div class="arrow">↓ রূপান্তর হবে</div>
+                <div class="convert">{{ $criteria['attendance_convert'] }} নম্বরে</div>
+            </div>
+            <div class="criteria-card" style="border-color:#059669; background:#ecfdf5">
+                <div class="label" style="color:#065f46">মোট ফলাফল (TOTAL)</div>
+                <div class="marks" style="color:#065f46">{{ $totalFull }} + %</div>
+                <div class="arrow" style="color:#059669">→ চূড়ান্ত রূপান্তর</div>
+                <div class="convert" style="font-size:20px; color:#065f46">{{ $totalConvert }} নম্বরে</div>
+            </div>
+        </div>
+
+        {{-- Alerts --}}
+        @if(session('success'))
+            <div class="alert alert-success" style="margin-bottom:20px; border-radius:12px; font-weight:700">
+                {{ session('success') }}
+            </div>
         @endif
-    </div>
-
-    {{-- IOM Conversion Criteria Display --}}
-    <div class="criteria-grid">
-        <div class="criteria-card">
-            <div class="label">Class Test</div>
-            <div class="marks">30</div>
-            <div class="arrow">↓ converts to</div>
-            <div class="convert">20 marks</div>
-        </div>
-        <div class="criteria-card">
-            <div class="label">Mid Term</div>
-            <div class="marks">50</div>
-            <div class="arrow">↓ converts to</div>
-            <div class="convert">30 marks</div>
-        </div>
-        <div class="criteria-card">
-            <div class="label">Final Term</div>
-            <div class="marks">100</div>
-            <div class="arrow">↓ converts to</div>
-            <div class="convert">40 marks</div>
-        </div>
-        <div class="criteria-card">
-            <div class="label">Attendance</div>
-            <div class="marks">10%</div>
-            <div class="arrow">↓ converts to</div>
-            <div class="convert">10 marks</div>
-        </div>
-        <div class="criteria-card" style="border-color:#2563eb; background:#eff6ff">
-            <div class="label" style="color:#2563eb">TOTAL</div>
-            <div class="marks" style="color:#2563eb">190</div>
-            <div class="arrow" style="color:#3b82f6">→ final out of</div>
-            <div class="convert" style="font-size:20px">100 marks</div>
-        </div>
-    </div>
-
-    {{-- Filter + Generate Form --}}
-    <div class="card" style="margin-bottom:20px; padding:20px; border-radius:14px">
-        <form method="GET" action="{{ route('admin.final-marks.index') }}" style="display:grid; grid-template-columns: 1fr 1fr auto auto; gap:12px; align-items:end; flex-wrap:wrap">
-            <div class="form-group" style="margin:0">
-                <label class="form-label" style="font-weight:600; font-size:13px">Select Batch</label>
-                <select name="batch_id" class="form-control" required onchange="this.form.submit()">
-                    <option value="">-- Choose Batch --</option>
-                    @foreach($batches as $batch)
-                        <option value="{{ $batch->id }}" {{ request('batch_id') == $batch->id ? 'selected' : '' }}>
-                            {{ $batch->name }}
-                        </option>
-                    @endforeach
-                </select>
+        @if(session('error'))
+            <div class="alert alert-danger" style="margin-bottom:20px; border-radius:12px; font-weight:700">
+                {{ session('error') }}
             </div>
-            <div class="form-group" style="margin:0">
-                <label class="form-label" style="font-weight:600; font-size:13px">Select Subject</label>
-                <select name="subject_id" class="form-control" required>
-                    <option value="">-- Choose Subject --</option>
-                    @foreach($subjects as $subject)
-                        <option value="{{ $subject->id }}" {{ request('subject_id') == $subject->id ? 'selected' : '' }}>
-                            {{ $subject->name }} ({{ $subject->code }})
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary" style="font-weight:700; height:42px">View Results</button>
-            @if(request('batch_id') && request('subject_id'))
-                <form method="POST" action="{{ route('admin.final-marks.generate') }}" style="margin:0">
-                    @csrf
-                    <input type="hidden" name="batch_id"   value="{{ request('batch_id') }}">
-                    <input type="hidden" name="subject_id" value="{{ request('subject_id') }}">
-                    <button type="submit" style="background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; border:none; padding:0 20px; height:42px; border-radius:9px; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap; box-shadow:0 4px 12px rgba(22,163,74,0.3)"
-                        onclick="return confirm('Generate / regenerate final marks for all active students?')">
-                        Generate / Regenerate Marks
+        @endif
+
+        {{-- Filter & Generate Action Area --}}
+        <div class="card" style="margin-bottom:24px; padding:22px 24px; border-radius:16px; background:#fff; border:1px solid #e2e8f0; box-shadow:0 2px 10px rgba(0,0,0,0.03)">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px">
+                
+                {{-- GET Filter Form (Never contains nested forms) --}}
+                <form method="GET" action="{{ route('admin.final-marks.index') }}" id="filterForm" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; flex:1; min-width:320px">
+                    <div style="flex:1; min-width:220px">
+                        <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
+                            ১. ব্যাচ নির্বাচন করুন (Select Batch) *
+                        </label>
+                        <select name="batch_id" id="batchSelect" class="form-control" style="height:44px; border-radius:10px" required onchange="handleBatchChange(this.value)">
+                            <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                            @foreach($batches as $batch)
+                                <option value="{{ $batch->id }}" {{ request('batch_id') == $batch->id ? 'selected' : '' }}>
+                                    {{ $batch->name }} ({{ $batch->course->title ?? 'কোর্স' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div style="flex:1; min-width:240px">
+                        <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
+                            ২. বিষয় নির্বাচন করুন (Select Subject) *
+                        </label>
+                        <select name="subject_id" id="subjectSelect" class="form-control" style="height:44px; border-radius:10px" required>
+                            <option value="">-- বিষয় নির্বাচন করুন --</option>
+                            @foreach($subjects as $subject)
+                                <option value="{{ $subject->id }}" {{ request('subject_id') == $subject->id ? 'selected' : '' }}>
+                                    {{ $subject->name }} {{ $subject->code ? '('.$subject->code.')' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="height:44px; padding:0 22px; border-radius:10px; font-weight:800; font-size:13.5px; display:inline-flex; align-items:center; gap:8px">
+                        <i class="fa-solid fa-magnifying-glass"></i> ফলাফল দেখুন (View Results)
                     </button>
                 </form>
-            @endif
-        </form>
+
+                {{-- Standalone POST Generate Form --}}
+                @if(request('batch_id') && request('subject_id'))
+                    <form method="POST" action="{{ route('admin.final-marks.generate') }}" id="generateForm" style="margin:0">
+                        @csrf
+                        <input type="hidden" name="batch_id"   value="{{ request('batch_id') }}">
+                        <input type="hidden" name="subject_id" value="{{ request('subject_id') }}">
+                        <button type="submit" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; border:none; padding:0 22px; height:44px; border-radius:10px; font-weight:800; font-size:13.5px; cursor:pointer; white-space:nowrap; box-shadow:0 4px 12px rgba(5,150,105,0.3); display:inline-flex; align-items:center; gap:8px"
+                            onclick="return confirm('এই ব্যাচ ও বিষয়ের সকল সক্রিয় শিক্ষার্থীর জন্য ফাইনাল মার্ক স্বয়ংক্রিয়ভাবে জেনারেট / রি-জেনারেট করতে চান?')">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Generate / Regenerate Marks
+                        </button>
+                    </form>
+                @endif
+
+            </div>
+        </div>
+
+        {{-- Results Table --}}
+        @if($selectedBatch && $selectedSubject)
+            <div class="card" style="border-radius:16px; overflow:hidden; padding:0; border:1px solid #e2e8f0; box-shadow:0 4px 15px rgba(0,0,0,0.03); background:#fff">
+                <div style="padding:16px 22px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc">
+                    <div>
+                        <span style="font-size:13px; color:#64748b">ব্যাচ: </span>
+                        <strong style="font-size:15px; color:#064e3b">{{ $selectedBatch->name }}</strong>
+                        <span style="color:#cbd5e1; margin:0 6px">|</span>
+                        <span style="font-size:13px; color:#64748b">বিষয়: </span>
+                        <strong style="font-size:15px; color:#047857">{{ $selectedSubject->name }}</strong>
+                    </div>
+                    <span class="badge badge-secondary no-dot" style="font-size:12.5px; padding:6px 14px; border-radius:20px; font-weight:700; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0">
+                        মোট শিক্ষার্থী: {{ $finalMarks->count() }} জন
+                    </span>
+                </div>
+
+                @if($finalMarks->isEmpty())
+                    <div style="text-align:center; padding:55px 20px; color:#64748b">
+                        <i class="fa-solid fa-chart-simple" style="font-size:42px; color:#cbd5e1; margin-bottom:14px; display:block"></i>
+                        <strong style="font-size:16px; color:#1e293b; display:block; margin-bottom:6px">এই ব্যাচ ও বিষয়ের জন্য কোনো ফাইনাল মার্ক তৈরি করা হয়নি</strong>
+                        <span style="font-size:13px; color:#64748b; margin-bottom:16px; display:inline-block">
+                            উপরে উল্লেখিত সবুজ <strong>"Generate / Regenerate Marks"</strong> বাটনে ক্লিক করে ফলাফল তৈরি করুন।
+                        </span>
+                    </div>
+                @else
+                    <div style="overflow-x:auto">
+                        <table style="width:100%; border-collapse:collapse">
+                            <thead>
+                                <tr style="background:#f1f5f9; border-bottom:2px solid #e2e8f0">
+                                    <th style="padding:12px 14px; width:45px; text-align:center">#</th>
+                                    <th style="padding:12px 16px; text-align:left">শিক্ষার্থী (Student)</th>
+                                    <th style="padding:12px 12px; text-align:center">
+                                        ক্লাস টেস্ট<br>
+                                        <small style="color:#64748b;font-weight:600">/{{ $criteria['class_test_full'] }} → /{{ $criteria['class_test_convert'] }}</small>
+                                    </th>
+                                    <th style="padding:12px 12px; text-align:center">
+                                        মিডটার্ম<br>
+                                        <small style="color:#64748b;font-weight:600">/{{ $criteria['midterm_full'] }} → /{{ $criteria['midterm_convert'] }}</small>
+                                    </th>
+                                    <th style="padding:12px 12px; text-align:center">
+                                        ফাইনাল পরীক্ষা<br>
+                                        <small style="color:#64748b;font-weight:600">/{{ $criteria['final_full'] }} → /{{ $criteria['final_convert'] }}</small>
+                                    </th>
+                                    <th style="padding:12px 12px; text-align:center; background:#f0fdf4">
+                                        উপস্থিতি মার্ক<br>
+                                        <small style="color:#047857;font-weight:700">% → /{{ $criteria['attendance_convert'] }}</small>
+                                    </th>
+                                    <th style="padding:12px 14px; text-align:center; font-weight:800; color:#064e3b; background:#ecfdf5">
+                                        মোট নম্বর<br>
+                                        <small style="font-weight:700;color:#047857">/{{ $totalConvert }}</small>
+                                    </th>
+                                    <th style="padding:12px 12px; text-align:center">গ্রেড</th>
+                                    <th style="padding:12px 12px; text-align:center">জিপিএ</th>
+                                    <th style="padding:12px 12px; text-align:center">স্ট্যাটাস</th>
+                                    <th style="padding:12px 12px; text-align:center; font-size:11px; color:#94a3b8">তারিখ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($finalMarks as $i => $fm)
+                                <tr style="border-bottom:1px solid #f1f5f9; transition:background .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                                    <td style="padding:14px; text-align:center; font-weight:700; color:#94a3b8">{{ $i + 1 }}</td>
+                                    <td style="padding:14px 16px">
+                                        <strong style="color:#0f172a; font-size:14px">{{ $fm->student->name ?? '—' }}</strong>
+                                        <div style="font-size:12px; color:#64748b; margin-top:2px">
+                                            আইডি: <span style="font-weight:700; color:#047857">{{ $fm->student->student_code ?? '—' }}</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding:14px 12px; text-align:center">
+                                        @if($fm->class_test_obtained !== null)
+                                            <span style="font-weight:700; color:#1e293b">{{ $fm->class_test_obtained }}</span>
+                                            <span style="color:#94a3b8; font-size:11px"> → </span>
+                                            <strong style="color:#047857">{{ $fm->class_test_converted }}</strong>
+                                        @else
+                                            <span style="color:#cbd5e1">—</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding:14px 12px; text-align:center">
+                                        @if($fm->midterm_obtained !== null)
+                                            <span style="font-weight:700; color:#1e293b">{{ $fm->midterm_obtained }}</span>
+                                            <span style="color:#94a3b8; font-size:11px"> → </span>
+                                            <strong style="color:#047857">{{ $fm->midterm_converted }}</strong>
+                                        @else
+                                            <span style="color:#cbd5e1">—</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding:14px 12px; text-align:center">
+                                        @if($fm->final_obtained !== null)
+                                            <span style="font-weight:700; color:#1e293b">{{ $fm->final_obtained }}</span>
+                                            <span style="color:#94a3b8; font-size:11px"> → </span>
+                                            <strong style="color:#047857">{{ $fm->final_converted }}</strong>
+                                        @else
+                                            <span style="color:#cbd5e1">—</span>
+                                        @endif
+                                    </td>
+
+                                    {{-- Attendance Cell with Direct Edit Button --}}
+                                    <td style="padding:14px 12px; text-align:center; background:#f0fdf4">
+                                        <div style="display:inline-flex; align-items:center; gap:8px">
+                                            <div>
+                                                <span style="font-size:12px; color:#64748b">{{ $fm->attendance_percent ?? 0 }}%</span>
+                                                <span style="color:#94a3b8; font-size:11px"> → </span>
+                                                <strong style="color:#065f46; font-size:15px">{{ $fm->attendance_converted ?? 0 }}</strong>
+                                            </div>
+                                            <button type="button" 
+                                                onclick="openAttendanceModal({{ $fm->id }}, '{{ addslashes($fm->student->name ?? 'Student') }}', {{ $fm->attendance_percent ?? 0 }}, {{ $fm->attendance_converted ?? 0 }}, {{ $criteria['attendance_convert'] }})"
+                                                title="উপস্থিতির নম্বর পরিবর্তন করুন"
+                                                style="padding:3px 8px; background:#ffffff; border:1px solid #a7f3d0; color:#047857; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; transition:all .15s"
+                                                onmouseover="this.style.background='#047857'; this.style.color='#fff'"
+                                                onmouseout="this.style.background='#ffffff'; this.style.color='#047857'">
+                                                <i class="fa-solid fa-pen-to-square"></i> এডিট
+                                            </button>
+                                        </div>
+                                    </td>
+
+                                    <td style="padding:14px; text-align:center; background:#ecfdf5">
+                                        <span style="font-size:18px; font-weight:900; color:{{ $fm->total_mark >= $criteria['pass_mark'] ? '#059669' : '#dc2626' }}">
+                                            {{ $fm->total_mark ?? '—' }}
+                                        </span>
+                                    </td>
+                                    <td style="padding:14px; text-align:center">
+                                        @php
+                                            $gc = match($fm->grade) {
+                                                'A+' => 'grade-ap',
+                                                'A'  => 'grade-a',
+                                                'A-' => 'grade-am',
+                                                'B'  => 'grade-b',
+                                                'C'  => 'grade-c',
+                                                default => 'grade-f',
+                                            };
+                                        @endphp
+                                        <span class="grade-badge {{ $gc }}">{{ $fm->grade ?? '—' }}</span>
+                                    </td>
+                                    <td style="padding:14px; text-align:center; font-weight:800; color:#1e293b">
+                                        {{ number_format($fm->gpa ?? 0, 2) }}
+                                    </td>
+                                    <td style="padding:14px; text-align:center">
+                                        @if($fm->status === 'PASS')
+                                            <span class="status-pass"><i class="fa-solid fa-check"></i> PASS</span>
+                                        @elseif($fm->status === 'FAIL')
+                                            <span class="status-fail"><i class="fa-solid fa-xmark"></i> FAIL</span>
+                                        @else
+                                            <span class="status-inc">অসম্পূর্ণ</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding:14px; text-align:center; font-size:11.5px; color:#94a3b8">
+                                        {{ $fm->generated_at ? $fm->generated_at->format('d M Y') : '—' }}
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Summary Footer --}}
+                    <div style="padding:16px 22px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; gap:24px; flex-wrap:wrap; font-size:13.5px; font-weight:700">
+                        @php
+                            $passCount = $finalMarks->where('status', 'PASS')->count();
+                            $failCount = $finalMarks->where('status', 'FAIL')->count();
+                            $avgTotal  = round($finalMarks->avg('total_mark'), 2);
+                        @endphp
+                        <span>মোট শিক্ষার্থী: <strong style="color:#0f172a">{{ $finalMarks->count() }} জন</strong></span>
+                        <span>উত্তীর্ণ: <strong style="color:#16a34a">{{ $passCount }} জন</strong></span>
+                        <span>অনুত্তীর্ণ: <strong style="color:#dc2626">{{ $failCount }} জন</strong></span>
+                        <span>গড় নম্বর: <strong style="color:#047857">{{ $avgTotal }}/{{ $totalConvert }}</strong></span>
+                        <span>পাসের হার: <strong style="color:#047857">{{ $finalMarks->count() > 0 ? round(($passCount / $finalMarks->count()) * 100, 1) : 0 }}%</strong></span>
+                    </div>
+                @endif
+            </div>
+        @elseif(!request('batch_id'))
+            <div class="card" style="text-align:center; padding:50px 20px; border-radius:16px; color:#64748b; background:#fff; border:1px solid #e2e8f0">
+                <i class="fa-solid fa-layer-group" style="font-size:42px; color:#cbd5e1; margin-bottom:12px; display:block"></i>
+                <strong style="font-size:16px; color:#1e293b; display:block; margin-bottom:6px">প্রথমে একটি ব্যাচ ও বিষয় নির্বাচন করুন</strong>
+                <span style="font-size:13px; color:#64748b">ব্যাচ নির্বাচন করার পর সংশ্লিষ্ট বিষয়ের তালিকা স্বয়ংক্রিয়ভাবে লোড হবে।</span>
+            </div>
+        @endif
+
     </div>
 
-    {{-- Alerts --}}
-    @if(session('success'))
-        <div class="alert alert-success" style="margin-bottom:20px">{{ session('success') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger" style="margin-bottom:20px">{{ session('error') }}</div>
-    @endif
-
-    {{-- Results Table --}}
-    @if($selectedBatch && $selectedSubject)
-        <div class="card" style="border-radius:16px; overflow:hidden; padding:0">
-            <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center">
-                <div>
-                    <strong style="font-size:15px; color:#0f172a">{{ $selectedBatch->name }}</strong>
-                    <span style="color:#64748b; font-size:13px"> — </span>
-                    <strong style="font-size:14px; color:#2563eb">{{ $selectedSubject->name }}</strong>
-                </div>
-                <span class="badge badge-secondary no-dot" style="font-size:12px; padding:5px 12px; border-radius:20px">
-                    {{ $finalMarks->count() }} Students
-                </span>
+    {{-- ═══════════════════════════════════════════════════════════════ --}}
+    {{-- MODAL 1: Conversion Criteria Settings Modal                     --}}
+    {{-- ═══════════════════════════════════════════════════════════════ --}}
+    <div id="criteriaModal" class="modal-overlay" style="display:none">
+        <div class="modal-card">
+            <div style="padding:18px 24px; background:#065f46; color:#fff; display:flex; justify-content:space-between; align-items:center">
+                <h3 style="margin:0; font-size:17px; font-weight:800; display:flex; align-items:center; gap:8px">
+                    <i class="fa-solid fa-sliders"></i> কনভার্সন ক্রাইটেরিয়া নির্ধারণ (Conversion Criteria)
+                </h3>
+                <button type="button" onclick="closeCriteriaModal()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer">&times;</button>
             </div>
+            
+            <form method="POST" action="{{ route('admin.final-marks.update-criteria') }}" style="padding:22px 24px">
+                @csrf
+                <p style="margin:0 0 16px; font-size:13px; color:#64748b">
+                    প্রতিটি পরীক্ষার মূল পূর্ণমান এবং চূড়ান্ত ১০০ নম্বরে তা কত নম্বরে রূপান্তর (Convert) হবে তা নিচে নির্ধারণ করুন:
+                </p>
 
-            @if($finalMarks->isEmpty())
-                <div style="text-align:center; padding:50px 20px; color:#64748b">
-                    <div style="font-size:36px; margin-bottom:12px"></div>
-                    <strong style="font-size:15px; color:#1e293b">No marks generated yet.</strong><br>
-                    <span style="font-size:13px">Click <em>"Generate / Regenerate Marks"</em> button above to compute final marks.</span>
-                </div>
-            @else
-                <div style="overflow-x:auto">
-                    <table style="min-width:900px">
-                        <thead>
-                            <tr style="background:#f8fafc">
-                                <th style="width:40px">#</th>
-                                <th>Student</th>
-                                <th style="text-align:center">Class Test<br><small style="color:#94a3b8;font-weight:400">/30 → /20</small></th>
-                                <th style="text-align:center">Mid Term<br><small style="color:#94a3b8;font-weight:400">/50 → /30</small></th>
-                                <th style="text-align:center">Final Term<br><small style="color:#94a3b8;font-weight:400">/100 → /40</small></th>
-                                <th style="text-align:center">Attendance<br><small style="color:#94a3b8;font-weight:400">% → /10</small></th>
-                                <th style="text-align:center;font-weight:800;color:#2563eb">Total<br><small style="font-weight:400;color:#94a3b8">/100</small></th>
-                                <th style="text-align:center">Grade</th>
-                                <th style="text-align:center">GPA</th>
-                                <th style="text-align:center">Status</th>
-                                <th style="text-align:center; font-size:11px; color:#94a3b8">Generated</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($finalMarks as $i => $fm)
-                            <tr>
-                                <td style="font-weight:700; color:#94a3b8">{{ $i + 1 }}</td>
-                                <td>
-                                    <strong style="color:#0f172a">{{ $fm->student->name ?? '—' }}</strong>
-                                    <div style="font-size:11px; color:#94a3b8">{{ $fm->student->student_code ?? '' }}</div>
-                                </td>
-                                <td style="text-align:center">
-                                    @if($fm->class_test_obtained !== null)
-                                        <span style="font-weight:700; color:#1e293b">{{ $fm->class_test_obtained }}</span>
-                                        <span style="color:#94a3b8; font-size:11px"> → </span>
-                                        <span style="font-weight:700; color:#2563eb">{{ $fm->class_test_converted }}</span>
-                                    @else
-                                        <span style="color:#cbd5e1">—</span>
-                                    @endif
-                                </td>
-                                <td style="text-align:center">
-                                    @if($fm->midterm_obtained !== null)
-                                        <span style="font-weight:700; color:#1e293b">{{ $fm->midterm_obtained }}</span>
-                                        <span style="color:#94a3b8; font-size:11px"> → </span>
-                                        <span style="font-weight:700; color:#2563eb">{{ $fm->midterm_converted }}</span>
-                                    @else
-                                        <span style="color:#cbd5e1">—</span>
-                                    @endif
-                                </td>
-                                <td style="text-align:center">
-                                    @if($fm->final_obtained !== null)
-                                        <span style="font-weight:700; color:#1e293b">{{ $fm->final_obtained }}</span>
-                                        <span style="color:#94a3b8; font-size:11px"> → </span>
-                                        <span style="font-weight:700; color:#2563eb">{{ $fm->final_converted }}</span>
-                                    @else
-                                        <span style="color:#cbd5e1">—</span>
-                                    @endif
-                                </td>
-                                <td style="text-align:center">
-                                    @if($fm->attendance_percent !== null)
-                                        <span style="font-weight:700; color:#1e293b">{{ $fm->attendance_percent }}%</span>
-                                        <span style="color:#94a3b8; font-size:11px"> → </span>
-                                        <span style="font-weight:700; color:#2563eb">{{ $fm->attendance_converted }}</span>
-                                    @else
-                                        <span style="color:#cbd5e1">—</span>
-                                    @endif
-                                </td>
-                                <td style="text-align:center">
-                                    <span style="font-size:18px; font-weight:900; color:{{ $fm->total_mark >= 40 ? '#16a34a' : '#dc2626' }}">
-                                        {{ $fm->total_mark ?? '—' }}
-                                    </span>
-                                </td>
-                                <td style="text-align:center">
-                                    @php
-                                        $gc = match($fm->grade) {
-                                            'A+' => 'grade-ap',
-                                            'A'  => 'grade-a',
-                                            'A-' => 'grade-am',
-                                            'B'  => 'grade-b',
-                                            'C'  => 'grade-c',
-                                            default => 'grade-f',
-                                        };
-                                    @endphp
-                                    <span class="grade-badge {{ $gc }}">{{ $fm->grade ?? '—' }}</span>
-                                </td>
-                                <td style="text-align:center; font-weight:700; color:#1e293b">
-                                    {{ $fm->gpa ?? '—' }}
-                                </td>
-                                <td style="text-align:center">
-                                    @if($fm->status === 'PASS')
-                                        <span class="status-pass">PASS</span>
-                                    @elseif($fm->status === 'FAIL')
-                                        <span class="status-fail">FAIL</span>
-                                    @else
-                                        <span class="status-inc">INCOMPLETE</span>
-                                    @endif
-                                </td>
-                                <td style="text-align:center; font-size:11px; color:#94a3b8">
-                                    {{ $fm->generated_at ? $fm->generated_at->format('d M Y') : '—' }}
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:12px">
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px">ক্লাস টেস্ট পূর্ণমান</label>
+                        <input type="number" step="0.5" name="class_test_full" class="form-control" value="{{ $criteria['class_test_full'] }}" required oninput="calcTotalConvert()">
+                    </div>
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#047857; display:block; margin-bottom:4px">ক্লাস টেস্ট রূপান্তর (Convert)</label>
+                        <input type="number" step="0.5" name="class_test_convert" id="inp_ct_conv" class="form-control" value="{{ $criteria['class_test_convert'] }}" required oninput="calcTotalConvert()">
+                    </div>
                 </div>
 
-                {{-- Summary Footer --}}
-                <div style="padding:14px 20px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; gap:24px; flex-wrap:wrap; font-size:13px">
-                    @php
-                        $passCount = $finalMarks->where('status', 'PASS')->count();
-                        $failCount = $finalMarks->where('status', 'FAIL')->count();
-                        $avgTotal  = round($finalMarks->avg('total_mark'), 2);
-                    @endphp
-                    <span><strong>{{ $finalMarks->count() }}</strong> Total Students</span>
-                    <span><strong style="color:#16a34a">{{ $passCount }}</strong> Passed</span>
-                    <span><strong style="color:#dc2626">{{ $failCount }}</strong> Failed</span>
-                    <span>Average: <strong style="color:#2563eb">{{ $avgTotal }}/100</strong></span>
-                    <span>Pass Rate: <strong>{{ $finalMarks->count() > 0 ? round(($passCount / $finalMarks->count()) * 100, 1) : 0 }}%</strong></span>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:12px">
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px">মিডটার্ম পূর্ণমান</label>
+                        <input type="number" step="0.5" name="midterm_full" class="form-control" value="{{ $criteria['midterm_full'] }}" required oninput="calcTotalConvert()">
+                    </div>
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#047857; display:block; margin-bottom:4px">মিডটার্ম রূপান্তর (Convert)</label>
+                        <input type="number" step="0.5" name="midterm_convert" id="inp_mid_conv" class="form-control" value="{{ $criteria['midterm_convert'] }}" required oninput="calcTotalConvert()">
+                    </div>
                 </div>
-            @endif
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:12px">
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px">ফাইনাল পরীক্ষা পূর্ণমান</label>
+                        <input type="number" step="0.5" name="final_full" class="form-control" value="{{ $criteria['final_full'] }}" required oninput="calcTotalConvert()">
+                    </div>
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#047857; display:block; margin-bottom:4px">ফাইনাল রূপান্তর (Convert)</label>
+                        <input type="number" step="0.5" name="final_convert" id="inp_fn_conv" class="form-control" value="{{ $criteria['final_convert'] }}" required oninput="calcTotalConvert()">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:16px">
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#047857; display:block; margin-bottom:4px">উপস্থিতি মার্ক রূপান্তর</label>
+                        <input type="number" step="0.5" name="attendance_convert" id="inp_att_conv" class="form-control" value="{{ $criteria['attendance_convert'] }}" required oninput="calcTotalConvert()">
+                    </div>
+                    <div>
+                        <label style="font-size:12.5px; font-weight:700; color:#dc2626; display:block; margin-bottom:4px">পাস মার্ক (Pass Mark)</label>
+                        <input type="number" step="0.5" name="pass_mark" class="form-control" value="{{ $criteria['pass_mark'] }}" required>
+                    </div>
+                </div>
+
+                <div style="padding:12px 16px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center">
+                    <span style="font-weight:700; font-size:13px; color:#065f46">সর্বমোট চূড়ান্ত রূপান্তর নম্বর (Target 100):</span>
+                    <strong id="liveTotalConvert" style="font-size:18px; color:#064e3b">{{ $totalConvert }} নম্বর</strong>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px">
+                    <button type="button" onclick="closeCriteriaModal()" class="btn btn-secondary" style="padding:8px 18px">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="padding:8px 22px; font-weight:800; background:#047857; border-color:#047857">
+                        <i class="fa-solid fa-floppy-disk"></i> সংরক্ষণ করুন
+                    </button>
+                </div>
+            </form>
         </div>
-    @elseif(!request('batch_id'))
-        <div class="card" style="text-align:center; padding:50px 20px; border-radius:16px; color:#64748b">
-            <div style="font-size:40px; margin-bottom:12px"></div>
-            <strong style="font-size:16px; color:#1e293b">Select a Batch and Subject to view or generate final marks.</strong>
+    </div>
+
+    {{-- ═══════════════════════════════════════════════════════════════ --}}
+    {{-- MODAL 2: Student Attendance Mark Override Modal                 --}}
+    {{-- ═══════════════════════════════════════════════════════════════ --}}
+    <div id="attendanceModal" class="modal-overlay" style="display:none">
+        <div class="modal-card" style="max-width:460px">
+            <div style="padding:16px 20px; background:#047857; color:#fff; display:flex; justify-content:space-between; align-items:center">
+                <h3 style="margin:0; font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px">
+                    <i class="fa-solid fa-user-check"></i> উপস্থিতি নম্বর পরিবর্তন
+                </h3>
+                <button type="button" onclick="closeAttendanceModal()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer">&times;</button>
+            </div>
+            
+            <form id="attendanceForm" method="POST" action="" style="padding:20px 22px">
+                @csrf
+                @method('PATCH')
+                
+                <div style="margin-bottom:16px">
+                    <span style="font-size:12px; color:#64748b">শিক্ষার্থীর নাম:</span>
+                    <div id="modalStudentName" style="font-weight:800; font-size:15px; color:#0f172a"></div>
+                </div>
+
+                <div style="margin-bottom:14px">
+                    <label style="font-size:13px; font-weight:700; color:#065f46; display:block; margin-bottom:5px">
+                        উপস্থিতির রূপান্তর নম্বর (Max: <span id="maxAttendanceSpan">10</span>) *
+                    </label>
+                    <input type="number" step="0.1" min="0" max="100" name="attendance_converted" id="modalAttendanceConverted" class="form-control" style="height:44px; font-size:16px; font-weight:800" required>
+                    <small style="color:#64748b; font-size:11.5px; margin-top:3px; display:block">
+                        এই নম্বরটি সরাসরি চূড়ান্ত ফলাফলে যোগ হবে।
+                    </small>
+                </div>
+
+                <div style="margin-bottom:18px">
+                    <label style="font-size:13px; font-weight:700; color:#1e293b; display:block; margin-bottom:5px">
+                        উপস্থিতির শতাংশ (%) (ঐচ্ছিক)
+                    </label>
+                    <input type="number" step="0.1" min="0" max="100" name="attendance_percent" id="modalAttendancePercent" class="form-control" style="height:40px">
+                </div>
+
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 14px; margin-bottom:18px; font-size:12px; color:#166534">
+                    💡 <span style="font-weight:700">নোট:</span> উপস্থিতি নম্বর পরিবর্তন করার সাথে সাথে শিক্ষার্থীর মোট নম্বর, জিপিএ এবং গ্রেড স্বয়ংক্রিয়ভাবে পুনর্গণনা করা হবে।
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px">
+                    <button type="button" onclick="closeAttendanceModal()" class="btn btn-secondary" style="padding:8px 18px">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="padding:8px 20px; font-weight:800; background:#047857; border-color:#047857">
+                        <i class="fa-solid fa-check"></i> নম্বর আপডেট করুন
+                    </button>
+                </div>
+            </form>
         </div>
-    @endif
+    </div>
+
+    @push('scripts')
+    <script>
+        // ── 1. Batch Change & Dynamic Subject Loading ──
+        function handleBatchChange(batchId) {
+            const subjectSelect = document.getElementById('subjectSelect');
+            if (!batchId) {
+                subjectSelect.innerHTML = '<option value="">-- বিষয় নির্বাচন করুন --</option>';
+                return;
+            }
+
+            subjectSelect.innerHTML = '<option value="">লোড হচ্ছে...</option>';
+
+            fetch(`{{ route('admin.final-marks.batch-subjects') }}?batch_id=${batchId}`)
+                .then(res => res.json())
+                .then(data => {
+                    subjectSelect.innerHTML = '<option value="">-- বিষয় নির্বাচন করুন --</option>';
+                    if (data.subjects && data.subjects.length > 0) {
+                        data.subjects.forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.id;
+                            opt.textContent = s.name + (s.code ? ' (' + s.code + ')' : '');
+                            subjectSelect.appendChild(opt);
+                        });
+                    } else {
+                        subjectSelect.innerHTML = '<option value="">এই ব্যাচে কোনো বিষয় নির্ধারিত নেই</option>';
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching subjects:', err);
+                    subjectSelect.innerHTML = '<option value="">বিষয় লোড করতে সমস্যা হয়েছে</option>';
+                });
+        }
+
+        // ── 2. Criteria Modal Controls ──
+        function openCriteriaModal() {
+            document.getElementById('criteriaModal').style.display = 'flex';
+            calcTotalConvert();
+        }
+        function closeCriteriaModal() {
+            document.getElementById('criteriaModal').style.display = 'none';
+        }
+
+        function calcTotalConvert() {
+            const ct = parseFloat(document.getElementById('inp_ct_conv')?.value || 0);
+            const mid = parseFloat(document.getElementById('inp_mid_conv')?.value || 0);
+            const fn = parseFloat(document.getElementById('inp_fn_conv')?.value || 0);
+            const att = parseFloat(document.getElementById('inp_att_conv')?.value || 0);
+            const sum = Math.round((ct + mid + fn + att) * 100) / 100;
+            const el = document.getElementById('liveTotalConvert');
+            if (el) {
+                el.textContent = sum + ' নম্বর';
+                if (sum === 100) {
+                    el.style.color = '#065f46';
+                } else {
+                    el.style.color = '#ea580c';
+                }
+            }
+        }
+
+        // ── 3. Student Attendance Modal Controls ──
+        function openAttendanceModal(finalMarkId, studentName, attendancePercent, attendanceConverted, maxAttendance) {
+            document.getElementById('modalStudentName').textContent = studentName;
+            document.getElementById('modalAttendanceConverted').value = attendanceConverted;
+            document.getElementById('modalAttendancePercent').value = attendancePercent;
+            document.getElementById('maxAttendanceSpan').textContent = maxAttendance;
+            
+            const form = document.getElementById('attendanceForm');
+            form.action = `{{ url('admin/final-marks') }}/${finalMarkId}/update-attendance`;
+            
+            document.getElementById('attendanceModal').style.display = 'flex';
+        }
+        function closeAttendanceModal() {
+            document.getElementById('attendanceModal').style.display = 'none';
+        }
+
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeCriteriaModal();
+                closeAttendanceModal();
+            }
+        });
+    </script>
+    @endpush
 
 </x-admin-layout>
