@@ -14,7 +14,7 @@
             
             <div class="stat-info">
                 <div class="stat-value" id="statActiveVal" style="color:#0369a1">{{ $myActiveCount }}</div>
-                <div class="stat-label">My Active Live Chats</div>
+                <div class="stat-label">My Active Support Tickets</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #10b981">
@@ -64,8 +64,11 @@
                             <strong style="font-size:14px">{{ $t->name }}</strong>
                             <div style="font-size:12px;color:#64748b">
                                 {{ $t->phone }} &middot; {{ $t->email }}
-                                @if($t->student_id)
-                                    &middot; Roll: <strong>{{ $t->student_id }}</strong>
+                                @php
+                                    $stCode = $t->student_id ?: ($t->resolved_student?->student_code ?? null);
+                                @endphp
+                                @if($stCode)
+                                    &middot; ID: <a href="javascript:void(0)" onclick="openStudentProfileModal('{{ str_replace('-', '', $stCode) }}')" style="color:#047857;font-weight:700;font-family:monospace;text-decoration:none" title="ক্লিক করে প্রোফাইল দেখুন"><strong>{{ str_replace('-', '', $stCode) }}</strong> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px"></i></a>
                                 @endif
                             </div>
                         </td>
@@ -85,7 +88,7 @@
                             @if($t->status === 'PENDING')
                                 <span class="badge badge-pending">⏳ Pending Queue</span>
                             @elseif($t->status === 'IN_PROGRESS')
-                                <span class="badge badge-running">Live Chat Active</span>
+                                <span class="badge badge-running">সাপোর্ট সক্রিয়</span>
                             @else
                                 <span class="badge badge-secondary">Closed</span>
                             @endif
@@ -163,7 +166,7 @@
                     if (t.status === 'PENDING') {
                         statusBadge = '<span class="badge badge-pending">⏳ Pending Queue</span>';
                     } else if (t.status === 'IN_PROGRESS') {
-                        statusBadge = '<span class="badge badge-running">Live Chat Active</span>';
+                        statusBadge = '<span class="badge badge-running">সাপোর্ট সক্রিয়</span>';
                     } else {
                         statusBadge = '<span class="badge badge-secondary">Closed</span>';
                     }
@@ -195,7 +198,7 @@
                                 <strong style="font-size:14px">${t.name}</strong>
                                 <div style="font-size:12px;color:#64748b">
                                     ${t.phone} &middot; ${t.email}
-                                    ${t.student_id ? `&middot; Roll: <strong>${t.student_id}</strong>` : ''}
+                                    ${t.student_id ? `&middot; ID: <a href="javascript:void(0)" onclick="openStudentProfileModal('${t.student_id.replace(/-/g, '')}')" style="color:#047857;font-weight:700;font-family:monospace;text-decoration:none" title="ক্লিক করে প্রোফাইল দেখুন"><strong>${t.student_id.replace(/-/g, '')}</strong> <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px"></i></a>` : ''}
                                 </div>
                             </td>
                             <td><span class="badge badge-secondary no-dot">${t.department_name}</span></td>

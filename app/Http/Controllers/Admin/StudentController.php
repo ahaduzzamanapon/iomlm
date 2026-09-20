@@ -26,9 +26,11 @@ class StudentController extends Controller
         // General search term across Name, Code, Phone, Email, NID
         if ($request->filled('search')) {
             $term = trim($request->search);
-            $query->where(function ($q) use ($term) {
+            $cleanCode = str_replace('-', '', $term);
+            $query->where(function ($q) use ($term, $cleanCode) {
                 $q->where('name', 'like', "%{$term}%")
                   ->orWhere('student_code', 'like', "%{$term}%")
+                  ->orWhere('student_code', 'like', "%{$cleanCode}%")
                   ->orWhere('phone', 'like', "%{$term}%")
                   ->orWhere('email', 'like', "%{$term}%")
                   ->orWhere('national_id', 'like', "%{$term}%");
@@ -164,7 +166,7 @@ class StudentController extends Controller
 
                 fputcsv($handle, [
                     $index + 1,
-                    $st->student_code ?? 'N/A',
+                    $st->student_code ? str_replace('-', '', $st->student_code) : 'N/A',
                     $st->name ?? '',
                     $genderLabel,
                     $st->phone ?? '',

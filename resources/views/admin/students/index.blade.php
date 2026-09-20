@@ -204,17 +204,27 @@
             background: #ecfdf5;
             color: #047857;
             border: 1px solid #a7f3d0;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border-radius: 6px;
             font-weight: 700;
-            font-size: 12.5px;
+            font-size: 13px;
             text-decoration: none;
             transition: all 0.2s;
+            white-space: nowrap !important;
+            letter-spacing: 0.5px;
         }
         .student-code-badge:hover {
             background: #047857;
             color: #ffffff;
             border-color: #047857;
+        }
+        .student-code-badge svg {
+            stroke: #047857;
+            transition: all 0.2s;
+        }
+        .student-code-badge:hover svg {
+            stroke: #ffffff;
+            transform: translateX(2px);
         }
 
         .gender-badge {
@@ -510,7 +520,7 @@
                 <table style="width:100%;margin-bottom:0">
                     <thead style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
                         <tr>
-                            <th style="font-weight:700;color:#334155;padding:14px 16px">স্টুডেন্ট আইডি</th>
+                            <th style="font-weight:700;color:#334155;padding:14px 16px;white-space:nowrap">স্টুডেন্ট আইডি</th>
                             <th style="font-weight:700;color:#334155;padding:14px 16px">শিক্ষার্থীর নাম ও লিঙ্গ</th>
                             <th style="font-weight:700;color:#334155;padding:14px 16px">ফোন ও ইমেইল</th>
                             <th style="font-weight:700;color:#334155;padding:14px 16px">বর্তমান কোর্স ও ব্যাচ / সেমিস্টার</th>
@@ -523,13 +533,17 @@
                         @forelse($students as $st)
                         <tr style="border-bottom:1px solid #f1f5f9;transition:background 0.15s ease">
                             <!-- Student Code & Direct Login -->
-                            <td style="padding:14px 16px">
+                            <td style="padding:14px 16px;white-space:nowrap">
                                 @if($st->student_code)
                                     <a href="{{ route('admin.students.impersonate', $st) }}"
                                        class="student-code-badge"
                                        title="শিক্ষার্থী পোর্টালে সরাসরি লগইন করুন (Click to login as student)">
-                                        <i class="fa-solid fa-arrow-right-to-bracket" style="font-size:11px"></i>
-                                        <span>{{ $st->student_code }}</span>
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">
+                                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                                            <polyline points="10 17 15 12 10 7"></polyline>
+                                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                                        </svg>
+                                        <span>{{ str_replace('-', '', $st->student_code) }}</span>
                                     </a>
                                 @else
                                     <span class="td-muted" style="color:#94a3b8;font-size:12.5px;font-style:italic">বরাদ্দ হয়নি (Unassigned)</span>
@@ -608,9 +622,10 @@
                             <td style="text-align:right;white-space:nowrap;padding:14px 16px">
                                 <a href="{{ route('admin.students.impersonate', $st) }}"
                                    class="btn btn-outline btn-sm"
-                                   style="color:#047857;border-color:#a7f3d0;margin-right:4px"
+                                   style="color:#047857;border-color:#a7f3d0;margin-right:4px;display:inline-flex;align-items:center;gap:4px"
                                    title="শিক্ষার্থী হিসেবে লগইন">
-                                    <i class="fa-solid fa-arrow-right-to-bracket"></i> লগইন
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                                    <span>লগইন</span>
                                 </a>
                                 <a href="{{ route('admin.students.accounts', $st) }}"
                                    class="btn btn-outline btn-sm"

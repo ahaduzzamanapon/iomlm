@@ -4,7 +4,7 @@
     <div class="page-header">
         <div class="page-header-left">
             <h1>Support Tickets Overview</h1>
-            <p>Monitor all incoming support tickets, live chats, and department performance</p>
+            <p>Monitor all incoming support tickets, communications, and department performance</p>
         </div>
         <div class="page-header-actions">
             <a href="{{ route('admin.support-tickets.export', request()->query()) }}" class="btn btn-outline" style="color:#0284c7;border-color:#0284c7">
@@ -166,7 +166,7 @@
                                     </a>
                                     <a href="{{ route('support.chat', $t->uuid) }}" target="_blank" class="dropdown-item">
                                         <i class="fa-solid fa-comments" style="margin-right:6px"></i>
-                                        Open Live Chat
+                                        Open Support Chat
                                     </a>
                                     <button class="dropdown-item" onclick='openReassignModal(@json($t))'>
                                         Reassign Agent/Dept

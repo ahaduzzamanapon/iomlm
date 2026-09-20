@@ -1,13 +1,13 @@
 <x-support-layout>
-    <x-slot name="title">Live Chat — {{ $ticket->ticket_no }}</x-slot>
+    <x-slot name="title">Support Chat — {{ $ticket->ticket_no }}</x-slot>
 
     <div style="display:grid;grid-template-columns: 1fr 340px;gap:20px;align-items:start">
 
-        {{-- Left: Live Chat Window --}}
+        {{-- Left: Support Chat Window --}}
         <div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 140px)">
             <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;background:#0f172a;color:#fff;border-radius:12px 12px 0 0">
                 <div>
-                    <div style="font-weight:700;font-size:15px">Live Chat: {{ $ticket->name }}</div>
+                    <div style="font-weight:700;font-size:15px">Support Chat: {{ $ticket->name }}</div>
                     <div style="font-size:11px;color:#94a3b8">Ticket: <strong>{{ $ticket->ticket_no }}</strong> &middot; Dept: {{ $ticket->department->name }}</div>
                 </div>
                 <div style="display:flex;gap:8px">
@@ -25,6 +25,12 @@
                         <span class="badge badge-secondary">Ticket Closed</span>
                     @endif
                 </div>
+            </div>
+
+            {{-- Instructive Notice Banner --}}
+            <div style="background:#eff6ff;border-bottom:1px solid #bfdbfe;color:#1e40af;padding:12px 18px;display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600">
+                <i class="fa-solid fa-clock-rotate-left" style="font-size:16px;color:#2563eb;flex-shrink:0"></i>
+                <span>আপনার সমস্যার সমাধান করে ২৪ ঘণ্টার মধ্যে রিপ্লাই দেওয়া হবে। অনুগ্রহ করে অপেক্ষা করুন।</span>
             </div>
 
             {{-- Message Feed Box --}}
@@ -61,18 +67,67 @@
         {{-- Right: User Info & Ticket Meta Sidebar --}}
         <div style="display:flex;flex-direction:column;gap:16px">
             <div class="card">
-                <div class="card-header" style="background:#f1f5f9">
+                <div class="card-header" style="background:#f1f5f9;display:flex;align-items:center;justify-content:space-between">
                     <span class="card-title">User / Student Details</span>
+                    @php
+                        $codeToCheck = $ticket->student_id ?: ($ticket->resolved_student?->student_code ?? null);
+                    @endphp
+                    @if($codeToCheck)
+                        <button type="button" onclick="openStudentProfileModal('{{ str_replace('-', '', $codeToCheck) }}')" class="btn btn-sm btn-primary" style="background:#0284c7;font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:4px">
+                            <i class="fa-solid fa-address-card"></i> প্রোফাইল চেক
+                        </button>
+                    @endif
                 </div>
                 <div class="card-body" style="font-size:13px">
                     <table class="table" style="margin:0">
-                        <tr><th style="color:#64748b;width:100px">Name:</th><td><strong>{{ $ticket->name }}</strong></td></tr>
+                        <tr><th style="color:#64748b;width:105px">Name:</th><td><strong>{{ $ticket->name }}</strong></td></tr>
                         <tr><th style="color:#64748b">Phone:</th><td><a href="tel:{{ $ticket->phone }}" style="color:#0284c7;font-weight:700">{{ $ticket->phone }}</a></td></tr>
                         <tr><th style="color:#64748b">Email:</th><td>{{ $ticket->email }}</td></tr>
                         <tr><th style="color:#64748b">Gender:</th><td>{{ $ticket->gender }}</td></tr>
-                        <tr><th style="color:#64748b">Student ID:</th><td>{{ $ticket->student_id ?? '—' }}</td></tr>
+                        <tr>
+                            <th style="color:#64748b;vertical-align:middle">Student ID:</th>
+                            <td style="vertical-align:middle">
+                                @if($codeToCheck)
+                                    <div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap">
+                                        <span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-family:monospace;font-size:13px;font-weight:700;white-space:nowrap;padding:4px 8px;border-radius:5px">
+                                            {{ str_replace('-', '', $codeToCheck) }}
+                                        </span>
+                                        <button type="button" onclick="openStudentProfileModal('{{ str_replace('-', '', $codeToCheck) }}')" class="btn btn-sm" style="background:#0284c7;color:#fff;border:none;padding:3px 8px;font-size:11px;font-weight:700;border-radius:4px;cursor:pointer" title="সরাসরি প্রোফাইল চেক করুন">
+                                            <i class="fa-solid fa-eye"></i> প্রোফাইল দেখুন
+                                        </button>
+                                    </div>
+                                @else
+                                    <div style="display:flex;flex-direction:column;gap:6px">
+                                        <div style="display:flex;gap:4px">
+                                            <input type="text" id="sidebarStudentSearchInput" placeholder="আইডি লিখুন..." class="form-control" style="height:28px;font-size:11.5px;padding:2px 8px;width:120px" onkeydown="if(event.key==='Enter'){event.preventDefault();openStudentProfileModal(this.value);}">
+                                            <button type="button" onclick="openStudentProfileModal(document.getElementById('sidebarStudentSearchInput').value)" class="btn btn-sm btn-primary" style="height:28px;padding:0 8px;font-size:11px;background:#0284c7">
+                                                চেক করুন
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endif
+                            </td>
+                        </tr>
                         <tr><th style="color:#64748b">Reference:</th><td>{{ $ticket->reference ?? '—' }}</td></tr>
                     </table>
+
+                    @if(empty($ticket->student_id) && $ticket->resolved_student)
+                        <div style="margin-top:10px;padding:8px 10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:12px">
+                            <div style="color:#1e40af;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px">
+                                <i class="fa-solid fa-circle-check" style="color:#3b82f6"></i> স্টুডেন্ট পাওয়া গেছে:
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:space-between">
+                                <span style="font-family:monospace;font-weight:700;color:#1d4ed8">{{ str_replace('-', '', $ticket->resolved_student->student_code) }}</span>
+                                <form method="POST" action="{{ route('support.tickets.link-student', $ticket->uuid) }}" style="display:inline">
+                                    @csrf
+                                    <input type="hidden" name="student_code" value="{{ $ticket->resolved_student->student_code }}">
+                                    <button type="submit" class="btn btn-xs" style="background:#10b981;color:#fff;border:none;font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer">
+                                        ✓ টিকিটে আইডি সেভ করুন
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -353,6 +408,7 @@
         closeModal('cannedModal');
     }
 
+    window.currentTicketUuid = '{{ $ticket->uuid }}';
     fetchAgentMessages();
     setInterval(fetchAgentMessages, 3000);
     </script>

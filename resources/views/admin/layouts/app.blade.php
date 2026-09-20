@@ -530,7 +530,7 @@
                     @endif
                     <a href="{{ route('support.dashboard') }}" target="_blank" class="nav-item">
                         <i class="fa-solid fa-comments"></i>
-                        Open Agent Live Chat ↗
+                        Open Support Panel ↗
                     </a>
                 </div>
             </div>

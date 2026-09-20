@@ -174,7 +174,7 @@
                             <div class="form-group">
                                 <label>Student ID:</label>
                                 <input type="text" name="student_id" class="form-control" placeholder="Please Enter Your Student ID"
-                                       value="{{ old('student_id', $student?->student_id ?? '') }}">
+                                       value="{{ old('student_id', str_replace('-', '', $student?->student_code ?? $student?->student_id ?? '')) }}">
                             </div>
                             <div class="form-group">
                                 <label>Reference:</label>

@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Chat — Support Ticket #{{ $ticket->ticket_no }}</title>
+    <title>Support Chat — Ticket #{{ $ticket->ticket_no }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
@@ -66,7 +67,7 @@
     <div class="chat-header-bar">
         <div>
             <div class="chat-header-title">
-                IOM Live Support
+                <i class="fa-solid fa-headset" style="margin-right:6px"></i> আইওএম অনলাইন সাপোর্ট (IOM Support)
             </div>
             <div class="chat-header-sub">
                 Ticket #{{ $ticket->ticket_no }} &middot; Dept: {{ $ticket->department->name }}
@@ -101,6 +102,12 @@
                         <span style="background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:12px;font-weight:700">⏳ প্রতিনিধি অপেক্ষায় আছে...</span>
                     @endif
                 </div>
+            </div>
+
+            {{-- Instructive Notice Banner --}}
+            <div style="background:#eff6ff;border-bottom:1px solid #bfdbfe;color:#1e40af;padding:12px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600">
+                <i class="fa-solid fa-clock-rotate-left" style="font-size:18px;color:#2563eb;flex-shrink:0"></i>
+                <span>আপনার সমস্যার সমাধান করে ২৪ ঘণ্টার মধ্যে রিপ্লাই দেওয়া হবে। অনুগ্রহ করে অপেক্ষা করুন।</span>
             </div>
 
             {{-- Chat Messages Feed --}}

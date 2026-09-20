@@ -25,7 +25,7 @@ class OnlineSupportController extends Controller
     }
 
     /**
-     * Store new support ticket and redirect to Live Chat
+     * Store new support ticket and redirect to Support Chat
      */
     public function store(Request $request)
     {
@@ -44,6 +44,15 @@ class OnlineSupportController extends Controller
 
         $user = Auth::user();
 
+        $studentCode = !empty($validated['student_id']) ? str_replace('-', '', $validated['student_id']) : null;
+        if (empty($studentCode)) {
+            $matchedStudent = $user?->student
+                ?? \App\Models\Student::where('email', $validated['email'])->orWhere('phone', $validated['phone'])->first();
+            if ($matchedStudent) {
+                $studentCode = str_replace('-', '', $matchedStudent->student_code);
+            }
+        }
+
         $ticket = SupportTicket::create([
             'department_id'   => $validated['department_id'],
             'user_id'         => $user?->id,
@@ -51,7 +60,7 @@ class OnlineSupportController extends Controller
             'email'           => $validated['email'],
             'phone'           => $validated['phone'],
             'gender'          => $validated['gender'],
-            'student_id'      => $validated['student_id'] ?? null,
+            'student_id'      => $studentCode,
             'reference'       => $validated['reference'] ?? null,
             'subject'         => $validated['subject'],
             'problem_details' => $validated['problem_details'],
@@ -71,11 +80,11 @@ class OnlineSupportController extends Controller
             'ticket_id'   => $ticket->id,
             'sender_type' => 'SYSTEM',
             'sender_id'   => null,
-            'message'     => "আপনার সাপোর্ট টিকিটটি (#{$ticket->ticket_no}) সফলভাবে জমা হয়েছে। সংশ্লিষ্ট ডিপার্টমেন্টের প্রতিনিধি শীঘ্রই লাইভ চ্যাটে যোগ দেবেন। অনুগ্রহ করে অপেক্ষা করুন...",
+            'message'     => "আপনার সাপোর্ট টিকিটটি (#{$ticket->ticket_no}) সফলভাবে জমা হয়েছে। আপনার সমস্যার সমাধান করে ২৪ ঘণ্টার মধ্যে রিপ্লাই দেওয়া হবে। অনুগ্রহ করে অপেক্ষা করুন।",
         ]);
 
         return redirect()->route('online-support.chat', $ticket->uuid)
-            ->with('success', "সাপোর্ট অনুরোধ নম্বর #{$ticket->ticket_no} তৈরি হয়েছে। চ্যাট শুরু হয়েছে!");
+            ->with('success', "সাপোর্ট অনুরোধ নম্বর #{$ticket->ticket_no} তৈরি হয়েছে। আপনার সমস্যার সমাধান করে ২৪ ঘণ্টার মধ্যে রিপ্লাই দেওয়া হবে।");
     }
 
     /**
@@ -110,7 +119,7 @@ class OnlineSupportController extends Controller
     }
 
     /**
-     * Public Live Chat View
+     * Public Support Chat View
      */
     public function chatView($uuid)
     {

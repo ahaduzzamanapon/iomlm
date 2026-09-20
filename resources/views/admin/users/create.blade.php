@@ -146,10 +146,10 @@
             <div class="form-card-um support-box">
                 <div class="form-section-title" style="color:#9d174d">
                     <i class="fa-solid fa-headset"></i>
-                    লাইভ সাপোর্ট ও হেল্পডেস্ক দায়িত্ব (Customer Support)
+                    অনলাইন সাপোর্ট ও হেল্পডেস্ক দায়িত্ব (Customer Support)
                 </div>
                 <div class="form-section-sub" style="color:#be185d">
-                    এই কর্মকর্তা হেল্পডেস্কে লাইভ চ্যাট সাপোর্ট প্রদান করতে পারবেন কিনা এবং কোন কোন ডিপার্টমেন্টের টিকিট পাবেন
+                    এই কর্মকর্তা হেল্পডেস্কে সাপোর্ট প্রদান করতে পারবেন কিনা এবং কোন কোন ডিপার্টমেন্টের টিকিট পাবেন
                 </div>
 
                 <div style="margin-bottom:14px">

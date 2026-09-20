@@ -63,7 +63,7 @@ Route::post('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationControl
 Route::get('/poor-fund/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('poor_fund.success');
 Route::get('/api/waiver-lookup', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'lookup'])->name('api.waiver-lookup');
 
-// ── Public Online Support Form & Live Chat ─────────────────────────────
+// ── Public Online Support Form & Chat ─────────────────────────────
 Route::get('/online-support', [\App\Http\Controllers\Public\OnlineSupportController::class, 'index'])->name('online-support.index');
 Route::post('/online-support', [\App\Http\Controllers\Public\OnlineSupportController::class, 'store'])->name('online-support.store');
 Route::get('/online-support/search', [\App\Http\Controllers\Public\OnlineSupportController::class, 'searchStatus'])->name('online-support.search');
@@ -86,6 +86,10 @@ Route::middleware(['auth', 'role:support,support_agent,admin,super_admin'])->pre
     Route::get('/chat/{uuid}', [\App\Http\Controllers\Support\SupportAgentController::class, 'agentChat'])->name('chat');
     Route::post('/tickets/{uuid}/message', [\App\Http\Controllers\Support\SupportAgentController::class, 'sendMessage'])->name('tickets.message');
     Route::post('/tickets/{uuid}/close', [\App\Http\Controllers\Support\SupportAgentController::class, 'closeTicket'])->name('tickets.close');
+    Route::post('/tickets/{uuid}/link-student', [\App\Http\Controllers\Support\SupportAgentController::class, 'linkStudent'])->name('tickets.link-student');
+
+    // Student Lookup API for Support Agents
+    Route::get('/api/student-lookup', [\App\Http\Controllers\Support\SupportAgentController::class, 'studentLookupApi'])->name('api.student-lookup');
 
     // Canned Messages (Quick Replies)
     Route::get('/canned-messages', [\App\Http\Controllers\Support\SupportAgentController::class, 'cannedMessagesIndex'])->name('canned-messages.index');

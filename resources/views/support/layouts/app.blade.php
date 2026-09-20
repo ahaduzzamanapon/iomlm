@@ -102,7 +102,7 @@
 
                 <a href="{{ route('support.dashboard', ['status' => 'IN_PROGRESS']) }}" class="menu-item {{ request()->query('status') === 'IN_PROGRESS' ? 'active' : '' }}">
                     <i class="fa-solid fa-comments"></i>
-                    Active Live Chats
+                    Active Support Chats
                     @php
                         $aCount = \App\Models\SupportTicket::where('assigned_agent_id', auth()->id())->where('status', 'IN_PROGRESS')->count();
                     @endphp
@@ -119,6 +119,12 @@
                 <a href="{{ route('support.canned-messages.index') }}" class="menu-item {{ request()->routeIs('support.canned-messages*') ? 'active' : '' }}">
                     <i class="fa-solid fa-bolt"></i>
                     My Quick Replies
+                </a>
+
+                <div class="menu-section-title">Student Profile Lookup</div>
+                <a href="javascript:void(0)" onclick="openStudentProfileModal('')" class="menu-item" style="color:#fef08a">
+                    <i class="fa-solid fa-address-card" style="color:#fbbf24"></i>
+                    স্টুডেন্ট প্রোফাইল চেক
                 </a>
 
                 <div class="menu-section-title">My Assigned Departments</div>
@@ -150,6 +156,15 @@
                     {{ $title ?? 'Support Agent Portal' }}
                 </div>
 
+                {{-- Global Student Profile Quick Check --}}
+                <div style="display:flex;align-items:center;background:#f8fafc;border:1px solid #cbd5e1;border-radius:20px;padding:3px 12px;gap:8px">
+                    <i class="fa-solid fa-magnifying-glass" style="color:#64748b;font-size:12px"></i>
+                    <input type="text" id="topbarStudentLookupInput" placeholder="স্টুডেন্ট আইডি দিয়ে প্রোফাইল চেক..." style="border:none;background:transparent;outline:none;font-size:13px;font-family:'Kalpurush',sans-serif;width:220px" onkeydown="if(event.key==='Enter'){event.preventDefault();openStudentProfileModal(this.value);}">
+                    <button type="button" onclick="openStudentProfileModal(document.getElementById('topbarStudentLookupInput').value)" style="background:#0284c7;color:#fff;border:none;border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer">
+                        চেক করুন
+                    </button>
+                </div>
+
                 <div style="display:flex;align-items:center;gap:16px">
                     <div style="text-align:right">
                         <div style="font-weight:700;font-size:13px">{{ auth()->user()->name }}</div>
@@ -178,6 +193,9 @@
                 @endif
 
                 {{ $slot }}
+
+                {{-- Global Reusable Support Student Profile Modal --}}
+                @include('support.partials.student_profile_modal')
             </main>
         </div>
     </div>

@@ -402,16 +402,16 @@
                 </a>
             </div>
 
-            {{-- Card 2: Online Support & Live Chat --}}
+            {{-- Card 2: Online Support & Helpdesk --}}
             <div class="action-card">
                 <div class="card-top">
-                    <h3 class="card-title">অনলাইন সাপোর্ট ও লাইভ চ্যাট</h3>
+                    <h3 class="card-title">অনলাইন সাপোর্ট ও হেল্পডেস্ক</h3>
                     <p class="card-desc">
-                        ভর্তি, ক্লাস, কোর্স কনটেন্ট বা কারিগরি যেকোনো প্রয়োজনে সরাসরি আমাদের সাপোর্ট প্রতিনিধির সাথে লাইভ চ্যাট করুন।
+                        ভর্তি, ক্লাস, কোর্স কনটেন্ট বা কারিগরি যেকোনো প্রয়োজনে সরাসরি আমাদের সাপোর্ট প্রতিনিধির সাথে যোগাযোগ করুন।
                     </p>
                 </div>
                 <a href="{{ route('online-support.index') }}" class="card-btn btn-blue">
-                    অনলাইন সাপোর্ট নিন (Live Chat) ↗
+                    অনলাইন সাপোর্ট নিন ↗
                 </a>
             </div>
 
@@ -449,7 +449,7 @@
             <div class="feature-items">
                 <div class="feature-box">
                     <h4>দ্রুত রেসপন্স টাইম</h4>
-                    <p>সাপোর্ট টিমের সরাসরি লাইভ চ্যাট সহায়তা</p>
+                    <p>সাপোর্ট টিমের সরাসরি সহায়তা</p>
                 </div>
                 <div class="feature-box">
                     <h4>আল-ইহসান দরিদ্র তহবিল</h4>

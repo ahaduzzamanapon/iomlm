@@ -111,7 +111,7 @@
                                 @if($t->status === 'PENDING')
                                     <span class="badge badge-pending">⏳ Pending Queue</span>
                                 @elseif($t->status === 'IN_PROGRESS')
-                                    <span class="badge badge-running">Live Chat Active</span>
+                                    <span class="badge badge-running">সাপোর্ট সক্রিয়</span>
                                 @else
                                     <span class="badge badge-secondary">Closed</span>
                                 @endif
