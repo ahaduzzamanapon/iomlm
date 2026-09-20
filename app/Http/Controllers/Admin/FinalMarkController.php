@@ -23,23 +23,57 @@ class FinalMarkController extends Controller
      */
     public function index(Request $request)
     {
-        $batches = Batch::with('course.subjects')->orderByDesc('id')->get();
-        $semesters = Semester::orderBy('id')->get();
+        $batches = Batch::with(['course.semesters' => function ($q) {
+            $q->orderBy('sequence_no');
+        }, 'course.subjects'])->orderByDesc('id')->get();
+
         $criteria = FinalMark::getCriteria();
 
         $finalMarks = collect();
         $selectedBatch = null;
         $selectedSubject = null;
+        $courseSemesters = collect();
+        $isSemesterBased = false;
+        $runningSemesterId = null;
+        $selectedSemesterId = null;
 
         if ($request->filled('batch_id')) {
-            $selectedBatch = Batch::with(['course.subjects' => function ($q) {
-                $q->where('subjects.is_active', true)->orderBy('subjects.name');
-            }])->find($request->batch_id);
+            $selectedBatch = Batch::with([
+                'course.semesters' => function ($q) { $q->orderBy('sequence_no'); },
+                'course.subjects'  => function ($q) { $q->where('subjects.is_active', true)->orderBy('subjects.name'); },
+                'semesterPosition',
+            ])->find($request->batch_id);
+
+            if ($selectedBatch && $selectedBatch->course) {
+                $course = $selectedBatch->course;
+                $isSemesterBased = ($course->type === 'SEMESTER_BASED' && $course->semesters->isNotEmpty());
+                $courseSemesters = $course->semesters;
+
+                if ($isSemesterBased) {
+                    $runningSemesterId = $selectedBatch->semesterPosition?->current_semester_id
+                        ?? $selectedBatch->enrollments()->whereNotNull('semester_id')->latest()->value('semester_id')
+                        ?? $courseSemesters->first()?->id;
+
+                    $selectedSemesterId = $request->input('semester_id', $runningSemesterId);
+                }
+            }
         }
 
         // Determine subjects for the subject dropdown
-        if ($selectedBatch && $selectedBatch->course && $selectedBatch->course->subjects->isNotEmpty()) {
-            $subjects = $selectedBatch->course->subjects;
+        if ($selectedBatch && $selectedBatch->course) {
+            if ($isSemesterBased && $selectedSemesterId) {
+                $subjects = $selectedBatch->course->subjects()
+                    ->wherePivot('semester_id', $selectedSemesterId)
+                    ->where('subjects.is_active', true)
+                    ->orderBy('subjects.name')
+                    ->get();
+
+                if ($subjects->isEmpty()) {
+                    $subjects = $selectedBatch->course->subjects;
+                }
+            } else {
+                $subjects = $selectedBatch->course->subjects;
+            }
         } else {
             $subjects = Subject::where('is_active', true)->orderBy('name')->get();
         }
@@ -50,13 +84,19 @@ class FinalMarkController extends Controller
             $finalMarks = FinalMark::with(['student', 'enrollment'])
                 ->where('batch_id', $request->batch_id)
                 ->where('subject_id', $request->subject_id)
+                ->when($selectedSemesterId, function ($q) use ($selectedSemesterId) {
+                    $q->where(function ($q2) use ($selectedSemesterId) {
+                        $q2->where('semester_id', $selectedSemesterId)->orWhereNull('semester_id');
+                    });
+                })
                 ->orderBy('total_mark', 'desc')
                 ->get();
         }
 
         return view('admin.final-marks.index', compact(
-            'batches', 'subjects', 'semesters', 'criteria',
-            'finalMarks', 'selectedBatch', 'selectedSubject'
+            'batches', 'subjects', 'courseSemesters', 'criteria',
+            'finalMarks', 'selectedBatch', 'selectedSubject',
+            'isSemesterBased', 'runningSemesterId', 'selectedSemesterId'
         ));
     }
 
@@ -68,26 +108,69 @@ class FinalMarkController extends Controller
         $batchId = $request->query('batch_id');
         if (!$batchId) {
             $all = Subject::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
-            return response()->json(['subjects' => $all]);
+            return response()->json([
+                'course_type'         => 'SUBJECT_BASED',
+                'has_semesters'       => false,
+                'running_semester_id' => null,
+                'semesters'           => [],
+                'subjects'            => $all,
+            ]);
         }
 
-        $batch = Batch::with(['course.subjects' => function ($q) {
-            $q->where('subjects.is_active', true)->orderBy('subjects.name');
-        }])->find($batchId);
+        $batch = Batch::with([
+            'course.semesters' => function ($q) { $q->orderBy('sequence_no'); },
+            'course.subjects'  => function ($q) { $q->where('subjects.is_active', true)->orderBy('subjects.name'); },
+            'semesterPosition',
+        ])->find($batchId);
 
-        if ($batch && $batch->course && $batch->course->subjects->isNotEmpty()) {
-            $subjects = $batch->course->subjects->map(function ($s) {
+        if (!$batch || !$batch->course) {
+            $all = Subject::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+            return response()->json([
+                'course_type'         => 'SUBJECT_BASED',
+                'has_semesters'       => false,
+                'running_semester_id' => null,
+                'semesters'           => [],
+                'subjects'            => $all,
+            ]);
+        }
+
+        $course = $batch->course;
+        $isSemesterBased = ($course->type === 'SEMESTER_BASED' && $course->semesters->isNotEmpty());
+
+        $runningSemesterId = null;
+        $semestersList = [];
+
+        if ($isSemesterBased) {
+            $runningSemesterId = $batch->semesterPosition?->current_semester_id
+                ?? $batch->enrollments()->whereNotNull('semester_id')->latest()->value('semester_id')
+                ?? $course->semesters->first()?->id;
+
+            $semestersList = $course->semesters->map(function ($sem) use ($runningSemesterId) {
                 return [
-                    'id'   => $s->id,
-                    'name' => $s->name,
-                    'code' => $s->code,
+                    'id'          => $sem->id,
+                    'name'        => $sem->name,
+                    'sequence_no' => $sem->sequence_no,
+                    'is_running'  => ($sem->id == $runningSemesterId),
                 ];
             });
-        } else {
-            $subjects = Subject::where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
         }
 
-        return response()->json(['subjects' => $subjects]);
+        $subjects = $course->subjects->map(function ($s) {
+            return [
+                'id'          => $s->id,
+                'name'        => $s->name,
+                'code'        => $s->code,
+                'semester_id' => $s->pivot->semester_id ?? null,
+            ];
+        });
+
+        return response()->json([
+            'course_type'         => $course->type ?? 'SUBJECT_BASED',
+            'has_semesters'       => $isSemesterBased,
+            'running_semester_id' => $runningSemesterId,
+            'semesters'           => $semestersList,
+            'subjects'            => $subjects,
+        ]);
     }
 
     /**
@@ -143,8 +226,9 @@ class FinalMarkController extends Controller
     public function generate(Request $request)
     {
         $request->validate([
-            'batch_id'   => 'required|exists:batches,id',
-            'subject_id' => 'required|exists:subjects,id',
+            'batch_id'    => 'required|exists:batches,id',
+            'subject_id'  => 'required|exists:subjects,id',
+            'semester_id' => 'nullable|exists:semesters,id',
         ]);
 
         $batchId   = $request->batch_id;
@@ -162,10 +246,16 @@ class FinalMarkController extends Controller
             return back()->with('error', 'এই ব্যাচে কোনো সক্রিয় শিক্ষার্থী পাওয়া যায়নি (No active students found in this batch).');
         }
 
-        // Get the semester_id from this batch's current position (if any)
-        $semesterId = DB::table('batch_semester_positions')
-            ->where('batch_id', $batchId)
-            ->value('current_semester_id');
+        // Get the semester_id from request or this batch's current position (if any)
+        $semesterId = $request->input('semester_id');
+        if (!$semesterId) {
+            $batchObj = Batch::with('course.semesters', 'semesterPosition')->find($batchId);
+            if ($batchObj && $batchObj->course && $batchObj->course->type === 'SEMESTER_BASED') {
+                $semesterId = $batchObj->semesterPosition?->current_semester_id
+                    ?? $batchObj->enrollments()->whereNotNull('semester_id')->latest()->value('semester_id')
+                    ?? $batchObj->course->semesters->first()?->id;
+            }
+        }
 
         // Gather all exams for this subject (QUIZ, MIDTERM, FINAL)
         $examsByType = Exam::where('subject_id', $subjectId)
@@ -287,11 +377,16 @@ class FinalMarkController extends Controller
             }
         });
 
+        $redirectParams = [
+            'batch_id'   => $batchId,
+            'subject_id' => $subjectId,
+        ];
+        if ($semesterId) {
+            $redirectParams['semester_id'] = $semesterId;
+        }
+
         return redirect()
-            ->route('admin.final-marks.index', [
-                'batch_id'   => $batchId,
-                'subject_id' => $subjectId,
-            ])
+            ->route('admin.final-marks.index', $redirectParams)
             ->with('success', "✅ মোট {$generated} জন শিক্ষার্থীর জন্য ফাইনাল মার্ক সফলভাবে জেনারেট / আপডেট করা হয়েছে।");
     }
 
@@ -310,6 +405,11 @@ class FinalMarkController extends Controller
         $marks = FinalMark::with('student')
             ->where('batch_id', $request->batch_id)
             ->where('subject_id', $request->subject_id)
+            ->when($request->filled('semester_id'), function ($q) use ($request) {
+                $q->where(function ($q2) use ($request) {
+                    $q2->where('semester_id', $request->semester_id)->orWhereNull('semester_id');
+                });
+            })
             ->orderBy('total_mark', 'desc')
             ->get();
 

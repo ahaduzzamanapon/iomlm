@@ -122,6 +122,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('course-transfers/{courseTransfer}/reject', [\App\Http\Controllers\Admin\CourseTransferController::class, 'reject'])->name('course-transfers.reject');
 
         Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class)->only(['index', 'store']);
+        Route::post('promotions/bulk-promote', [\App\Http\Controllers\Admin\PromotionController::class, 'bulkPromote'])->name('promotions.bulk-promote');
+        Route::post('promotions/send-readmission', [\App\Http\Controllers\Admin\PromotionController::class, 'sendReadmission'])->name('promotions.send-readmission');
 
         // Final Mark Generator
         Route::get('final-marks', [\App\Http\Controllers\Admin\FinalMarkController::class, 'index'])->name('final-marks.index');

@@ -60,15 +60,25 @@
 
         /* Modal Backdrop and Box */
         .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
+            position: fixed !important;
+            top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+            background: rgba(15, 23, 42, 0.65) !important;
+            backdrop-filter: blur(4px) !important;
+            z-index: 99999 !important;
+            display: none;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 16px !important;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .modal-overlay.open,
+        .modal-overlay.is-active,
+        .modal-overlay.show {
+            display: flex !important;
+            opacity: 1 !important;
+            pointer-events: all !important;
         }
         .modal-card {
             background: #ffffff;
@@ -78,6 +88,8 @@
             overflow: hidden;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             animation: modalFadeIn 0.2s ease-out;
+            position: relative;
+            z-index: 100000;
         }
         @keyframes modalFadeIn {
             from { opacity: 0; transform: scale(0.96); }
@@ -98,12 +110,12 @@
                 </p>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap">
-                <button type="button" onclick="openCriteriaModal()"
+                <button type="button" id="btnOpenCriteriaModal" onclick="openCriteriaModal(event)"
                    style="background:#ffffff; color:#065f46; border:none; padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 10px rgba(0,0,0,0.1)">
                     <i class="fa-solid fa-sliders"></i> কনভার্সন ক্রাইটেরিয়া পরিবর্তন
                 </button>
                 @if(request('batch_id') && request('subject_id') && $finalMarks->isNotEmpty())
-                    <a href="{{ route('admin.final-marks.export-csv', ['batch_id' => request('batch_id'), 'subject_id' => request('subject_id')]) }}"
+                    <a href="{{ route('admin.final-marks.export-csv', ['batch_id' => request('batch_id'), 'subject_id' => request('subject_id'), 'semester_id' => request('semester_id', $selectedSemesterId ?? '')]) }}"
                        style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:10px 18px; border-radius:10px; font-weight:700; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:7px">
                         <i class="fa-solid fa-file-csv"></i> Export CSV
                     </a>
@@ -167,7 +179,7 @@
                 
                 {{-- GET Filter Form (Never contains nested forms) --}}
                 <form method="GET" action="{{ route('admin.final-marks.index') }}" id="filterForm" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end; flex:1; min-width:320px">
-                    <div style="flex:1; min-width:220px">
+                    <div style="flex:1; min-width:210px">
                         <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
                             ১. ব্যাচ নির্বাচন করুন (Select Batch) *
                         </label>
@@ -175,15 +187,32 @@
                             <option value="">-- ব্যাচ নির্বাচন করুন --</option>
                             @foreach($batches as $batch)
                                 <option value="{{ $batch->id }}" {{ request('batch_id') == $batch->id ? 'selected' : '' }}>
-                                    {{ $batch->name }} ({{ $batch->course->title ?? 'কোর্স' }})
+                                    {{ $batch->name }} ({{ $batch->course->title ?? $batch->course->name ?? 'কোর্স' }})
                                 </option>
                             @endforeach
                         </select>
                     </div>
 
-                    <div style="flex:1; min-width:240px">
+                    {{-- Semester Selection (Hidden if SUBJECT_BASED, Shown if SEMESTER_BASED) --}}
+                    <div id="semesterSelectContainer" style="flex:1; min-width:190px; display: {{ ($isSemesterBased ?? false) ? 'block' : 'none' }};">
                         <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
-                            ২. বিষয় নির্বাচন করুন (Select Subject) *
+                            ২. সেমিস্টার (Semester)
+                        </label>
+                        <select name="semester_id" id="semesterSelect" class="form-control" style="height:44px; border-radius:10px" onchange="handleSemesterChange(this.value)">
+                            <option value="">-- সকল সেমিস্টার --</option>
+                            @if(isset($courseSemesters) && $courseSemesters->isNotEmpty())
+                                @foreach($courseSemesters as $sem)
+                                    <option value="{{ $sem->id }}" {{ (request('semester_id', $selectedSemesterId ?? '') == $sem->id) ? 'selected' : '' }}>
+                                        {{ $sem->name }} {{ ($sem->id == ($runningSemesterId ?? null)) ? '(রানিং / Running)' : '' }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
+                    <div style="flex:1; min-width:220px">
+                        <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
+                            <span id="subjectLabelNumber">{{ ($isSemesterBased ?? false) ? '৩' : '২' }}</span>. বিষয় নির্বাচন করুন (Select Subject) *
                         </label>
                         <select name="subject_id" id="subjectSelect" class="form-control" style="height:44px; border-radius:10px" required>
                             <option value="">-- বিষয় নির্বাচন করুন --</option>
@@ -206,6 +235,9 @@
                         @csrf
                         <input type="hidden" name="batch_id"   value="{{ request('batch_id') }}">
                         <input type="hidden" name="subject_id" value="{{ request('subject_id') }}">
+                        @if(request('semester_id') || !empty($selectedSemesterId))
+                            <input type="hidden" name="semester_id" value="{{ request('semester_id', $selectedSemesterId ?? '') }}">
+                        @endif
                         <button type="submit" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; border:none; padding:0 22px; height:44px; border-radius:10px; font-weight:800; font-size:13.5px; cursor:pointer; white-space:nowrap; box-shadow:0 4px 12px rgba(5,150,105,0.3); display:inline-flex; align-items:center; gap:8px"
                             onclick="return confirm('এই ব্যাচ ও বিষয়ের সকল সক্রিয় শিক্ষার্থীর জন্য ফাইনাল মার্ক স্বয়ংক্রিয়ভাবে জেনারেট / রি-জেনারেট করতে চান?')">
                             <i class="fa-solid fa-wand-magic-sparkles"></i> Generate / Regenerate Marks
@@ -223,6 +255,14 @@
                     <div>
                         <span style="font-size:13px; color:#64748b">ব্যাচ: </span>
                         <strong style="font-size:15px; color:#064e3b">{{ $selectedBatch->name }}</strong>
+                        @if(($isSemesterBased ?? false) && ($selectedSemesterId ?? null))
+                            @php
+                                $curSemName = $courseSemesters->firstWhere('id', $selectedSemesterId)?->name ?? 'সেমিস্টার';
+                            @endphp
+                            <span style="color:#cbd5e1; margin:0 6px">|</span>
+                            <span style="font-size:13px; color:#64748b">সেমিস্টার: </span>
+                            <strong style="font-size:15px; color:#065f46">{{ $curSemName }}</strong>
+                        @endif
                         <span style="color:#cbd5e1; margin:0 6px">|</span>
                         <span style="font-size:13px; color:#64748b">বিষয়: </span>
                         <strong style="font-size:15px; color:#047857">{{ $selectedSubject->name }}</strong>
@@ -397,13 +437,13 @@
     {{-- ═══════════════════════════════════════════════════════════════ --}}
     {{-- MODAL 1: Conversion Criteria Settings Modal                     --}}
     {{-- ═══════════════════════════════════════════════════════════════ --}}
-    <div id="criteriaModal" class="modal-overlay" style="display:none">
+    <div id="criteriaModal" class="modal-overlay" onclick="if(event.target===this) closeCriteriaModal()">
         <div class="modal-card">
             <div style="padding:18px 24px; background:#065f46; color:#fff; display:flex; justify-content:space-between; align-items:center">
                 <h3 style="margin:0; font-size:17px; font-weight:800; display:flex; align-items:center; gap:8px">
                     <i class="fa-solid fa-sliders"></i> কনভার্সন ক্রাইটেরিয়া নির্ধারণ (Conversion Criteria)
                 </h3>
-                <button type="button" onclick="closeCriteriaModal()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer">&times;</button>
+                <button type="button" onclick="closeCriteriaModal()" style="background:none; border:none; color:#fff; font-size:24px; line-height:1; cursor:pointer">&times;</button>
             </div>
             
             <form method="POST" action="{{ route('admin.final-marks.update-criteria') }}" style="padding:22px 24px">
@@ -474,13 +514,13 @@
     {{-- ═══════════════════════════════════════════════════════════════ --}}
     {{-- MODAL 2: Student Attendance Mark Override Modal                 --}}
     {{-- ═══════════════════════════════════════════════════════════════ --}}
-    <div id="attendanceModal" class="modal-overlay" style="display:none">
+    <div id="attendanceModal" class="modal-overlay" onclick="if(event.target===this) closeAttendanceModal()">
         <div class="modal-card" style="max-width:460px">
             <div style="padding:16px 20px; background:#047857; color:#fff; display:flex; justify-content:space-between; align-items:center">
                 <h3 style="margin:0; font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px">
                     <i class="fa-solid fa-user-check"></i> উপস্থিতি নম্বর পরিবর্তন
                 </h3>
-                <button type="button" onclick="closeAttendanceModal()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer">&times;</button>
+                <button type="button" onclick="closeAttendanceModal()" style="background:none; border:none; color:#fff; font-size:24px; line-height:1; cursor:pointer">&times;</button>
             </div>
             
             <form id="attendanceForm" method="POST" action="" style="padding:20px 22px">
@@ -523,13 +563,24 @@
         </div>
     </div>
 
-    @push('scripts')
     <script>
-        // ── 1. Batch Change & Dynamic Subject Loading ──
-        function handleBatchChange(batchId) {
+        window.cachedBatchSubjects = [];
+
+        // ── 1. Batch Change & Dynamic Semester / Subject Loading ──
+        window.handleBatchChange = function(batchId) {
+            const semContainer = document.getElementById('semesterSelectContainer');
+            const semSelect = document.getElementById('semesterSelect');
             const subjectSelect = document.getElementById('subjectSelect');
+            const numSpan = document.getElementById('subjectLabelNumber');
+
+            if (!subjectSelect) return;
+
             if (!batchId) {
+                if (semContainer) semContainer.style.display = 'none';
+                if (semSelect) semSelect.innerHTML = '<option value="">-- সকল সেমিস্টার --</option>';
+                if (numSpan) numSpan.textContent = '২';
                 subjectSelect.innerHTML = '<option value="">-- বিষয় নির্বাচন করুন --</option>';
+                window.cachedBatchSubjects = [];
                 return;
             }
 
@@ -538,34 +589,107 @@
             fetch(`{{ route('admin.final-marks.batch-subjects') }}?batch_id=${batchId}`)
                 .then(res => res.json())
                 .then(data => {
-                    subjectSelect.innerHTML = '<option value="">-- বিষয় নির্বাচন করুন --</option>';
-                    if (data.subjects && data.subjects.length > 0) {
-                        data.subjects.forEach(s => {
-                            const opt = document.createElement('option');
-                            opt.value = s.id;
-                            opt.textContent = s.name + (s.code ? ' (' + s.code + ')' : '');
-                            subjectSelect.appendChild(opt);
-                        });
+                    window.cachedBatchSubjects = data.subjects || [];
+
+                    // Check if course has semesters (SEMESTER_BASED)
+                    if (data.has_semesters && data.semesters && data.semesters.length > 0) {
+                        if (semContainer) semContainer.style.display = 'block';
+                        if (numSpan) numSpan.textContent = '৩';
+
+                        if (semSelect) {
+                            semSelect.innerHTML = '<option value="">-- সকল সেমিস্টার --</option>';
+                            let selectedVal = '';
+                            data.semesters.forEach(s => {
+                                const opt = document.createElement('option');
+                                opt.value = s.id;
+                                opt.textContent = s.name + (s.is_running ? ' (রানিং / Running)' : '');
+                                if (s.is_running || (!selectedVal && s.id == data.running_semester_id)) {
+                                    opt.selected = true;
+                                    selectedVal = s.id;
+                                }
+                                semSelect.appendChild(opt);
+                            });
+                            // Filter subjects for the selected semester
+                            window.handleSemesterChange(selectedVal);
+                        }
                     } else {
-                        subjectSelect.innerHTML = '<option value="">এই ব্যাচে কোনো বিষয় নির্ধারিত নেই</option>';
+                        // SUBJECT_BASED or no semesters -> HIDE semester selection
+                        if (semContainer) semContainer.style.display = 'none';
+                        if (semSelect) {
+                            semSelect.innerHTML = '<option value="">-- সেমিস্টার প্রযোজ্য নয় --</option>';
+                            semSelect.value = '';
+                        }
+                        if (numSpan) numSpan.textContent = '২';
+                        
+                        // Populate all subjects directly
+                        renderSubjectOptions(window.cachedBatchSubjects);
                     }
                 })
                 .catch(err => {
-                    console.error('Error fetching subjects:', err);
+                    console.error('Error fetching batch subjects:', err);
                     subjectSelect.innerHTML = '<option value="">বিষয় লোড করতে সমস্যা হয়েছে</option>';
                 });
+        };
+
+        // ── 1.1 Semester Change Handler ──
+        window.handleSemesterChange = function(semesterId) {
+            if (!window.cachedBatchSubjects) return;
+
+            let filtered = window.cachedBatchSubjects;
+            if (semesterId) {
+                const bySem = window.cachedBatchSubjects.filter(s => s.semester_id == semesterId);
+                if (bySem.length > 0) {
+                    filtered = bySem;
+                }
+            }
+            renderSubjectOptions(filtered);
+        };
+
+        function renderSubjectOptions(subjectsList) {
+            const subjectSelect = document.getElementById('subjectSelect');
+            if (!subjectSelect) return;
+
+            subjectSelect.innerHTML = '<option value="">-- বিষয় নির্বাচন করুন --</option>';
+            if (subjectsList && subjectsList.length > 0) {
+                subjectsList.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name + (s.code ? ' (' + s.code + ')' : '');
+                    subjectSelect.appendChild(opt);
+                });
+            } else {
+                subjectSelect.innerHTML = '<option value="">এই সেমিস্টারে কোনো বিষয় নির্ধারিত নেই</option>';
+            }
         }
 
         // ── 2. Criteria Modal Controls ──
-        function openCriteriaModal() {
-            document.getElementById('criteriaModal').style.display = 'flex';
-            calcTotalConvert();
-        }
-        function closeCriteriaModal() {
-            document.getElementById('criteriaModal').style.display = 'none';
-        }
+        window.openCriteriaModal = function(e) {
+            if (e && typeof e.preventDefault === 'function') {
+                e.preventDefault();
+            }
+            const m = document.getElementById('criteriaModal');
+            if (m) {
+                m.classList.add('open', 'is-active', 'show');
+                m.style.setProperty('display', 'flex', 'important');
+                m.style.setProperty('opacity', '1', 'important');
+                m.style.setProperty('pointer-events', 'all', 'important');
+                document.body.style.overflow = 'hidden';
+            }
+            window.calcTotalConvert();
+        };
 
-        function calcTotalConvert() {
+        window.closeCriteriaModal = function() {
+            const m = document.getElementById('criteriaModal');
+            if (m) {
+                m.classList.remove('open', 'is-active', 'show');
+                m.style.setProperty('display', 'none', 'important');
+                m.style.setProperty('opacity', '0', 'important');
+                m.style.setProperty('pointer-events', 'none', 'important');
+                document.body.style.overflow = '';
+            }
+        };
+
+        window.calcTotalConvert = function() {
             const ct = parseFloat(document.getElementById('inp_ct_conv')?.value || 0);
             const mid = parseFloat(document.getElementById('inp_mid_conv')?.value || 0);
             const fn = parseFloat(document.getElementById('inp_fn_conv')?.value || 0);
@@ -580,32 +704,71 @@
                     el.style.color = '#ea580c';
                 }
             }
-        }
+        };
 
         // ── 3. Student Attendance Modal Controls ──
-        function openAttendanceModal(finalMarkId, studentName, attendancePercent, attendanceConverted, maxAttendance) {
-            document.getElementById('modalStudentName').textContent = studentName;
-            document.getElementById('modalAttendanceConverted').value = attendanceConverted;
-            document.getElementById('modalAttendancePercent').value = attendancePercent;
-            document.getElementById('maxAttendanceSpan').textContent = maxAttendance;
+        window.openAttendanceModal = function(finalMarkId, studentName, attendancePercent, attendanceConverted, maxAttendance) {
+            const nameEl = document.getElementById('modalStudentName');
+            if (nameEl) nameEl.textContent = studentName;
+            const convEl = document.getElementById('modalAttendanceConverted');
+            if (convEl) convEl.value = attendanceConverted;
+            const pctEl = document.getElementById('modalAttendancePercent');
+            if (pctEl) pctEl.value = attendancePercent;
+            const maxEl = document.getElementById('maxAttendanceSpan');
+            if (maxEl) maxEl.textContent = maxAttendance;
             
             const form = document.getElementById('attendanceForm');
-            form.action = `{{ url('admin/final-marks') }}/${finalMarkId}/update-attendance`;
+            if (form) {
+                form.action = `{{ url('admin/final-marks') }}/${finalMarkId}/update-attendance`;
+            }
             
-            document.getElementById('attendanceModal').style.display = 'flex';
-        }
-        function closeAttendanceModal() {
-            document.getElementById('attendanceModal').style.display = 'none';
+            const m = document.getElementById('attendanceModal');
+            if (m) {
+                m.classList.add('open', 'is-active', 'show');
+                m.style.setProperty('display', 'flex', 'important');
+                m.style.setProperty('opacity', '1', 'important');
+                m.style.setProperty('pointer-events', 'all', 'important');
+                document.body.style.overflow = 'hidden';
+            }
+        };
+
+        window.closeAttendanceModal = function() {
+            const m = document.getElementById('attendanceModal');
+            if (m) {
+                m.classList.remove('open', 'is-active', 'show');
+                m.style.setProperty('display', 'none', 'important');
+                m.style.setProperty('opacity', '0', 'important');
+                m.style.setProperty('pointer-events', 'none', 'important');
+                document.body.style.overflow = '';
+            }
+        };
+
+        // ── 4. Event Bindings on DOMContentLoaded ──
+        function initFinalMarksPage() {
+            const btnCriteria = document.getElementById('btnOpenCriteriaModal');
+            if (btnCriteria) {
+                btnCriteria.onclick = function(e) {
+                    window.openCriteriaModal(e);
+                };
+                btnCriteria.addEventListener('click', function(e) {
+                    window.openCriteriaModal(e);
+                });
+            }
+
+            // Close modals on Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.closeCriteriaModal();
+                    window.closeAttendanceModal();
+                }
+            });
         }
 
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeCriteriaModal();
-                closeAttendanceModal();
-            }
-        });
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFinalMarksPage);
+        } else {
+            initFinalMarksPage();
+        }
     </script>
-    @endpush
 
 </x-admin-layout>
