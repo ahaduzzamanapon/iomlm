@@ -10,19 +10,182 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
+use App\Models\Course;
+use App\Models\Batch;
+use App\Models\Semester;
+
 class StudentController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Build filtered student query based on request parameters
+     */
+    protected function buildFilteredQuery(Request $request)
     {
-        $status = $request->query('status');
-        $query = Student::with(['enrollments.batch.course']);
+        $query = Student::with(['enrollments.batch.course', 'enrollments.semester']);
 
-        if ($status) {
-            $query->where('status', $status);
+        // General search term across Name, Code, Phone, Email, NID
+        if ($request->filled('search')) {
+            $term = trim($request->search);
+            $query->where(function ($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
+                  ->orWhere('student_code', 'like', "%{$term}%")
+                  ->orWhere('phone', 'like', "%{$term}%")
+                  ->orWhere('email', 'like', "%{$term}%")
+                  ->orWhere('national_id', 'like', "%{$term}%");
+            });
         }
 
+        // Specific fields
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . trim($request->name) . '%');
+        }
+
+        if ($request->filled('student_code')) {
+            $query->where('student_code', 'like', '%' . trim($request->student_code) . '%');
+        }
+
+        if ($request->filled('phone')) {
+            $query->where('phone', 'like', '%' . trim($request->phone) . '%');
+        }
+
+        if ($request->filled('email')) {
+            $query->where('email', 'like', '%' . trim($request->email) . '%');
+        }
+
+        if ($request->filled('gender')) {
+            $query->where('gender', strtoupper(trim($request->gender)));
+        }
+
+        if ($request->filled('blood_group')) {
+            $query->where('blood_group', trim($request->blood_group));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', strtoupper(trim($request->status)));
+        }
+
+        // Course, Batch & Semester filters combined on enrollments
+        if ($request->filled('course_id') || $request->filled('batch_id') || $request->filled('semester_id')) {
+            $query->whereHas('enrollments', function ($q) use ($request) {
+                if ($request->filled('course_id')) {
+                    $courseId = $request->course_id;
+                    $q->where(function ($subQ) use ($courseId) {
+                        $subQ->where('course_id', $courseId)
+                             ->orWhereHas('batch', fn($qb) => $qb->where('course_id', $courseId));
+                    });
+                }
+
+                if ($request->filled('batch_id')) {
+                    $q->where('batch_id', $request->batch_id);
+                }
+
+                if ($request->filled('semester_id')) {
+                    $q->where('semester_id', $request->semester_id);
+                }
+            });
+        }
+
+        return $query;
+    }
+
+    public function index(Request $request)
+    {
+        $courses     = Course::where('is_active', true)->orderBy('name')->get();
+        $batches     = Batch::with('course')->orderBy('name')->get();
+        $semesters   = Semester::with('course')->orderBy('sequence_no')->get();
+        $bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+
+        $query = $this->buildFilteredQuery($request);
+
+        $totalCount     = Student::count();
+        $activeCount    = Student::where('status', 'ACTIVE')->count();
+        $pendingCount   = Student::whereIn('status', ['PENDING', 'LEAD'])->count();
+        $graduatedCount = Student::where('status', 'GRADUATED')->count();
+
+        $students = $query->latest()->paginate(25)->appends($request->query());
+
+        $hasFilters = $request->anyFilled([
+            'search', 'name', 'student_code', 'phone', 'email',
+            'gender', 'blood_group', 'course_id', 'batch_id', 'semester_id',
+        ]) || ($request->filled('status') && !in_array($request->status, ['ACTIVE', 'PENDING', 'GRADUATED']));
+
+        $status = $request->query('status');
+
+        return view('admin.students.index', compact(
+            'students', 'courses', 'batches', 'semesters', 'bloodGroups',
+            'status', 'totalCount', 'activeCount', 'pendingCount', 'graduatedCount', 'hasFilters'
+        ));
+    }
+
+    /**
+     * Export filtered student list to CSV (with UTF-8 BOM for Excel)
+     */
+    public function exportCsv(Request $request)
+    {
+        $query = $this->buildFilteredQuery($request);
         $students = $query->latest()->get();
-        return view('admin.students.index', compact('students', 'status'));
+
+        $filename = 'students_export_' . now()->format('Y_m_d_His') . '.csv';
+
+        $callback = function () use ($students) {
+            $handle = fopen('php://output', 'w');
+            // Write UTF-8 BOM for Excel Bengali font support
+            fputs($handle, "\xEF\xBB\xBF");
+
+            // CSV Header Row
+            fputcsv($handle, [
+                'ক্রমিক (SL)',
+                'স্টুডেন্ট আইডি (Student Code)',
+                'পূর্ণ নাম (Full Name)',
+                'লিঙ্গ (Gender)',
+                'মোবাইল নম্বর (Phone)',
+                'ইমেইল (Email)',
+                'রক্তের গ্রুপ (Blood Group)',
+                'এনআইডি / জন্ম নিবন্ধন (NID)',
+                'এনরোল্ড কোর্স (Course)',
+                'ব্যাচ (Batch)',
+                'বর্তমান সেমিস্টার (Semester)',
+                'একাডেমিক স্ট্যাটাস (Status)',
+                'ভর্তির তারিখ (Registration Date)',
+            ]);
+
+            foreach ($students as $index => $st) {
+                $enr = $st->enrollments->firstWhere('status', 'ACTIVE') ?? $st->enrollments->first();
+                $courseName = $enr?->batch?->course?->title ?? $enr?->batch?->course?->name ?? $enr?->course?->name ?? '—';
+                $batchName  = $enr?->batch?->name ?? '—';
+                $semName    = $enr?->semester?->name ?? '—';
+
+                $genderLabel = match(strtoupper($st->gender ?? '')) {
+                    'MALE'   => 'পুরুষ (Male)',
+                    'FEMALE' => 'মহিলা (Female)',
+                    'OTHER'  => 'অন্যান্য (Other)',
+                    default  => $st->gender ?? '—',
+                };
+
+                fputcsv($handle, [
+                    $index + 1,
+                    $st->student_code ?? 'N/A',
+                    $st->name ?? '',
+                    $genderLabel,
+                    $st->phone ?? '',
+                    $st->email ?? '',
+                    $st->blood_group ?? '—',
+                    $st->national_id ?? '—',
+                    $courseName,
+                    $batchName,
+                    $semName,
+                    $st->status ?? 'ACTIVE',
+                    $st->created_at ? $st->created_at->format('d/m/Y') : '—',
+                ]);
+            }
+
+            fclose($handle);
+        };
+
+        return response()->streamDownload($callback, $filename, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     public function show(Student $student)

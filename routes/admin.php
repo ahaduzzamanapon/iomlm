@@ -55,6 +55,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
 
     // ── 4. Students ─────────────────────────────────────────────────────
     Route::middleware('admin.module:students')->group(function () {
+        Route::get('students/export-csv', [\App\Http\Controllers\Admin\StudentController::class, 'exportCsv'])->name('students.export-csv');
         Route::resource('students', \App\Http\Controllers\Admin\StudentController::class);
         Route::get('students/{student}/impersonate', [\App\Http\Controllers\Admin\StudentController::class, 'impersonate'])->name('students.impersonate');
         Route::get('students/{student}/accounts', [\App\Http\Controllers\Admin\AccountsController::class, 'studentLedger'])->name('students.accounts');
