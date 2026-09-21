@@ -11,6 +11,58 @@
         .sl-kpi-val { font-size: 26px; font-weight: 800; line-height: 1; }
         .table-sl th { background: #f8fafc; font-size: 12px; font-weight: 700; color: #475569; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; font-family: 'Kalpurush', sans-serif; }
         .table-sl td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; font-family: 'Kalpurush', sans-serif; }
+        .extra-preset-chip { padding: 5px 12px; border-radius: 20px; border: 1.5px solid #cbd5e1; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; font-family: 'Kalpurush', sans-serif; }
+        .extra-preset-chip:hover { border-color: #047857; background: #ecfdf5; color: #047857; }
+
+        /* Modal Overlay System */
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            background: rgba(15, 23, 42, 0.65) !important;
+            backdrop-filter: blur(4px) !important;
+            z-index: 99999 !important;
+            display: none !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 16px !important;
+            box-sizing: border-box !important;
+        }
+        .modal-overlay.open,
+        .modal-overlay.active,
+        .modal-overlay.show {
+            display: flex !important;
+        }
+        .modal-dialog {
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-content {
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #cbd5e1;
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
     </style>
 
     {{-- Page Header --}}
@@ -27,7 +79,7 @@
                     <div>শিক্ষার্থী একাউন্ট ও ফি লেজার (Accounts Ledger)</div>
                     <div style="font-size:13px;color:#64748b;font-weight:400">
                         শিক্ষার্থী: <strong>{{ $student->name }}</strong> |
-                        রোল/আইডি: <strong style="color:#047857">{{ $student->student_code ?? 'অনির্ধারিত' }}</strong> |
+                        রোল/আইডি: <strong style="color:#047857">{{ str_replace('-', '', $student->student_code ?? 'অনির্ধারিত') }}</strong> |
                         মোবাইল: {{ $student->phone ?? '—' }}
                     </div>
                 </div>
@@ -37,8 +89,11 @@
             <a href="{{ route('admin.students.impersonate', $student) }}" class="btn btn-outline" style="color:#047857;border-color:#10b981;font-weight:700">
                 <i class="fa-solid fa-arrow-right-to-bracket"></i> শিক্ষার্থী হিসেবে লগইন
             </a>
+            <button type="button" class="btn btn-success" onclick="openExtraFeeModal()" style="font-family:'Kalpurush',sans-serif;background:#059669;color:#fff;border:none">
+                <i class="fa-solid fa-file-circle-plus"></i> অতিরিক্ত ফি (Extra Fee)
+            </button>
             <button type="button" class="btn btn-primary" onclick="openModal('addCustomFeeModal')" style="font-family:'Kalpurush',sans-serif">
-                <i class="fa-solid fa-plus-circle"></i> নতুন ফি / ইনভয়েস ধার্য
+                <i class="fa-solid fa-plus-circle"></i> নতুন ফি / পেমেন্ট ধার্য
             </button>
             <a href="{{ route('admin.students.show', $student) }}" class="btn btn-outline" style="font-family:'Kalpurush',sans-serif">
                 প্রোফাইল দেখুন →
@@ -80,23 +135,28 @@
 
     {{-- Invoices Table --}}
     <div class="card" style="margin-bottom:26px;border-radius:12px;overflow:hidden">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#fff;border-bottom:1px solid #e2e8f0">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#fff;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;gap:10px">
             <div>
                 <span class="card-title" style="font-family:'Kalpurush',sans-serif;font-size:16px;font-weight:700">
-                    <i class="fa-solid fa-file-invoice-dollar" style="color:#047857;margin-right:6px"></i> ইনভয়েস ও ফি ধার্য তালিকা (Invoices)
+                    <i class="fa-solid fa-file-invoice-dollar" style="color:#047857;margin-right:6px"></i> ইনভয়েস ও ফি ধার্য তালিকা (Invoices & Fees)
                 </span>
-                <span style="font-size:12px;color:#64748b;margin-left:8px">শিক্ষার্থীর সকল প্রকার ফি, মওকুফ ও বকেয়া হিসাব</span>
+                <span style="font-size:12px;color:#64748b;margin-left:8px">কোন ফি কেন ধার্য করা হয়েছে, প্রদেয়, পেইড ও বকেয়া হিসাব</span>
             </div>
-            <button type="button" class="btn btn-sm btn-primary" onclick="openModal('addCustomFeeModal')" style="font-family:'Kalpurush',sans-serif">
-                <i class="fa-solid fa-plus"></i> নতুন ফি যোগ করুন
-            </button>
+            <div style="display:flex;gap:8px">
+                <button type="button" class="btn btn-sm btn-outline" onclick="openExtraFeeModal()" style="font-family:'Kalpurush',sans-serif;border-color:#10b981;color:#047857;font-weight:700">
+                    <i class="fa-solid fa-plus"></i> এক্সট্রা ফি যোগ করুন
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="openModal('addCustomFeeModal')" style="font-family:'Kalpurush',sans-serif">
+                    <i class="fa-solid fa-plus"></i> নতুন ফি / ইনভয়েস
+                </button>
+            </div>
         </div>
         <div class="table-wrapper" style="overflow-x:auto">
             <table class="table-sl" style="width:100%;border-collapse:collapse">
                 <thead>
                     <tr>
                         <th>ইনভয়েস নং</th>
-                        <th>বিবরণ / ফি খাত</th>
+                        <th>বিবরণ ও ফি ধার্যের কারণ</th>
                         <th>ক্যাটাগরি</th>
                         <th style="text-align:right">মোট ফি</th>
                         <th style="text-align:right">ছাড়</th>
@@ -105,21 +165,35 @@
                         <th style="text-align:right">বকেয়া</th>
                         <th>শেষ তারিখ</th>
                         <th>স্ট্যাটাস</th>
-                        <th style="text-align:center">অ্যাকশন</th>
+                        <th style="text-align:center">অ্যাকশন / ম্যানেজ</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($invoices as $inv)
                     <tr>
-                        <td style="font-family:monospace;font-weight:700;color:#1e40af">{{ $inv->invoice_no }}</td>
+                        <td style="font-family:monospace;font-weight:700;color:#1e40af;white-space:nowrap">{{ $inv->invoice_no }}</td>
                         <td>
-                            <strong>{{ $inv->title }}</strong>
+                            <strong style="color:#0f172a;font-size:13.5px">{{ $inv->title }}</strong>
+                            @if($inv->notes)
+                                <div style="font-size:12px;color:#047857;background:#ecfdf5;padding:2px 8px;border-radius:6px;margin-top:3px;display:inline-block;border:1px solid #a7f3d0">
+                                    <i class="fa-solid fa-circle-info" style="font-size:11px"></i> কারণ: {{ $inv->notes }}
+                                </div>
+                            @endif
                             @if($inv->enrollment)
-                                <div style="font-size:11px;color:#64748b">{{ $inv->enrollment->course->name ?? '' }} ({{ $inv->enrollment->batch->name ?? '' }})</div>
+                                <div style="font-size:11px;color:#64748b;margin-top:2px">{{ $inv->enrollment->course->name ?? '' }} ({{ $inv->enrollment->batch->name ?? '' }})</div>
                             @endif
                         </td>
                         <td>
-                            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f1f5f9;color:#334155;font-weight:600">
+                            @php
+                                $catBadge = match($inv->category) {
+                                    'EXTRA' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
+                                    'FINE' => 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;',
+                                    'SEMESTER' => 'background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;',
+                                    'ADMISSION' => 'background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;',
+                                    default => 'background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;'
+                                };
+                            @endphp
+                            <span style="font-size:11px;padding:3px 8px;border-radius:10px;font-weight:700;{{ $catBadge }}">
                                 {{ $inv->category }}
                             </span>
                         </td>
@@ -130,44 +204,55 @@
                         <td style="text-align:right;color:{{ $inv->due_amount > 0 ? '#dc2626' : '#64748b' }};font-weight:700">
                             ৳{{ number_format($inv->due_amount, 2) }}
                         </td>
-                        <td style="font-size:12px;color:#475569">
+                        <td style="font-size:12px;color:#475569;white-space:nowrap">
                             {{ $inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('d M Y') : '—' }}
                         </td>
                         <td>
                             @php
                                 $statusStyle = match($inv->status) {
-                                    'PAID' => 'background:#dcfce7;color:#166534',
-                                    'PARTIAL' => 'background:#fef3c7;color:#92400e',
-                                    'UNPAID' => 'background:#fee2e2;color:#991b1b',
-                                    default => 'background:#f1f5f9;color:#475569'
+                                    'PAID' => 'background:#dcfce7;color:#166534;border:1px solid #bbf7d0',
+                                    'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a',
+                                    'CANCELLED' => 'background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;text-decoration:line-through',
+                                    default => 'background:#fee2e2;color:#991b1b;border:1px solid #fca5a5'
                                 };
                             @endphp
-                            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;{{ $statusStyle }}">
+                            <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;white-space:nowrap;{{ $statusStyle }}">
                                 {{ $inv->status }}
                             </span>
                         </td>
                         <td style="text-align:center;white-space:nowrap">
                             <div style="display:inline-flex;gap:5px;align-items:center">
-                                @if($inv->due_amount > 0)
+                                {{-- Collect Payment Button --}}
+                                @if($inv->due_amount > 0 && $inv->status !== 'CANCELLED')
                                     <button type="button" class="btn btn-sm btn-success" 
                                             onclick="openCollectModal('{{ $inv->id }}', '{{ $inv->invoice_no }}', '{{ $inv->due_amount }}', '{{ addslashes($inv->title) }}')"
-                                            style="padding:3px 8px;font-size:11px;font-family:'Kalpurush',sans-serif" title="টাকা জমা নিন">
+                                            style="padding:3px 8px;font-size:11px;font-family:'Kalpurush',sans-serif;background:#059669;color:#fff" title="টাকা জমা নিন">
                                         <i class="fa-solid fa-money-bill-wave"></i> জমা
                                     </button>
                                 @endif
 
+                                {{-- Status Update Button --}}
                                 <button type="button" class="btn btn-sm btn-outline" 
-                                        onclick="openEditModal('{{ $inv->id }}', '{{ addslashes($inv->title) }}', '{{ $inv->category }}', '{{ $inv->amount }}', '{{ $inv->discount }}', '{{ $inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : '' }}')"
-                                        style="padding:3px 8px;font-size:11px;color:#2563eb;border-color:#93c5fd" title="ইনভয়েস এডিট করুন">
+                                        onclick="openStatusModal('{{ $inv->id }}', '{{ $inv->invoice_no }}', '{{ $inv->status }}', '{{ $inv->due_amount }}')"
+                                        style="padding:3px 8px;font-size:11px;color:#7c3aed;border-color:#c4b5fd" title="পেমেন্ট স্ট্যাটাস আপডেট করুন">
+                                    <i class="fa-solid fa-sliders"></i> স্ট্যাটাস
+                                </button>
+
+                                {{-- Edit Button --}}
+                                <button type="button" class="btn btn-sm btn-outline" 
+                                        onclick="openEditModal('{{ $inv->id }}', '{{ addslashes($inv->title) }}', '{{ addslashes($inv->notes ?? '') }}', '{{ $inv->category }}', '{{ $inv->amount }}', '{{ $inv->discount }}', '{{ $inv->due_date ? \Carbon\Carbon::parse($inv->due_date)->format('Y-m-d') : '' }}')"
+                                        style="padding:3px 8px;font-size:11px;color:#2563eb;border-color:#93c5fd" title="ইনভয়েস এডিট করুন (পরিমাণ কমানো/বাড়ানো)">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
 
+                                {{-- Delete / Void Button --}}
                                 <form action="{{ route('admin.accounts.invoices.destroy', $inv) }}" method="POST" 
-                                      onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ইনভয়েসটি ({{ $inv->invoice_no }}) স্থায়ীভাবে মুছে ফেলতে চান?')" 
+                                      onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ইনভয়েসটি ({{ $inv->invoice_no }}) মুছে ফেলতে চান? যদি এতে পেমেন্ট থাকে তবে এটি বাতিল (CANCELLED) হিসেবে গণ্য হবে।')" 
                                       style="display:inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline" style="padding:3px 8px;font-size:11px;color:#dc2626;border-color:#fca5a5" title="ইনভয়েস মুছুন">
+                                    <input type="hidden" name="force_cancel" value="1">
+                                    <button type="submit" class="btn btn-sm btn-outline" style="padding:3px 8px;font-size:11px;color:#dc2626;border-color:#fca5a5" title="ইনভয়েস মুছুন / বাতিল করুন">
                                         <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </form>
@@ -190,7 +275,7 @@
     <div class="card" style="border-radius:12px;overflow:hidden">
         <div class="card-header" style="padding:16px 20px;background:#fff;border-bottom:1px solid #e2e8f0">
             <span class="card-title" style="font-family:'Kalpurush',sans-serif;font-size:16px;font-weight:700">
-                <i class="fa-solid fa-receipt" style="color:#047857;margin-right:6px"></i> পরিশোধের রসিদ ও লেনদেন ইতিহাস (Payments Log)
+                <i class="fa-solid fa-receipt" style="color:#047857;margin-right:6px"></i> পরিশোধের রসিদ ও লেনদেন ইতিহাস (Payments Log & Vouchers)
             </span>
         </div>
         <div class="table-wrapper" style="overflow-x:auto">
@@ -201,25 +286,41 @@
                         <th>তারিখ ও সময়</th>
                         <th>ইনভয়েস নং</th>
                         <th>পেমেন্ট মেথড</th>
+                        <th>বিকাশ / প্রেরক নম্বর</th>
                         <th>ট্রানজেকশন আইডি</th>
                         <th style="text-align:right">পরিশোধিত টাকা</th>
                         <th>গ্রহণকারী</th>
                         <th>স্ট্যাটাস</th>
-                        <th style="text-align:center">রসিদ প্রিন্ট</th>
+                        <th style="text-align:center">রসিদ / ভাউচার</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($payments as $pay)
                     <tr>
                         <td style="font-family:monospace;font-weight:700;color:#047857">{{ $pay->payment_no }}</td>
-                        <td style="font-size:12px;color:#475569">{{ $pay->paid_at ? \Carbon\Carbon::parse($pay->paid_at)->format('d M Y, h:i A') : '—' }}</td>
+                        <td style="font-size:12px;color:#475569;white-space:nowrap">{{ $pay->paid_at ? \Carbon\Carbon::parse($pay->paid_at)->format('d M Y, h:i A') : '—' }}</td>
                         <td style="font-family:monospace;color:#1e40af">{{ $pay->invoice?->invoice_no ?? '—' }}</td>
                         <td>
-                            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f1f5f9;color:#1e293b;font-weight:600">
+                            <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#f1f5f9;color:#1e293b;font-weight:700">
                                 {{ $pay->payment_method }}
                             </span>
                         </td>
-                        <td style="font-family:monospace;font-size:12px">{{ $pay->transaction_id ?? '—' }}</td>
+                        <td>
+                            @if($pay->sender_number)
+                                <span style="font-family:monospace;font-size:12px;color:#047857;font-weight:700">
+                                    <i class="fa-solid fa-mobile-screen"></i> {{ $pay->sender_number }}
+                                </span>
+                            @else
+                                <span style="color:#94a3b8">—</span>
+                            @endif
+                        </td>
+                        <td style="font-family:monospace;font-size:12px">
+                            @if($pay->transaction_id)
+                                <strong style="color:#2563eb">{{ $pay->transaction_id }}</strong>
+                            @else
+                                <span style="color:#94a3b8">—</span>
+                            @endif
+                        </td>
                         <td style="text-align:right;font-weight:800;color:#047857">৳{{ number_format($pay->amount, 2) }}</td>
                         <td style="font-size:12px;color:#475569">{{ $pay->receivedBy?->name ?? 'Online / System' }}</td>
                         <td>
@@ -235,7 +336,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" style="text-align:center;padding:24px;color:#94a3b8">
+                        <td colspan="10" style="text-align:center;padding:24px;color:#94a3b8">
                             এখনও কোনো পেমেন্ট রেকর্ড নেই।
                         </td>
                     </tr>
@@ -245,21 +346,25 @@
         </div>
     </div>
 
-    {{-- MODAL: Add Custom Fee / Invoice --}}
-    <div class="modal" id="addCustomFeeModal">
-        <div class="modal-dialog" style="max-width:520px;font-family:'Kalpurush',sans-serif">
+    {{-- MODAL: Add Custom Fee / Invoice (Regular Fee) --}}
+    <div class="modal-overlay" id="addCustomFeeModal">
+        <div class="modal-dialog" style="max-width:540px;font-family:'Kalpurush',sans-serif">
             <div class="modal-content">
                 <form action="{{ route('admin.accounts.invoices.store') }}" method="POST">
                     @csrf
                     <input type="hidden" name="student_id" value="{{ $student->id }}">
                     <div class="modal-header">
-                        <h3 class="modal-title"><i class="fa-solid fa-plus-circle" style="color:#047857"></i> নতুন ফি / ইনভয়েস যোগ করুন</h3>
+                        <h3 class="modal-title"><i class="fa-solid fa-plus-circle" style="color:#047857"></i> নতুন ফি / ইনভয়েস ধার্য করুন</h3>
                         <button type="button" class="btn-close" onclick="closeModal('addCustomFeeModal')">&times;</button>
                     </div>
                     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
                         <div class="form-group">
                             <label style="font-weight:600">ফি এর খাত / শিরোনাম (Title) *</label>
-                            <input type="text" name="title" class="form-control" placeholder="যেমন: সেমিস্টার ফি, ল্যাব ফি, জরিমানা..." required>
+                            <input type="text" name="title" class="form-control" placeholder="যেমন: সেমিস্টার ফি, ল্যাব ফি, পুনঃভর্তি ফি..." required>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600">ফি ধার্যের কারণ / উদ্দেশ্য (Reason / Notes)</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="কেন এই ফি ধার্য করা হয়েছে তা পরিষ্কারভাবে লিখুন..."></textarea>
                         </div>
                         <div class="form-group">
                             <label style="font-weight:600">ক্যাটাগরি (Category) *</label>
@@ -270,7 +375,8 @@
                                 <option value="EXAM">EXAM (পরীক্ষা ফি)</option>
                                 <option value="FINE">FINE (জরিমানা / বিলম্ব ফি)</option>
                                 <option value="DOCUMENT">DOCUMENT (সনদ / ডকুমেন্ট ফি)</option>
-                                <option value="MANUAL">MANUAL (অন্যান্য কাস্টম ফি)</option>
+                                <option value="EXTRA">EXTRA (অতিরিক্ত ফি / বিশেষ চার্জ)</option>
+                                <option value="MANUAL">MANUAL (অন্যান্য ম্যানুয়াল ফি)</option>
                             </select>
                         </div>
                         <div class="grid-2" style="gap:12px">
@@ -287,6 +393,43 @@
                             <label style="font-weight:600">পরিশোধের শেষ তারিখ (Due Date)</label>
                             <input type="date" name="due_date" class="form-control" value="{{ now()->addDays(7)->format('Y-m-d') }}">
                         </div>
+
+                        {{-- Optional Immediate Payment --}}
+                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-top:4px">
+                            <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;color:#047857;margin:0">
+                                <input type="checkbox" name="record_payment" value="1" id="chk_record_payment" onchange="toggleImmediatePay(this.checked)" style="accent-color:#047857;width:16px;height:16px">
+                                এখনই পেমেন্ট গ্রহণ করুন (Add with Payment)
+                            </label>
+
+                            <div id="immediatePayFields" style="display:none;margin-top:12px;flex-direction:column;gap:10px">
+                                <div class="grid-2" style="gap:10px">
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">পেমেন্ট মেথড</label>
+                                        <select name="payment_method" class="form-control" style="font-size:13px">
+                                            <option value="CASH">CASH (কাউন্টার নগদ)</option>
+                                            <option value="BKASH">BKASH (বিকাশ)</option>
+                                            <option value="NAGAD">NAGAD (নগদ)</option>
+                                            <option value="ROCKET">ROCKET (রকেট)</option>
+                                            <option value="BANK_TRANSFER">BANK_TRANSFER (ব্যাংক)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">জমার পরিমাণ (৳)</label>
+                                        <input type="number" step="0.01" min="1" name="paid_amount" class="form-control" placeholder="0.00" style="font-size:13px">
+                                    </div>
+                                </div>
+                                <div class="grid-2" style="gap:10px">
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">বিকাশ / প্রেরক নম্বর</label>
+                                        <input type="text" name="sender_number" class="form-control" placeholder="e.g. 017XXXXXXXX" style="font-size:13px">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">TrxID / রেফারেন্স নং</label>
+                                        <input type="text" name="transaction_id" class="form-control" placeholder="e.g. TRX123456" style="font-size:13px">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline" onclick="closeModal('addCustomFeeModal')">বাতিল</button>
@@ -297,21 +440,125 @@
         </div>
     </div>
 
-    {{-- MODAL: Edit Existing Invoice --}}
-    <div class="modal" id="editInvoiceModal">
+    {{-- MODAL: Add Extra Fee (Special Presets) --}}
+    <div class="modal-overlay" id="addExtraFeeModal">
+        <div class="modal-dialog" style="max-width:540px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-content">
+                <form action="{{ route('admin.accounts.invoices.store') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="student_id" value="{{ $student->id }}">
+                    <input type="hidden" name="category" value="EXTRA" id="extra_category_input">
+                    <div class="modal-header" style="background:#ecfdf5;border-bottom:1px solid #a7f3d0">
+                        <h3 class="modal-title" style="color:#065f46">
+                            <i class="fa-solid fa-file-circle-plus" style="color:#047857"></i> অতিরিক্ত ফি ধার্য (Add Extra Fee)
+                        </h3>
+                        <button type="button" class="btn-close" onclick="closeModal('addExtraFeeModal')">&times;</button>
+                    </div>
+                    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+                        {{-- Quick Presets --}}
+                        <div>
+                            <label style="font-size:12px;font-weight:700;color:#334155;margin-bottom:6px;display:block">
+                                <i class="fa-solid fa-bolt" style="color:#f59e0b"></i> দ্রুত ফি প্রিসেট নির্বাচন করুন:
+                            </label>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px">
+                                <button type="button" class="extra-preset-chip" onclick="applyExtraPreset('বিলম্ব জরিমানা (Late Fine)', 100, 'নির্ধারিত তারিখের পর বিলম্বে ফি পরিশোধ করার জন্য জরিমানা', 'FINE')">
+                                    + বিলম্ব জরিমানা (৳১০০)
+                                </button>
+                                <button type="button" class="extra-preset-chip" onclick="applyExtraPreset('পুনঃপরীক্ষা ফি (Re-exam Fee)', 500, 'পুনরায় পরীক্ষায় অংশগ্রহণের নির্ধারিত বোর্ড ফি', 'EXAM')">
+                                    + পুনঃপরীক্ষা ফি (৳৫০০)
+                                </button>
+                                <button type="button" class="extra-preset-chip" onclick="applyExtraPreset('সনদ / ট্রান্সক্রিপ্ট উত্তোলন ফি', 300, 'সার্টিফিকেট বা মার্কশিট উত্তোলনের প্রাতিষ্ঠানিক প্রসেসিং ফি', 'DOCUMENT')">
+                                    + সনদ / ট্রান্সক্রিপ্ট (৳৩০০)
+                                </button>
+                                <button type="button" class="extra-preset-chip" onclick="applyExtraPreset('আইডি কার্ড রিপ্লেসমেন্ট ফি', 200, 'হারিয়ে যাওয়া আইডি কার্ড পুনরায় ইস্যু ফি', 'EXTRA')">
+                                    + আইডি কার্ড (৳২০০)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label style="font-weight:600">অতিরিক্ত ফি এর শিরোনাম (Title) *</label>
+                            <input type="text" id="extra_title" name="title" class="form-control" placeholder="যেমন: সনদ ফি, জরিমানা, বিশেষ চার্জ..." required>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600">কেন এই ফি ধার্য করা হয়েছে? (Reason / Purpose) *</label>
+                            <textarea id="extra_notes" name="notes" class="form-control" rows="2" placeholder="ফি ধার্যের কারণ বিস্তারিত লিখুন..." required></textarea>
+                        </div>
+                        <div class="grid-2" style="gap:12px">
+                            <div class="form-group">
+                                <label style="font-weight:600">পরিমাণ (৳) *</label>
+                                <input type="number" step="0.01" min="1" id="extra_amount" name="amount" class="form-control" placeholder="0.00" required>
+                            </div>
+                            <div class="form-group">
+                                <label style="font-weight:600">পরিশোধের শেষ তারিখ</label>
+                                <input type="date" name="due_date" class="form-control" value="{{ now()->addDays(5)->format('Y-m-d') }}">
+                            </div>
+                        </div>
+
+                        {{-- Immediate Payment Checkbox --}}
+                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px">
+                            <label style="display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer;color:#047857;margin:0">
+                                <input type="checkbox" name="record_payment" value="1" onchange="toggleExtraImmediatePay(this.checked)" style="accent-color:#047857;width:16px;height:16px">
+                                ফি ধার্যের সাথে সাথে পেমেন্ট জমা নিন (Instant Payment)
+                            </label>
+                            <div id="extraImmediatePayFields" style="display:none;margin-top:12px;flex-direction:column;gap:10px">
+                                <div class="grid-2" style="gap:10px">
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">পেমেন্ট মেথড</label>
+                                        <select name="payment_method" class="form-control" style="font-size:13px">
+                                            <option value="CASH">CASH (নগদ ক্যাশ)</option>
+                                            <option value="BKASH">BKASH (বিকাশ)</option>
+                                            <option value="NAGAD">NAGAD (নগদ)</option>
+                                            <option value="ROCKET">ROCKET (রকেট)</option>
+                                            <option value="BANK_TRANSFER">BANK_TRANSFER (ব্যাংক)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">জমার পরিমাণ (৳)</label>
+                                        <input type="number" step="0.01" min="1" id="extra_paid_amount" name="paid_amount" class="form-control" placeholder="0.00" style="font-size:13px">
+                                    </div>
+                                </div>
+                                <div class="grid-2" style="gap:10px">
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">বিকাশ / প্রেরক নম্বর</label>
+                                        <input type="text" name="sender_number" class="form-control" placeholder="e.g. 017XXXXXXXX" style="font-size:13px">
+                                    </div>
+                                    <div>
+                                        <label style="font-size:12px;font-weight:600">TrxID / রেফারেন্স নং</label>
+                                        <input type="text" name="transaction_id" class="form-control" placeholder="e.g. TRX123456" style="font-size:13px">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="closeModal('addExtraFeeModal')">বাতিল</button>
+                        <button type="submit" class="btn btn-success" style="background:#059669;color:#fff"><i class="fa-solid fa-check"></i> অতিরিক্ত ফি ধার্য করুন</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL: Edit Existing Invoice (Increase/Decrease amount, Title, Reason) --}}
+    <div class="modal-overlay" id="editInvoiceModal">
         <div class="modal-dialog" style="max-width:520px;font-family:'Kalpurush',sans-serif">
             <div class="modal-content">
                 <form id="editInvoiceForm" method="POST">
                     @csrf
                     @method('PUT')
                     <div class="modal-header">
-                        <h3 class="modal-title"><i class="fa-solid fa-pen-to-square" style="color:#2563eb"></i> ইনভয়েস এডিট করুন</h3>
+                        <h3 class="modal-title"><i class="fa-solid fa-pen-to-square" style="color:#2563eb"></i> ফি ও ইনভয়েস এডিট করুন</h3>
                         <button type="button" class="btn-close" onclick="closeModal('editInvoiceModal')">&times;</button>
                     </div>
                     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
                         <div class="form-group">
                             <label style="font-weight:600">ফি এর শিরোনাম (Title) *</label>
                             <input type="text" id="edit_title" name="title" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600">ফি ধার্যের কারণ / উদ্দেশ্য (Reason / Notes)</label>
+                            <textarea id="edit_notes" name="notes" class="form-control" rows="2" placeholder="কেন এই ফি ধার্য করা হয়েছে..."></textarea>
                         </div>
                         <div class="form-group">
                             <label style="font-weight:600">ক্যাটাগরি (Category) *</label>
@@ -322,17 +569,18 @@
                                 <option value="EXAM">EXAM (পরীক্ষা ফি)</option>
                                 <option value="FINE">FINE (জরিমানা / বিলম্ব ফি)</option>
                                 <option value="DOCUMENT">DOCUMENT (সনদ / ডকুমেন্ট ফি)</option>
+                                <option value="EXTRA">EXTRA (অতিরিক্ত ফি / বিশেষ চার্জ)</option>
                                 <option value="MANUAL">MANUAL (অন্যান্য কাস্টম ফি)</option>
                                 <option value="COURSE_TRANSFER">COURSE_TRANSFER (কোর্স পরিবর্তন)</option>
                             </select>
                         </div>
                         <div class="grid-2" style="gap:12px">
                             <div class="form-group">
-                                <label style="font-weight:600">মোট পরিমাণ (৳) *</label>
+                                <label style="font-weight:600">মোট পরিমাণ বাড়ানো/কমানো (৳) *</label>
                                 <input type="number" step="0.01" min="0" id="edit_amount" name="amount" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label style="font-weight:600">ছাড় (৳)</label>
+                                <label style="font-weight:600">ছাড় / ডিসকাউন্ট (৳)</label>
                                 <input type="number" step="0.01" min="0" id="edit_discount" name="discount" class="form-control">
                             </div>
                         </div>
@@ -350,14 +598,81 @@
         </div>
     </div>
 
-    {{-- MODAL: Collect Offline Payment --}}
-    <div class="modal" id="collectModal">
+    {{-- MODAL: Update Payment Status --}}
+    <div class="modal-overlay" id="statusModal">
+        <div class="modal-dialog" style="max-width:480px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-content">
+                <form id="statusForm" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-header" style="background:#f5f3ff;border-bottom:1px solid #ddd6fe">
+                        <h3 class="modal-title" style="color:#6d28d9">
+                            <i class="fa-solid fa-sliders" style="color:#7c3aed"></i> পেমেন্ট স্ট্যাটাস পরিবর্তন করুন
+                        </h3>
+                        <button type="button" class="btn-close" onclick="closeModal('statusModal')">&times;</button>
+                    </div>
+                    <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+                        <div style="background:#f8fafc;padding:10px 14px;border-radius:8px;border:1px solid #e2e8f0;font-size:13px">
+                            ইনভয়েস: <strong id="status_inv_no"></strong><br>
+                            বর্তমান বকেয়া: <strong style="color:#dc2626" id="status_inv_due"></strong>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600">নতুন স্ট্যাটাস নির্বাচন করুন *</label>
+                            <select name="status" id="status_select" class="form-control" required onchange="onStatusChange(this.value)">
+                                <option value="PAID">PAID (সম্পূর্ণ পরিশোধিত / মওকুফ সম্পন্ন)</option>
+                                <option value="UNPAID">UNPAID (অপরিশোধিত)</option>
+                                <option value="PARTIAL">PARTIAL (আংশিক পরিশোধিত)</option>
+                                <option value="CANCELLED">CANCELLED (বাতিল / মওকুফ)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600">স্ট্যাটাস পরিবর্তনের কারণ / নোট (Audit Remarks)</label>
+                            <input type="text" name="remarks" class="form-control" placeholder="যেমন: বিশেষ ছাড়ে মওকুফ / অফিস অনুমোদনক্রমে">
+                        </div>
+
+                        {{-- If Paid is selected, optional transaction fields --}}
+                        <div id="statusPaidFields" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px">
+                            <div style="font-size:12px;font-weight:700;color:#166534">
+                                <i class="fa-solid fa-receipt"></i> পরিশোধ নিষ্পত্তি তথ্য (যদি প্রযোজ্য হয়):
+                            </div>
+                            <div class="grid-2" style="gap:10px">
+                                <div>
+                                    <label style="font-size:11.5px;font-weight:600">পেমেন্ট মেথড</label>
+                                    <select name="payment_method" class="form-control" style="font-size:12.5px">
+                                        <option value="CASH">CASH (নগদ)</option>
+                                        <option value="BKASH">BKASH (বিকাশ)</option>
+                                        <option value="NAGAD">NAGAD (নগদ)</option>
+                                        <option value="BANK_TRANSFER">BANK_TRANSFER (ব্যাংক)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:11.5px;font-weight:600">বিকাশ / প্রেরক নম্বর</label>
+                                    <input type="text" name="sender_number" class="form-control" placeholder="017XXXXXXXX" style="font-size:12.5px">
+                                </div>
+                            </div>
+                            <div>
+                                <label style="font-size:11.5px;font-weight:600">ট্রানজেকশন আইডি (TrxID)</label>
+                                <input type="text" name="transaction_id" class="form-control" placeholder="e.g. TRX987654" style="font-size:12.5px">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" onclick="closeModal('statusModal')">বাতিল</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> স্ট্যাটাস আপডেট করুন</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- MODAL: Collect Offline Payment (with bKash Number & TrxID) --}}
+    <div class="modal-overlay" id="collectModal">
         <div class="modal-dialog" style="max-width:500px;font-family:'Kalpurush',sans-serif">
             <div class="modal-content">
                 <form id="collectForm" method="POST">
                     @csrf
-                    <div class="modal-header">
-                        <h3 class="modal-title"><i class="fa-solid fa-cash-register" style="color:#047857"></i> অফলাইন পেমেন্ট গ্রহণ</h3>
+                    <div class="modal-header" style="background:#ecfdf5;border-bottom:1px solid #a7f3d0">
+                        <h3 class="modal-title" style="color:#065f46"><i class="fa-solid fa-cash-register" style="color:#047857"></i> অফলাইন পেমেন্ট গ্রহণ ও রসিদ তৈরি</h3>
                         <button type="button" class="btn-close" onclick="closeModal('collectModal')">&times;</button>
                     </div>
                     <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
@@ -372,17 +687,25 @@
                         </div>
                         <div class="form-group">
                             <label style="font-weight:600">পেমেন্ট মেথড (Payment Method) *</label>
-                            <select name="payment_method" class="form-control" required>
+                            <select name="payment_method" id="collect_method_select" class="form-control" required onchange="onCollectMethodChange(this.value)">
                                 <option value="CASH">CASH (কাউন্টারে নগদ ক্যাশ গ্রহণ)</option>
-                                <option value="BKASH">BKASH (ম্যানুয়াল বিকাশ)</option>
-                                <option value="NAGAD">NAGAD (ম্যানুয়াল নগদ)</option>
-                                <option value="ROCKET">ROCKET (ম্যানুয়াল রকেট)</option>
+                                <option value="BKASH">BKASH (ম্যানুয়াল বিকাশ ট্রানজেকশন)</option>
+                                <option value="NAGAD">NAGAD (ম্যানুয়াল নগদ ট্রানজেকশন)</option>
+                                <option value="ROCKET">ROCKET (ম্যানুয়াল রকেট ট্রানজেকশন)</option>
                                 <option value="BANK_TRANSFER">BANK_TRANSFER (ব্যাংক ডিপোজিট)</option>
                             </select>
                         </div>
+                        
+                        {{-- bKash / Sender Mobile Number --}}
+                        <div class="form-group" id="collectSenderNumberGroup">
+                            <label style="font-weight:600">বিকাশ / প্রেরক মোবাইল নম্বর (Sender Mobile Number)</label>
+                            <input type="text" name="sender_number" class="form-control" placeholder="যেমন: 01712345678 বা গ্রাহকের বিকাশ নম্বর">
+                            <small style="color:#64748b;font-size:11px">বিকাশ/মোবাইল ব্যাংকিংয়ের ক্ষেত্রে নম্বরটি রসিদে প্রদর্শিত হবে।</small>
+                        </div>
+
                         <div class="form-group">
-                            <label style="font-weight:600">ট্রানজেকশন আইডি / রেফারেন্স নং</label>
-                            <input type="text" name="transaction_id" class="form-control" placeholder="e.g. TRX12345678 বা মানি রসিদ নং">
+                            <label style="font-weight:600">ট্রানজেকশন আইডি / রেফারেন্স নং (TrxID)</label>
+                            <input type="text" name="transaction_id" class="form-control" placeholder="e.g. 8N7A6B5C4D বা ব্যাংকের স্লিপ নং">
                         </div>
                         <div class="form-group">
                             <label style="font-weight:600">মন্তব্য (Remarks)</label>
@@ -399,8 +722,30 @@
     </div>
 
     <script>
-    function openEditModal(id, title, category, amount, discount, dueDate) {
+    function openExtraFeeModal() {
+        openModal('addExtraFeeModal');
+    }
+
+    function applyExtraPreset(title, amount, notes, category) {
+        document.getElementById('extra_title').value = title;
+        document.getElementById('extra_amount').value = amount;
+        document.getElementById('extra_notes').value = notes;
+        document.getElementById('extra_category_input').value = category;
+        const extraPaid = document.getElementById('extra_paid_amount');
+        if (extraPaid) extraPaid.value = amount;
+    }
+
+    function toggleImmediatePay(checked) {
+        document.getElementById('immediatePayFields').style.display = checked ? 'flex' : 'none';
+    }
+
+    function toggleExtraImmediatePay(checked) {
+        document.getElementById('extraImmediatePayFields').style.display = checked ? 'flex' : 'none';
+    }
+
+    function openEditModal(id, title, notes, category, amount, discount, dueDate) {
         document.getElementById('edit_title').value = title;
+        document.getElementById('edit_notes').value = notes;
         document.getElementById('edit_category').value = category;
         document.getElementById('edit_amount').value = amount;
         document.getElementById('edit_discount').value = discount;
@@ -417,6 +762,36 @@
         document.getElementById('collect_amount').max = due;
         document.getElementById('collectForm').action = "/admin/accounts/invoices/" + id + "/collect";
         openModal('collectModal');
+    }
+
+    function openStatusModal(id, invNo, currentStatus, due) {
+        document.getElementById('status_inv_no').innerText = invNo;
+        document.getElementById('status_inv_due').innerText = '৳' + due;
+        document.getElementById('status_select').value = currentStatus;
+        document.getElementById('statusForm').action = "/admin/accounts/invoices/" + id + "/status";
+        onStatusChange(currentStatus);
+        openModal('statusModal');
+    }
+
+    function onStatusChange(status) {
+        const paidBox = document.getElementById('statusPaidFields');
+        if (paidBox) {
+            paidBox.style.display = (status === 'PAID') ? 'flex' : 'none';
+        }
+    }
+
+    function onCollectMethodChange(method) {
+        // Can highlight sender number field if bKash/Nagad/Rocket
+        const numInput = document.querySelector('#collectSenderNumberGroup input');
+        if (method === 'BKASH') {
+            numInput.placeholder = "যেমন: 01XXXXXXXXX (বিকাশ নম্বর)";
+        } else if (method === 'NAGAD') {
+            numInput.placeholder = "যেমন: 01XXXXXXXXX (নগদ নম্বর)";
+        } else if (method === 'ROCKET') {
+            numInput.placeholder = "যেমন: 01XXXXXXXXX (রকেট নম্বর)";
+        } else {
+            numInput.placeholder = "যেমন: 01XXXXXXXXX (প্রেরক মোবাইল নম্বর)";
+        }
     }
     </script>
 </x-admin-layout>

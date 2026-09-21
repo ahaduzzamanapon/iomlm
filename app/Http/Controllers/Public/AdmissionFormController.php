@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicSession;
+use App\Models\AdmissionCircular;
 use App\Models\AdmissionForm;
 use App\Models\AppSetting;
 use App\Models\Batch;
@@ -25,8 +26,47 @@ class AdmissionFormController extends Controller
     public function show()
     {
         $terms = AppSetting::get('admission_terms', '');
-        $courses = Course::where('is_active', true)->orderBy('name')->get();
-        $activeBatches = Batch::where('status', 'ACTIVE')->with('course')->get();
+
+        // Fetch current active circular
+        $activeCircular = AdmissionCircular::with(['circularBatches.course', 'circularBatches.batch'])
+            ->where('circular_status', 'Current')
+            ->where('is_enabled', true)
+            ->latest('id')
+            ->first();
+
+        $admissionOpen = true;
+
+        if ($activeCircular) {
+            if ($activeCircular->is_program_batch_map_enabled) {
+                $enabledCourseIds = $activeCircular->circularBatches
+                    ->where('is_online_admission_enabled', true)
+                    ->pluck('course_id');
+
+                $courses = Course::where('is_active', true)->whereIn('id', $enabledCourseIds)->orderBy('name')->get();
+                $enabledBatchIds = $activeCircular->circularBatches
+                    ->where('is_online_admission_enabled', true)
+                    ->pluck('batch_id')
+                    ->filter();
+
+                if ($enabledBatchIds->isNotEmpty()) {
+                    $activeBatches = Batch::where('status', 'ACTIVE')->whereIn('id', $enabledBatchIds)->with('course')->get();
+                } else {
+                    $activeBatches = Batch::where('status', 'ACTIVE')->whereIn('course_id', $enabledCourseIds)->with('course')->get();
+                }
+
+                if ($courses->isEmpty()) {
+                    $admissionOpen = false;
+                }
+            } else {
+                $courses = Course::where('is_active', true)->orderBy('name')->get();
+                $activeBatches = Batch::where('status', 'ACTIVE')->with('course')->get();
+            }
+        } else {
+            $admissionOpen = false;
+            $courses = collect();
+            $activeBatches = collect();
+        }
+
         $sessions = AcademicSession::where('is_active', true)->orderByDesc('id')->get();
         $bloodGroups = BloodGroup::active()->get();
         $religions = Religion::active()->get();
@@ -35,16 +75,23 @@ class AdmissionFormController extends Controller
         $sslActive = PaymentGatewayService::isSslcommerzActive();
         $bkashActive = PaymentGatewayService::isBkashActive();
 
+        $coursesByDepartment = $courses->groupBy(function ($c) {
+            return $c->department ?: 'General Courses';
+        });
+
         return view('apply.index', compact(
             'terms',
             'courses',
+            'coursesByDepartment',
             'activeBatches',
             'sessions',
             'bloodGroups',
             'religions',
             'divisions',
             'sslActive',
-            'bkashActive'
+            'bkashActive',
+            'activeCircular',
+            'admissionOpen'
         ));
     }
 
@@ -62,6 +109,27 @@ class AdmissionFormController extends Controller
         ], [
             'terms_agreed.required' => 'মাদ্রাসার নিয়ম ও ভর্তির শর্তাবলীতে সম্মতি প্রদান করা আবশ্যক।'
         ]);
+
+        // Check active circular
+        $activeCircular = AdmissionCircular::with('circularBatches')
+            ->where('circular_status', 'Current')
+            ->where('is_enabled', true)
+            ->latest('id')
+            ->first();
+
+        if (!$activeCircular) {
+            return back()->withInput()->with('error', 'বর্তমানে কোনো ভর্তি সেশন সক্রিয় নেই। অনুগ্রহ করে পরবর্তীতে যোগাযোগ করুন।');
+        }
+
+        if ($activeCircular->is_program_batch_map_enabled) {
+            $batchSetting = $activeCircular->circularBatches->where('course_id', $validated['course_id'])->first();
+            if (!$batchSetting || !$batchSetting->is_online_admission_enabled) {
+                return back()->withInput()->with('error', 'নির্বাচিত কোর্সে বর্তমানে অনলাইন ভর্তি বন্ধ রয়েছে।');
+            }
+            if (empty($validated['batch_id']) && !empty($batchSetting->batch_id)) {
+                $validated['batch_id'] = $batchSetting->batch_id;
+            }
+        }
 
         $course = Course::findOrFail($validated['course_id']);
 
@@ -82,7 +150,7 @@ class AdmissionFormController extends Controller
         }
 
         // Create Application & Lead Student inside Transaction
-        $result = DB::transaction(function () use ($validated, $request, $existingStudent) {
+        $result = DB::transaction(function () use ($validated, $request, $existingStudent, $activeCircular) {
             $sessionId = $validated['academic_session_id']
                 ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
 
@@ -120,6 +188,7 @@ class AdmissionFormController extends Controller
             if ($form) {
                 // Update batch / session on existing pending application
                 $form->update([
+                    'admission_circular_id' => $activeCircular->id,
                     'batch_id' => $validated['batch_id'] ?? $form->batch_id,
                     'academic_session_id' => $sessionId,
                     'ip_address' => $request->ip(),
@@ -129,6 +198,7 @@ class AdmissionFormController extends Controller
                     'source' => 'PUBLIC',
                     'application_no' => AdmissionForm::generateApplicationNo(),
                     'student_id' => $student->id,
+                    'admission_circular_id' => $activeCircular->id,
                     'interested_course_id' => $validated['course_id'],
                     'batch_id' => $validated['batch_id'] ?? null,
                     'academic_session_id' => $sessionId,
@@ -336,5 +406,53 @@ class AdmissionFormController extends Controller
         $districts = District::where('division_id', $request->query('division_id'))
             ->orderBy('name')->get(['id', 'name']);
         return response()->json($districts);
+    }
+
+    /**
+     * Public Applicant Tracker View
+     */
+    public function trackStatus(Request $request)
+    {
+        $searchQuery = trim($request->query('app_no', ''));
+        $admission = null;
+        $isPaid = false;
+
+        if (!empty($searchQuery)) {
+            $admission = AdmissionForm::with(['student', 'interestedCourse', 'batch', 'reviewer', 'circular'])
+                ->where('application_no', $searchQuery)
+                ->orWhereHas('student', function ($q) use ($searchQuery) {
+                    $q->where('phone', $searchQuery)->orWhere('student_code', $searchQuery);
+                })
+                ->latest('id')
+                ->first();
+
+            if ($admission) {
+                $isPaid = GatewayTransaction::where('admission_form_id', $admission->id)
+                    ->where('status', 'SUCCESS')
+                    ->exists()
+                    || \App\Models\Invoice::where('source_type', AdmissionForm::class)
+                    ->where('source_id', $admission->id)
+                    ->where('status', 'PAID')
+                    ->exists()
+                    || ($admission->interestedCourse && $admission->interestedCourse->admission_fee == 0);
+            }
+        }
+
+        return view('apply.track', compact('admission', 'searchQuery', 'isPaid'));
+    }
+
+    /**
+     * Public Applicant Tracker POST Lookup
+     */
+    public function trackStatusLookup(Request $request)
+    {
+        $request->validate([
+            'search' => 'required|string|max:100',
+        ], [
+            'search.required' => 'আবেদন নম্বর বা ফোন নম্বর প্রবেশ করান।'
+        ]);
+
+        $searchQuery = trim($request->input('search'));
+        return redirect()->route('admission.status', ['app_no' => $searchQuery]);
     }
 }

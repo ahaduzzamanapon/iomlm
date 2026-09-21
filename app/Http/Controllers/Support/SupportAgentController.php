@@ -316,8 +316,9 @@ class SupportAgentController extends Controller
                 ],
                 'results'         => $recentResults,
                 'admin_urls'      => [
-                    'profile'  => $isAdmin ? route('admin.students.show', $student->id) : null,
-                    'accounts' => $isAdmin ? route('admin.students.accounts', $student->id) : null,
+                    'profile'     => $isAdmin ? route('admin.students.show', $student->id) : null,
+                    'accounts'    => $isAdmin ? route('admin.students.accounts', $student->id) : null,
+                    'impersonate' => route('support.students.impersonate', $student->id),
                 ],
             ],
         ]);

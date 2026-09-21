@@ -54,11 +54,14 @@
                             Published {{ $n->created_at->diffForHumans() }} ({{ $n->created_at->format('d M Y, h:i A') }}) by {{ $n->creator->name ?? 'Admin' }}
                         </div>
                     </div>
-                    <div>
-                        <form method="POST" action="{{ route('admin.notices.destroy', $n) }}" onsubmit="return confirm('Delete this notice?')">
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <button type="button" class="btn btn-outline btn-sm" style="color:#0284c7;border-color:#bae6fd;" onclick="openEditNotice({{ json_encode($n) }})">
+                            <i class="fa-solid fa-pen-to-square"></i> এডিট
+                        </button>
+                        <form method="POST" action="{{ route('admin.notices.destroy', $n) }}" onsubmit="return confirm('এই নোটিশটি মুছে ফেলতে চান?')">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn-outline btn-sm" style="color:#ef4444">
-                                <i class="fa-solid fa-trash"></i> Delete
+                                <i class="fa-solid fa-trash"></i> ডিলিট
                             </button>
                         </form>
                     </div>
@@ -146,4 +149,89 @@
             </form>
         </div>
     </div>
+
+    {{-- Edit Notice Modal --}}
+    <div class="modal-overlay" id="editNoticeModal">
+        <div class="modal" style="max-width:650px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header">
+                <span class="modal-title" style="color:#0284c7">
+                    <i class="fa-solid fa-pen-to-square"></i> নোটিশ সংশোধন / এডিট করুন (Edit Notice)
+                </span>
+                <button class="modal-close" onclick="closeModal('editNoticeModal')">&times;</button>
+            </div>
+            <form method="POST" id="editNoticeForm">
+                @csrf @method('PUT')
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:14px">
+                    <div class="form-group">
+                        <label>নোটিশের শিরোনাম (Notice Title) <span class="required">*</span></label>
+                        <input type="text" name="title" id="edit_notice_title" class="form-control" required>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>লক্ষ্য দর্শক (Target Audience) <span class="required">*</span></label>
+                            <select name="target_audience" id="edit_notice_audience" class="form-control" required>
+                                <option value="ALL">ALL (সকলের জন্য)</option>
+                                <option value="STUDENTS">STUDENTS (শিক্ষার্থীদের জন্য)</option>
+                                <option value="TEACHERS">TEACHERS (শিক্ষকদের জন্য)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>গুরুত্ব (Priority Level) <span class="required">*</span></label>
+                            <select name="priority" id="edit_notice_priority" class="form-control" required>
+                                <option value="NORMAL">NORMAL (সাধারণ)</option>
+                                <option value="IMPORTANT">IMPORTANT (গুরুত্বপূর্ণ)</option>
+                                <option value="URGENT">URGENT (জরুরি)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>নির্দিষ্ট ব্যাচ (Specific Batch - ঐচ্ছিক)</label>
+                            <select name="batch_id" id="edit_notice_batch" class="form-control">
+                                <option value="">All Batches (সকল ব্যাচ)</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>নির্দিষ্ট সেমিস্টার (Specific Semester - ঐচ্ছিক)</label>
+                            <select name="semester_id" id="edit_notice_semester" class="form-control">
+                                <option value="">All Semesters (সকল সেমিস্টার)</option>
+                                @foreach($semesters as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>নোটিশের মূল বিবরণ (Notice Description) <span class="required">*</span></label>
+                        <textarea name="content" id="edit_notice_content" class="form-control" rows="5" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editNoticeModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7">আপডেট সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+    function openEditNotice(notice) {
+        document.getElementById('editNoticeForm').action = '/admin/notices/' + notice.id;
+        document.getElementById('edit_notice_title').value = notice.title || '';
+        document.getElementById('edit_notice_audience').value = notice.target_audience || 'ALL';
+        document.getElementById('edit_notice_priority').value = notice.priority || 'NORMAL';
+        document.getElementById('edit_notice_batch').value = notice.batch_id || '';
+        document.getElementById('edit_notice_semester').value = notice.semester_id || '';
+        document.getElementById('edit_notice_content').value = notice.content || '';
+        openModal('editNoticeModal');
+    }
+    </script>
+    @endpush
 </x-admin-layout>

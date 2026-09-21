@@ -45,6 +45,11 @@
                 শিক্ষার্থীদের কোর্স পরিবর্তনের আবেদন পর্যালোচনা, প্রযোজ্য ফি নির্ধারণ, নতুন ব্যাচ বরাদ্দ ও স্থানান্তর অনুমোদন
             </div>
         </div>
+        <div>
+            <button type="button" class="btn btn-primary" onclick="openManualTransferModal()" style="font-family:'Kalpurush',sans-serif;display:inline-flex;align-items:center;gap:8px;background:#0284c7;border-color:#0284c7;font-weight:600;padding:9px 18px;border-radius:8px;box-shadow:0 2px 4px rgba(2,132,199,0.2);">
+                <i class="fa-solid fa-plus-circle"></i> সরাসরি কোর্স স্থানান্তর (Manual Transfer)
+            </button>
+        </div>
     </div>
 
     {{-- Alerts --}}
@@ -387,6 +392,109 @@
         </div>
     </div>
 
+    {{-- ── Manual Course Transfer Modal ── --}}
+    <div class="modal-overlay" id="manualTransferModal">
+        <div class="modal" style="max-width:560px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header">
+                <span class="modal-title" style="color:#0284c7;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i> সরাসরি শিক্ষার্থী কোর্স স্থানান্তর (Manual Transfer)
+                </span>
+                <button class="modal-close" onclick="closeModal('manualTransferModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.course-transfers.manual') }}">
+                @csrf
+                <div class="modal-body">
+                    {{-- Student Search --}}
+                    <div class="form-group" style="position:relative;">
+                        <label style="font-weight:600;display:flex;justify-content:space-between;">
+                            <span>শিক্ষার্থী নির্বাচন (Student Roll / Name) <span class="required">*</span></span>
+                            <span id="manual_search_spinner" style="display:none;font-size:12px;color:#0284c7">অনুসন্ধান হচ্ছে...</span>
+                        </label>
+                        <input type="text" id="manual_student_search_input" class="form-control" 
+                               placeholder="রোল নম্বর (যেমন: 20240101 বা 2024-01-01), নাম বা ফোন লিখে খুঁজুন..." 
+                               autocomplete="off">
+                        <input type="hidden" name="student_id" id="manual_student_id" required>
+
+                        {{-- Search Results --}}
+                        <div id="manual_student_results" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:1050;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);max-height:220px;overflow-y:auto;margin-top:4px;">
+                        </div>
+
+                        {{-- Selected Student Card --}}
+                        <div id="manual_selected_student_card" style="display:none;margin-top:8px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                                <div>
+                                    <span id="manual_st_badge" style="background:#0284c7;color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;font-weight:bold;"></span>
+                                    <strong id="manual_st_name" style="margin-left:6px;color:#0369a1;font-size:14px;"></strong>
+                                    <div style="font-size:12px;color:#334155;margin-top:4px;" id="manual_st_meta"></div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline" onclick="clearManualStudentSelection()" style="padding:2px 8px;font-size:11px;color:#dc2626;border-color:#fca5a5;">✕ মুছুন</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Target Course --}}
+                    <div class="form-group">
+                        <label>নতুন লক্ষ্য কোর্স (Target Course) <span class="required">*</span></label>
+                        <select name="to_course_id" id="manual_to_course_id" class="form-control" onchange="onManualCourseChange(this.value)" required>
+                            <option value="">-- নতুন কোর্স নির্বাচন করুন --</option>
+                            @foreach($courses as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }} ({{ $c->course_code ?? 'C'.$c->id }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Target Batch --}}
+                    <div class="form-group">
+                        <label>নতুন ব্যাচ (Target Batch) <span class="required">*</span></label>
+                        <select name="to_batch_id" id="manual_to_batch_id" class="form-control" required>
+                            <option value="">-- প্রথমে লক্ষ্য কোর্স নির্বাচন করুন --</option>
+                        </select>
+                    </div>
+
+                    {{-- Target Semester --}}
+                    <div class="form-group" id="manual_semester_group" style="display:none">
+                        <label>নতুন সেমিস্টার (Target Semester)</label>
+                        <select name="to_semester_id" id="manual_to_semester_id" class="form-control">
+                            <option value="">-- ১ম সেমিস্টার (ডিফল্ট) --</option>
+                        </select>
+                    </div>
+
+                    {{-- Transfer Fee --}}
+                    <div class="form-group">
+                        <label>স্থানান্তর ফি (Transfer Fee ৳ টাকা) <span class="required">*</span></label>
+                        <input type="number" name="transfer_fee" id="manual_transfer_fee" class="form-control" min="0" value="0" required>
+                        <small style="font-size:11px;color:#64748b">০ টাকা দিলে বিনামূল্যে স্থানান্তর সম্পন্ন হবে। ফি ধার্য করলে ইনভয়েস তৈরি হবে।</small>
+                    </div>
+
+                    {{-- Immediate Execution Checkbox --}}
+                    <div class="form-group" style="background:#f8fafc;padding:10px 14px;border-radius:8px;border:1px solid #e2e8f0;">
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-weight:600;color:#1e293b;">
+                            <input type="checkbox" name="immediate" value="1" checked style="width:17px;height:17px;">
+                            <span>সরাসরি অবিলম্বে স্থানান্তর কার্যকর করুন (Execute Immediately)</span>
+                        </label>
+                        <small style="display:block;margin-left:27px;font-size:11px;color:#64748b;margin-top:2px;">
+                            টিক দিলে শিক্ষার্থীর পূর্বের কোর্সের এনরোলমেন্ট সরাসরি নিষ্ক্রিয় করে নতুন কোর্সে সক্রিয় করা হবে।
+                        </small>
+                    </div>
+
+                    {{-- Reason & Notes --}}
+                    <div class="form-group">
+                        <label>স্থানান্তরের কারণ / মন্তব্য</label>
+                        <input type="text" name="reason" class="form-control" placeholder="যেমন: শিক্ষার্থীর অনুরোধক্রমে কোর্স স্থানান্তর">
+                    </div>
+                    <div class="form-group">
+                        <label>অ্যাডমিন নোট (অভ্যন্তরীণ ব্যবহারের জন্য)</label>
+                        <textarea name="admin_notes" class="form-control" rows="2" placeholder="অফিসিয়াল বা প্রশাসনিক কোনো নোট থাকলে লিখুন..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('manualTransferModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7">স্থানান্তর নিশ্চিত করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
     const allCourses = @json($courses);
@@ -443,6 +551,138 @@
         document.getElementById('rejectStudentName').innerText = tr.student ? tr.student.name : 'শিক্ষার্থী';
         openModal('rejectModal');
     }
+
+    // Manual Transfer Modal Functions
+    function openManualTransferModal() {
+        openModal('manualTransferModal');
+    }
+
+    function onManualCourseChange(courseId) {
+        const batchSelect = document.getElementById('manual_to_batch_id');
+        const semGroup    = document.getElementById('manual_semester_group');
+        const semSelect   = document.getElementById('manual_to_semester_id');
+
+        batchSelect.innerHTML = '<option value="">-- ব্যাচ নির্বাচন করুন --</option>';
+        semSelect.innerHTML   = '<option value="">-- ১ম সেমিস্টার (ডিফল্ট) --</option>';
+
+        if (!courseId) {
+            semGroup.style.display = 'none';
+            return;
+        }
+
+        const selectedCourse = allCourses.find(c => c.id == courseId);
+        if (selectedCourse && selectedCourse.batches) {
+            selectedCourse.batches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.text = b.name + ' (' + (b.batch_code || 'ID:' + b.id) + ')';
+                batchSelect.appendChild(opt);
+            });
+        }
+
+        if (selectedCourse && selectedCourse.type === 'SEMESTER_BASED' && selectedCourse.semesters) {
+            semGroup.style.display = 'block';
+            selectedCourse.semesters.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.text = s.name + ' (সেমিস্টার ' + s.sequence_no + ')';
+                semSelect.appendChild(opt);
+            });
+        } else {
+            semGroup.style.display = 'none';
+        }
+    }
+
+    // Live student search for manual transfer
+    (function() {
+        const searchInput = document.getElementById('manual_student_search_input');
+        const resultsDiv = document.getElementById('manual_student_results');
+        const hiddenIdInput = document.getElementById('manual_student_id');
+        const cardDiv = document.getElementById('manual_selected_student_card');
+        const spinner = document.getElementById('manual_search_spinner');
+
+        let debounceTimer = null;
+        if (!searchInput) return;
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            clearTimeout(debounceTimer);
+
+            if (query.length < 1) {
+                resultsDiv.style.display = 'none';
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            if (spinner) spinner.style.display = 'inline';
+
+            debounceTimer = setTimeout(() => {
+                fetch(`{{ route('admin.students.search-api') }}?q=${encodeURIComponent(query)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (spinner) spinner.style.display = 'none';
+                        resultsDiv.innerHTML = '';
+                        if (data.length === 0) {
+                            resultsDiv.innerHTML = '<div style="padding:10px 14px;color:#6b7280;font-size:13px;">কোনো শিক্ষার্থী পাওয়া যায়নি</div>';
+                            resultsDiv.style.display = 'block';
+                            return;
+                        }
+
+                        data.forEach(item => {
+                            const row = document.createElement('div');
+                            row.style.padding = '8px 12px';
+                            row.style.cursor = 'pointer';
+                            row.style.borderBottom = '1px solid #f1f5f9';
+                            row.style.display = 'flex';
+                            row.style.justifyContent = 'space-between';
+                            row.style.alignItems = 'center';
+                            row.innerHTML = `
+                                <div>
+                                    <strong style="color:#1e293b;font-size:13px;">[${item.student_code}] ${item.name}</strong>
+                                    <div style="font-size:11px;color:#64748b;">বর্তমান কোর্স: ${item.course_name} | ব্যাচ: ${item.batch_name}</div>
+                                </div>
+                            `;
+                            row.addEventListener('mouseenter', () => row.style.background = '#f8fafc');
+                            row.addEventListener('mouseleave', () => row.style.background = '#ffffff');
+                            row.addEventListener('click', () => selectManualStudent(item));
+                            resultsDiv.appendChild(row);
+                        });
+
+                        resultsDiv.style.display = 'block';
+                    })
+                    .catch(err => {
+                        if (spinner) spinner.style.display = 'none';
+                        console.error(err);
+                    });
+            }, 250);
+        });
+
+        window.selectManualStudent = function(student) {
+            hiddenIdInput.value = student.id;
+            document.getElementById('manual_st_badge').textContent = student.student_code;
+            document.getElementById('manual_st_name').textContent = student.name;
+            document.getElementById('manual_st_meta').textContent = `বর্তমান কোর্স: ${student.course_name} | বর্তমান ব্যাচ: ${student.batch_name} | ফোন: ${student.phone || '—'}`;
+            
+            cardDiv.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            searchInput.value = '';
+            searchInput.style.display = 'none';
+        };
+
+        window.clearManualStudentSelection = function() {
+            hiddenIdInput.value = '';
+            cardDiv.style.display = 'none';
+            searchInput.style.display = 'block';
+            searchInput.value = '';
+            searchInput.focus();
+        };
+
+        document.addEventListener('click', function(e) {
+            if (!resultsDiv.contains(e.target) && e.target !== searchInput) {
+                resultsDiv.style.display = 'none';
+            }
+        });
+    })();
     </script>
     @endpush
 </x-admin-layout>

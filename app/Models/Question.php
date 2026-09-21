@@ -21,6 +21,16 @@ class Question extends Model
         return $this->belongsTo(Subject::class, 'subject_id');
     }
 
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class, 'batch_id');
+    }
+
+    public function semester()
+    {
+        return $this->belongsTo(Semester::class, 'semester_id');
+    }
+
     public function examQuestions()
     {
         return $this->hasMany(ExamQuestion::class, 'question_id');

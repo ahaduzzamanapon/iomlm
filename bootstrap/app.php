@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role'              => \App\Http\Middleware\RoleMiddleware::class,
             'admin.module'      => \App\Http\Middleware\AdminModuleAccessMiddleware::class,
             'profile.completed' => \App\Http\Middleware\EnsureProfileCompleted::class,
+            'course.access'     => \App\Http\Middleware\EnsureCourseAccess::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

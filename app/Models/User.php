@@ -18,6 +18,7 @@ class User extends Authenticatable
         'admin_permissions',
         'designation',
         'can_provide_support',
+        'is_common_account',
         'is_active',
     ];
 
@@ -33,6 +34,7 @@ class User extends Authenticatable
             'password'            => 'hashed',
             'admin_permissions'   => 'array',
             'can_provide_support' => 'boolean',
+            'is_common_account'   => 'boolean',
             'is_active'           => 'boolean',
         ];
     }

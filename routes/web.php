@@ -38,6 +38,10 @@ Route::post('/apply/payment/{applicationNo}', [\App\Http\Controllers\Public\Admi
 Route::get('/apply/success/{applicationNo}', [\App\Http\Controllers\Public\AdmissionFormController::class, 'success'])->name('apply.success');
 Route::get('/api/districts', [\App\Http\Controllers\Public\AdmissionFormController::class, 'districts'])->name('api.districts');
 
+// ── Public Applicant Tracker ──────────────────────────────────────────
+Route::get('/admission/status', [\App\Http\Controllers\Public\AdmissionFormController::class, 'trackStatus'])->name('admission.status');
+Route::post('/admission/status', [\App\Http\Controllers\Public\AdmissionFormController::class, 'trackStatusLookup'])->name('admission.status.lookup');
+
 // ── Payment Gateway Callbacks & Verification ──────────────────────────
 Route::get('/apply/payment-status/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'status'])->name('payment.status');
 Route::get('/apply/payment-status-ajax/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'checkStatusAjax'])->name('payment.status.ajax');
@@ -88,8 +92,9 @@ Route::middleware(['auth', 'role:support,support_agent,admin,super_admin'])->pre
     Route::post('/tickets/{uuid}/close', [\App\Http\Controllers\Support\SupportAgentController::class, 'closeTicket'])->name('tickets.close');
     Route::post('/tickets/{uuid}/link-student', [\App\Http\Controllers\Support\SupportAgentController::class, 'linkStudent'])->name('tickets.link-student');
 
-    // Student Lookup API for Support Agents
+    // Student Lookup API & Direct Login for Support Agents
     Route::get('/api/student-lookup', [\App\Http\Controllers\Support\SupportAgentController::class, 'studentLookupApi'])->name('api.student-lookup');
+    Route::get('/students/{student}/impersonate', [\App\Http\Controllers\Admin\StudentController::class, 'impersonate'])->name('students.impersonate');
 
     // Canned Messages (Quick Replies)
     Route::get('/canned-messages', [\App\Http\Controllers\Support\SupportAgentController::class, 'cannedMessagesIndex'])->name('canned-messages.index');

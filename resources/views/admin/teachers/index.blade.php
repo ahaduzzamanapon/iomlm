@@ -172,12 +172,11 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Gender</label>
+                            <label>Gender (লিঙ্গ)</label>
                             <select name="gender" class="form-control">
-                                <option value="">-- Select --</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
+                                <option value="">-- নির্বাচন করুন --</option>
+                                <option value="Male">পুরুষ (Male)</option>
+                                <option value="Female">মহিলা (Female)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -191,20 +190,9 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>National ID</label>
-                            <input type="text" name="national_id" class="form-control" placeholder="NID Number">
-                        </div>
-                        <div class="form-group">
-                            <label>Religion</label>
-                            <select name="religion" class="form-control">
-                                <option value="">-- Select --</option>
-                                @foreach(\App\Models\Religion::active()->get() as $rel)
-                                <option value="{{ $rel->name }}">{{ $rel->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                    <div class="form-group" style="margin-bottom:14px">
+                        <label>National ID</label>
+                        <input type="text" name="national_id" class="form-control" placeholder="NID Number">
                     </div>
 
                     {{-- Job Info --}}
@@ -425,12 +413,11 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Gender</label>
+                            <label>Gender (লিঙ্গ)</label>
                             <select name="gender" id="et_gender" class="form-control">
-                                <option value="">-- Select --</option>
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
-                                <option value="Other">Other</option>
+                                <option value="">-- নির্বাচন করুন --</option>
+                                <option value="Male">পুরুষ (Male)</option>
+                                <option value="Female">মহিলা (Female)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -444,20 +431,9 @@
                             </select>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>National ID</label>
-                            <input type="text" name="national_id" id="et_nid" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label>Religion</label>
-                            <select name="religion" id="et_religion" class="form-control">
-                                <option value="">-- Select --</option>
-                                @foreach(\App\Models\Religion::active()->get() as $rel)
-                                <option value="{{ $rel->name }}">{{ $rel->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                    <div class="form-group" style="margin-bottom:14px">
+                        <label>National ID</label>
+                        <input type="text" name="national_id" id="et_nid" class="form-control">
                     </div>
 
                     <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);letter-spacing:.05em;border-bottom:1px solid #dbeafe;padding-bottom:6px;margin:20px 0 14px">Job Information</div>
@@ -545,7 +521,6 @@
             gender: @json($t->gender),
             marital_status: @json($t->marital_status),
             national_id: @json($t->national_id),
-            religion: @json($t->religion),
             designation: @json($t->designation),
             department: @json($t->department),
             qualification: @json($t->qualification),
@@ -580,7 +555,6 @@
         setVal('et_gender', t.gender);
         setVal('et_marital', t.marital_status);
         setVal('et_nid', t.national_id);
-        setVal('et_religion', t.religion);
         setVal('et_designation', t.designation);
         setVal('et_department', t.department);
         setVal('et_qualification', t.qualification);

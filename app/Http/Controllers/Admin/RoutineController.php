@@ -363,6 +363,37 @@ class RoutineController extends Controller
     }
 
     /**
+     * Duplicate/clone a routine entry into another day of the week or slot.
+     */
+    public function copyEntry(Request $request, RoutineEntry $entry)
+    {
+        $validated = $request->validate([
+            'target_day'     => 'required|in:SAT,SUN,MON,TUE,WED,THU,FRI',
+            'target_slot_id' => 'nullable|exists:routine_slots,id',
+        ]);
+
+        $targetSlotId = $validated['target_slot_id'] ?? $entry->slot_id;
+        $targetDay    = $validated['target_day'];
+
+        $newEntry = RoutineEntry::create([
+            'batch_id'         => $entry->batch_id,
+            'slot_id'          => $targetSlotId,
+            'day_of_week'      => $targetDay,
+            'subject_id'       => $entry->subject_id,
+            'teacher_id'       => $entry->teacher_id,
+            'group_tag'        => $entry->group_tag ?? 'ALL',
+            'class_session_id' => $entry->class_session_id,
+            'title'            => $entry->title,
+            'color'            => $entry->color,
+            'is_override'      => false,
+        ]);
+
+        $this->syncFutureSessionsForEntry($newEntry);
+
+        return back()->with('success', "✅ রুটিন স্লটটি সফলভাবে '{$targetDay}' বারে কপি করা হয়েছে!");
+    }
+
+    /**
      * Synchronize upcoming class sessions when a routine entry is created or updated.
      */
     private function syncFutureSessionsForEntry(RoutineEntry $entry, ?string $oldDayOfWeek = null): void

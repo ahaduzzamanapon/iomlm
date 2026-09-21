@@ -150,10 +150,21 @@
                                 placeholder="e.g. https://iom.edu.bd/student/exams or route link">
                             <span class="form-help">Clicking the push notification or email CTA button opens this page.</span>
                         </div>
+
+                        {{-- Schedule for Later (Optional) --}}
+                        <div class="form-group" style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;margin-top:10px;">
+                            <label style="font-weight:600;color:#1e293b;display:flex;align-items:center;gap:6px;">
+                                <i class="fa-solid fa-clock" style="color:#0284c7"></i> ভবিষ্যতে প্রেরণের জন্য শিডিউল করুন (Schedule Broadcast - ঐচ্ছিক)
+                            </label>
+                            <input type="datetime-local" name="scheduled_at" class="form-control" style="margin-top:6px;">
+                            <span class="form-help" style="font-size:11px;color:#64748b">
+                                নির্দিষ্ট তারিখ ও সময় নির্বাচন করলে সেই সময়ে নোটিফিকেশনটি স্বয়ংক্রিয়ভাবে প্রেরিত হবে। অবিলম্বে পাঠাতে চাইলে এটি ফাঁকা রাখুন।
+                            </span>
+                        </div>
                     </div>
                     <div class="card-footer" style="text-align:right">
                         <button type="submit" class="btn btn-primary btn-lg">
-                            Dispatch Notification Broadcast
+                            Dispatch / Schedule Broadcast
                         </button>
                     </div>
                 </div>

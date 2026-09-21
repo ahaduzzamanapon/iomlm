@@ -118,10 +118,28 @@ class DashboardController extends Controller
             ];
         }
 
+        // Distinct Due, Paid & Voucher collections for Student Dashboard
+        $allStudentInvoices = \App\Models\Invoice::where('student_id', $studentId)
+            ->where('status', '!=', 'CANCELLED')
+            ->latest()
+            ->get();
+
+        $dueInvoices       = $allStudentInvoices->where('due_amount', '>', 0);
+        $paidInvoices      = $allStudentInvoices->where('due_amount', '<=', 0);
+        $totalOverallDue   = (float) $allStudentInvoices->sum('due_amount');
+        $totalOverallPaid  = (float) $allStudentInvoices->sum('paid_amount');
+
+        $recentVoucherPayments = \App\Models\Payment::with('invoice')
+            ->where('student_id', $studentId)
+            ->latest('paid_at')
+            ->take(5)
+            ->get();
+
         return view('student.dashboard', compact(
             'student', 'stats', 'currentModules', 'upcomingClasses',
             'recentResults', 'upcomingExamsList', 'notices',
-            'dashboardMonthly', 'runningSemesterName', 'runningSemDue', 'runningSemPaid'
+            'dashboardMonthly', 'runningSemesterName', 'runningSemDue', 'runningSemPaid',
+            'dueInvoices', 'paidInvoices', 'totalOverallDue', 'totalOverallPaid', 'recentVoucherPayments'
         ));
     }
 

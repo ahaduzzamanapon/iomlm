@@ -9,7 +9,10 @@
             <h1>{{ $exam->title }}</h1>
             <p>Subject: {{ $exam->subject->name ?? '—' }} · Date: {{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }} · Marks: {{ $exam->full_marks }} (Pass: {{ $exam->pass_marks }})</p>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" style="display:flex;gap:10px;align-items:center">
+            <a href="{{ route('admin.exams.test-exam', $exam) }}" class="btn btn-outline" style="background:#fef3c7;border-color:#fde68a;color:#92400e;display:inline-flex;align-items:center;gap:6px">
+                <i class="fa-solid fa-vial"></i> 🧪 টেস্ট এক্সাম (Test Exam)
+            </a>
             <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px">
                 <i class="fa-solid fa-puzzle-piece"></i> Open Paper Builder
             </a>

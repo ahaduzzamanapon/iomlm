@@ -15,8 +15,8 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
     Route::get('profile', [\App\Http\Controllers\Student\ProfileController::class, 'index'])->name('profile.index');
     Route::post('profile', [\App\Http\Controllers\Student\ProfileController::class, 'update'])->name('profile.update');
 
-    // ── Enforce 95% Profile Completion for All Other Features ────────────
-    Route::middleware(['profile.completed'])->group(function () {
+    // ── Enforce 95% Profile Completion & Active Course Access ────────────
+    Route::middleware(['profile.completed', 'course.access'])->group(function () {
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -41,9 +41,19 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::post('course-transfers',                   [\App\Http\Controllers\Student\CourseTransferController::class, 'store'])->name('course-transfers.store');
         Route::delete('course-transfers/{courseTransfer}', [\App\Http\Controllers\Student\CourseTransferController::class, 'cancel'])->name('course-transfers.cancel');
 
+        // Readmission (রি-এডমিশন আবেদন)
+        Route::get('readmissions',                   [\App\Http\Controllers\Student\ReadmissionController::class, 'index'])->name('readmissions.index');
+        Route::post('readmissions',                  [\App\Http\Controllers\Student\ReadmissionController::class, 'store'])->name('readmissions.store');
+        Route::delete('readmissions/{readmission}',  [\App\Http\Controllers\Student\ReadmissionController::class, 'cancel'])->name('readmissions.cancel');
+
         // Subjects
         Route::get('subjects',           [\App\Http\Controllers\Student\SubjectController::class, 'index'])->name('subjects.index');
         Route::get('subjects/{subject}', [\App\Http\Controllers\Student\SubjectController::class, 'show'])->name('subjects.show');
+
+        // Assignments (শিক্ষার্থীদের অ্যাসাইনমেন্ট তালিকা ও জমা)
+        Route::get('assignments',                       [\App\Http\Controllers\Student\AssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('assignments/{assignment}',           [\App\Http\Controllers\Student\AssignmentController::class, 'show'])->name('assignments.show');
+        Route::post('assignments/{assignment}/submit',   [\App\Http\Controllers\Student\AssignmentController::class, 'submit'])->name('assignments.submit');
 
         // Resources
         Route::get('resources', [\App\Http\Controllers\Student\LearningResourceController::class, 'index'])->name('resources.index');
@@ -63,8 +73,9 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::post('exams/{exam}/appeal',        [\App\Http\Controllers\Student\ExamController::class, 'appeal'])->name('exams.appeal');
         Route::get('exams/{exam}/result/{submission}', [\App\Http\Controllers\Student\ExamController::class, 'result'])->name('exams.result');
 
-        // Results
-        Route::get('results', [\App\Http\Controllers\Student\ResultController::class, 'index'])->name('results.index');
+        // Results & Transcript
+        Route::get('results',    [\App\Http\Controllers\Student\ResultController::class, 'index'])->name('results.index');
+        Route::get('transcript', [\App\Http\Controllers\Student\ResultController::class, 'transcript'])->name('results.transcript');
 
         // Documents
         Route::get('documents',              [\App\Http\Controllers\Student\DocumentController::class, 'index'])->name('documents.index');

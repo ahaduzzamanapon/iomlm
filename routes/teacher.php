@@ -46,6 +46,9 @@ Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')
     Route::put('exams/{exam}',                     [\App\Http\Controllers\Teacher\ExamController::class, 'update'])->name('exams.update');
     Route::delete('exams/{exam}',                  [\App\Http\Controllers\Teacher\ExamController::class, 'destroy'])->name('exams.destroy');
     Route::post('exams/{exam}/questions',          [\App\Http\Controllers\Teacher\ExamController::class, 'attachQuestion'])->name('exams.questions.attach');
+    Route::post('exams/{exam}/questions/random',   [\App\Http\Controllers\Teacher\ExamController::class, 'attachRandomQuestions'])->name('exams.questions.random');
+    Route::get('exams/{exam}/test-exam',          [\App\Http\Controllers\Teacher\ExamController::class, 'testExam'])->name('exams.test-exam');
+    Route::post('exams/{exam}/test-exam/submit',   [\App\Http\Controllers\Teacher\ExamController::class, 'submitTestExam'])->name('exams.test-exam.submit');
     Route::delete('exams/{exam}/questions/{examQuestion}', [\App\Http\Controllers\Teacher\ExamController::class, 'detachQuestion'])->name('exams.questions.detach');
     Route::delete('exams/{exam}/submissions/{submission}', [\App\Http\Controllers\Teacher\ExamController::class, 'resetSubmission'])->name('exams.submissions.reset');
     Route::get('exam-appeals',                             [\App\Http\Controllers\Teacher\ExamController::class, 'allAppeals'])->name('exams.appeals.index');
@@ -66,6 +69,11 @@ Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')
 
     // Routine
     Route::get('routine', [\App\Http\Controllers\Teacher\RoutineController::class, 'index'])->name('routine.index');
+
+    // Assignments (অ্যাসাইনমেন্ট তৈরি, খাতা মূল্যায়ন ও ওভাররাইড)
+    Route::resource('assignments', \App\Http\Controllers\Teacher\AssignmentController::class);
+    Route::post('assignment-submissions/{submission}/grade', [\App\Http\Controllers\Teacher\AssignmentController::class, 'gradeSubmission'])->name('assignments.submissions.grade');
+    Route::post('assignment-submissions/{submission}/override', [\App\Http\Controllers\Teacher\AssignmentController::class, 'overrideSubmission'])->name('assignments.submissions.override');
 
     // Notice Board
     Route::get('notices', [\App\Http\Controllers\Teacher\NoticeController::class, 'index'])->name('notices.index');

@@ -366,7 +366,7 @@ class AccountingService
     /**
      * Submit payment request from Student Portal (Status: PENDING, awaiting Admin Approval).
      */
-    public static function submitStudentPayment(Invoice $invoice, float $amount, string $method, ?string $trxId = null, ?string $remarks = null): Payment
+    public static function submitStudentPayment(Invoice $invoice, float $amount, string $method, ?string $trxId = null, ?string $remarks = null, ?string $senderNumber = null): Payment
     {
         $payNo = 'PAY-ONLINE-' . date('Ymd') . '-' . rand(1000, 9999);
 
@@ -377,6 +377,7 @@ class AccountingService
             'amount'         => $amount,
             'payment_method' => $method,
             'transaction_id' => $trxId,
+            'sender_number'  => $senderNumber,
             'remarks'        => $remarks ?: 'Online Payment via Student Portal (Pending Approval)',
             'received_by'    => null,
             'status'         => 'PENDING',
@@ -446,9 +447,9 @@ class AccountingService
     /**
      * Receive instant payment against an invoice (Admin Counter Collection).
      */
-    public static function receivePayment(Invoice $invoice, float $amount, string $method = 'CASH', ?string $trxId = null, ?string $remarks = null): Payment
+    public static function receivePayment(Invoice $invoice, float $amount, string $method = 'CASH', ?string $trxId = null, ?string $remarks = null, ?string $senderNumber = null): Payment
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($invoice, $amount, $method, $trxId, $remarks) {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($invoice, $amount, $method, $trxId, $remarks, $senderNumber) {
             $payNo = 'PAY-' . date('Ymd') . '-' . rand(1000, 9999);
 
             $payment = Payment::create([
@@ -458,6 +459,7 @@ class AccountingService
                 'amount'         => $amount,
                 'payment_method' => $method,
                 'transaction_id' => $trxId,
+                'sender_number'  => $senderNumber,
                 'remarks'        => $remarks,
                 'status'         => 'APPROVED',
                 'approved_at'    => now(),

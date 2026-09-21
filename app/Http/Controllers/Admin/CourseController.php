@@ -16,13 +16,16 @@ class CourseController extends Controller
     {
         $courses = Course::with(['semesters', 'courseSubjectMaps.subject'])->latest()->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
-        return view('admin.courses.index', compact('courses', 'subjects'));
+        $departments = Course::defaultDepartments();
+        return view('admin.courses.index', compact('courses', 'subjects', 'departments'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name'           => 'required|string|max:200',
+            'code'           => 'nullable|string|max:10',
+            'department'     => 'nullable|string|max:100',
             'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
             'duration_value' => 'required|numeric|min:0.5',
             'duration_unit'  => 'required|in:MONTH,YEAR',
@@ -30,8 +33,13 @@ class CourseController extends Controller
             'readmission_fee' => 'nullable|numeric|min:0',
         ]);
 
+        $code = $request->filled('code') ? str_pad(substr(preg_replace('/\D/', '', $request->input('code')), 0, 2), 2, '0', STR_PAD_LEFT) : null;
+        $department = $request->input('department') ?: 'BA in Dawah and Islamic Studies';
+
         $course = Course::create([
             'name'                    => $validated['name'],
+            'code'                    => $code,
+            'department'              => $department,
             'type'                    => $validated['type'],
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],
@@ -98,6 +106,8 @@ class CourseController extends Controller
     {
         $validated = $request->validate([
             'name'           => 'required|string|max:200',
+            'code'           => 'nullable|string|max:10',
+            'department'     => 'nullable|string|max:100',
             'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
             'duration_value' => 'required|numeric|min:0.5',
             'duration_unit'  => 'required|in:MONTH,YEAR',
@@ -105,8 +115,13 @@ class CourseController extends Controller
             'readmission_fee' => 'nullable|numeric|min:0',
         ]);
 
+        $code = $request->filled('code') ? str_pad(substr(preg_replace('/\D/', '', $request->input('code')), 0, 2), 2, '0', STR_PAD_LEFT) : $course->code;
+        $department = $request->filled('department') ? $request->input('department') : ($course->department ?: 'BA in Dawah and Islamic Studies');
+
         $course->update([
             'name'                    => $validated['name'],
+            'code'                    => $code,
+            'department'              => $department,
             'type'                    => $validated['type'],
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],

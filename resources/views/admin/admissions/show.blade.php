@@ -168,7 +168,7 @@
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Personal & Identification</div>
                 <table class="table" style="font-size:13px;margin-bottom:16px">
                     <tr><th style="width:140px;color:var(--text-muted)">Blood Group:</th><td>{{ $admission->bloodGroup->name ?? $admission->student->blood_group ?? '—' }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Religion / Nationality:</th><td>{{ $admission->religion->name ?? '—' }} / {{ $admission->nationality ?? 'Bangladeshi' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Nationality (জাতীয়তা):</th><td>{{ $admission->nationality ?? 'Bangladeshi' }}</td></tr>
                     <tr><th style="color:var(--text-muted)">National ID (NID):</th><td>{{ $admission->national_id ?? $admission->student->national_id ?? '—' }}</td></tr>
                     <tr><th style="color:var(--text-muted)">Passport / Birth Cert:</th><td>{{ $admission->passport_no ?? '—' }} / {{ $admission->birth_certificate_no ?? '—' }}</td></tr>
                     <tr><th style="color:var(--text-muted)">Guardian Info:</th><td>{{ $admission->guardian_name ?? $admission->student->guardian_name ?? '—' }} ({{ $admission->guardian_phone ?? $admission->student->guardian_phone ?? '—' }})</td></tr>
@@ -218,13 +218,23 @@
         <!-- Review Decision & Log -->
         <div class="card">
             <div class="card-header">
-                <span class="card-title">Review Audit Log</span>
+                <span class="card-title">Review Audit Log (ভেরিফিকেশন ও অনুমোদন লগ)</span>
             </div>
             <div class="card-body">
                 @if($admission->status === 'APPROVED')
-                    <div class="alert alert-success">
-                        <strong>Application Approved</strong><br>
-                        Reviewed by {{ $admission->reviewer->name ?? 'Admin' }} on {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}.
+                    <div class="alert alert-success" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:12px 14px;border-radius:8px;">
+                        <div style="font-size:14px;font-weight:700;"><i class="fa-solid fa-circle-check"></i> ভর্তি অনুমোদিত (Application Approved)</div>
+                        <div style="font-size:13px;margin-top:4px;">
+                            <strong>অনুমোদনকারী (Approved By):</strong> {{ $admission->reviewer->name ?? 'এডমিন' }}
+                        </div>
+                        <div style="font-size:12px;color:#15803d;">
+                            <strong>অনুমোদনের তারিখ:</strong> {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}
+                        </div>
+                        @if($admission->approved_admission_fee !== null)
+                        <div style="font-size:12px;color:#15803d;margin-top:2px;">
+                            <strong>অনুমোদিত ভর্তি ফি:</strong> ৳{{ number_format($admission->approved_admission_fee, 2) }}
+                        </div>
+                        @endif
                     </div>
                     @php $studentUser = $admission->student->user; @endphp
                     @if($studentUser)
@@ -232,7 +242,7 @@
                             <strong style="color:#166534">Student Login Account</strong><br>
                             <span style="color:#15803d">Login Email:</span> <code>{{ $studentUser->email }}</code><br>
                             <span style="color:#15803d">Role:</span> <span class="badge badge-active no-dot">{{ ucfirst($studentUser->role) }}</span>
-                            <div style="margin-top:6px;font-size:11px;color:#6b7280">Password was auto-generated at account creation. Student can reset via admin if needed.</div>
+                            <div style="margin-top:6px;font-size:11px;color:#6b7280">Password was dispatched via batch-specific email/SMS template. Student can reset via admin if needed.</div>
                         </div>
                     @else
                         <div style="background:#fef9c3;border:1px solid #fde047;padding:10px 14px;border-radius:8px;font-size:12px;margin-top:10px;color:#713f12">
@@ -240,51 +250,144 @@
                         </div>
                     @endif
                 @elseif($admission->status === 'REJECTED')
-                    <div class="alert alert-danger">
-                        <strong>Application Rejected</strong><br>
-                        Reason: {{ $admission->rejection_reason ?? 'Not specified' }}<br>
-                        <small>Reviewed by {{ $admission->reviewer->name ?? 'Admin' }} on {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}.</small>
+                    <div class="alert alert-danger" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 14px;border-radius:8px;">
+                        <div style="font-size:14px;font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> আবেদন প্রত্যাখ্যাত (Application Rejected)</div>
+                        <div style="font-size:13px;margin-top:4px;">
+                            <strong>বাতিলের কারণ:</strong> {{ $admission->rejection_reason ?? 'Not specified' }}
+                        </div>
+                        <div style="font-size:12px;color:#7f1d1d;margin-top:2px;">
+                            <strong>পর্যালোচনাকারী:</strong> {{ $admission->reviewer->name ?? 'এডমিন' }} ({{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }})
+                        </div>
                     </div>
                 @else
                     <div class="alert alert-info">
-                        <strong>⏳ Pending Committee Review</strong><br>
-                        Verify applicant documents, choose an active batch, and click Approve to generate Student Code & enroll.
+                        <strong>⏳ Pending Committee Review (ভেরিফিকেশন অপেক্ষমান)</strong><br>
+                        Verify applicant documents, adjust course/batch or fee structure if necessary, and click Approve to generate Student Code & enroll.
                     </div>
                 @endif
             </div>
         </div>
     </div>
 
-    <!-- Approve Modal -->
+    <!-- Approve Modal (Course Change, Fee Structure Setup & Batch Template Dispatch) -->
     <div class="modal-overlay" id="approveModal">
-        <div class="modal">
+        <div class="modal" style="max-width:650px;">
             <div class="modal-header">
-                <span class="modal-title">Approve Admission & Assign Batch</span>
+                <span class="modal-title"><i class="fa-solid fa-user-check" style="color:#047857"></i> ভর্তি অনুমোদন ও ব্যাচ নির্ধারণ (Approve Admission)</span>
                 <button class="modal-close" onclick="closeModal('approveModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.admissions.approve', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি অনুমোদন (Approve & Activate) করতে চান?')">
+            <form method="POST" action="{{ route('admin.admissions.approve', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি অনুমোদন করতে চান?')">
                 @csrf @method('PATCH')
                 <div class="modal-body">
-                    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
-                        Approving will set student status to <strong>ACTIVE</strong>, generate an official <strong>Student Code</strong>, and enroll into the selected batch.
-                    </p>
-                    <div class="form-group">
-                        <label>Select Active Batch for {{ $admission->interestedCourse->name ?? 'Course' }} <span class="required">*</span></label>
-                        <select name="batch_id" class="form-control" required>
-                            <option value="">-- Choose Batch --</option>
-                            @foreach($activeBatches as $b)
-                                <option value="{{ $b->id }}">{{ $b->name }} (Code: {{ $b->batch_code ?? 'N/A' }})</option>
+                    {{-- 1. Course Change Option --}}
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label style="font-weight:700;color:#1e293b;">
+                            কোর্স নির্বাচন / পরিবর্তন (Change Course if Applied by Mistake)
+                        </label>
+                        <select name="course_id" id="approve_course_id" class="form-control" onchange="onApproveCourseChange(this)" style="height:38px;border-radius:6px;">
+                            @foreach($allCourses ?? [] as $c)
+                                <option value="{{ $c->id }}" {{ $c->id == $admission->interested_course_id ? 'selected' : '' }}>
+                                    [{{ $c->formatted_code }}] {{ $c->name }} ({{ $c->department }})
+                                </option>
+                            @endforeach
+                        </select>
+                        <small style="color:#64748b;font-size:11px;">আবেদনকারী ভুলে অন্য কোর্স নির্বাচন করে থাকলে এখান থেকে পরিবর্তন করে দিন।</small>
+                    </div>
+
+                    {{-- 2. Batch Selection --}}
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label style="font-weight:700;color:#1e293b;">
+                            নির্ধারিত ব্যাচ নির্বাচন (Assign Active Batch) <span class="required">*</span>
+                        </label>
+                        <select name="batch_id" id="approve_batch_id" class="form-control" required style="height:38px;border-radius:6px;">
+                            <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                            @foreach($allCourses ?? [] as $c)
+                                @foreach($c->batches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $c->id }}" {{ ($admission->batch_id == $b->id || ($c->id == $admission->interested_course_id && $loop->first)) ? 'selected' : '' }}>
+                                        {{ $c->name }} → {{ $b->name }} (Code: {{ $b->batch_code ?? 'N/A' }})
+                                    </option>
+                                @endforeach
                             @endforeach
                         </select>
                     </div>
+
+                    {{-- 3. Fee Structure Setup --}}
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+                        <div style="font-size:12.5px;font-weight:700;color:#047857;margin-bottom:8px;text-transform:uppercase;">
+                            <i class="fa-solid fa-money-bill-wave"></i> ফি স্ট্রাকচার ও পুওর ফান্ড ছাড় নির্ধারণ (Fee Setup)
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
+                            <div>
+                                <label style="font-size:12px;font-weight:600;color:#475569;">ভর্তি ফি নির্ধারণ (৳)</label>
+                                <input type="number" step="0.01" name="approved_admission_fee" value="{{ $admission->approved_admission_fee ?? ($admission->interestedCourse->admission_fee ?? 0) }}" class="form-control" style="height:34px;font-size:13px;" placeholder="Admission Fee">
+                            </div>
+                            <div>
+                                <label style="font-size:12px;font-weight:600;color:#475569;">পুওর ফান্ড ছাড় (%)</label>
+                                <input type="number" step="0.01" name="discount_percent" value="{{ $admission->discount_percent ?? 0 }}" class="form-control" style="height:34px;font-size:13px;" placeholder="Waiver %">
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;color:#475569;">ছাড় / পুওর ফান্ড সংক্রান্ত নোট</label>
+                            <input type="text" name="waiver_notes" value="{{ $admission->waiver_notes ?? '' }}" placeholder="উদাঃ পুওর ফান্ড অনুমোদন সাপেক্ষে বিশেষ ছাড়" class="form-control" style="height:34px;font-size:13px;">
+                        </div>
+                    </div>
+
+                    {{-- 4. Custom Initial Password --}}
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label style="font-weight:700;color:#1e293b;">
+                            লগইন পাসওয়ার্ড নির্ধারণ (Optional Custom Password)
+                        </label>
+                        <input type="text" name="custom_password" class="form-control" placeholder="খালি রাখলে শিক্ষার্থীর মোবাইল নম্বর পাসওয়ার্ড হিসেবে সেট হবে" style="height:36px;font-size:13px;">
+                        <small style="color:#64748b;font-size:11px;">ডিফল্ট পাসওয়ার্ড শিক্ষার্থীর ফোন নম্বর। পরিবর্তন করতে চাইলে এখানে লিখুন।</small>
+                    </div>
+
+                    {{-- 5. Template Notification Note --}}
+                    <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:10px 12px;font-size:12px;color:#065f46;">
+                        <i class="fa-solid fa-paper-plane"></i> <strong>অটোমেটিক নোটিফিকেশন:</strong>
+                        অনুমোদন নিশ্চিত করার সাথে সাথে নির্বাচিত ব্যাচের জন্য কনফিগার করা ইমেইল ও এসএমএস টেমপ্লেট অনুযায়ী শিক্ষার্থীর রোল এবং পোর্টাল পাসওয়ার্ড সংবলিত বার্তা প্রেরিত হবে।
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('approveModal')">Cancel</button>
-                    <button type="submit" class="btn btn-success">Approve & Activate Student</button>
+                    <button type="button" class="btn btn-outline" onclick="closeModal('approveModal')">বাতিল (Cancel)</button>
+                    <button type="submit" class="btn btn-success" style="background:#047857;border-color:#047857;">
+                        <i class="fa-solid fa-check"></i> অনুমোদন ও সক্রিয় করুন (Confirm &amp; Approve)
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+
+    <script>
+    function onApproveCourseChange(courseSelect) {
+        const courseId = courseSelect.value;
+        const batchSelect = document.getElementById('approve_batch_id');
+        const options = batchSelect.querySelectorAll('option');
+        let firstMatch = null;
+
+        options.forEach(opt => {
+            if (!opt.value) return;
+            const cId = opt.getAttribute('data-course-id');
+            if (cId === courseId) {
+                opt.style.display = '';
+                if (!firstMatch) firstMatch = opt;
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+
+        if (firstMatch) {
+            batchSelect.value = firstMatch.value;
+        } else {
+            batchSelect.value = '';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const courseSelect = document.getElementById('approve_course_id');
+        if (courseSelect) {
+            onApproveCourseChange(courseSelect);
+        }
+    });
+    </script>
 
     <!-- Reject Modal -->
     <div class="modal-overlay" id="rejectModal">

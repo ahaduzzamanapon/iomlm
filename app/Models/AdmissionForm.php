@@ -22,6 +22,7 @@ class AdmissionForm extends Model
     public function student()        { return $this->belongsTo(Student::class); }
     public function interestedCourse(){ return $this->belongsTo(Course::class, 'interested_course_id'); }
     public function batch()           { return $this->belongsTo(Batch::class); }
+    public function circular()        { return $this->belongsTo(AdmissionCircular::class, 'admission_circular_id'); }
     public function session()        { return $this->belongsTo(AcademicSession::class, 'academic_session_id'); }
     public function reviewer()       { return $this->belongsTo(User::class, 'reviewed_by'); }
     public function bloodGroup()     { return $this->belongsTo(BloodGroup::class); }

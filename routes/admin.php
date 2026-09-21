@@ -21,14 +21,22 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::patch('academic-years/{academicYear}/toggle-status', [\App\Http\Controllers\Admin\AcademicYearController::class, 'toggleStatus'])->name('academic-years.toggle-status');
         Route::post('academic-years/{academicYear}/session', [\App\Http\Controllers\Admin\AcademicYearController::class, 'storeSession'])->name('academic-years.session.store');
         Route::delete('academic-years/sessions/{academicSession}', [\App\Http\Controllers\Admin\AcademicYearController::class, 'destroySession'])->name('academic-years.session.destroy');
+        Route::resource('subject-categories', \App\Http\Controllers\Admin\SubjectCategoryController::class);
+        Route::post('subjects/{subject}/clone', [\App\Http\Controllers\Admin\SubjectController::class, 'clone'])->name('subjects.clone');
         Route::resource('subjects', \App\Http\Controllers\Admin\SubjectController::class);
+        Route::post('modules/{module}/clone', [\App\Http\Controllers\Admin\SubjectModuleController::class, 'clone'])->name('modules.clone');
+        Route::post('modules/{module}/toggle-hidden', [\App\Http\Controllers\Admin\SubjectModuleController::class, 'toggleHidden'])->name('modules.toggle-hidden');
         Route::resource('subjects.modules', \App\Http\Controllers\Admin\SubjectModuleController::class)->shallow();
+        Route::resource('assignments', \App\Http\Controllers\Admin\AssignmentController::class);
+        Route::post('assignment-submissions/{submission}/grade', [\App\Http\Controllers\Admin\AssignmentController::class, 'gradeSubmission'])->name('assignments.submissions.grade');
+        Route::post('assignment-submissions/{submission}/override', [\App\Http\Controllers\Admin\AssignmentController::class, 'overrideSubmission'])->name('assignments.submissions.override');
         Route::resource('courses', \App\Http\Controllers\Admin\CourseController::class);
         Route::post('courses/{course}/semesters', [\App\Http\Controllers\Admin\CourseController::class, 'storeSemester'])->name('courses.semesters.store');
         Route::delete('courses/{course}/semesters/{semester}', [\App\Http\Controllers\Admin\CourseController::class, 'destroySemester'])->name('courses.semesters.destroy');
         Route::post('courses/{course}/subjects', [\App\Http\Controllers\Admin\CourseController::class, 'assignSubject'])->name('courses.subjects.assign');
         Route::delete('courses/{course}/subjects/{map}', [\App\Http\Controllers\Admin\CourseController::class, 'removeSubject'])->name('courses.subjects.remove');
         Route::resource('semesters', \App\Http\Controllers\Admin\SemesterController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::resource('program-activities', \App\Http\Controllers\Admin\ProgramActivityController::class);
         Route::resource('holiday-calendar', \App\Http\Controllers\Admin\HolidayCalendarController::class)->only(['index', 'store', 'destroy']);
     });
 
@@ -45,6 +53,12 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::resource('admissions', \App\Http\Controllers\Admin\AdmissionController::class);
         Route::patch('admissions/{admission}/approve', [\App\Http\Controllers\Admin\AdmissionController::class, 'approve'])->name('admissions.approve');
         Route::patch('admissions/{admission}/reject', [\App\Http\Controllers\Admin\AdmissionController::class, 'reject'])->name('admissions.reject');
+        Route::post('admissions/{admission}/send-repayment-email', [\App\Http\Controllers\Admin\AdmissionController::class, 'sendRepaymentEmail'])->name('admissions.send-repayment-email');
+
+        // Admission Circulars (ভর্তি সার্কুলার)
+        Route::post('admission-circulars/{admissionCircular}/clone', [\App\Http\Controllers\Admin\AdmissionCircularController::class, 'clone'])->name('admission-circulars.clone');
+        Route::patch('admission-circulars/{admissionCircular}/toggle', [\App\Http\Controllers\Admin\AdmissionCircularController::class, 'toggle'])->name('admission-circulars.toggle');
+        Route::resource('admission-circulars', \App\Http\Controllers\Admin\AdmissionCircularController::class);
 
         // Poor Fund & Waiver Applications
         Route::get('waiver-applications', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'index'])->name('waiver-applications.index');
@@ -56,12 +70,17 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     // ── 4. Students ─────────────────────────────────────────────────────
     Route::middleware('admin.module:students')->group(function () {
         Route::get('students/export-csv', [\App\Http\Controllers\Admin\StudentController::class, 'exportCsv'])->name('students.export-csv');
+        Route::get('students/search-api', [\App\Http\Controllers\Admin\StudentController::class, 'searchApi'])->name('students.search-api');
         Route::resource('students', \App\Http\Controllers\Admin\StudentController::class);
         Route::get('students/{student}/impersonate', [\App\Http\Controllers\Admin\StudentController::class, 'impersonate'])->name('students.impersonate');
         Route::get('students/{student}/accounts', [\App\Http\Controllers\Admin\AccountsController::class, 'studentLedger'])->name('students.accounts');
         Route::get('students/{student}/grade-sheet', [\App\Http\Controllers\Admin\StudentController::class, 'printGradeSheet'])->name('students.grade-sheet');
         Route::get('students/{student}/certificate', [\App\Http\Controllers\Admin\StudentController::class, 'printCertificate'])->name('students.certificate');
         Route::get('students/{student}/id-card', [\App\Http\Controllers\Admin\StudentController::class, 'printIdCard'])->name('students.id-card');
+        Route::post('students/{student}/toggle-course-access', [\App\Http\Controllers\Admin\StudentController::class, 'toggleCourseAccess'])->name('students.toggle-course-access');
+        Route::post('students/{student}/cancel-admission', [\App\Http\Controllers\Admin\StudentController::class, 'cancelAdmission'])->name('students.cancel-admission');
+        Route::post('students/{student}/reset-password', [\App\Http\Controllers\Admin\StudentController::class, 'resetPassword'])->name('students.reset-password');
+        Route::post('students/{student}/adjust-fee-structure', [\App\Http\Controllers\Admin\StudentController::class, 'adjustFeeStructure'])->name('students.adjust-fee-structure');
     });
 
     // ── 5. Batches, Classes & Routine ───────────────────────────────────
@@ -80,6 +99,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('routine', [\App\Http\Controllers\Admin\RoutineController::class, 'index'])->name('routine.index');
         Route::post('routine/entries', [\App\Http\Controllers\Admin\RoutineController::class, 'store'])->name('routine.entries.store');
         Route::put('routine/entries/{entry}', [\App\Http\Controllers\Admin\RoutineController::class, 'update'])->name('routine.entries.update');
+        Route::post('routine/entries/{entry}/copy', [\App\Http\Controllers\Admin\RoutineController::class, 'copyEntry'])->name('routine.entries.copy');
         Route::delete('routine/entries/{entry}', [\App\Http\Controllers\Admin\RoutineController::class, 'destroy'])->name('routine.entries.destroy');
         Route::post('routine/auto-generate/{batch}', [\App\Http\Controllers\Admin\RoutineController::class, 'autoGenerate'])->name('routine.auto-generate');
         Route::get('routine/unassigned', [\App\Http\Controllers\Admin\RoutineController::class, 'unassigned'])->name('routine.unassigned');
@@ -101,6 +121,9 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('exams/{exam}/regrade', [\App\Http\Controllers\Admin\ExamController::class, 'regradeAll'])->name('exams.regrade');
         Route::get('exams/{exam}/builder', [\App\Http\Controllers\Admin\ExamController::class, 'builder'])->name('exams.builder');
         Route::post('exams/{exam}/questions', [\App\Http\Controllers\Admin\ExamController::class, 'attachQuestion'])->name('exams.questions.attach');
+        Route::post('exams/{exam}/questions/random', [\App\Http\Controllers\Admin\ExamController::class, 'attachRandomQuestions'])->name('exams.questions.random');
+        Route::get('exams/{exam}/test-exam', [\App\Http\Controllers\Admin\ExamController::class, 'testExam'])->name('exams.test-exam');
+        Route::post('exams/{exam}/test-exam/submit', [\App\Http\Controllers\Admin\ExamController::class, 'submitTestExam'])->name('exams.test-exam.submit');
         Route::delete('exams/{exam}/questions/{examQuestion}', [\App\Http\Controllers\Admin\ExamController::class, 'detachQuestion'])->name('exams.questions.detach');
         Route::delete('exams/{exam}/submissions/{submission}', [\App\Http\Controllers\Admin\ExamController::class, 'resetSubmission'])->name('exams.submissions.reset');
         Route::get('exam-appeals', [\App\Http\Controllers\Admin\ExamController::class, 'allAppeals'])->name('exams.appeals.index');
@@ -117,6 +140,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('readmissions/auto-detect', [\App\Http\Controllers\Admin\ReadmissionController::class, 'autoDetect'])->name('readmissions.auto-detect');
 
         // Course Transfers
+        Route::post('course-transfers/manual', [\App\Http\Controllers\Admin\CourseTransferController::class, 'manualTransfer'])->name('course-transfers.manual');
         Route::resource('course-transfers', \App\Http\Controllers\Admin\CourseTransferController::class)->only(['index']);
         Route::post('course-transfers/{courseTransfer}/approve', [\App\Http\Controllers\Admin\CourseTransferController::class, 'approve'])->name('course-transfers.approve');
         Route::post('course-transfers/{courseTransfer}/mark-paid', [\App\Http\Controllers\Admin\CourseTransferController::class, 'markPaid'])->name('course-transfers.mark-paid');
@@ -126,13 +150,22 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('promotions/bulk-promote', [\App\Http\Controllers\Admin\PromotionController::class, 'bulkPromote'])->name('promotions.bulk-promote');
         Route::post('promotions/send-readmission', [\App\Http\Controllers\Admin\PromotionController::class, 'sendReadmission'])->name('promotions.send-readmission');
 
-        // Final Mark Generator
+        // Final Mark Generator & Manual Marking
         Route::get('final-marks', [\App\Http\Controllers\Admin\FinalMarkController::class, 'index'])->name('final-marks.index');
         Route::post('final-marks/generate', [\App\Http\Controllers\Admin\FinalMarkController::class, 'generate'])->name('final-marks.generate');
         Route::get('final-marks/export-csv', [\App\Http\Controllers\Admin\FinalMarkController::class, 'exportCsv'])->name('final-marks.export-csv');
         Route::post('final-marks/update-criteria', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateCriteria'])->name('final-marks.update-criteria');
         Route::patch('final-marks/{finalMark}/update-attendance', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateAttendance'])->name('final-marks.update-attendance');
         Route::get('final-marks/batch-subjects', [\App\Http\Controllers\Admin\FinalMarkController::class, 'getBatchSubjects'])->name('final-marks.batch-subjects');
+        Route::post('final-marks/publish-toggle', [\App\Http\Controllers\Admin\FinalMarkController::class, 'publishToggle'])->name('final-marks.publish-toggle');
+        Route::post('final-marks/auto-attendance', [\App\Http\Controllers\Admin\FinalMarkController::class, 'autoAttendance'])->name('final-marks.auto-attendance');
+        Route::post('final-marks/{finalMark}/manual-mark', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateManualMark'])->name('final-marks.update-manual');
+
+        // Result Book & 6-Semester Consolidated Transcript
+        Route::get('result-book', [\App\Http\Controllers\Admin\ResultBookController::class, 'index'])->name('result-book.index');
+        Route::post('result-book/{finalMark}/override', [\App\Http\Controllers\Admin\ResultBookController::class, 'override'])->name('result-book.override');
+        Route::post('result-book/publish-exam', [\App\Http\Controllers\Admin\ResultBookController::class, 'publishExam'])->name('result-book.publish-exam');
+        Route::get('students/{student}/transcript', [\App\Http\Controllers\Admin\ResultBookController::class, 'transcript'])->name('students.transcript');
     });
 
     // ── 7. Accounts & Financials ────────────────────────────────────────
@@ -141,6 +174,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('accounts/invoices', [\App\Http\Controllers\Admin\AccountsController::class, 'invoices'])->name('accounts.invoices');
         Route::post('accounts/invoices', [\App\Http\Controllers\Admin\AccountsController::class, 'storeInvoice'])->name('accounts.invoices.store');
         Route::put('accounts/invoices/{invoice}', [\App\Http\Controllers\Admin\AccountsController::class, 'updateInvoice'])->name('accounts.invoices.update');
+        Route::patch('accounts/invoices/{invoice}/status', [\App\Http\Controllers\Admin\AccountsController::class, 'updateInvoiceStatus'])->name('accounts.invoices.status');
         Route::delete('accounts/invoices/{invoice}', [\App\Http\Controllers\Admin\AccountsController::class, 'destroyInvoice'])->name('accounts.invoices.destroy');
         Route::post('accounts/invoices/{invoice}/collect', [\App\Http\Controllers\Admin\AccountsController::class, 'collectPayment'])->name('accounts.invoices.collect');
         Route::post('accounts/apply-activation-fees', [\App\Http\Controllers\Admin\AccountsController::class, 'applyActivationFees'])->name('accounts.apply-activation-fees');
@@ -154,9 +188,10 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
 
     // ── 8. Communication, Surveys & Notices ─────────────────────────────
     Route::middleware('admin.module:communication')->group(function () {
-        Route::resource('notices', \App\Http\Controllers\Admin\NoticeController::class)->only(['index', 'store', 'destroy']);
+        Route::resource('notices', \App\Http\Controllers\Admin\NoticeController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::get('notifications', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'index'])->name('notifications.index');
         Route::get('notifications/create', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'create'])->name('notifications.create');
+        Route::get('notifications/{notification}/json', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'showJson'])->name('notifications.show-json');
         Route::post('notifications', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'send'])->name('notifications.send');
 
         // Surveys & Dynamic Forms

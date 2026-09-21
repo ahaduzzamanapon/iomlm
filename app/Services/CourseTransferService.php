@@ -53,7 +53,10 @@ class CourseTransferService
                 'status'       => 'ACTIVE',
             ]);
 
-            // 4. Update CourseTransfer record to COMPLETED
+            // 4. Update Student ID (Course code at digits 5 & 6, Batch at digits 3 & 4)
+            $student->updateCodeForTransferOrReadmission($transfer->toBatch, $transfer->toCourse);
+
+            // 5. Update CourseTransfer record to COMPLETED
             $transfer->update([
                 'status'            => 'COMPLETED',
                 'new_enrollment_id' => $newEnrollment->id,

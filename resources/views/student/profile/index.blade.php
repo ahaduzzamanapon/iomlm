@@ -6,18 +6,42 @@
             <h1 style="font-family:'Kalpurush',sans-serif">আমার প্রোফাইল তথ্য</h1>
             <p style="font-family:'Kalpurush',sans-serif">ব্যক্তিগত, অভিভাবক, ঠিকানা ও শিক্ষাগত তথ্য হালনাগাদ করুন</p>
         </div>
-        <div>
-            @if($percent >= 95)
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            @if($student->is_common_account || (auth()->user() && auth()->user()->is_common_account))
+                <span class="badge" style="background:#2563eb;color:#fff;font-size:13px;padding:6px 14px;font-family:'Kalpurush',sans-serif">
+                    <i class="fa-solid fa-users"></i> সাধারণ শেয়ার্ড আইডি (Common Account)
+                </span>
+            @else
+                <a href="{{ route('student.course-transfers.index') }}" class="btn btn-outline btn-sm" style="font-size:12px;font-family:'Kalpurush',sans-serif;padding:6px 14px">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i> কোর্স পরিবর্তন
+                </a>
+                <a href="{{ route('student.readmissions.index') }}" class="btn btn-sm" style="background:#047857;color:#fff;border:none;font-size:12px;font-family:'Kalpurush',sans-serif;padding:6px 14px;border-radius:6px;font-weight:700">
+                    <i class="fa-solid fa-user-graduate"></i> রি-এডমিশন আবেদন
+                </a>
+            @endif
+            @if($student->is_common_account || (auth()->user() && auth()->user()->is_common_account) || $percent >= 95)
                 <span class="badge badge-success no-dot" style="font-size:13px;padding:6px 14px;font-family:'Kalpurush',sans-serif">
-                    <i class="fa-solid fa-circle-check"></i> প্রোফাইল সম্পন্ন ({{ $percent }}%)
+                    <i class="fa-solid fa-circle-check"></i> সম্পন্ন ({{ ($student->is_common_account || (auth()->user() && auth()->user()->is_common_account)) ? '100' : $percent }}%)
                 </span>
             @else
                 <span class="badge badge-warning no-dot" style="font-size:13px;padding:6px 14px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-family:'Kalpurush',sans-serif">
-                    <i class="fa-solid fa-triangle-exclamation"></i> অসম্পূর্ণ: {{ $percent }}% (প্রয়োজন ৯৫%)
+                    <i class="fa-solid fa-triangle-exclamation"></i> অসম্পূর্ণ ({{ $percent }}%)
                 </span>
             @endif
         </div>
     </div>
+
+    @if($student->is_common_account || (auth()->user() && auth()->user()->is_common_account))
+    <div class="alert" style="background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:14px;font-family:'Kalpurush',sans-serif">
+        <i class="fa-solid fa-circle-info" style="font-size:24px;color:#2563eb;margin-top:2px"></i>
+        <div>
+            <h4 style="margin:0 0 4px;font-weight:700;font-size:16px;color:#1e3a8a">কমন / শেয়ার্ড স্টুডেন্ট অ্যাকাউন্ট (Common Shared Account)</h4>
+            <p style="margin:0;font-size:13.5px;line-height:1.6;color:#1e40af">
+                এই অ্যাকাউন্টটি স্পেশাল কোর্সের একটি সাধারণ (Common) শেয়ার্ড অ্যাকাউন্ট। একাধিক শিক্ষার্থী এই আইডি দিয়ে একযোগে লগইন করে ক্লাস ও রিসোর্স দেখার সুবিধা পান। এই অ্যাকাউন্টের তথ্যের সার্বজনীনতা রক্ষার স্বার্থে প্রোফাইল তথ্য, পাসওয়ার্ড পরিবর্তন বা কোর্স স্থানান্তর নিষিদ্ধ ও নিষ্ক্রিয় রাখা হয়েছে।
+            </p>
+        </div>
+    </div>
+    @endif
 
     {{-- Progress Card --}}
     <div class="card" style="margin-bottom:20px;padding:20px;border-left:5px solid {{ $percent >= 95 ? '#047857' : '#f59e0b' }}">
@@ -141,10 +165,6 @@
                     <div class="form-group">
                         <label>জাতীয়তা <span class="text-danger">*</span></label>
                         <input type="text" name="nationality" class="form-control" value="{{ old('nationality', $student->nationality ?? 'Bangladeshi') }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label>ধর্ম <span class="text-danger">*</span></label>
-                        <input type="text" name="religion" class="form-control" value="{{ old('religion', $student->religion ?? 'Islam') }}" required>
                     </div>
                 </div>
 
@@ -305,9 +325,15 @@
         </div>
 
         <div style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:30px">
-            <button type="submit" class="btn btn-primary" style="padding:12px 30px;font-size:15px;font-weight:700;font-family:'Kalpurush',sans-serif">
-                <i class="fa-solid fa-floppy-disk"></i> প্রোফাইল সংরক্ষণ করুন (Save Profile)
-            </button>
+            @if($student->is_common_account || (auth()->user() && auth()->user()->is_common_account))
+                <button type="button" class="btn btn-secondary" disabled style="padding:12px 30px;font-size:15px;font-weight:700;font-family:'Kalpurush',sans-serif;cursor:not-allowed;background:#94a3b8;border-color:#94a3b8;color:#fff">
+                    <i class="fa-solid fa-lock"></i> কমন অ্যাকাউন্টে প্রোফাইল তথ্য লক করা
+                </button>
+            @else
+                <button type="submit" class="btn btn-primary" style="padding:12px 30px;font-size:15px;font-weight:700;font-family:'Kalpurush',sans-serif">
+                    <i class="fa-solid fa-floppy-disk"></i> প্রোফাইল সংরক্ষণ করুন (Save Profile)
+                </button>
+            @endif
         </div>
     </form>
 

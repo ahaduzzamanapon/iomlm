@@ -134,8 +134,8 @@
             <div class="exam-bar-sub">{{ $exam->subject?->name }} ({{ $exam->subject?->code }}) &middot; {{ $exam->type }}</div>
         </div>
         <div class="exam-bar-right">
-            @if($exam->is_anti_cheating)
-                <span style="font-size:11px;background:#334155;color:#cbd5e1;padding:4px 10px;border-radius:6px">Anti-Cheating</span>
+            @if(!empty($isTestMode))
+                <span style="font-size:12px;background:#f59e0b;color:#fff;padding:4px 10px;border-radius:6px;font-weight:700">🧪 TEST EXAM</span>
             @endif
             <div class="timer-pill" id="timer">{{ $exam->duration_minutes }}:00</div>
         </div>
@@ -143,6 +143,21 @@
 
     {{-- Paper Content --}}
     <div class="paper-wrap">
+
+        @if(!empty($isTestMode))
+            <div style="background:#fef3c7;border:2px solid #f59e0b;color:#92400e;padding:14px 20px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 4px rgba(245,158,11,0.15)">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <span style="font-size:26px">🧪</span>
+                    <div>
+                        <strong style="font-size:16px">টেস্ট এক্সাম মোড (Test Exam Mode)</strong>
+                        <p style="margin:2px 0 0;font-size:13px">শিক্ষক ও অ্যাডমিনদের পরীক্ষার প্রশ্নপত্র, টাইমিং ও ইন্টারফেস যাচাইকরণের জন্য। এতে কোনো শিক্ষার্থীর রেকর্ড বা ডাটাবেস সাবমিশন সংরক্ষিত হবে না।</p>
+                    </div>
+                </div>
+                <a href="{{ $backUrl ?? url()->previous() }}" style="background:#92400e;color:#fff;padding:8px 16px;border-radius:6px;font-size:13px;text-decoration:none;font-weight:600">
+                    ← টেস্ট থেকে বের হন
+                </a>
+            </div>
+        @endif
 
         {{-- Paper Header Card --}}
         <div class="paper-header">
@@ -174,7 +189,7 @@
         </div>
 
         {{-- The Exam Form --}}
-        <form id="examForm" method="POST" action="{{ route('student.exams.submit', $exam) }}" enctype="multipart/form-data">
+        <form id="examForm" method="POST" action="{{ $testSubmitRoute ?? route('student.exams.submit', $exam) }}" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="tab_switch_count" id="tab_switch_count" value="0">
             <input type="hidden" name="is_violation" id="is_violation" value="0">
@@ -231,14 +246,14 @@
                     <div class="q-text">{!! e($q->question_text) !!}</div>
 
                     <div class="written-upload-zone" id="zone-{{ $q->id }}"
-                         onclick="isPickingFile=true; document.getElementById('file-{{ $q->id }}').click()">
+                         onclick="document.getElementById('file-{{ $q->id }}').click()">
                         <input type="file" id="file-{{ $q->id }}"
-                               name="answer_image_{{ $q->id }}"
-                               accept="image/*"
-                               onchange="previewImage({{ $q->id }}, this)"
-                               style="display:none">
+                                name="answer_image_{{ $q->id }}"
+                                accept="image/*"
+                                onchange="previewImage({{ $q->id }}, this)"
+                                style="display:none">
                         <div id="zone-placeholder-{{ $q->id }}">
-                            <div style="font-size:28px;margin-bottom:6px"></div>
+                            <div style="font-size:28px;margin-bottom:6px">📷</div>
                             <div style="font-weight:600;font-size:14px;color:#9d174d">উত্তরের ছবি Upload করুন</div>
                             <div style="font-size:12px;color:#be185d;margin-top:4px">Click করুন বা ছবি Drag করুন</div>
                         </div>
@@ -267,25 +282,10 @@
                     <strong>একবার Submit করলে আর পরিবর্তন করা যাবে না।</strong>
                 </div>
                 <button type="button" class="btn-submit" onclick="confirmSubmit()">
-                    প্রশ্নপত্র জমা দিন (Submit Paper)
+                    {{ !empty($isTestMode) ? 'টেস্ট প্রশ্নপত্র জমা দিন (Submit Test Paper)' : 'প্রশ্নপত্র জমা দিন (Submit Paper)' }}
                 </button>
             </div>
         </form>
-    </div>
-
-    {{-- Anti-Cheat Warning Modal --}}
-    <div class="warning-overlay" id="warningModal">
-        <div class="warning-box">
-            <div style="font-size:48px;margin-bottom:10px"></div>
-            <h2 style="color:#e11d48;margin:0 0 10px">সতর্কতা!</h2>
-            <p style="font-size:14px;color:#475569;margin-bottom:20px">
-                পরীক্ষা চলাকালীন অন্য tab বা window-এ যাওয়া নিষিদ্ধ।<br>
-                সতর্কতা <strong id="warnCount" style="color:#e11d48">1</strong>/3
-            </p>
-            <button onclick="dismissWarning()" style="background:#0f172a;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-weight:700;cursor:pointer">
-                বুঝলাম, পরীক্ষায় ফিরে যাই
-            </button>
-        </div>
     </div>
 
     <script>
@@ -305,7 +305,6 @@
         if (durationSeconds <= 0) {
             clearInterval(countdown);
             timerEl.innerText = '00:00';
-            // Timer expired but we don't force-submit; just show reminder
             timerEl.innerText = 'সময় শেষ';
         }
         durationSeconds--;
@@ -354,7 +353,6 @@
 
     // Written image upload preview
     function previewImage(qId, input) {
-        isPickingFile = false;
         if (!input.files || !input.files[0]) return;
         const file = input.files[0];
         const reader = new FileReader();
@@ -363,7 +361,6 @@
             document.getElementById('preview-name-' + qId).innerText = '' + file.name;
             document.getElementById('zone-placeholder-' + qId).style.display = 'none';
             document.getElementById('preview-' + qId).style.display = 'block';
-            // Mark written as answered too
             answeredSet.add(parseInt(qId));
             const card = document.getElementById('qcard-' + qId);
             if (card) card.classList.add('answered');
@@ -382,51 +379,6 @@
         if (confirm(msg)) {
             document.getElementById('examForm').submit();
         }
-    }
-
-    // ── Anti-Cheating with File Picker Protection ─────────────────────────────
-    let tabSwitches = 0;
-    const isAntiCheating = {{ $exam->is_anti_cheating ? 'true' : 'false' }};
-    let isPickingFile = false;
-
-    // Detect when student opens file chooser dialog
-    document.querySelectorAll('input[type="file"]').forEach(input => {
-        input.addEventListener('click', () => {
-            isPickingFile = true;
-        });
-    });
-
-    window.addEventListener('focus', () => {
-        setTimeout(() => { isPickingFile = false; }, 1500);
-    });
-
-    if (isAntiCheating) {
-        document.addEventListener('visibilitychange', () => {
-            if (isPickingFile) return;
-            if (document.hidden) handleViolation();
-        });
-        window.addEventListener('blur', () => {
-            if (isPickingFile) return;
-            handleViolation();
-        });
-    }
-
-    function handleViolation() {
-        if (isPickingFile) return;
-        tabSwitches++;
-        document.getElementById('tab_switch_count').value = tabSwitches;
-        if (tabSwitches >= 3) {
-            document.getElementById('is_violation').value = '1';
-            alert('গুরুতর লঙ্ঘন: তিনবার Tab/Window পরিবর্তন হয়েছে। স্বয়ংক্রিয়ভাবে Submit হচ্ছে।');
-            document.getElementById('examForm').submit();
-        } else {
-            document.getElementById('warnCount').innerText = tabSwitches;
-            document.getElementById('warningModal').style.display = 'flex';
-        }
-    }
-
-    function dismissWarning() {
-        document.getElementById('warningModal').style.display = 'none';
     }
     </script>
 </body>

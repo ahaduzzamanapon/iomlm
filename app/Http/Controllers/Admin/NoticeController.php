@@ -43,6 +43,29 @@ class NoticeController extends Controller
         return back()->with('success', 'Notice published successfully!');
     }
 
+    public function update(Request $request, Notice $notice)
+    {
+        $validated = $request->validate([
+            'title'           => 'required|string|max:250',
+            'content'         => 'required|string',
+            'target_audience' => 'required|in:ALL,STUDENTS,TEACHERS',
+            'batch_id'        => 'nullable|exists:batches,id',
+            'semester_id'     => 'nullable|exists:semesters,id',
+            'priority'        => 'required|in:NORMAL,IMPORTANT,URGENT',
+        ]);
+
+        $notice->update([
+            'title'           => $validated['title'],
+            'content'         => $validated['content'],
+            'target_audience' => $validated['target_audience'],
+            'batch_id'        => $validated['batch_id'] ?? null,
+            'semester_id'     => $validated['semester_id'] ?? null,
+            'priority'        => $validated['priority'],
+        ]);
+
+        return back()->with('success', 'নোটিশটি সফলভাবে আপডেট করা হয়েছে (Notice updated successfully)!');
+    }
+
     public function destroy(Notice $notice)
     {
         $notice->delete();

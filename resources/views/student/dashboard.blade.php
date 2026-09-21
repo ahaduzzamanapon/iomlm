@@ -40,30 +40,30 @@
         </div>
     </div>
 
-    {{-- Semester & Monthly Fees Overview Widget --}}
+    {{-- ── 1. MONTHLY PAYMENTS SECTION (মান্থলি পেমেন্ট সেকশন) ── --}}
     @if(isset($dashboardMonthly) && count($dashboardMonthly) > 0)
     <div class="card" style="margin-bottom:24px;border-top:4px solid #2563eb;font-family:'Kalpurush',sans-serif">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
             <div>
-                <span class="card-title" style="display:flex;align-items:center;gap:8px;font-size:15px">
-                    <i class="fa-solid fa-receipt" style="color:#2563eb"></i> {{ $runningSemesterName }} — মাসিক ফি কিস্তির বিবরণ (Monthly Fees)
+                <span class="card-title" style="display:flex;align-items:center;gap:8px;font-size:16px;color:#1e40af">
+                    <i class="fa-solid fa-calendar-days" style="color:#2563eb"></i> {{ $runningSemesterName }} — মান্থলি পেমেন্ট (Monthly Fees Breakdown)
                 </span>
                 <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
-                    চলতি সেমিস্টারের মাসভিত্তিক কিস্তির অবস্থা ও পরিশোধের বিবরণ
+                    চলতি সেমিস্টারের মাসভিত্তিক কিস্তির অবস্থা ও পরিশোধের হিসাব
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
                 @if($runningSemDue > 0)
                     <span class="badge badge-danger no-dot" style="font-size:12px;padding:4px 10px">
-                        বকেয়া: ৳{{ number_format($runningSemDue, 0) }}
+                        চলতি সেমিস্টার বকেয়া: ৳{{ number_format($runningSemDue, 0) }}
                     </span>
                 @else
                     <span class="badge badge-success no-dot" style="font-size:12px;padding:4px 10px">
-                        সব পরিশোধিত (Cleared)
+                        চলতি সেমিস্টার পরিশোধিত (Cleared)
                     </span>
                 @endif
-                <a href="{{ route('student.fees.index') }}" class="btn btn-primary btn-sm" style="font-size:12px">
-                    ফি পোর্টাল দেখুন →
+                <a href="{{ route('student.fees.index', ['tab' => 'monthly']) }}" class="btn btn-primary btn-sm" style="font-size:12px">
+                    মান্থলি ফি পরিশোধ →
                 </a>
             </div>
         </div>
@@ -98,6 +98,121 @@
         </div>
     </div>
     @endif
+
+    {{-- ── 2. DUES, PAID, HISTORY & VOUCHERS SECTION (ডিউ পেমেন্ট, পেইড, হিস্ট্রি ও ভাউচার সেকশন) ── --}}
+    <div class="card" style="margin-bottom:24px;border-top:4px solid #059669;font-family:'Kalpurush',sans-serif">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+                <span class="card-title" style="display:flex;align-items:center;gap:8px;font-size:16px;color:#065f46">
+                    <i class="fa-solid fa-file-invoice-dollar" style="color:#059669"></i> ডিউ পেমেন্ট, পরিশোধিত ফি ও ভাউচার (Dues & Payment Vouchers)
+                </span>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+                    বকেয়া ফি পরিশোধ, পরিশোধিত ইনভয়েস তালিকা এবং অফিসিয়াল মানি রসিদ / ভাউচার
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <a href="{{ route('student.fees.index', ['tab' => 'dues']) }}" class="btn btn-outline btn-sm" style="font-size:12px;color:#047857;border-color:#10b981;font-weight:700">
+                    <i class="fa-solid fa-receipt"></i> সম্পূর্ণ একাউন্টস লেজার ও রসিদ →
+                </a>
+            </div>
+        </div>
+
+        {{-- Financial Summary KPI Chips --}}
+        <div style="padding:14px 18px 0 18px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px">
+                <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:10px 14px">
+                    <div style="font-size:11px;color:#9f1239;font-weight:700">সর্বমোট বকেয়া (Total Outstanding Due)</div>
+                    <div style="font-size:20px;font-weight:800;color:#be123c;margin-top:2px">
+                        ৳{{ number_format($totalOverallDue ?? 0, 2) }}
+                    </div>
+                </div>
+                <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 14px">
+                    <div style="font-size:11px;color:#065f46;font-weight:700">সর্বমোট পরিশোধিত (Total Paid)</div>
+                    <div style="font-size:20px;font-weight:800;color:#047857;margin-top:2px">
+                        ৳{{ number_format($totalOverallPaid ?? 0, 2) }}
+                    </div>
+                </div>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px">
+                    <div style="font-size:11px;color:#1e40af;font-weight:700">পরিশোধিত ইনভয়েস সংখ্যা</div>
+                    <div style="font-size:20px;font-weight:800;color:#2563eb;margin-top:2px">
+                        {{ isset($paidInvoices) ? $paidInvoices->count() : 0 }}টি
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:18px">
+            {{-- Outstanding Dues List --}}
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px">
+                <div style="font-size:13.5px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+                    <span><i class="fa-solid fa-clock" style="color:#e11d48"></i> বর্তমান বকেয়া ফি সমূহ (Due List)</span>
+                    <span class="badge badge-danger no-dot" style="font-size:11px">{{ isset($dueInvoices) ? $dueInvoices->count() : 0 }}টি</span>
+                </div>
+                @if(isset($dueInvoices) && $dueInvoices->count() > 0)
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        @foreach($dueInvoices->take(4) as $dInv)
+                        <div style="background:#fff;border:1px solid #fee2e2;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <div style="font-size:12.5px;font-weight:700;color:#0f172a">{{ $dInv->title }}</div>
+                                <div style="font-size:11px;color:#64748b">ইনভয়েস: {{ $dInv->invoice_no }}</div>
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-size:14px;font-weight:800;color:#dc2626">৳{{ number_format($dInv->due_amount, 2) }}</div>
+                                <a href="{{ route('student.fees.index') }}" style="font-size:11px;color:#2563eb;font-weight:700;text-decoration:none">
+                                    পে করুন →
+                                </a>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div style="text-align:center;padding:16px;color:#047857;background:#fff;border-radius:8px;font-size:12.5px">
+                        <i class="fa-solid fa-circle-check" style="font-size:20px;color:#10b981;display:block;margin-bottom:6px"></i>
+                        আলহামদুলিল্লাহ! আপনার কোনো বকেয়া ফি নেই।
+                    </div>
+                @endif
+            </div>
+
+            {{-- Recent Vouchers / Payment History --}}
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px">
+                <div style="font-size:13.5px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+                    <span><i class="fa-solid fa-receipt" style="color:#059669"></i> পেমেন্ট হিস্ট্রি ও ভাউচার (Receipts)</span>
+                    <span class="badge badge-success no-dot" style="font-size:11px">{{ isset($recentVoucherPayments) ? $recentVoucherPayments->count() : 0 }}টি</span>
+                </div>
+                @if(isset($recentVoucherPayments) && $recentVoucherPayments->count() > 0)
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        @foreach($recentVoucherPayments->take(4) as $rPay)
+                        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+                            <div>
+                                <div style="font-size:12.5px;font-weight:700;color:#0f172a">{{ $rPay->invoice->title ?? 'ফি পরিশোধ' }}</div>
+                                <div style="font-size:11px;color:#64748b">
+                                    রসিদ: {{ $rPay->payment_no }} · {{ $rPay->payment_method }}
+                                    @if($rPay->sender_number)
+                                        · বিকাশ: {{ $rPay->sender_number }}
+                                    @endif
+                                </div>
+                            </div>
+                            <div style="text-align:right">
+                                <div style="font-size:13.5px;font-weight:800;color:#047857">৳{{ number_format($rPay->amount, 2) }}</div>
+                                @if(($rPay->status ?? 'APPROVED') === 'APPROVED')
+                                    <a href="{{ route('student.fees.receipt', $rPay) }}" target="_blank" style="font-size:11px;color:#047857;font-weight:700;text-decoration:none">
+                                        <i class="fa-solid fa-print"></i> ভাউচার
+                                    </a>
+                                @else
+                                    <span style="font-size:10.5px;color:#b45309">অপেক্ষমান</span>
+                                @endif
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div style="text-align:center;padding:16px;color:#94a3b8;background:#fff;border-radius:8px;font-size:12.5px">
+                        এখনও কোনো পেমেন্ট রেকর্ড নেই।
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
 
     {{-- Central Notice Board Widget --}}
     @if(isset($notices) && $notices->count() > 0)

@@ -96,7 +96,113 @@
 
     </div>
 
-    {{-- ── ITEMWISE FEE & SEMESTER BREAKDOWN TABLE ── --}}
+    {{-- ── PORTAL NAVIGATION TABS: MONTHLY PAYMENTS vs DUES & VOUCHERS ── --}}
+    <div style="display:flex;gap:12px;margin-bottom:24px;border-bottom:2px solid #e2e8f0;padding-bottom:12px;font-family:'Kalpurush',sans-serif;flex-wrap:wrap">
+        <button type="button" id="tabBtn_monthly" onclick="switchPortalTab('monthly')"
+                style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .2s;background:#2563eb;color:#fff;box-shadow:0 4px 10px rgba(37,99,235,0.25)">
+            <i class="fa-solid fa-calendar-days"></i> মান্থলি পেমেন্ট (Monthly Fees & Installments)
+        </button>
+        <button type="button" id="tabBtn_dues" onclick="switchPortalTab('dues')"
+                style="display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:1.5px solid #cbd5e1;transition:all .2s;background:#fff;color:#475569">
+            <i class="fa-solid fa-file-invoice-dollar"></i> ডিউ সেকশন ও একাউন্টস লেজার (Dues, Paid, History & Vouchers)
+        </button>
+    </div>
+
+    {{-- ═══════════════ TAB 1: MONTHLY PAYMENTS SECTION ═══════════════ --}}
+    {{-- ═══════════════ TAB 1: MONTHLY PAYMENTS SECTION ═══════════════ --}}
+    <div id="portalSection_monthly">
+
+    {{-- ── Step 1: Select Payment Amount (Matching Client Screenshot 1) ── --}}
+    <div class="card" style="margin-bottom:24px;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.04);font-family:'Kalpurush',sans-serif">
+        <div style="background:#38bdf8;color:#fff;padding:12px 20px;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">
+            <i class="fa-solid fa-forward-step"></i> Step 1: Select Payment Amount
+        </div>
+        <div style="padding:20px">
+            {{-- Semester Selector --}}
+            <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+                <label style="font-weight:700;color:#1e293b;font-size:14px">Check Due For:</label>
+                <select id="checkDueSemesterSelect" onchange="location.href='{{ route('student.fees.index') }}?semester_id=' + this.value"
+                        style="padding:6px 16px;border:1.5px solid #10b981;border-radius:6px;font-size:13.5px;font-weight:600;color:#0f172a;background:#fff;outline:none;cursor:pointer">
+                    @foreach($semesterDropdownOptions as $sOpt)
+                        <option value="{{ $sOpt['id'] }}" {{ $selectedSemesterId == $sOpt['id'] ? 'selected' : '' }}>
+                            {{ $sOpt['label'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Prior Due Guard Warning --}}
+            @if($hasPriorSemesterDue && ($selectedSemester?->sequence_no > 1))
+            <div style="background:#fff1f2;border:1.5px solid #fecdd3;border-radius:8px;padding:14px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                <div style="display:flex;align-items:center;gap:10px;color:#9f1239;font-size:13.5px;font-weight:600">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size:18px;color:#e11d48"></i>
+                    <span>
+                        <strong>পূর্বের সেমিস্টারের বকেয়া অপরিশোধিত:</strong> পূর্বের সেমিস্টারের বকেয়া ({{ $priorDueSemesterName }} — ৳{{ number_format($priorDueAmount, 2) }}) পরিশোধ না করা পর্যন্ত রানিং সেমিস্টারের বেতন পরিশোধ করা যাবে না।
+                    </span>
+                </div>
+                @if($priorDueSemesterId)
+                <a href="{{ route('student.fees.index', ['semester_id' => $priorDueSemesterId]) }}"
+                   style="background:#be123c;color:#fff;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fa-solid fa-arrow-left"></i> পূর্বের বকেয়া পরিশোধ করুন
+                </a>
+                @endif
+            </div>
+            @endif
+
+            {{-- Step 1 Particulars Table --}}
+            <div style="max-width:750px;margin:0 auto;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
+                <table style="width:100%;border-collapse:collapse;font-size:13px">
+                    <thead>
+                        <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1">
+                            <th style="padding:10px 14px;width:60px;text-align:center;font-weight:700;color:#334155">#SL</th>
+                            <th style="padding:10px 14px;font-weight:700;color:#334155;text-align:left">Particular Name</th>
+                            <th style="padding:10px 14px;width:150px;text-align:center;font-weight:700;color:#334155">Dues</th>
+                            <th style="padding:10px 14px;width:100px;text-align:center;font-weight:700;color:#334155">Pay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($step1Particulars as $p)
+                        <tr style="border-bottom:1px solid #f1f5f9">
+                            <td style="padding:9px 14px;text-align:center;color:#64748b;font-weight:600">{{ $p['sl'] }}</td>
+                            <td style="padding:9px 14px;font-weight:600;color:#1e293b">{{ $p['name'] }}</td>
+                            <td style="padding:9px 14px;text-align:center">
+                                @if($p['is_paid'])
+                                    <span style="color:#16a34a;font-weight:700">Paid ({{ number_format($p['amount'], 0) }})</span>
+                                @else
+                                    <span style="font-weight:700;color:#0f172a">{{ number_format($p['due'], 0) }}</span>
+                                @endif
+                            </td>
+                            <td style="padding:9px 14px;text-align:center">
+                                @if(!$p['is_paid'])
+                                    @if($hasPriorSemesterDue && ($selectedSemester?->sequence_no > 1))
+                                        <span title="পূর্বের বকেয়া পরিশোধ আবশ্যক" style="display:inline-flex;align-items:center;gap:4px">
+                                            <input type="checkbox" disabled style="cursor:not-allowed">
+                                            <i class="fa-solid fa-lock" style="color:#dc2626;font-size:11px"></i>
+                                        </span>
+                                    @else
+                                        <input type="checkbox" class="step1-chk" data-name="{{ $p['name'] }}" data-amount="{{ $p['due'] }}" onchange="updateStep1Total()" style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a">
+                                    @endif
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Step 1 Action Button --}}
+            <div style="margin-top:20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
+                <div id="step1SelectedSummary" style="font-size:13px;font-weight:700;color:#047857;display:none">
+                    নির্বাচিত মোট: ৳<span id="step1TotalDisplay">0</span> (<span id="step1CountDisplay">0</span>টি আইটেম)
+                </div>
+                <button type="button" onclick="goToStep2Payment()"
+                        style="background:#22c55e;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(34,197,94,0.3);transition:all .2s">
+                    <i class="fa-solid fa-arrow-right"></i> Next (for Step 2)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="card" style="margin-bottom:24px; border-top:3px solid #3b82f6">
         <div class="card-header" style="display:flex; justify-content:space-between; align-items:center">
             <span class="card-title" style="display:flex; align-items:center; gap:8px">
@@ -315,15 +421,23 @@
         </div>
         @endif
     </div>
+    </div>{{-- Close #portalSection_monthly --}}
 
+    {{-- ═══════════════ TAB 2: DUES & VOUCHERS SECTION ═══════════════ --}}
+    <div id="portalSection_dues" style="display:none">
     {{-- ── MY INVOICES & DETAILED FEE STATEMENTS ── --}}
-    <div class="card" style="margin-bottom:24px">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center">
-            <span class="card-title">My Invoices &amp; Detailed Statements</span>
-            <div class="btn-group" id="invFilterGroup" style="display:flex; gap:6px">
-                <button class="btn btn-sm btn-primary filter-btn active" onclick="filterInvoices('all', this)">All Invoices</button>
-                <button class="btn btn-sm btn-outline filter-btn" onclick="filterInvoices('running', this)">Running Semester</button>
-                <button class="btn btn-sm btn-outline filter-btn" onclick="filterInvoices('unpaid', this)">Unpaid</button>
+    <div class="card" style="margin-bottom:24px;border-top:3px solid #059669">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px">
+            <div>
+                <span class="card-title" style="font-size:16px;color:#065f46">
+                    <i class="fa-solid fa-file-invoice-dollar" style="color:#059669;margin-right:6px"></i> ইনভয়েস বিবরণ ও বকেয়া তালিকা (Invoices & Due Statements)
+                </span>
+            </div>
+            <div class="btn-group" id="invFilterGroup" style="display:flex; gap:6px; flex-wrap:wrap">
+                <button class="btn btn-sm btn-primary filter-btn active" onclick="filterInvoices('all', this)">সকল ইনভয়েস (All)</button>
+                <button class="btn btn-sm btn-outline filter-btn" onclick="filterInvoices('unpaid', this)">বকেয়া ইনভয়েস (Due Only)</button>
+                <button class="btn btn-sm btn-outline filter-btn" onclick="filterInvoices('paid', this)">পরিশোধিত (Paid Only)</button>
+                <button class="btn btn-sm btn-outline filter-btn" onclick="filterInvoices('running', this)">চলতি সেমিস্টার</button>
             </div>
         </div>
         <div class="table-wrapper">
@@ -397,60 +511,85 @@
         </div>
     </div>
 
-    {{-- ── PAYMENT RECEIPT HISTORY ── --}}
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">Payment Receipt History</span>
+    {{-- ── PAYMENT RECEIPT HISTORY & VOUCHERS ── --}}
+    <div class="card" style="border-top:3px solid #6366f1">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px">
+            <span class="card-title" style="font-size:16px;color:#3730a3">
+                <i class="fa-solid fa-receipt" style="color:#6366f1;margin-right:6px"></i> পেমেন্ট ট্রানজেকশন হিস্ট্রি ও অফিসিয়াল ভাউচার (Payment History & Receipts)
+            </span>
+            <span style="font-size:12px;color:var(--text-muted)">সকল অনুমোদিত ও প্রক্রিয়াধীন লেনদেন</span>
         </div>
         <div class="table-wrapper">
             <table>
                 <thead>
                     <tr>
-                        <th>Receipt No</th>
-                        <th>Invoice Purpose</th>
-                        <th>Amount Paid</th>
-                        <th>Payment Method</th>
-                        <th>Status</th>
-                        <th>Date &amp; Time</th>
-                        <th style="text-align:center">Action</th>
+                        <th>রসিদ নং (Receipt)</th>
+                        <th>ফি বিবরণ (Purpose)</th>
+                        <th>পরিশোধিত টাকা</th>
+                        <th>পেমেন্ট মেথড</th>
+                        <th>বিকাশ / প্রেরক নম্বর</th>
+                        <th>ট্রানজেকশন আইডি (TrxID)</th>
+                        <th>স্ট্যাটাস</th>
+                        <th>তারিখ ও সময়</th>
+                        <th style="text-align:center">ভাউচার / রসিদ</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($payments as $pay)
                     <tr>
-                        <td style="font-weight:700;color:#6366f1;font-size:12px">{{ $pay->payment_no }}</td>
-                        <td class="td-primary">{{ $pay->invoice->title ?? '—' }}</td>
-                        <td><strong style="color:#10b981">৳{{ number_format($pay->amount, 2) }}</strong></td>
-                        <td><span class="badge badge-secondary no-dot">{{ $pay->payment_method }}</span></td>
+                        <td style="font-weight:700;color:#6366f1;font-size:12px;font-family:monospace">{{ $pay->payment_no }}</td>
+                        <td class="td-primary">
+                            <strong>{{ $pay->invoice->title ?? '—' }}</strong>
+                            <div style="font-size:11px;color:#64748b">{{ $pay->invoice?->invoice_no ?? '' }}</div>
+                        </td>
+                        <td><strong style="color:#10b981;font-size:14px">৳{{ number_format($pay->amount, 2) }}</strong></td>
+                        <td><span class="badge badge-secondary no-dot" style="font-weight:700">{{ $pay->payment_method }}</span></td>
                         <td>
-                            @if(($pay->status ?? 'APPROVED') === 'APPROVED')
-                                <span class="badge badge-success no-dot" style="font-size:11px">Approved</span>
-                            @elseif(($pay->status ?? 'APPROVED') === 'PENDING')
-                                <span class="badge badge-warning no-dot" style="font-size:11px">⏳ Pending Approval</span>
+                            @if($pay->sender_number)
+                                <span style="font-family:monospace;font-size:12px;color:#047857;font-weight:700">
+                                    <i class="fa-solid fa-mobile-screen"></i> {{ $pay->sender_number }}
+                                </span>
                             @else
-                                <span class="badge badge-danger no-dot" style="font-size:11px">Rejected</span>
+                                <span style="color:#94a3b8">—</span>
                             @endif
                         </td>
-                        <td class="td-muted" style="font-size:12px">{{ $pay->paid_at ? \Carbon\Carbon::parse($pay->paid_at)->format('d M Y, h:i A') : '—' }}</td>
-                        <td style="text-align:center">
+                        <td style="font-family:monospace;font-size:12px">
+                            @if($pay->transaction_id)
+                                <strong style="color:#2563eb">{{ $pay->transaction_id }}</strong>
+                            @else
+                                <span style="color:#94a3b8">—</span>
+                            @endif
+                        </td>
+                        <td>
                             @if(($pay->status ?? 'APPROVED') === 'APPROVED')
-                                <a href="{{ route('student.fees.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm">
-                                    Download Receipt
+                                <span class="badge badge-success no-dot" style="font-size:11px">অনুমোদিত (Approved)</span>
+                            @elseif(($pay->status ?? 'APPROVED') === 'PENDING')
+                                <span class="badge badge-warning no-dot" style="font-size:11px">⏳ যাচাই অপেক্ষমান</span>
+                            @else
+                                <span class="badge badge-danger no-dot" style="font-size:11px">বাতিল (Rejected)</span>
+                            @endif
+                        </td>
+                        <td class="td-muted" style="font-size:12px;white-space:nowrap">{{ $pay->paid_at ? \Carbon\Carbon::parse($pay->paid_at)->format('d M Y, h:i A') : '—' }}</td>
+                        <td style="text-align:center;white-space:nowrap">
+                            @if(($pay->status ?? 'APPROVED') === 'APPROVED')
+                                <a href="{{ route('student.fees.receipt', $pay) }}" target="_blank" class="btn btn-outline btn-sm" style="font-size:11px;display:inline-flex;align-items:center;gap:4px">
+                                    <i class="fa-solid fa-print"></i> ভাউচার ডাউনলোড
                                 </a>
                             @else
-                                <span style="font-size:11px; color:#b45309; font-style:italic">⏳ Verification Pending</span>
+                                <span style="font-size:11px; color:#b45309; font-style:italic">⏳ অনুমোদন বাকি</span>
                             @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No payment transactions recorded yet.</td>
+                        <td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted)">এখনও কোনো পেমেন্ট রেকর্ড পাওয়া যায়নি।</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
+    </div>{{-- Close #portalSection_dues --}}
 
     {{-- ── INTERACTIVE PAYMENT MODAL ── --}}
     <style>
@@ -565,19 +704,24 @@
                     </div>
 
                     {{-- Manual Fields (Hidden by default) --}}
-                    <div id="manualPaymentFields" style="display:none; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:10px; padding:12px; margin-top:10px">
+                    <div id="manualPaymentFields" style="display:none; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:10px; padding:14px; margin-top:10px">
                         <div style="margin-bottom:10px">
                             <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">ম্যানুয়াল মাধ্যম নির্বাচন করুন</label>
                             <select id="manualMethodSelect" class="form-control" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px" onchange="onManualMethodChange(this.value)">
-                                <option value="BANK_TRANSFER">ব্যাংক ডিপোজিট / স্লিপ (Bank Transfer)</option>
-                                <option value="CASH">সরাসরি অফিস ক্যাশ (Cash at Office)</option>
+                                <option value="BKASH" selected>ম্যানুয়াল বিকাশ ট্রানজেকশন (bKash Manual Send Money / Payment)</option>
                                 <option value="NAGAD">নগদ ম্যানুয়াল ট্রানজেকশন (Nagad TrxID)</option>
                                 <option value="ROCKET">রকেট ম্যানুয়াল ট্রানজেকশন (Rocket TrxID)</option>
+                                <option value="BANK_TRANSFER">ব্যাংক ডিপোজিট / স্লিপ (Bank Transfer)</option>
+                                <option value="CASH">সরাসরি অফিস ক্যাশ (Cash at Office)</option>
                             </select>
                         </div>
+                        <div style="margin-bottom:10px">
+                            <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">বিকাশ / প্রেরক মোবাইল নম্বর (Sender Mobile No)</label>
+                            <input type="text" name="sender_number" id="manualSenderInput" placeholder="যেমন: 01712345678 বা আপনার বিকাশ নম্বর" class="form-control" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; box-sizing:border-box">
+                        </div>
                         <div>
-                            <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">Transaction ID / রেফারেন্স (যদি থাকে)</label>
-                            <input type="text" name="transaction_id" id="manualTrxInput" placeholder="যেমন: 8N7A6B5C4D" class="form-control" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; box-sizing:border-box">
+                            <label style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">Transaction ID / রেফারেন্স ট্রানজেকশন আইডি (TrxID)</label>
+                            <input type="text" name="transaction_id" id="manualTrxInput" placeholder="যেমন: 8N7A6B5C4D (বিকাশ TrxID)" class="form-control" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; box-sizing:border-box">
                         </div>
                     </div>
                 </div>
@@ -832,9 +976,96 @@
         };
     }
 
+    function updateStep1Total() {
+        const chks = document.querySelectorAll('.step1-chk:checked');
+        let total = 0;
+        chks.forEach(c => total += parseFloat(c.dataset.amount) || 0);
+
+        const summaryEl = document.getElementById('step1SelectedSummary');
+        const totalDisp = document.getElementById('step1TotalDisplay');
+        const countDisp = document.getElementById('step1CountDisplay');
+
+        if (chks.length > 0) {
+            summaryEl.style.display = 'block';
+            totalDisp.innerText = Math.round(total).toLocaleString('en-BD');
+            countDisp.innerText = chks.length;
+        } else {
+            summaryEl.style.display = 'none';
+        }
+    }
+
+    function goToStep2Payment() {
+        const chks = document.querySelectorAll('.step1-chk:checked');
+        if (chks.length === 0) {
+            alert('অনুগ্রহ করে ফি পরিশোধ করতে কমপক্ষে একটি ফি আইটেম নির্বাচন করুন। (Please select at least one fee item to proceed to Step 2)');
+            return;
+        }
+
+        let total = 0;
+        let names = [];
+        chks.forEach(c => {
+            total += parseFloat(c.dataset.amount) || 0;
+            names.push(c.dataset.name);
+        });
+
+        const invoiceId = "{{ $selectedSemesterInvoice?->id ?? ($invoices->first()?->id ?? '') }}";
+        const invoiceNo = "{{ $selectedSemesterInvoice?->invoice_no ?? ($invoices->first()?->invoice_no ?? 'INV-001') }}";
+        const title = "{{ $selectedSemester?->name ?? 'সেমিস্টার ফি' }} — " + names.join(', ');
+        const totalDue = parseFloat("{{ $totalDue }}") || total;
+
+        openPayModal(invoiceId, title, invoiceNo, totalDue, total, names.join(', '), {{ $monthlyTuition ?? 500 }});
+    }
+
     function closePayModal() {
         document.getElementById('payInvoiceModal').style.display = 'none';
     }
+
+    function switchPortalTab(tab) {
+        const secMonthly = document.getElementById('portalSection_monthly');
+        const secDues = document.getElementById('portalSection_dues');
+        const btnMonthly = document.getElementById('tabBtn_monthly');
+        const btnDues = document.getElementById('tabBtn_dues');
+
+        if (!secMonthly || !secDues || !btnMonthly || !btnDues) return;
+
+        if (tab === 'dues') {
+            secMonthly.style.display = 'none';
+            secDues.style.display = 'block';
+
+            btnDues.style.background = '#059669';
+            btnDues.style.color = '#fff';
+            btnDues.style.border = 'none';
+            btnDues.style.boxShadow = '0 4px 10px rgba(5,150,105,0.25)';
+
+            btnMonthly.style.background = '#fff';
+            btnMonthly.style.color = '#475569';
+            btnMonthly.style.border = '1.5px solid #cbd5e1';
+            btnMonthly.style.boxShadow = 'none';
+        } else {
+            secMonthly.style.display = 'block';
+            secDues.style.display = 'none';
+
+            btnMonthly.style.background = '#2563eb';
+            btnMonthly.style.color = '#fff';
+            btnMonthly.style.border = 'none';
+            btnMonthly.style.boxShadow = '0 4px 10px rgba(37,99,235,0.25)';
+
+            btnDues.style.background = '#fff';
+            btnDues.style.color = '#475569';
+            btnDues.style.border = '1.5px solid #cbd5e1';
+            btnDues.style.boxShadow = 'none';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        if (tab === 'dues') {
+            switchPortalTab('dues');
+        } else {
+            switchPortalTab('monthly');
+        }
+    });
 
     function filterInvoices(type, btn) {
         document.querySelectorAll('.filter-btn').forEach(b => {
@@ -852,6 +1083,8 @@
                 r.style.display = r.classList.contains('row-running') ? '' : 'none';
             } else if (type === 'unpaid') {
                 r.style.display = r.classList.contains('row-unpaid') ? '' : 'none';
+            } else if (type === 'paid') {
+                r.style.display = r.classList.contains('row-paid') ? '' : 'none';
             }
         });
     }

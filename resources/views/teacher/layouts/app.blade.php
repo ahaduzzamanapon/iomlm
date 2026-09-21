@@ -210,6 +210,10 @@
                 <i class="fa-solid fa-file-circle-question"></i>
                 Re-Exam Appeals (আপিল)
             </a>
+            <a href="{{ route('teacher.assignments.index') }}" class="nav-item {{ request()->routeIs('teacher.assignments*') ? 'active' : '' }}">
+                <i class="fa-solid fa-file-signature"></i>
+                অ্যাসাইনমেন্ট (Assignments)
+            </a>
             <a href="{{ route('teacher.results.index') }}" class="nav-item {{ request()->routeIs('teacher.results*') ? 'active' : '' }}">
                 <i class="fa-solid fa-square-poll-horizontal"></i>
                 Submit Results

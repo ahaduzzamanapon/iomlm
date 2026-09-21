@@ -31,6 +31,10 @@
             <span class="badge badge-secondary no-dot" style="margin-left:4px;background:rgba(139,92,246,.15);color:#7c3aed">{{ $publicCount }}</span>
             @if($publicPending > 0)<span class="badge no-dot" style="background:#ef4444;color:#fff;margin-left:4px">{{ $publicPending }}</span>@endif
         </a>
+        <a href="?tab=unpaid" class="tab-item {{ $tab === 'unpaid' ? 'active' : '' }}">
+            <i class="fa-solid fa-credit-card"></i> Unpaid (অপরিশোধিত)
+            <span class="badge badge-secondary no-dot" style="margin-left:4px;background:#fef3c7;color:#b45309">{{ $unpaidCount ?? 0 }}</span>
+        </a>
     </div>
 
     {{-- Status filter row --}}
@@ -59,13 +63,62 @@
                         <th>Applicant</th>
                         <th>Course / Session</th>
                         <th>Applied On</th>
-                        <th>Status</th>
+                        <th>Payment</th>
+                        <th>Status &amp; Reviewer</th>
                         <th style="text-align:right">Action</th>
                     </tr>
                 </thead>
                 <tbody>
+                    @php
+                        $paidIds = isset($allPaidFormIds) ? $allPaidFormIds->toArray() : [];
+                    @endphp
+
+                    {{-- ── Unpaid Tab Applications ── --}}
+                    @if($tab === 'unpaid')
+                        @forelse($unpaidApplications ?? [] as $unp)
+                        <tr>
+                            <td>
+                                <span class="badge no-dot" style="background:rgba(239,68,68,.1);color:#dc2626;font-size:11px"><i class="fa-solid fa-clock"></i> Unpaid</span>
+                                <div style="font-size:10px;color:var(--text-muted);margin-top:2px">{{ $unp->application_no }}</div>
+                            </td>
+                            <td class="td-primary">
+                                <strong>{{ $unp->student->name ?? $unp->applicant_name }}</strong>
+                                <div class="td-muted">{{ $unp->student->phone ?? $unp->phone }}</div>
+                            </td>
+                            <td style="font-size:12px">
+                                {{ $unp->interestedCourse->name ?? '—' }}
+                                <div class="td-muted">৳ {{ number_format($unp->interestedCourse->admission_fee ?? 0, 0) }}</div>
+                            </td>
+                            <td class="td-muted">{{ $unp->created_at->format('d M Y') }}</td>
+                            <td>
+                                <span class="badge" style="background:#fee2e2;color:#991b1b;"><i class="fa-solid fa-circle-xmark"></i> Unpaid</span>
+                            </td>
+                            <td>
+                                @if($unp->status === 'APPROVED')
+                                    <span class="badge badge-active">Approved</span>
+                                @elseif($unp->status === 'REJECTED')
+                                    <span class="badge badge-cancelled">Rejected</span>
+                                @else
+                                    <span class="badge badge-pending">Pending</span>
+                                @endif
+                            </td>
+                            <td style="text-align:right;white-space:nowrap;">
+                                <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $unp) }}" style="display:inline;" onsubmit="return confirm('আবেদনকারীর কাছে রি-পেমেন্ট মেইল পাঠাতে চান?')">
+                                    @csrf
+                                    <button type="submit" class="btn btn-outline btn-sm" style="color:#b45309;border-color:#fde68a;background:#fffbeb;" title="Send Re-Payment Email">
+                                        <i class="fa-solid fa-paper-plane"></i> রি-পেমেন্ট মেইল পাঠান
+                                    </button>
+                                </form>
+                                <a href="{{ route('admin.admissions.show', $unp) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted)">কোনো অপরিশোধিত (Unpaid) আবেদন পাওয়া যায়নি।</td></tr>
+                        @endforelse
+                    @endif
+
                     {{-- ── Admin-created Admissions ── --}}
-                    @if($tab !== 'public')
+                    @if($tab !== 'public' && $tab !== 'unpaid')
                         @forelse($adminAdmissions as $adm)
                         <tr>
                             <td>
@@ -84,25 +137,46 @@
                             </td>
                             <td class="td-muted">{{ $adm->created_at->format('d M Y') }}</td>
                             <td>
+                                @if(in_array($adm->id, $paidIds) || ($adm->interestedCourse && $adm->interestedCourse->admission_fee == 0))
+                                    <span class="badge badge-active" style="background:#dcfce7;color:#166534;"><i class="fa-solid fa-circle-check"></i> Paid</span>
+                                @else
+                                    <span class="badge" style="background:#fee2e2;color:#991b1b;"><i class="fa-solid fa-circle-xmark"></i> Unpaid</span>
+                                @endif
+                            </td>
+                            <td>
                                 @if($adm->status === 'PENDING')
                                     <span class="badge badge-pending">Pending</span>
                                 @elseif($adm->status === 'APPROVED')
                                     <span class="badge badge-active">Approved</span>
+                                    <div style="font-size:11px;color:#15803d;margin-top:2px;">
+                                        অনুমোদনকারী: <strong>{{ $adm->reviewer->name ?? 'এডমিন' }}</strong>
+                                    </div>
                                 @else
                                     <span class="badge badge-cancelled">Rejected</span>
+                                    <div style="font-size:11px;color:#991b1b;margin-top:2px;">
+                                        পর্যালোচক: {{ $adm->reviewer->name ?? 'এডমিন' }}
+                                    </div>
                                 @endif
                             </td>
-                            <td style="text-align:right">
+                            <td style="text-align:right;white-space:nowrap;">
+                                @if(!in_array($adm->id, $paidIds) && ($adm->interestedCourse && $adm->interestedCourse->admission_fee > 0))
+                                    <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $adm) }}" style="display:inline;" onsubmit="return confirm('আবেদনকারীর কাছে রি-পেমেন্ট মেইল পাঠাতে চান?')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:#b45309;border-color:#fde68a;background:#fffbeb;" title="Send Re-Payment Email">
+                                            <i class="fa-solid fa-paper-plane"></i> রি-পেমেন্ট মেইল
+                                        </button>
+                                    </form>
+                                @endif
                                 <a href="{{ route('admin.admissions.show', $adm) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</a>
                             </td>
                         </tr>
                         @empty
-                        @if($tab === 'admin')<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted)">No admin-added admissions found.</td></tr>@endif
+                        @if($tab === 'admin')<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted)">No admin-added admissions found.</td></tr>@endif
                         @endforelse
                     @endif
 
                     {{-- ── Public Form Applications ── --}}
-                    @if($tab !== 'admin')
+                    @if($tab !== 'admin' && $tab !== 'unpaid')
                         @forelse($publicApplications as $pub)
                         <tr>
                             <td>
@@ -122,27 +196,48 @@
                             </td>
                             <td class="td-muted">{{ $pub->created_at->format('d M Y') }}</td>
                             <td>
+                                @if(in_array($pub->id, $paidIds) || ($pub->interestedCourse && $pub->interestedCourse->admission_fee == 0))
+                                    <span class="badge badge-active" style="background:#dcfce7;color:#166534;"><i class="fa-solid fa-circle-check"></i> Paid</span>
+                                @else
+                                    <span class="badge" style="background:#fee2e2;color:#991b1b;"><i class="fa-solid fa-circle-xmark"></i> Unpaid</span>
+                                @endif
+                            </td>
+                            <td>
                                 @if($pub->status === 'PENDING')
                                     <span class="badge badge-pending">Pending</span>
                                 @elseif($pub->status === 'APPROVED')
                                     <span class="badge badge-active">Approved</span>
+                                    <div style="font-size:11px;color:#15803d;margin-top:2px;">
+                                        অনুমোদনকারী: <strong>{{ $pub->reviewer->name ?? 'এডমিন' }}</strong>
+                                    </div>
                                 @elseif($pub->status === 'REVIEWED')
                                     <span class="badge badge-scheduled">Reviewed</span>
                                 @else
                                     <span class="badge badge-cancelled">Rejected</span>
+                                    <div style="font-size:11px;color:#991b1b;margin-top:2px;">
+                                        পর্যালোচক: {{ $pub->reviewer->name ?? 'এডমিন' }}
+                                    </div>
                                 @endif
                             </td>
-                            <td style="text-align:right">
+                            <td style="text-align:right;white-space:nowrap;">
+                                @if(!in_array($pub->id, $paidIds) && ($pub->interestedCourse && $pub->interestedCourse->admission_fee > 0))
+                                    <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $pub) }}" style="display:inline;" onsubmit="return confirm('আবেদনকারীর কাছে রি-পেমেন্ট মেইল পাঠাতে চান?')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:#b45309;border-color:#fde68a;background:#fffbeb;" title="Send Re-Payment Email">
+                                            <i class="fa-solid fa-paper-plane"></i> রি-পেমেন্ট মেইল পাঠান
+                                        </button>
+                                    </form>
+                                @endif
                                 <a href="{{ route('admin.admissions.show', $pub) }}" class="btn btn-outline btn-sm"><i class="fa-solid fa-eye"></i> View</a>
                             </td>
                         </tr>
                         @empty
-                        @if($tab === 'public')<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--text-muted)">No public applications found.</td></tr>@endif
+                        @if($tab === 'public')<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text-muted)">No public applications found.</td></tr>@endif
                         @endforelse
                     @endif
 
                     @if($tab === 'all' && $adminAdmissions->isEmpty() && $publicApplications->isEmpty())
-                    <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">No applications found.</td></tr>
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No applications found.</td></tr>
                     @endif
                 </tbody>
             </table>

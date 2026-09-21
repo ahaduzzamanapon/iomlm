@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Question;
 use App\Models\Subject;
+use App\Models\Batch;
+use App\Models\Semester;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -14,12 +16,14 @@ class QuestionController extends Controller
     {
         $search     = $request->query('search');
         $subjectId  = $request->query('subject_id');
+        $batchId    = $request->query('batch_id');
+        $semesterId = $request->query('semester_id');
         $difficulty = $request->query('difficulty');
         $examType   = $request->query('exam_type');
         $sourceTag  = $request->query('source_tag');
         $typeFilter = $request->query('type'); // MCQ or WRITTEN
 
-        $query = Question::with('subject')->latest();
+        $query = Question::with(['subject', 'batch', 'semester'])->latest();
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -30,6 +34,14 @@ class QuestionController extends Controller
 
         if ($subjectId) {
             $query->where('subject_id', $subjectId);
+        }
+
+        if ($batchId) {
+            $query->where('batch_id', $batchId);
+        }
+
+        if ($semesterId) {
+            $query->where('semester_id', $semesterId);
         }
 
         if ($difficulty) {
@@ -50,11 +62,14 @@ class QuestionController extends Controller
 
         $questions  = $query->paginate(20)->withQueryString();
         $subjects   = Subject::where('is_active', true)->orderBy('name')->get();
+        $batches    = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+        $semesters  = Semester::where('is_active', true)->orderBy('sequence_no')->get();
         $sourceTags = Question::whereNotNull('source_tag')->where('source_tag', '!=', '')->distinct()->pluck('source_tag')->filter()->values();
         $examTypes  = ['CT', 'MID', 'FINAL', 'QUIZ', 'PRACTICE'];
 
         return view('admin.questions.index', compact(
-            'questions', 'subjects', 'search', 'subjectId', 'difficulty', 'examType', 'sourceTag', 'typeFilter', 'sourceTags', 'examTypes'
+            'questions', 'subjects', 'batches', 'semesters',
+            'search', 'subjectId', 'batchId', 'semesterId', 'difficulty', 'examType', 'sourceTag', 'typeFilter', 'sourceTags', 'examTypes'
         ));
     }
 
@@ -65,6 +80,8 @@ class QuestionController extends Controller
         if ($type === 'MCQ') {
             $validated = $request->validate([
                 'subject_id'        => 'nullable|exists:subjects,id',
+                'batch_id'          => 'nullable|exists:batches,id',
+                'semester_id'       => 'nullable|exists:semesters,id',
                 'question_text'     => 'required|string',
                 'option_a'          => 'required|string',
                 'option_b'          => 'required|string',
@@ -87,6 +104,8 @@ class QuestionController extends Controller
             Question::create([
                 'question_type'     => 'MCQ',
                 'subject_id'        => $validated['subject_id'] ?? null,
+                'batch_id'          => $validated['batch_id'] ?? null,
+                'semester_id'       => $validated['semester_id'] ?? null,
                 'question_text'     => $validated['question_text'],
                 'options'           => $options,
                 'correct_option_id' => $validated['correct_option_id'],
@@ -98,6 +117,8 @@ class QuestionController extends Controller
         } else {
             $validated = $request->validate([
                 'subject_id'    => 'nullable|exists:subjects,id',
+                'batch_id'      => 'nullable|exists:batches,id',
+                'semester_id'   => 'nullable|exists:semesters,id',
                 'question_text' => 'required|string',
                 'difficulty'    => 'required|in:easy,medium,hard',
                 'exam_type'     => 'nullable|string|max:50',
@@ -107,6 +128,8 @@ class QuestionController extends Controller
             Question::create([
                 'question_type'     => 'WRITTEN',
                 'subject_id'        => $validated['subject_id'] ?? null,
+                'batch_id'          => $validated['batch_id'] ?? null,
+                'semester_id'       => $validated['semester_id'] ?? null,
                 'question_text'     => $validated['question_text'],
                 'difficulty'        => $validated['difficulty'],
                 'exam_type'         => $validated['exam_type'] ?? null,
@@ -126,6 +149,8 @@ class QuestionController extends Controller
         if ($question->question_type === 'MCQ') {
             $validated = $request->validate([
                 'subject_id'        => 'nullable|exists:subjects,id',
+                'batch_id'          => 'nullable|exists:batches,id',
+                'semester_id'       => 'nullable|exists:semesters,id',
                 'question_text'     => 'required|string',
                 'option_a'          => 'required|string',
                 'option_b'          => 'required|string',
@@ -147,6 +172,8 @@ class QuestionController extends Controller
 
             $question->update([
                 'subject_id'        => $validated['subject_id'] ?? null,
+                'batch_id'          => $validated['batch_id'] ?? null,
+                'semester_id'       => $validated['semester_id'] ?? null,
                 'question_text'     => $validated['question_text'],
                 'options'           => $options,
                 'correct_option_id' => $validated['correct_option_id'],
@@ -158,6 +185,8 @@ class QuestionController extends Controller
         } else {
             $validated = $request->validate([
                 'subject_id'    => 'nullable|exists:subjects,id',
+                'batch_id'      => 'nullable|exists:batches,id',
+                'semester_id'   => 'nullable|exists:semesters,id',
                 'question_text' => 'required|string',
                 'difficulty'    => 'required|in:easy,medium,hard',
                 'exam_type'     => 'nullable|string|max:50',
@@ -166,6 +195,8 @@ class QuestionController extends Controller
 
             $question->update([
                 'subject_id'    => $validated['subject_id'] ?? null,
+                'batch_id'      => $validated['batch_id'] ?? null,
+                'semester_id'   => $validated['semester_id'] ?? null,
                 'question_text' => $validated['question_text'],
                 'difficulty'    => $validated['difficulty'],
                 'exam_type'     => $validated['exam_type'] ?? null,

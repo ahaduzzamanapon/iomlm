@@ -9,8 +9,9 @@ class Assignment extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'due_datetime' => 'datetime',
-        'total_marks'  => 'float',
+        'start_datetime' => 'datetime',
+        'due_datetime'   => 'datetime',
+        'total_marks'    => 'float',
     ];
 
     public function subject()
@@ -31,5 +32,26 @@ class Assignment extends Model
     public function submissions()
     {
         return $this->hasMany(AssignmentSubmission::class);
+    }
+
+    public function isOpen(): bool
+    {
+        $now = now();
+        $start = $this->start_datetime ?? $this->created_at;
+        $due = $this->due_datetime;
+
+        return ($start <= $now) && (!$due || $due >= $now);
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->due_datetime && $this->due_datetime < now();
+    }
+
+    public function submissionForStudent(?int $studentId): ?AssignmentSubmission
+    {
+        if (!$studentId) return null;
+        return $this->submissions->firstWhere('student_id', $studentId)
+            ?? $this->submissions()->where('student_id', $studentId)->first();
     }
 }

@@ -63,6 +63,10 @@ class CourseTransferController extends Controller
     {
         $student = Student::where('user_id', auth()->id())->firstOrFail();
 
+        if ($student->is_common_account || (auth()->user() && auth()->user()->is_common_account)) {
+            return back()->with('error', 'কমন শেয়ার্ড অ্যাকাউন্টের জন্য কোর্স পরিবর্তন আবেদন করার অনুমতি নেই।');
+        }
+
         $activeEnrollment = Enrollment::where('student_id', $student->id)
             ->where('status', 'ACTIVE')
             ->latest()

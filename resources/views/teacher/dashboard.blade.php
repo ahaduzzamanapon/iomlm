@@ -40,6 +40,65 @@
         </div>
     </div>
 
+    <!-- Weekly Routine Timetable Calendar -->
+    <div class="card" style="margin-bottom: 24px; font-family: 'Kalpurush', sans-serif;">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:8px;background:#e0f2fe;color:#0284c7;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                    <i class="fa-solid fa-calendar-week"></i>
+                </div>
+                <div>
+                    <span class="card-title" style="font-size:16px;font-weight:700;color:#1e293b;">আমার সাপ্তাহিক ক্লাস রুটিন ক্যালেন্ডার (Weekly Routine Timetable)</span>
+                    <div style="font-size:12px;color:#64748b;">সপ্তাহের প্রতিদিনের নির্ধারিত ক্লাস ও সময়ের সার্বিক বিবরণী</div>
+                </div>
+            </div>
+            <a href="{{ route('teacher.routine.index') }}" class="btn btn-sm btn-outline" style="color:#0284c7;border-color:#bae6fd;font-weight:600;">
+                পূর্ণাঙ্গ রুটিন দেখুন →
+            </a>
+        </div>
+        <div class="card-body" style="padding:16px;">
+            <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));gap:12px;">
+                @foreach($daysOfWeek as $dayKey => $dayLabel)
+                    @php
+                        $dayEntries = $weeklyRoutine->get($dayKey, collect());
+                        $isToday = (strtoupper(now()->format('D')) === substr($dayKey, 0, 3));
+                    @endphp
+                    <div style="background:{{ $isToday ? '#f0fdf4' : '#ffffff' }};border:{{ $isToday ? '2px solid #22c55e' : '1px solid #e2e8f0' }};border-radius:10px;padding:12px;display:flex;flex-direction:column;min-height:160px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                        <div style="padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid {{ $isToday ? '#bbf7d0' : '#f1f5f9' }};display:flex;justify-content:space-between;align-items:center;">
+                            <strong style="font-size:13px;color:{{ $isToday ? '#15803d' : '#1e293b' }};">{{ $dayLabel }}</strong>
+                            @if($isToday)
+                                <span style="background:#22c55e;color:#fff;font-size:9px;font-weight:bold;padding:1px 5px;border-radius:4px;">আজ</span>
+                            @endif
+                        </div>
+
+                        @if($dayEntries->isEmpty())
+                            <div style="flex:1;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;text-align:center;">
+                                <span>কোনো ক্লাস নেই<br><small style="color:#cbd5e1;">(ছুটি)</small></span>
+                            </div>
+                        @else
+                            <div style="display:flex;flex-direction:column;gap:8px;">
+                                @foreach($dayEntries as $entry)
+                                    <div style="background:#f8fafc;border-left:3px solid {{ $entry->color ?? '#0284c7' }};border-radius:4px;padding:8px;font-size:12px;">
+                                        <div style="font-weight:700;color:#0f172a;">{{ $entry->subject?->name ?? '—' }}</div>
+                                        <div style="font-size:11px;color:#0284c7;font-weight:600;margin-top:2px;">
+                                            ⏰ {{ $entry->slot?->name ?? 'স্লট' }}
+                                            @if($entry->slot?->start_time)
+                                                ({{ \Carbon\Carbon::parse($entry->slot->start_time)->format('h:i A') }})
+                                            @endif
+                                        </div>
+                                        <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                                            {{ $entry->batch?->name ?? '' }}
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
     <div class="grid-2">
         <!-- Today's Classes -->
         <div class="card">

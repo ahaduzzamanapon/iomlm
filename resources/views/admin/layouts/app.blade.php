@@ -249,6 +249,26 @@
     tbody tr:hover td {
         background: #f0fdf4 !important;
     }
+
+    /* Modal Overlay System */
+    .modal-overlay {
+        position: fixed !important;
+        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+        width: 100vw !important; height: 100vh !important;
+        background: rgba(15, 23, 42, 0.65) !important;
+        backdrop-filter: blur(4px) !important;
+        z-index: 99999 !important;
+        display: none !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 16px !important;
+        box-sizing: border-box !important;
+    }
+    .modal-overlay.open,
+    .modal-overlay.active,
+    .modal-overlay.show {
+        display: flex !important;
+    }
     </style>
     @stack('styles')
 </head>
@@ -288,7 +308,7 @@
 
             {{-- ── 2. Academic Setup ── --}}
             @if(auth()->user()->canAccess('academic'))
-            @php $academicActive = request()->routeIs('admin.academic-years*','admin.subjects*','admin.courses*','admin.semesters*'); @endphp
+            @php $academicActive = request()->routeIs('admin.academic-years*','admin.subjects*','admin.subject-categories*','admin.assignments*','admin.courses*','admin.semesters*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $academicActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                     <i class="fa-solid fa-graduation-cap"></i>
@@ -304,9 +324,17 @@
                         <i class="fa-solid fa-book-open"></i>
                         Courses
                     </a>
+                    <a href="{{ route('admin.subject-categories.index') }}" class="nav-item {{ request()->routeIs('admin.subject-categories*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-tags"></i>
+                        বিষয় ক্যাটাগরি
+                    </a>
                     <a href="{{ route('admin.subjects.index') }}" class="nav-item {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}">
                         <i class="fa-solid fa-book-bookmark"></i>
                         Subjects &amp; Modules
+                    </a>
+                    <a href="{{ route('admin.assignments.index') }}" class="nav-item {{ request()->routeIs('admin.assignments*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-file-signature"></i>
+                        অ্যাসাইনমেন্ট (Assignments)
                     </a>
                 </div>
             </div>
@@ -336,6 +364,10 @@
                         <i class="fa-solid fa-user-plus"></i>
                         Admissions
                         @if($pendingCount > 0)<span class="nav-badge">{{ $pendingCount }}</span>@endif
+                    </a>
+                    <a href="{{ route('admin.admission-circulars.index') }}" class="nav-item {{ request()->routeIs('admin.admission-circulars*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        Admission Circulars (ভর্তি সার্কুলার)
                     </a>
                     <a href="{{ route('admin.course-transfers.index') }}" class="nav-item {{ request()->routeIs('admin.course-transfers*') ? 'active' : '' }}">
                         <i class="fa-solid fa-arrow-right-arrow-left"></i>
@@ -399,7 +431,7 @@
             {{-- ── 5. Exams & Results ── --}}
             @if(auth()->user()->canAccess('exams'))
             @php 
-                $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.readmissions*','admin.promotions*','admin.final-marks*'); 
+                $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.readmissions*','admin.promotions*','admin.final-marks*','admin.result-book*'); 
                 try { $readmissionPending = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch(\Exception $e) { $readmissionPending = 0; }
             @endphp
             <div class="tree-group">
@@ -440,6 +472,10 @@
                     <a href="{{ route('admin.final-marks.index') }}" class="nav-item {{ request()->routeIs('admin.final-marks*') ? 'active' : '' }}">
                         <i class="fa-solid fa-chart-pie"></i>
                         Final Mark Generator
+                    </a>
+                    <a href="{{ route('admin.result-book.index') }}" class="nav-item {{ request()->routeIs('admin.result-book*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                        Result Book (রেজাল্ট বুক)
                     </a>
                 </div>
             </div>

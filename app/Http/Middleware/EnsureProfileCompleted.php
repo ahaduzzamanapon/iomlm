@@ -33,6 +33,10 @@ class EnsureProfileCompleted
             return $next($request);
         }
 
+        if ($user->is_common_account || ($student && $student->is_common_account)) {
+            return $next($request);
+        }
+
         if (!$student->isProfileCompleted()) {
             return redirect()->route('student.profile.index')
                 ->with('error', '⚠️ অনুগ্রহ করে প্রথমে আপনার প্রোফাইল অন্তত ৯৫% সম্পন্ন করুন। প্রোফাইল ৯৫% পূর্ণ না হওয়া পর্যন্ত ড্যাশবোর্ড ও ক্লাসের অন্যান্য ফিচার লক থাকবে।');

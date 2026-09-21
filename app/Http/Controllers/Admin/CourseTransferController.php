@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CourseTransfer;
 use App\Models\Course;
 use App\Models\Batch;
+use App\Models\Student;
 use App\Services\AccountingService;
 use App\Services\CourseTransferService;
 use Illuminate\Http\Request;
@@ -212,6 +213,87 @@ class CourseTransferController extends Controller
             }
 
             return back()->with('success', 'কোর্স পরিবর্তনের আবেদনটি বাতিল করা হয়েছে।');
+        });
+    }
+
+    /**
+     * Admin manually initiates and processes a course transfer for a student.
+     */
+    public function manualTransfer(Request $request)
+    {
+        $validated = $request->validate([
+            'student_id'     => 'required|exists:students,id',
+            'to_course_id'   => 'required|exists:courses,id',
+            'to_batch_id'    => 'required|exists:batches,id',
+            'to_semester_id' => 'nullable|exists:semesters,id',
+            'transfer_fee'   => 'required|numeric|min:0',
+            'immediate'      => 'nullable|boolean',
+            'admin_notes'    => 'nullable|string',
+            'reason'         => 'nullable|string',
+        ]);
+
+        $student = Student::with(['enrollments' => fn($q) => $q->where('status', 'ACTIVE')->with('batch.course')])
+            ->findOrFail($validated['student_id']);
+
+        $activeEnrollment = $student->enrollments->first();
+        if (!$activeEnrollment) {
+            return back()->with('error', 'নির্বাচিত শিক্ষার্থীর কোনো সক্রিয় কোর্স/ব্যাচ এনরোলমেন্ট পাওয়া যায়নি।');
+        }
+
+        if ($activeEnrollment->course_id == $validated['to_course_id'] && $activeEnrollment->batch_id == $validated['to_batch_id']) {
+            return back()->with('error', 'শিক্ষার্থী ইতোমধ্যে একই কোর্স ও ব্যাচে সক্রিয় আছেন।');
+        }
+
+        $feeRate   = (float) $validated['transfer_fee'];
+        $immediate = $request->boolean('immediate', false);
+
+        return DB::transaction(function () use ($student, $activeEnrollment, $validated, $feeRate, $immediate) {
+            $transfer = CourseTransfer::create([
+                'student_id'         => $student->id,
+                'from_course_id'     => $activeEnrollment->course_id,
+                'from_batch_id'      => $activeEnrollment->batch_id,
+                'from_enrollment_id' => $activeEnrollment->id,
+                'to_course_id'       => $validated['to_course_id'],
+                'to_batch_id'        => $validated['to_batch_id'],
+                'to_semester_id'     => $validated['to_semester_id'] ?? null,
+                'reason'             => $validated['reason'] ?? 'অ্যাডমিন কর্তৃক সরাসরি কোর্স স্থানান্তর (Admin Manual Transfer)',
+                'admin_notes'        => $validated['admin_notes'] ?? null,
+                'transfer_fee'       => $feeRate,
+                'status'             => 'PENDING',
+                'approved_by'        => auth()->id(),
+                'approved_at'        => now(),
+            ]);
+
+            if ($immediate || $feeRate == 0) {
+                // Execute transfer immediately
+                CourseTransferService::executeTransfer($transfer);
+
+                // If fee > 0 and immediate, also generate and record payment in invoice
+                if ($feeRate > 0) {
+                    $invoice = AccountingService::createCourseTransferInvoice($student, $transfer, $feeRate);
+                    AccountingService::receivePayment(
+                        $invoice,
+                        $feeRate,
+                        'CASH',
+                        null,
+                        'Admin manual course transfer instant clearance'
+                    );
+                }
+
+                return back()->with(
+                    'success',
+                    "✅ শিক্ষার্থী '{$student->name}' ({$student->student_code})-কে সরাসরি নতুন কোর্সে সফলভাবে স্থানান্তর করা হয়েছে!"
+                );
+            } else {
+                // Generate Invoice and await payment
+                $transfer->update(['status' => 'APPROVED_PENDING_PAYMENT']);
+                $invoice = AccountingService::createCourseTransferInvoice($student, $transfer, $feeRate);
+
+                return back()->with(
+                    'success',
+                    "✅ ম্যানুয়াল কোর্স পরিবর্তন সফলভাবে সংরক্ষিত হয়েছে! শিক্ষার্থী '{$student->name}'-এর জন্য ৳" . number_format($feeRate, 0) . " টাকার ইনভয়েস ({$invoice->invoice_no}) তৈরি হয়েছে। ফি পরিশোধ হলেই স্থানান্তর কার্যকর হবে।"
+                );
+            }
         });
     }
 }

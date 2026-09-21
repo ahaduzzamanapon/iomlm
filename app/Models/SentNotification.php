@@ -8,6 +8,10 @@ class SentNotification extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'scheduled_at' => 'datetime',
+    ];
+
     public function sender()
     {
         return $this->belongsTo(User::class, 'sent_by');

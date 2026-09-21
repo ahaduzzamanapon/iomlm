@@ -252,7 +252,10 @@
             <div class="site-logo-sub">Through Knowledge, Towards Jannah</div>
         </div>
     </div>
-    <div class="header-actions">
+    <div class="header-actions" style="display:flex;gap:10px;">
+        <a href="{{ route('admission.status') }}" class="btn-outline-sm" style="background:#ecfdf5;border-color:#10b981;color:#047857;">
+            <i class="fa-solid fa-magnifying-glass-location"></i> আবেদন ট্র্যাক করুন
+        </a>
         <a href="/" class="btn-outline-sm">মূলপাতা (Home)</a>
     </div>
 </header>
@@ -267,7 +270,15 @@
     <div class="form-card">
         <div class="form-card-header">
             <span class="form-card-title"><i class="fa-solid fa-file-pen" style="color:var(--iom-green)"></i> ভর্তির প্রাথমিক আবেদন ফর্ম</span>
-            <span style="font-size:12px;color:var(--iom-green);font-weight:600">আইওএম শিক্ষা বিভাগ</span>
+            <span style="font-size:12px;color:var(--iom-green);font-weight:600">
+                @if(isset($activeCircular) && $activeCircular)
+                    <span style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;">
+                        <i class="fa-solid fa-calendar-check"></i> {{ $activeCircular->short_name ?: $activeCircular->name }}
+                    </span>
+                @else
+                    আইওএম শিক্ষা বিভাগ
+                @endif
+            </span>
         </div>
 
         <div class="form-card-body">
@@ -286,6 +297,16 @@
             </div>
             @endif
 
+            @if(!($admissionOpen ?? true))
+            <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:24px;text-align:center;color:#92400e;margin-bottom:10px;">
+                <i class="fa-solid fa-clock" style="font-size:36px;color:#d97706;margin-bottom:12px;"></i>
+                <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;">অনলাইন ভর্তি বর্তমানে বন্ধ রয়েছে</h3>
+                <p style="font-size:13.5px;line-height:1.6;color:#78350f;margin-bottom:0;">
+                    এই মুহূর্তে কোনো কোর্সে নতুন ভর্তি আবেদন গ্রহণ করা হচ্ছে না। নতুন সেশন বা সার্কুলার প্রকাশিত হলে পুনরায় আবেদন করা যাবে। যেকোনো জিজ্ঞাসায় আমাদের হেল্পলাইনে যোগাযোগ করুন।
+                </p>
+            </div>
+            @else
+
             <div class="info-callout">
                 <strong>📌 তথ্য নির্দেশিকা:</strong> প্রয়োজনীয় মৌলিক তথ্য প্রদান করে অনলাইনে পেমেন্ট সম্পন্ন করুন। পেমেন্ট সম্পন্ন হলেই তাৎক্ষণিকভাবে ভর্তি নিশ্চিত হবে ও লগইন তথ্য প্রদর্শিত হবে।
             </div>
@@ -293,22 +314,26 @@
             <form method="POST" action="{{ route('apply.store') }}" id="applyForm">
                 @csrf
 
-                {{-- Course Selection --}}
+                {{-- Course Selection with Department Grouping --}}
                 <div class="form-group">
-                    <label>ভর্তি হতে ইচ্ছুক কোর্স / প্রোগ্রাম <span class="req">*</span></label>
+                    <label>ভর্তি হতে ইচ্ছুক কোর্স / প্রোগ্রাম (বিভাগ অনুযায়ী) <span class="req">*</span></label>
                     <select name="course_id" id="course_id" required onchange="onCourseChange(this)">
                         <option value="">-- কোর্স নির্বাচন করুন --</option>
-                        @foreach($courses as $course)
-                            <option value="{{ $course->id }}"
-                                    data-fee="{{ (float)($course->admission_fee ?? 0) }}"
-                                    {{ old('course_id') == $course->id ? 'selected' : '' }}>
-                                {{ $course->name }} ({{ $course->duration_value }} {{ strtolower($course->duration_unit) }}s)
-                                @if(($course->admission_fee ?? 0) > 0)
-                                    — ভর্তি ফি: ৳{{ number_format($course->admission_fee, 0) }}
-                                @else
-                                    — ফ্রি ভর্তি
-                                @endif
-                            </option>
+                        @foreach($coursesByDepartment as $deptName => $deptCourses)
+                            <optgroup label="🏛️ {{ $deptName }}">
+                                @foreach($deptCourses as $course)
+                                    <option value="{{ $course->id }}"
+                                            data-fee="{{ (float)($course->admission_fee ?? 0) }}"
+                                            {{ old('course_id') == $course->id ? 'selected' : '' }}>
+                                        [{{ $course->formatted_code }}] {{ $course->name }} ({{ $course->duration_value }} {{ strtolower($course->duration_unit) }}s)
+                                        @if(($course->admission_fee ?? 0) > 0)
+                                            — ভর্তি ফি: ৳{{ number_format($course->admission_fee, 0) }}
+                                        @else
+                                            — ফ্রি ভর্তি
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>
@@ -384,6 +409,7 @@
                     </button>
                 </div>
             </form>
+            @endif
         </div>
     </div>
 </div>

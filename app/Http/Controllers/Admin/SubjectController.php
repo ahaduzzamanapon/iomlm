@@ -5,65 +5,103 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Subject;
 use App\Models\SubjectModule;
+use App\Models\SubjectCategory;
 use Illuminate\Http\Request;
 
 class SubjectController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $subjects = Subject::withCount('modules')->latest()->get();
-        return view('admin.subjects.index', compact('subjects'));
+        $categoryId = $request->query('category_id');
+        $search     = $request->query('search');
+
+        $query = Subject::with('category')->withCount('modules');
+
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        $subjects   = $query->latest()->get();
+        $categories = SubjectCategory::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.subjects.index', compact('subjects', 'categories', 'categoryId', 'search'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'       => 'required|string|max:200',
-            'code'       => 'required|string|max:30|unique:subjects,code',
-            'credit'     => 'required|integer|min:1|max:10',
-            'full_marks' => 'required|integer|min:10',
-            'pass_marks' => 'required|integer|min:1',
+            'category_id' => 'nullable|exists:subject_categories,id',
+            'name'        => 'required|string|max:200',
+            'code'        => 'required|string|max:30|unique:subjects,code',
+            'credit'      => 'required|integer|min:1|max:10',
+            'full_marks'  => 'required|integer|min:10',
+            'pass_marks'  => 'required|integer|min:1',
         ]);
 
         Subject::create([
-            'name'       => $validated['name'],
-            'code'       => strtoupper($validated['code']),
-            'credit'     => $validated['credit'],
-            'full_marks' => $validated['full_marks'],
-            'pass_marks' => $validated['pass_marks'],
-            'version'    => 1,
-            'is_active'  => $request->boolean('is_active', true),
+            'category_id' => $validated['category_id'] ?? null,
+            'name'        => $validated['name'],
+            'code'        => strtoupper($validated['code']),
+            'credit'      => $validated['credit'],
+            'full_marks'  => $validated['full_marks'],
+            'pass_marks'  => $validated['pass_marks'],
+            'version'     => 1,
+            'is_active'   => $request->boolean('is_active', true),
         ]);
 
-        return back()->with('success', 'Subject created successfully.');
+        return back()->with('success', 'বিষয় সফলভাবে তৈরি করা হয়েছে।');
     }
 
     public function show(Subject $subject)
     {
-        $subject->load(['modules' => fn($q) => $q->orderBy('sequence_no')]);
+        $subject->load(['category', 'modules' => fn($q) => $q->orderBy('sequence_no')]);
         return view('admin.subjects.show', compact('subject'));
     }
 
     public function update(Request $request, Subject $subject)
     {
         $validated = $request->validate([
-            'name'       => 'required|string|max:200',
-            'code'       => 'required|string|max:30|unique:subjects,code,' . $subject->id,
-            'credit'     => 'required|integer|min:1|max:10',
-            'full_marks' => 'required|integer|min:10',
-            'pass_marks' => 'required|integer|min:1',
+            'category_id' => 'nullable|exists:subject_categories,id',
+            'name'        => 'required|string|max:200',
+            'code'        => 'required|string|max:30|unique:subjects,code,' . $subject->id,
+            'credit'      => 'required|integer|min:1|max:10',
+            'full_marks'  => 'required|integer|min:10',
+            'pass_marks'  => 'required|integer|min:1',
         ]);
 
         $subject->update([
-            'name'       => $validated['name'],
-            'code'       => strtoupper($validated['code']),
-            'credit'     => $validated['credit'],
-            'full_marks' => $validated['full_marks'],
-            'pass_marks' => $validated['pass_marks'],
-            'is_active'  => $request->boolean('is_active'),
+            'category_id' => $validated['category_id'] ?? null,
+            'name'        => $validated['name'],
+            'code'        => strtoupper($validated['code']),
+            'credit'      => $validated['credit'],
+            'full_marks'  => $validated['full_marks'],
+            'pass_marks'  => $validated['pass_marks'],
+            'is_active'   => $request->boolean('is_active'),
         ]);
 
-        return back()->with('success', 'Subject updated successfully.');
+        return back()->with('success', 'বিষয় সফলভাবে আপডেট করা হয়েছে।');
+    }
+
+    public function clone(Request $request, Subject $subject)
+    {
+        $request->validate([
+            'new_code' => 'nullable|string|max:30|unique:subjects,code',
+            'new_name' => 'nullable|string|max:200',
+        ]);
+
+        $cloned = $subject->cloneSubject(
+            $request->filled('new_code') ? strtoupper($request->input('new_code')) : null,
+            $request->input('new_name')
+        );
+
+        return back()->with('success', "বিষয় '{$subject->name}' এবং এর সকল মডিউল সফলভাবে ক্লোন করা হয়েছে (নতুন কোড: {$cloned->code})।");
     }
 
     public function destroy(Subject $subject)

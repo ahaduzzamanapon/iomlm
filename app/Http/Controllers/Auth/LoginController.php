@@ -39,6 +39,7 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            \App\Models\LoginHistory::recordLogin(Auth::user());
             return $this->redirectByRole();
         }
 

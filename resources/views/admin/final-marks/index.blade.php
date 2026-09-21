@@ -109,12 +109,40 @@
                     ক্লাস টেস্ট + মিডটার্ম + ফাইনাল পরীক্ষা + উপস্থিতি মার্কস কনভার্সন কাঠামো ও ফলাফল
                 </p>
             </div>
-            <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+                <a href="{{ route('admin.result-book.index') }}"
+                   style="background:#ffffff; color:#065f46; border:none; padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 10px rgba(0,0,0,0.1)">
+                    <i class="fa-solid fa-book-open"></i> রেজাল্ট বুক (Result Book)
+                </a>
                 <button type="button" id="btnOpenCriteriaModal" onclick="openCriteriaModal(event)"
-                   style="background:#ffffff; color:#065f46; border:none; padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 10px rgba(0,0,0,0.1)">
-                    <i class="fa-solid fa-sliders"></i> কনভার্সন ক্রাইটেরিয়া পরিবর্তন
+                   style="background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.4); padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px">
+                    <i class="fa-solid fa-sliders"></i> কনভার্সন ক্রাইটেরিয়া
                 </button>
                 @if(request('batch_id') && request('subject_id') && $finalMarks->isNotEmpty())
+                    @php
+                        $isAnyPublished = $finalMarks->where('is_published', true)->isNotEmpty();
+                    @endphp
+                    <form method="POST" action="{{ route('admin.final-marks.auto-attendance') }}" style="display:inline">
+                        @csrf
+                        <input type="hidden" name="batch_id" value="{{ request('batch_id') }}">
+                        <input type="hidden" name="subject_id" value="{{ request('subject_id') }}">
+                        <input type="hidden" name="semester_id" value="{{ request('semester_id', $selectedSemesterId ?? '') }}">
+                        <button type="submit" onclick="return confirm('ক্লাস উপস্থিতির হার অনুযায়ী স্বয়ংক্রিয়ভাবে শিক্ষার্থীদের নম্বর ক্যালকুলেট করতে চান?')"
+                           style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:10px 18px; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px">
+                            <i class="fa-solid fa-calculator"></i> উপস্থিতি অটো-সিঙ্ক
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.final-marks.publish-toggle') }}" style="display:inline">
+                        @csrf
+                        <input type="hidden" name="batch_id" value="{{ request('batch_id') }}">
+                        <input type="hidden" name="subject_id" value="{{ request('subject_id') }}">
+                        <input type="hidden" name="semester_id" value="{{ request('semester_id', $selectedSemesterId ?? '') }}">
+                        <button type="submit" 
+                           style="background:{{ $isAnyPublished ? '#ef4444' : '#10b981' }}; border:none; color:#fff; padding:10px 18px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 10px rgba(0,0,0,0.15)">
+                            <i class="fa-solid {{ $isAnyPublished ? 'fa-eye-slash' : 'fa-bullhorn' }}"></i>
+                            {{ $isAnyPublished ? 'ফলাফল প্রত্যাহার করুন (Unpublish)' : 'ফলাফল প্রকাশ করুন (Publish)' }}
+                        </button>
+                    </form>
                     <a href="{{ route('admin.final-marks.export-csv', ['batch_id' => request('batch_id'), 'subject_id' => request('subject_id'), 'semester_id' => request('semester_id', $selectedSemesterId ?? '')]) }}"
                        style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:10px 18px; border-radius:10px; font-weight:700; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:7px">
                         <i class="fa-solid fa-file-csv"></i> Export CSV
@@ -285,45 +313,57 @@
                         <table style="width:100%; border-collapse:collapse">
                             <thead>
                                 <tr style="background:#f1f5f9; border-bottom:2px solid #e2e8f0">
-                                    <th style="padding:12px 14px; width:45px; text-align:center">#</th>
-                                    <th style="padding:12px 16px; text-align:left">শিক্ষার্থী (Student)</th>
-                                    <th style="padding:12px 12px; text-align:center">
+                                    <th style="padding:12px 10px; width:45px; text-align:center">মেধাক্রম</th>
+                                    <th style="padding:12px 14px; text-align:left">শিক্ষার্থী (Student)</th>
+                                    <th style="padding:12px 10px; text-align:center">
                                         ক্লাস টেস্ট<br>
                                         <small style="color:#64748b;font-weight:600">/{{ $criteria['class_test_full'] }} → /{{ $criteria['class_test_convert'] }}</small>
                                     </th>
-                                    <th style="padding:12px 12px; text-align:center">
+                                    <th style="padding:12px 10px; text-align:center">
                                         মিডটার্ম<br>
                                         <small style="color:#64748b;font-weight:600">/{{ $criteria['midterm_full'] }} → /{{ $criteria['midterm_convert'] }}</small>
                                     </th>
-                                    <th style="padding:12px 12px; text-align:center">
+                                    <th style="padding:12px 10px; text-align:center">
                                         ফাইনাল পরীক্ষা<br>
                                         <small style="color:#64748b;font-weight:600">/{{ $criteria['final_full'] }} → /{{ $criteria['final_convert'] }}</small>
                                     </th>
-                                    <th style="padding:12px 12px; text-align:center; background:#f0fdf4">
-                                        উপস্থিতি মার্ক<br>
-                                        <small style="color:#047857;font-weight:700">% → /{{ $criteria['attendance_convert'] }}</small>
+                                    <th style="padding:12px 10px; text-align:center; background:#f0fdf4">
+                                        উপস্থিতি<br>
+                                        <small style="color:#047857;font-weight:700">/{{ $criteria['attendance_convert'] }}</small>
                                     </th>
-                                    <th style="padding:12px 14px; text-align:center; font-weight:800; color:#064e3b; background:#ecfdf5">
+                                    <th style="padding:12px 8px; text-align:center; background:#fefce8">তামরিন</th>
+                                    <th style="padding:12px 8px; text-align:center; background:#fefce8">তাজবীদ</th>
+                                    <th style="padding:12px 8px; text-align:center; background:#fefce8">ডিএনএস</th>
+                                    <th style="padding:12px 12px; text-align:center; font-weight:800; color:#064e3b; background:#ecfdf5">
                                         মোট নম্বর<br>
                                         <small style="font-weight:700;color:#047857">/{{ $totalConvert }}</small>
                                     </th>
-                                    <th style="padding:12px 12px; text-align:center">গ্রেড</th>
-                                    <th style="padding:12px 12px; text-align:center">জিপিএ</th>
-                                    <th style="padding:12px 12px; text-align:center">স্ট্যাটাস</th>
-                                    <th style="padding:12px 12px; text-align:center; font-size:11px; color:#94a3b8">তারিখ</th>
+                                    <th style="padding:12px 10px; text-align:center">গ্রেড</th>
+                                    <th style="padding:12px 8px; text-align:center">জিপিএ</th>
+                                    <th style="padding:12px 10px; text-align:center">কওমি মান</th>
+                                    <th style="padding:12px 10px; text-align:center">স্ট্যাটাস</th>
+                                    <th style="padding:12px 10px; text-align:center">অ্যাকশন</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($finalMarks as $i => $fm)
                                 <tr style="border-bottom:1px solid #f1f5f9; transition:background .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                                    <td style="padding:14px; text-align:center; font-weight:700; color:#94a3b8">{{ $i + 1 }}</td>
-                                    <td style="padding:14px 16px">
+                                    <td style="padding:14px 10px; text-align:center">
+                                        @if($fm->merit_position)
+                                            <span style="background:#fef3c7; color:#b45309; font-weight:900; padding:4px 10px; border-radius:12px; font-size:12px; border:1px solid #fde68a; display:inline-block">
+                                                {{ $fm->merit_rank_bengali }}
+                                            </span>
+                                        @else
+                                            <span style="color:#cbd5e1">—</span>
+                                        @endif
+                                    </td>
+                                    <td style="padding:14px 14px">
                                         <strong style="color:#0f172a; font-size:14px">{{ $fm->student->name ?? '—' }}</strong>
                                         <div style="font-size:12px; color:#64748b; margin-top:2px">
-                                            আইডি: <span style="font-weight:700; color:#047857">{{ $fm->student->student_code ?? '—' }}</span>
+                                            আইডি: <span style="font-weight:700; color:#047857">{{ $fm->student->student_code ?? $fm->student->student_id ?? '—' }}</span>
                                         </div>
                                     </td>
-                                    <td style="padding:14px 12px; text-align:center">
+                                    <td style="padding:14px 10px; text-align:center">
                                         @if($fm->class_test_obtained !== null)
                                             <span style="font-weight:700; color:#1e293b">{{ $fm->class_test_obtained }}</span>
                                             <span style="color:#94a3b8; font-size:11px"> → </span>
@@ -332,7 +372,7 @@
                                             <span style="color:#cbd5e1">—</span>
                                         @endif
                                     </td>
-                                    <td style="padding:14px 12px; text-align:center">
+                                    <td style="padding:14px 10px; text-align:center">
                                         @if($fm->midterm_obtained !== null)
                                             <span style="font-weight:700; color:#1e293b">{{ $fm->midterm_obtained }}</span>
                                             <span style="color:#94a3b8; font-size:11px"> → </span>
@@ -341,7 +381,7 @@
                                             <span style="color:#cbd5e1">—</span>
                                         @endif
                                     </td>
-                                    <td style="padding:14px 12px; text-align:center">
+                                    <td style="padding:14px 10px; text-align:center">
                                         @if($fm->final_obtained !== null)
                                             <span style="font-weight:700; color:#1e293b">{{ $fm->final_obtained }}</span>
                                             <span style="color:#94a3b8; font-size:11px"> → </span>
@@ -352,30 +392,28 @@
                                     </td>
 
                                     {{-- Attendance Cell with Direct Edit Button --}}
-                                    <td style="padding:14px 12px; text-align:center; background:#f0fdf4">
-                                        <div style="display:inline-flex; align-items:center; gap:8px">
-                                            <div>
-                                                <span style="font-size:12px; color:#64748b">{{ $fm->attendance_percent ?? 0 }}%</span>
-                                                <span style="color:#94a3b8; font-size:11px"> → </span>
-                                                <strong style="color:#065f46; font-size:15px">{{ $fm->attendance_converted ?? 0 }}</strong>
-                                            </div>
-                                            <button type="button" 
-                                                onclick="openAttendanceModal({{ $fm->id }}, '{{ addslashes($fm->student->name ?? 'Student') }}', {{ $fm->attendance_percent ?? 0 }}, {{ $fm->attendance_converted ?? 0 }}, {{ $criteria['attendance_convert'] }})"
-                                                title="উপস্থিতির নম্বর পরিবর্তন করুন"
-                                                style="padding:3px 8px; background:#ffffff; border:1px solid #a7f3d0; color:#047857; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; transition:all .15s"
-                                                onmouseover="this.style.background='#047857'; this.style.color='#fff'"
-                                                onmouseout="this.style.background='#ffffff'; this.style.color='#047857'">
-                                                <i class="fa-solid fa-pen-to-square"></i> এডিট
-                                            </button>
-                                        </div>
+                                    <td style="padding:14px 10px; text-align:center; background:#f0fdf4">
+                                        <div style="font-size:11px; color:#64748b">{{ $fm->attendance_percent ?? 0 }}%</div>
+                                        <strong style="color:#065f46; font-size:14px">{{ $fm->attendance_converted ?? 0 }}</strong>
                                     </td>
 
-                                    <td style="padding:14px; text-align:center; background:#ecfdf5">
-                                        <span style="font-size:18px; font-weight:900; color:{{ $fm->total_mark >= $criteria['pass_mark'] ? '#059669' : '#dc2626' }}">
+                                    {{-- Non-Exam Criteria --}}
+                                    <td style="padding:14px 8px; text-align:center; background:#fefce8">
+                                        <strong style="color:#854d0e">{{ $fm->tamrin_mark !== null ? $fm->tamrin_mark : '—' }}</strong>
+                                    </td>
+                                    <td style="padding:14px 8px; text-align:center; background:#fefce8">
+                                        <strong style="color:#854d0e">{{ $fm->tajweed_mark !== null ? $fm->tajweed_mark : '—' }}</strong>
+                                    </td>
+                                    <td style="padding:14px 8px; text-align:center; background:#fefce8">
+                                        <strong style="color:#854d0e">{{ $fm->dns_mark !== null ? $fm->dns_mark : '—' }}</strong>
+                                    </td>
+
+                                    <td style="padding:14px 12px; text-align:center; background:#ecfdf5">
+                                        <span style="font-size:17px; font-weight:900; color:{{ $fm->total_mark >= $criteria['pass_mark'] ? '#059669' : '#dc2626' }}">
                                             {{ $fm->total_mark ?? '—' }}
                                         </span>
                                     </td>
-                                    <td style="padding:14px; text-align:center">
+                                    <td style="padding:14px 10px; text-align:center">
                                         @php
                                             $gc = match($fm->grade) {
                                                 'A+' => 'grade-ap',
@@ -388,10 +426,15 @@
                                         @endphp
                                         <span class="grade-badge {{ $gc }}">{{ $fm->grade ?? '—' }}</span>
                                     </td>
-                                    <td style="padding:14px; text-align:center; font-weight:800; color:#1e293b">
+                                    <td style="padding:14px 8px; text-align:center; font-weight:800; color:#1e293b">
                                         {{ number_format($fm->gpa ?? 0, 2) }}
                                     </td>
-                                    <td style="padding:14px; text-align:center">
+                                    <td style="padding:14px 10px; text-align:center">
+                                        <span style="font-size:11px; font-weight:800; color:#0f766e; background:#ccfbf1; padding:3px 8px; border-radius:12px; display:inline-block">
+                                            {{ $fm->qawmi_grade['name_bn'] }}
+                                        </span>
+                                    </td>
+                                    <td style="padding:14px 10px; text-align:center">
                                         @if($fm->status === 'PASS')
                                             <span class="status-pass"><i class="fa-solid fa-check"></i> PASS</span>
                                         @elseif($fm->status === 'FAIL')
@@ -400,8 +443,20 @@
                                             <span class="status-inc">অসম্পূর্ণ</span>
                                         @endif
                                     </td>
-                                    <td style="padding:14px; text-align:center; font-size:11.5px; color:#94a3b8">
-                                        {{ $fm->generated_at ? $fm->generated_at->format('d M Y') : '—' }}
+                                    <td style="padding:14px 10px; text-align:center">
+                                        <div style="display:inline-flex; gap:6px; align-items:center">
+                                            <button type="button" 
+                                                onclick="openManualMarkModal({{ $fm->id }}, '{{ addslashes($fm->student->name ?? 'Student') }}', {{ $fm->class_test_converted ?? 'null' }}, {{ $fm->midterm_converted ?? 'null' }}, {{ $fm->final_converted ?? 'null' }}, {{ $fm->attendance_converted ?? 'null' }}, {{ $fm->tamrin_mark ?? 'null' }}, {{ $fm->tajweed_mark ?? 'null' }}, {{ $fm->dns_mark ?? 'null' }}, '{{ addslashes($fm->remarks ?? '') }}')"
+                                                style="padding:4px 9px; background:#f0fdf4; border:1px solid #86efac; color:#15803d; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700"
+                                                title="নম্বর এডিট ও তামরিন/তাজবীদ/DNS মার্ক দিন">
+                                                <i class="fa-solid fa-pen-to-square"></i> মার্ক এডিট
+                                            </button>
+                                            <a href="{{ route('admin.students.transcript', $fm->student_id) }}" target="_blank"
+                                               style="padding:4px 9px; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; border-radius:6px; text-decoration:none; font-size:11px; font-weight:700"
+                                               title="৬-সেমিস্টার ট্রান্সক্রিপ্ট দেখুন">
+                                                <i class="fa-solid fa-file-invoice"></i> ট্রান্সক্রিপ্ট
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -557,6 +612,75 @@
                     <button type="button" onclick="closeAttendanceModal()" class="btn btn-secondary" style="padding:8px 18px">বাতিল</button>
                     <button type="submit" class="btn btn-primary" style="padding:8px 20px; font-weight:800; background:#047857; border-color:#047857">
                         <i class="fa-solid fa-check"></i> নম্বর আপডেট করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════════════════════════ --}}
+    {{-- MODAL 3: Student Manual Marks Override & Tamrin/Tajweed/DNS Modal--}}
+    {{-- ═══════════════════════════════════════════════════════════════ --}}
+    <div id="manualMarkModal" class="modal-overlay" onclick="if(event.target===this) closeManualMarkModal()">
+        <div class="modal-card" style="max-width:540px">
+            <div style="padding:16px 20px; background:#065f46; color:#fff; display:flex; justify-content:space-between; align-items:center">
+                <h3 style="margin:0; font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px">
+                    <i class="fa-solid fa-pen-nib"></i> নম্বর এডিট ও নন-এক্সাম মূল্যায়ন (তামরিন/তাজবীদ/ডিএনএস)
+                </h3>
+                <button type="button" onclick="closeManualMarkModal()" style="background:none; border:none; color:#fff; font-size:24px; line-height:1; cursor:pointer">&times;</button>
+            </div>
+            
+            <form id="manualMarkForm" method="POST" action="" style="padding:20px 22px">
+                @csrf
+                <div style="margin-bottom:14px; background:#f8fafc; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0">
+                    <span style="font-size:12px; color:#64748b">শিক্ষার্থীর নাম:</span>
+                    <strong id="mmStudentName" style="font-weight:800; font-size:15px; color:#0f172a; display:block"></strong>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:14px">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px">ক্লাস টেস্ট রূপান্তর</label>
+                        <input type="number" step="0.1" min="0" max="100" name="class_test_converted" id="mmCtConverted" class="form-control" style="height:38px">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px">মিডটার্ম রূপান্তর</label>
+                        <input type="number" step="0.1" min="0" max="100" name="midterm_converted" id="mmMidConverted" class="form-control" style="height:38px">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#1e293b; display:block; margin-bottom:4px">ফাইনাল রূপান্তর</label>
+                        <input type="number" step="0.1" min="0" max="100" name="final_converted" id="mmFinalConverted" class="form-control" style="height:38px">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:14px">
+                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
+                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">তামরিন মার্ক</label>
+                        <input type="number" step="0.1" min="0" max="100" name="tamrin_mark" id="mmTamrinMark" class="form-control" style="height:38px; font-weight:700">
+                    </div>
+                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
+                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">তাজবীদ মার্ক</label>
+                        <input type="number" step="0.1" min="0" max="100" name="tajweed_mark" id="mmTajweedMark" class="form-control" style="height:38px; font-weight:700">
+                    </div>
+                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
+                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">ডিএনএস মার্ক</label>
+                        <input type="number" step="0.1" min="0" max="100" name="dns_mark" id="mmDnsMark" class="form-control" style="height:38px; font-weight:700">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:14px">
+                    <label style="font-size:12.5px; font-weight:700; color:#065f46; display:block; margin-bottom:4px">উপস্থিতি রূপান্তর নম্বর</label>
+                    <input type="number" step="0.1" min="0" max="100" name="attendance_converted" id="mmAttConverted" class="form-control" style="height:38px">
+                </div>
+
+                <div style="margin-bottom:18px">
+                    <label style="font-size:12.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">মন্তব্য / সংশোধনের কারণ (Remarks)</label>
+                    <textarea name="remarks" id="mmRemarks" rows="2" class="form-control" placeholder="যেমন: বিশেষ মূল্যায়নে ৩ নম্বর বৃদ্ধি..."></textarea>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px">
+                    <button type="button" onclick="closeManualMarkModal()" class="btn btn-secondary" style="padding:8px 18px">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="padding:8px 22px; font-weight:800; background:#065f46; border-color:#065f46">
+                        <i class="fa-solid fa-floppy-disk"></i> সংরক্ষণ ও মেধা পুনঃগণনা
                     </button>
                 </div>
             </form>
@@ -743,7 +867,47 @@
             }
         };
 
-        // ── 4. Event Bindings on DOMContentLoaded ──
+        // ── 4. Student Manual Marks Modal Controls ──
+        window.openManualMarkModal = function(finalMarkId, studentName, ctConv, midConv, finalConv, attConv, tamrin, tajweed, dns, remarks) {
+            const nameEl = document.getElementById('mmStudentName');
+            if (nameEl) nameEl.textContent = studentName;
+            
+            document.getElementById('mmCtConverted').value = ctConv !== null ? ctConv : '';
+            document.getElementById('mmMidConverted').value = midConv !== null ? midConv : '';
+            document.getElementById('mmFinalConverted').value = finalConv !== null ? finalConv : '';
+            document.getElementById('mmAttConverted').value = attConv !== null ? attConv : '';
+            document.getElementById('mmTamrinMark').value = tamrin !== null ? tamrin : '';
+            document.getElementById('mmTajweedMark').value = tajweed !== null ? tajweed : '';
+            document.getElementById('mmDnsMark').value = dns !== null ? dns : '';
+            document.getElementById('mmRemarks').value = remarks || '';
+            
+            const form = document.getElementById('manualMarkForm');
+            if (form) {
+                form.action = `{{ url('admin/final-marks') }}/${finalMarkId}/manual-mark`;
+            }
+            
+            const m = document.getElementById('manualMarkModal');
+            if (m) {
+                m.classList.add('open', 'is-active', 'show');
+                m.style.setProperty('display', 'flex', 'important');
+                m.style.setProperty('opacity', '1', 'important');
+                m.style.setProperty('pointer-events', 'all', 'important');
+                document.body.style.overflow = 'hidden';
+            }
+        };
+
+        window.closeManualMarkModal = function() {
+            const m = document.getElementById('manualMarkModal');
+            if (m) {
+                m.classList.remove('open', 'is-active', 'show');
+                m.style.setProperty('display', 'none', 'important');
+                m.style.setProperty('opacity', '0', 'important');
+                m.style.setProperty('pointer-events', 'none', 'important');
+                document.body.style.overflow = '';
+            }
+        };
+
+        // ── 5. Event Bindings on DOMContentLoaded ──
         function initFinalMarksPage() {
             const btnCriteria = document.getElementById('btnOpenCriteriaModal');
             if (btnCriteria) {

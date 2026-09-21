@@ -208,6 +208,9 @@
             </div>
 
             <div style="display:flex;align-items:center;gap:8px">
+                <a id="spmImpersonateLink" href="#" target="_blank" class="btn btn-sm" style="display:none;background:#059669;color:#fff;font-weight:700;text-decoration:none;border-radius:4px;padding:5px 12px;align-items:center;gap:6px">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> শিক্ষার্থী হিসেবে লগইন
+                </a>
                 <a id="spmAdminProfileLink" href="#" target="_blank" class="btn btn-outline btn-sm" style="display:none;color:#047857;border-color:#10b981;font-weight:700">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> সম্পূর্ণ প্রোফাইল (Admin) ↗
                 </a>
@@ -430,6 +433,14 @@ function fetchStudentProfile(codeOrQuery) {
             accLink.style.display = 'inline-flex';
         } else {
             accLink.style.display = 'none';
+        }
+
+        const impLink = document.getElementById('spmImpersonateLink');
+        if (s.admin_urls && s.admin_urls.impersonate) {
+            impLink.href = s.admin_urls.impersonate;
+            impLink.style.display = 'inline-flex';
+        } else {
+            impLink.style.display = 'none';
         }
 
         // Ticket Link Button if on Ticket Chat page

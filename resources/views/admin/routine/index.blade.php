@@ -235,7 +235,12 @@
                                         @if($entry->is_override)
                                             <span class="override-badge"></span>
                                         @endif
-                                        <span class="drag-handle">⠿</span>
+                                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+                                            <span class="drag-handle">⠿</span>
+                                            <button type="button" class="pill-quick-copy" onclick="event.stopPropagation(); quickCopyEntry({{ $entry->id }}, {{ $slot->id }})" title="এই স্লটটি অন্য দিনে কপি করুন" style="background:rgba(0,0,0,0.2);border:none;border-radius:3px;color:#fff;cursor:pointer;padding:1px 5px;font-size:10px;font-family:'Kalpurush',sans-serif">
+                                                <i class="fa-solid fa-clone"></i> কপি
+                                            </button>
+                                        </div>
                                         @if($entry->group_tag === 'MALE')
                                             <div style="margin-bottom:2px"><span style="background:#0284c7;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700">ভাই শাখা</span></div>
                                         @elseif($entry->group_tag === 'FEMALE')
@@ -412,10 +417,61 @@
                         <input type="text" name="title" id="edit_title" class="form-control">
                     </div>
                 </div>
+                <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <button type="button" class="btn btn-outline btn-sm text-red" id="editDeleteBtn"><i class="fa-solid fa-trash"></i> Delete</button>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="btn btn-outline btn-sm" id="editCopyBtn" style="color:#0284c7;border-color:#bae6fd;">
+                            <i class="fa-solid fa-clone"></i> অন্য দিনে কপি
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="closeModal('editEntryModal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- COPY ENTRY MODAL --}}
+    <div class="modal-overlay" id="copyEntryModal">
+        <div class="modal" style="max-width:440px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header">
+                <span class="modal-title" style="color:#0284c7;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-clone"></i> রুটিন স্লট কপি করুন (Duplicate Slot)
+                </span>
+                <button class="modal-close" onclick="closeModal('copyEntryModal')">&times;</button>
+            </div>
+            <form method="POST" id="copyEntryForm">
+                @csrf
+                <div class="modal-body">
+                    <p style="font-size:13px;color:#475569;margin-bottom:12px;">
+                        বর্তমান স্লটের বিষয়, শিক্ষক ও ব্যাচ অপরিবর্তিত রেখে অন্য দিনে একটি নতুন এন্ট্রি তৈরি করুন:
+                    </p>
+                    <div class="form-group">
+                        <label>লক্ষ্য দিন (Target Day) <span class="required">*</span></label>
+                        <select name="target_day" id="copy_target_day" class="form-control" required>
+                            <option value="SAT">শনিবার (Saturday - SAT)</option>
+                            <option value="SUN">রবিবার (Sunday - SUN)</option>
+                            <option value="MON">সোমবার (Monday - MON)</option>
+                            <option value="TUE">মঙ্গলবার (Tuesday - TUE)</option>
+                            <option value="WED">বুধবার (Wednesday - WED)</option>
+                            <option value="THU">বৃহস্পতিবার (Thursday - THU)</option>
+                            <option value="FRI">শুক্রবার (Friday - FRI)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>লক্ষ্য সময় স্লট (Target Time Slot)</label>
+                        <select name="target_slot_id" id="copy_target_slot_id" class="form-control">
+                            @foreach($slots as $s)
+                                <option value="{{ $s->id }}">{{ $s->name }} ({{ \Carbon\Carbon::parse($s->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($s->end_time)->format('h:i A') }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline btn-sm text-red" id="editDeleteBtn"><i class="fa-solid fa-trash"></i> Delete</button>
-                    <button type="button" class="btn btn-outline" onclick="closeModal('editEntryModal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-outline" onclick="closeModal('copyEntryModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7">কপি নিশ্চিত করুন</button>
                 </div>
             </form>
         </div>
@@ -894,6 +950,11 @@
         if (teacherId) document.getElementById('edit_teacher_id').value = teacherId;
         document.getElementById('edit_title').value = title;
 
+        document.getElementById('editCopyBtn').onclick = function() {
+            closeModal('editEntryModal');
+            quickCopyEntry(id, slotId);
+        };
+
         document.getElementById('editDeleteBtn').onclick = function() {
             if (confirm('Delete this routine entry?')) {
                 const f = document.createElement('form');
@@ -905,6 +966,14 @@
         };
 
         openModal('editEntryModal');
+    }
+
+    function quickCopyEntry(id, slotId) {
+        document.getElementById('copyEntryForm').action = '/admin/routine/entries/' + id + '/copy';
+        if (slotId && document.getElementById('copy_target_slot_id')) {
+            document.getElementById('copy_target_slot_id').value = slotId;
+        }
+        openModal('copyEntryModal');
     }
 
     // ═══ Flatpickr Timepicker Integration for Routine Slots (12-Hour AM/PM) ═══

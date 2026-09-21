@@ -51,6 +51,9 @@
                 <div class="info-label">Transaction Details</div>
                 Date: <strong>{{ $payment->paid_at->format('d M Y, h:i A') }}</strong><br>
                 Payment Method: <strong>{{ $payment->payment_method }}</strong><br>
+                @if($payment->sender_number)
+                    Sender / bKash No: <strong>{{ $payment->sender_number }}</strong><br>
+                @endif
                 Trx ID: {{ $payment->transaction_id ?? 'N/A' }}
             </div>
         </div>

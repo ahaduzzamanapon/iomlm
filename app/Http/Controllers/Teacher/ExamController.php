@@ -10,6 +10,8 @@ use App\Models\Subject;
 use App\Models\Question;
 use App\Models\ExamQuestion;
 use App\Models\ExamAppeal;
+use App\Models\Batch;
+use App\Models\Semester;
 use Illuminate\Http\Request;
 
 
@@ -169,6 +171,8 @@ class ExamController extends Controller
         $exam->load(['subject', 'examQuestions.question', 'submissions.student', 'appeals.student']);
 
         $subjectId  = $request->query('pool_subject_id');
+        $batchId    = $request->query('batch_id');
+        $semesterId = $request->query('semester_id');
         $difficulty = $request->query('difficulty');
         $examType   = $request->query('exam_type');
         $sourceTag  = $request->query('source_tag');
@@ -183,6 +187,14 @@ class ExamController extends Controller
             if ($effectiveSubjectId) {
                 $query->where('subject_id', $effectiveSubjectId);
             }
+        }
+
+        if ($batchId) {
+            $query->where('batch_id', $batchId);
+        }
+
+        if ($semesterId) {
+            $query->where('semester_id', $semesterId);
         }
 
         if ($difficulty) {
@@ -204,14 +216,16 @@ class ExamController extends Controller
             });
         }
 
-        $availableQuestions = $query->latest()->limit(60)->get();
+        $availableQuestions = $query->latest()->limit(80)->get();
         $subjects           = Subject::where('is_active', true)->orderBy('name')->get();
+        $batches            = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+        $semesters          = Semester::where('is_active', true)->orderBy('sequence_no')->get();
         $sourceTags         = Question::whereNotNull('source_tag')->where('source_tag', '!=', '')->distinct()->pluck('source_tag')->filter()->values();
         $examTypes          = ['CT', 'MID', 'FINAL', 'QUIZ', 'PRACTICE'];
 
         return view('teacher.exams.builder', compact(
-            'exam', 'availableQuestions', 'subjects', 'sourceTags', 'examTypes',
-            'subjectId', 'difficulty', 'examType', 'sourceTag', 'search'
+            'exam', 'availableQuestions', 'subjects', 'batches', 'semesters', 'sourceTags', 'examTypes',
+            'subjectId', 'batchId', 'semesterId', 'difficulty', 'examType', 'sourceTag', 'search'
         ));
     }
 
@@ -228,6 +242,143 @@ class ExamController extends Controller
         );
 
         return back()->with('success', 'Question attached to exam paper.');
+    }
+
+    public function attachRandomQuestions(Request $request, Exam $exam)
+    {
+        $validated = $request->validate([
+            'count'              => 'required|integer|min:1|max:200',
+            'marks_per_question' => 'nullable|numeric|min:0.5|max:100',
+            'pool_subject_id'    => 'nullable|string',
+            'exam_type'          => 'nullable|string',
+            'batch_id'           => 'nullable|exists:batches,id',
+            'semester_id'        => 'nullable|exists:semesters,id',
+            'difficulty'         => 'nullable|string',
+            'type'               => 'nullable|string',
+            'search'             => 'nullable|string',
+        ]);
+
+        $count = (int) $validated['count'];
+        $marks = (float) ($validated['marks_per_question'] ?? 1.00);
+
+        $alreadyAttachedIds = $exam->examQuestions()->pluck('question_id');
+
+        $query = Question::whereNotIn('id', $alreadyAttachedIds);
+
+        $subjectId = $request->input('pool_subject_id');
+        if ($subjectId && $subjectId !== 'all') {
+            $query->where('subject_id', $subjectId);
+        } elseif (!$subjectId && $exam->subject_id) {
+            $query->where('subject_id', $exam->subject_id);
+        }
+
+        if ($request->filled('exam_type')) {
+            $query->where('exam_type', $request->input('exam_type'));
+        }
+
+        if ($request->filled('batch_id')) {
+            $query->where('batch_id', $request->input('batch_id'));
+        }
+
+        if ($request->filled('semester_id')) {
+            $query->where('semester_id', $request->input('semester_id'));
+        }
+
+        if ($request->filled('difficulty')) {
+            $query->where('difficulty', $request->input('difficulty'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('question_type', strtoupper($request->input('type')));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->where('question_text', 'like', "%{$search}%")
+                  ->orWhere('source_tag', 'like', "%{$search}%");
+            });
+        }
+
+        $randomQuestions = $query->inRandomOrder()->take($count)->get();
+
+        if ($randomQuestions->isEmpty()) {
+            return back()->with('error', 'নির্বাচিত শর্ত অনুযায়ী প্রশ্ন ব্যাংকে কোনো নতুন প্রশ্ন পাওয়া যায়নি।');
+        }
+
+        $attachedCount = 0;
+        foreach ($randomQuestions as $rq) {
+            ExamQuestion::firstOrCreate(
+                ['exam_id' => $exam->id, 'question_id' => $rq->id],
+                ['marks' => $marks]
+            );
+            $attachedCount++;
+        }
+
+        return back()->with('success', "স্বয়ংক্রিয়ভাবে {$attachedCount}টি র‍্যান্ডম প্রশ্ন সফলভাবে প্রশ্নপত্রে যুক্ত করা হয়েছে।");
+    }
+
+    public function testExam(Exam $exam)
+    {
+        $exam->load(['subject', 'examQuestions.question']);
+
+        if ($exam->examQuestions->isEmpty()) {
+            return back()->with('error', 'এই পরীক্ষার প্রশ্নপত্রে এখনো কোনো প্রশ্ন যুক্ত করা হয়নি। আগে প্রশ্ন যুক্ত করুন।');
+        }
+
+        $isTestMode = true;
+        $testSubmitRoute = route('teacher.exams.test-exam.submit', $exam);
+        $backUrl = route('teacher.exams.show', $exam);
+        $savedAnswers = collect();
+
+        return view('student.exams.take', compact('exam', 'isTestMode', 'testSubmitRoute', 'backUrl', 'savedAnswers'));
+    }
+
+    public function submitTestExam(Request $request, Exam $exam)
+    {
+        $exam->load('examQuestions.question');
+        $answersInput = $request->input('answers', []);
+
+        $mcqQuestions = $exam->examQuestions->filter(fn($eq) => $eq->question?->question_type === 'MCQ');
+        $writtenQuestions = $exam->examQuestions->filter(fn($eq) => $eq->question?->question_type === 'WRITTEN');
+
+        $correctCount = 0;
+        $wrongCount = 0;
+        $unansweredCount = 0;
+        $totalEarned = 0.00;
+
+        foreach ($mcqQuestions as $eq) {
+            $q = $eq->question;
+            $userAns = isset($answersInput[$q->id]) ? strtolower(trim($answersInput[$q->id])) : null;
+            $correctAns = strtolower(trim($q->correct_option_id ?? ''));
+
+            if ($userAns === null || $userAns === '') {
+                $unansweredCount++;
+            } elseif ($userAns === $correctAns) {
+                $correctCount++;
+                $totalEarned += (float) $eq->marks;
+            } else {
+                $wrongCount++;
+            }
+        }
+
+        $negativeRate = (float) ($exam->negative_marking ?? 0.00);
+        $negativeDeducted = $wrongCount * $negativeRate;
+        $finalScore = max(0, $totalEarned - $negativeDeducted);
+
+        return view('admin.exams.test_result', [
+            'exam'              => $exam,
+            'totalScore'        => $finalScore,
+            'earnedMarks'       => $totalEarned,
+            'negativeDeducted'  => $negativeDeducted,
+            'correctCount'      => $correctCount,
+            'wrongCount'        => $wrongCount,
+            'unansweredCount'   => $unansweredCount,
+            'totalMcq'          => $mcqQuestions->count(),
+            'writtenCount'      => $writtenQuestions->count(),
+            'answersInput'      => $answersInput,
+            'backUrl'           => route('teacher.exams.show', $exam),
+        ]);
     }
 
     public function detachQuestion(Exam $exam, ExamQuestion $examQuestion)

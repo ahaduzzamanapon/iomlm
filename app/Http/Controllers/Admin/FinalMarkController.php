@@ -390,12 +390,20 @@ class FinalMarkController extends Controller
                     $attendancePercent   = $existing->attendance_percent;
                 }
 
+                // Non-exam criteria preservation
+                $tamrinMark  = $existing ? $existing->tamrin_mark : null;
+                $tajweedMark = $existing ? $existing->tajweed_mark : null;
+                $dnsMark     = $existing ? $existing->dns_mark : null;
+
                 // ── 6. Total & Grade ───────────────────────────────────────
                 $total = round(
-                    ($classTestConverted ?? 0) +
-                    ($midtermConverted   ?? 0) +
-                    ($finalConverted     ?? 0) +
-                    ($attendanceConverted ?? 0),
+                    ($classTestConverted  ?? 0) +
+                    ($midtermConverted    ?? 0) +
+                    ($finalConverted      ?? 0) +
+                    ($attendanceConverted ?? 0) +
+                    ($tamrinMark          ?? 0) +
+                    ($tajweedMark         ?? 0) +
+                    ($dnsMark             ?? 0),
                     2
                 );
 
@@ -419,6 +427,9 @@ class FinalMarkController extends Controller
                         'final_converted'      => $finalConverted,
                         'attendance_percent'   => $attendancePercent,
                         'attendance_converted' => $attendanceConverted,
+                        'tamrin_mark'          => $tamrinMark,
+                        'tajweed_mark'         => $tajweedMark,
+                        'dns_mark'             => $dnsMark,
                         'total_mark'           => $total,
                         'grade'                => $gradeInfo['grade'],
                         'gpa'                  => $gradeInfo['gpa'],
@@ -430,6 +441,9 @@ class FinalMarkController extends Controller
                 $generated++;
             }
         });
+
+        // Recalculate Merit Ranks
+        FinalMark::recalculateMeritRanks($batchId, $subjectId, $semesterId);
 
         $redirectParams = [
             'batch_id'   => $batchId,
@@ -514,5 +528,119 @@ class FinalMarkController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Toggle Publish / Unpublish final marks for batch + subject + semester
+     */
+    public function publishToggle(Request $request)
+    {
+        $request->validate([
+            'batch_id'   => 'required|exists:batches,id',
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $batchId   = $request->batch_id;
+        $subjectId = $request->subject_id;
+        $semesterId = $request->input('semester_id');
+
+        $query = FinalMark::where('batch_id', $batchId)->where('subject_id', $subjectId);
+        if ($semesterId) {
+            $query->where(function ($q) use ($semesterId) {
+                $q->where('semester_id', $semesterId)->orWhereNull('semester_id');
+            });
+        }
+
+        $anyPublished = (clone $query)->where('is_published', true)->exists();
+        $newStatus = !$anyPublished;
+
+        // Recalculate merit ranks before publishing
+        FinalMark::recalculateMeritRanks($batchId, $subjectId, $semesterId);
+
+        $query->update([
+            'is_published' => $newStatus,
+            'published_at' => $newStatus ? now() : null,
+        ]);
+
+        $msg = $newStatus
+            ? '✅ সফলভাবে ফলাফল প্রকাশ করা হয়েছে এবং মেধা স্থান (Merit Rank) নির্ধারণ করা হয়েছে।'
+            : '⚠️ ফলাফল প্রকাশ প্রত্যাহার (Unpublished) করা হয়েছে।';
+
+        return back()->with('success', $msg);
+    }
+
+    /**
+     * Update manual non-exam marks (Tamrin, Tajweed, DNS) or direct components
+     */
+    public function updateManualMark(Request $request, FinalMark $finalMark)
+    {
+        $validated = $request->validate([
+            'tamrin_mark'          => 'nullable|numeric|min:0|max:100',
+            'tajweed_mark'         => 'nullable|numeric|min:0|max:100',
+            'dns_mark'             => 'nullable|numeric|min:0|max:100',
+            'attendance_converted' => 'nullable|numeric|min:0|max:100',
+            'class_test_converted' => 'nullable|numeric|min:0|max:100',
+            'midterm_converted'    => 'nullable|numeric|min:0|max:100',
+            'final_converted'      => 'nullable|numeric|min:0|max:100',
+            'remarks'              => 'nullable|string|max:500',
+        ]);
+
+        if ($request->has('remarks')) {
+            $finalMark->remarks = $validated['remarks'] ?? null;
+        }
+
+        $finalMark->recalculate($validated);
+
+        // Recalculate merit ranks for the entire batch
+        FinalMark::recalculateMeritRanks($finalMark->batch_id, $finalMark->subject_id, $finalMark->semester_id);
+
+        $studentName = $finalMark->student->name ?? 'শিক্ষার্থী';
+        return back()->with('success', "✅ শিক্ষার্থী '{$studentName}'-এর প্রাপ্ত নম্বর সফলভাবে আপডেট করা হয়েছে। মোট নম্বর: {$finalMark->total_mark} (মেধাক্রম: {$finalMark->merit_rank_bengali})");
+    }
+
+    /**
+     * Automatically compute attendance marks from completed class sessions
+     */
+    public function autoAttendance(Request $request)
+    {
+        $request->validate([
+            'batch_id'   => 'required|exists:batches,id',
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $batchId   = $request->batch_id;
+        $subjectId = $request->subject_id;
+        $criteria  = FinalMark::getCriteria();
+
+        $classSessions = ClassSession::where('batch_id', $batchId)
+            ->where('subject_id', $subjectId)
+            ->where('status', 'COMPLETED')
+            ->pluck('id');
+
+        $totalSessions = $classSessions->count();
+        if ($totalSessions === 0) {
+            return back()->with('error', 'এই বিষয় ও ব্যাচের জন্য কোনো সমাপ্ত ক্লাস সেশন পাওয়া যায়নি (No completed class sessions found)।');
+        }
+
+        $finalMarks = FinalMark::where('batch_id', $batchId)->where('subject_id', $subjectId)->get();
+        $updated = 0;
+
+        foreach ($finalMarks as $fm) {
+            $presentCount = Attendance::whereIn('class_session_id', $classSessions)
+                ->where('student_id', $fm->student_id)
+                ->whereIn('status', ['PRESENT', 'LATE'])
+                ->count();
+
+            $attendancePercent   = round(($presentCount / $totalSessions) * 100, 2);
+            $attendanceConverted = round(($attendancePercent / 100) * $criteria['attendance_convert'], 2);
+
+            $fm->attendance_percent = $attendancePercent;
+            $fm->recalculate(['attendance_converted' => $attendanceConverted]);
+            $updated++;
+        }
+
+        FinalMark::recalculateMeritRanks($batchId, $subjectId, $request->input('semester_id'));
+
+        return back()->with('success', "✅ মোট {$updated} জন শিক্ষার্থীর ক্লাসে উপস্থিতির হার অনুযায়ী নম্বর অটো-ক্যালকুলেট করা হয়েছে।");
     }
 }

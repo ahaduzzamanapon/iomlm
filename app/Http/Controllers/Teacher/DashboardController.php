@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use App\Models\ClassSession;
 use App\Models\Exam;
+use App\Models\RoutineEntry;
 use App\Models\SubjectTeacherAssignment;
 use App\Models\Teacher;
 use Carbon\Carbon;
@@ -15,6 +16,16 @@ class DashboardController extends Controller
     public function index(): View
     {
         $teacher   = Teacher::where('user_id', auth()->id())->first();
+
+        $daysOfWeek = [
+            'SAT' => 'শনিবার (Saturday)',
+            'SUN' => 'রবিবার (Sunday)',
+            'MON' => 'সোমবার (Monday)',
+            'TUE' => 'মঙ্গলবার (Tuesday)',
+            'WED' => 'বুধবার (Wednesday)',
+            'THU' => 'বৃহস্পতিবার (Thursday)',
+            'FRI' => 'শুক্রবার (Friday)',
+        ];
 
         if (!$teacher) {
             $stats = [
@@ -28,10 +39,12 @@ class DashboardController extends Controller
             $attendancePending = collect();
             $upcomingExams     = collect();
             $pendingResults    = collect();
+            $weeklyRoutine     = collect();
 
             return view('teacher.dashboard', compact(
                 'stats', 'todayClasses', 'upcomingSessions',
-                'attendancePending', 'upcomingExams', 'pendingResults'
+                'attendancePending', 'upcomingExams', 'pendingResults',
+                'weeklyRoutine', 'daysOfWeek'
             ));
         }
 
@@ -88,9 +101,16 @@ class DashboardController extends Controller
             'attendance_todo' => $attendancePending->count(),
         ];
 
+        // Teacher's weekly routine entries
+        $weeklyRoutine = RoutineEntry::with(['slot', 'batch.course', 'subject'])
+            ->where('teacher_id', $teacherId)
+            ->get()
+            ->groupBy('day_of_week');
+
         return view('teacher.dashboard', compact(
             'stats', 'todayClasses', 'upcomingSessions',
-            'upcomingExams', 'attendancePending', 'pendingResults', 'today'
+            'upcomingExams', 'attendancePending', 'pendingResults', 'today',
+            'weeklyRoutine', 'daysOfWeek'
         ));
     }
 }

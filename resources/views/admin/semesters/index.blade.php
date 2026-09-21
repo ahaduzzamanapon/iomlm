@@ -11,9 +11,20 @@
                 <i class="fa-solid fa-plus"></i> নতুন সেমিস্টার
             </button>
         </div>
+    {{-- Top Navigation Tabs (matching Screenshot 2) --}}
+    <div style="display:flex;gap:4px;margin-bottom:0;border-bottom:2px solid #e2e8f0;font-family:'Kalpurush',sans-serif">
+        <a href="{{ route('admin.semesters.index') }}" style="padding:10px 22px;font-size:13.5px;font-weight:700;text-decoration:none;color:#0f172a;background:#fff;border:1px solid #cbd5e1;border-top:3px solid #ef4444;border-bottom:2px solid #fff;margin-bottom:-2px;border-radius:6px 6px 0 0">
+            Semester Details
+        </a>
+        <a href="{{ route('admin.semesters.index', ['tab' => 'additional']) }}" style="padding:10px 22px;font-size:13.5px;font-weight:700;text-decoration:none;color:#475569;background:#f1f5f9;border:1px solid #e2e8f0;border-bottom:none;border-radius:6px 6px 0 0">
+            Additional Settings
+        </a>
+        <a href="{{ route('admin.program-activities.index') }}" style="padding:10px 22px;font-size:13.5px;font-weight:700;text-decoration:none;color:#475569;background:#f1f5f9;border:1px solid #e2e8f0;border-bottom:none;border-radius:6px 6px 0 0">
+            Program Activity Settings
+        </a>
     </div>
 
-    <div class="card">
+    <div class="card" style="border-top-left-radius:0">
         <div class="table-wrapper">
             <table>
                 <thead>

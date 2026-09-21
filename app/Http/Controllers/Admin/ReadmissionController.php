@@ -189,6 +189,9 @@ class ReadmissionController extends Controller
 
             $readmission->update(['enrollment_id' => $newEnrollment->id]);
 
+            // Update Student ID to reflect current batch code
+            $student->updateCodeForTransferOrReadmission($targetBatch, $readmission->course);
+
             // 3. Generate Re-admission Fee Invoice
             $invoice = AccountingService::createReadmissionInvoice(
                 $student,

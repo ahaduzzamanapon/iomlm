@@ -124,33 +124,42 @@ class AccountsController extends Controller
     }
 
     /**
-     * Create Manual Custom Invoice
+     * Create Manual Custom Invoice (New Fee or Extra Fee)
      */
     public function storeInvoice(Request $request)
     {
         $validated = $request->validate([
-            'student_id' => 'required|exists:students,id',
-            'category'   => 'required|in:ADMISSION,SEMESTER,RETAKE,EXAM,DOCUMENT,FINE,MANUAL',
-            'title'      => 'required|string|max:200',
-            'amount'     => 'required|numeric|min:1',
-            'discount'   => 'nullable|numeric|min:0',
-            'due_date'   => 'nullable|date',
+            'student_id'     => 'required|exists:students,id',
+            'category'       => 'required|in:ADMISSION,SEMESTER,RETAKE,EXAM,DOCUMENT,FINE,MANUAL,EXTRA,COURSE_TRANSFER',
+            'title'          => 'required|string|max:200',
+            'notes'          => 'nullable|string|max:500',
+            'amount'         => 'required|numeric|min:1',
+            'discount'       => 'nullable|numeric|min:0',
+            'due_date'       => 'nullable|date',
+            'record_payment' => 'nullable|boolean',
+            'paid_amount'    => 'nullable|numeric|min:1',
+            'payment_method' => 'nullable|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'sender_number'  => 'nullable|string|max:30',
+            'transaction_id' => 'nullable|string|max:100',
+            'remarks'        => 'nullable|string|max:255',
         ]);
 
         $student  = Student::findOrFail($validated['student_id']);
         $amount   = (float) $validated['amount'];
         $discount = (float) ($validated['discount'] ?? 0);
         $payable  = max(0, $amount - $discount);
-        $invNo    = 'INV-MAN-' . date('Ymd') . '-' . rand(1000, 9999);
+        $prefix   = ($validated['category'] === 'EXTRA') ? 'INV-EXT-' : 'INV-MAN-';
+        $invNo    = $prefix . date('Ymd') . '-' . rand(1000, 9999);
 
         $enrollment = $student->enrollments()->where('status', 'ACTIVE')->first();
 
-        Invoice::create([
+        $invoice = Invoice::create([
             'invoice_no'     => $invNo,
             'student_id'     => $student->id,
             'enrollment_id'  => $enrollment?->id,
             'category'       => $validated['category'],
             'title'          => $validated['title'],
+            'notes'          => $validated['notes'] ?? null,
             'amount'         => $amount,
             'discount'       => $discount,
             'payable_amount' => $payable,
@@ -161,7 +170,22 @@ class AccountsController extends Controller
             'created_by'     => auth()->id(),
         ]);
 
-        return back()->with('success', "Invoice {$invNo} created successfully!");
+        // Optional immediate payment collection
+        if ($request->boolean('record_payment') && !empty($validated['paid_amount'])) {
+            $paymentAmt = min($payable, (float) $validated['paid_amount']);
+            if ($paymentAmt > 0) {
+                AccountingService::receivePayment(
+                    $invoice,
+                    $paymentAmt,
+                    $validated['payment_method'] ?? 'CASH',
+                    $validated['transaction_id'] ?? null,
+                    $validated['remarks'] ?? ($validated['notes'] ?? 'Immediate fee collection'),
+                    $validated['sender_number'] ?? null
+                );
+            }
+        }
+
+        return back()->with('success', "ইনভয়েস {$invNo} সফলভাবে তৈরি করা হয়েছে!");
     }
 
     /**
@@ -172,6 +196,7 @@ class AccountsController extends Controller
         $validated = $request->validate([
             'amount'         => 'required|numeric|min:1|max:' . $invoice->due_amount,
             'payment_method' => 'required|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'sender_number'  => 'nullable|string|max:30',
             'transaction_id' => 'nullable|string|max:100',
             'remarks'        => 'nullable|string',
         ]);
@@ -181,10 +206,11 @@ class AccountsController extends Controller
             (float) $validated['amount'],
             $validated['payment_method'],
             $validated['transaction_id'] ?? null,
-            $validated['remarks'] ?? null
+            $validated['remarks'] ?? null,
+            $validated['sender_number'] ?? null
         );
 
-        return back()->with('success', "Payment {$payment->payment_no} received successfully! Money receipt generated.");
+        return back()->with('success', "পেমেন্ট {$payment->payment_no} সফলভাবে গৃহীত হয়েছে! মানি রসিদ তৈরি সম্পন্ন।");
     }
 
     /**
@@ -351,13 +377,14 @@ class AccountsController extends Controller
     }
 
     /**
-     * Update an existing Invoice (Edit Title, Amount, Discount, Due Date)
+     * Update an existing Invoice (Edit Title, Amount, Discount, Due Date, Category, Notes)
      */
     public function updateInvoice(Request $request, Invoice $invoice)
     {
         $validated = $request->validate([
             'title'      => 'required|string|max:200',
-            'category'   => 'required|in:ADMISSION,SEMESTER,RETAKE,EXAM,DOCUMENT,FINE,MANUAL,COURSE_TRANSFER',
+            'category'   => 'required|in:ADMISSION,SEMESTER,RETAKE,EXAM,DOCUMENT,FINE,MANUAL,EXTRA,COURSE_TRANSFER',
+            'notes'      => 'nullable|string|max:500',
             'amount'     => 'required|numeric|min:0',
             'discount'   => 'nullable|numeric|min:0',
             'due_date'   => 'nullable|date',
@@ -383,6 +410,7 @@ class AccountsController extends Controller
         $invoice->update([
             'title'          => $validated['title'],
             'category'       => $validated['category'],
+            'notes'          => $validated['notes'] ?? $invoice->notes,
             'amount'         => $amount,
             'discount'       => $discount,
             'payable_amount' => $payable,
@@ -395,19 +423,96 @@ class AccountsController extends Controller
     }
 
     /**
-     * Delete an Invoice (Safe Deletion with Payment Audit Check)
+     * Update Payment Status of a Specific Invoice (PAID, UNPAID, PARTIAL, CANCELLED)
      */
-    public function destroyInvoice(Invoice $invoice)
+    public function updateInvoiceStatus(Request $request, Invoice $invoice)
     {
-        // If payments already exist, prevent direct accidental deletion
+        $validated = $request->validate([
+            'status'         => 'required|in:PAID,UNPAID,PARTIAL,CANCELLED',
+            'remarks'        => 'nullable|string|max:255',
+            'payment_method' => 'nullable|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'sender_number'  => 'nullable|string|max:30',
+            'transaction_id' => 'nullable|string|max:100',
+        ]);
+
+        $newStatus = $validated['status'];
+        $remarks   = $validated['remarks'] ?? 'Status updated by Admin';
+
+        if ($newStatus === 'CANCELLED') {
+            // Cancel / Waive invoice: set due to 0, mark CANCELLED
+            $invoice->update([
+                'status'     => 'CANCELLED',
+                'due_amount' => 0.00,
+                'notes'      => ($invoice->notes ? $invoice->notes . "\n" : '') . "[বাতিল/মওকুফ: {$remarks}]",
+            ]);
+
+            return back()->with('success', "ইনভয়েস {$invoice->invoice_no} সফলভাবে বাতিল/মওকুফ (CANCELLED) করা হয়েছে।");
+        }
+
+        if ($newStatus === 'PAID') {
+            if ($invoice->due_amount > 0) {
+                // Settle remaining due by recording payment
+                $method       = $validated['payment_method'] ?? 'CASH';
+                $trxId        = $validated['transaction_id'] ?? null;
+                $senderNumber = $validated['sender_number'] ?? null;
+
+                AccountingService::receivePayment(
+                    $invoice,
+                    $invoice->due_amount,
+                    $method,
+                    $trxId,
+                    $remarks,
+                    $senderNumber
+                );
+
+                return back()->with('success', "ইনভয়েস {$invoice->invoice_no}-এর বকেয়া পরিশোধ সম্পন্ন হয়েছে এবং স্ট্যাটাস PAID করা হয়েছে।");
+            } else {
+                $invoice->update(['status' => 'PAID']);
+                return back()->with('success', "ইনভয়েস {$invoice->invoice_no}-এর স্ট্যাটাস PAID করা হয়েছে।");
+            }
+        }
+
+        if ($newStatus === 'UNPAID') {
+            $due = max(0, $invoice->payable_amount - $invoice->paid_amount);
+            $invoice->update([
+                'status'     => ($invoice->paid_amount > 0) ? 'PARTIAL' : 'UNPAID',
+                'due_amount' => $due,
+            ]);
+
+            return back()->with('success', "ইনভয়েস {$invoice->invoice_no}-এর স্ট্যাটাস আপডেট করা হয়েছে।");
+        }
+
+        if ($newStatus === 'PARTIAL') {
+            $invoice->update(['status' => 'PARTIAL']);
+            return back()->with('success', "ইনভয়েস {$invoice->invoice_no}-এর স্ট্যাটাস PARTIAL করা হয়েছে।");
+        }
+
+        return back();
+    }
+
+    /**
+     * Delete an Invoice (Safe Deletion with Payment Audit Check or Void)
+     */
+    public function destroyInvoice(Request $request, Invoice $invoice)
+    {
+        // If payments already exist, check if user explicitly requested void/cancel
         if ($invoice->paid_amount > 0 || $invoice->payments()->exists()) {
-            return back()->with('error', "এই ইনভয়েসে ইতোমধ্যে ৳{$invoice->paid_amount} টাকা পেমেন্ট জমা রয়েছে। সরাসরি ডিলিট করা যাবে না। প্রয়োজনে ইনভয়েসের পরিমাণ পরিবর্তন করুন বা পেমেন্ট সমন্বয় করুন।");
+            if ($request->boolean('force_cancel')) {
+                $invoice->update([
+                    'status'     => 'CANCELLED',
+                    'due_amount' => 0.00,
+                    'notes'      => ($invoice->notes ? $invoice->notes . "\n" : '') . '[ভুল বা অতিরিক্ত ফি হিসেবে বাতিল করা হয়েছে]',
+                ]);
+                return back()->with('success', "ইনভয়েসে জমা টাকা থাকায় এটি স্থায়ীভাবে ডিলিটের পরিবর্তে বাতিল (CANCELLED) হিসেবে চিহ্নিত করা হয়েছে এবং বকেয়া শূন্য করা হয়েছে।");
+            }
+
+            return back()->with('error', "এই ইনভয়েসে ইতোমধ্যে ৳{$invoice->paid_amount} টাকা পেমেন্ট জমা রয়েছে। সরাসরি ডিলিট করার পরিবর্তে আপনি স্ট্যাটাস থেকে 'CANCELLED' করতে পারেন বা ইনভয়েস এডিট করতে পারেন।");
         }
 
         $invNo = $invoice->invoice_no;
         $invoice->delete();
 
-        return back()->with('success', "ইনভয়েস {$invNo} সফলভাবে মুছে ফেলা হয়েছে।");
+        return back()->with('success', "ভুল/অতিরিক্ত ইনভয়েস {$invNo} সফলভাবে মুছে ফেলা হয়েছে।");
     }
 
     /**

@@ -206,10 +206,9 @@
                         <div class="form-group">
                             <label>Gender (লিঙ্গ)</label>
                             <select name="gender">
-                                <option value="">-- Select Gender --</option>
-                                <option value="Male" {{ old('gender') == 'Male' ? 'selected' : '' }}>Male</option>
-                                <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>Female</option>
-                                <option value="Other" {{ old('gender') == 'Other' ? 'selected' : '' }}>Other</option>
+                                <option value="">-- লিঙ্গ নির্বাচন করুন --</option>
+                                <option value="Male" {{ old('gender') == 'Male' ? 'selected' : '' }}>পুরুষ (Male)</option>
+                                <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>মহিলা (Female)</option>
                             </select>
                         </div>
                     </div>

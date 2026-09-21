@@ -31,9 +31,8 @@ class ProfileController extends Controller
         $missing = $student->getMissingProfileFields();
 
         $bloodGroups = class_exists(BloodGroup::class) ? BloodGroup::where('is_active', true)->get() : collect();
-        $religions   = class_exists(Religion::class) ? Religion::where('is_active', true)->get() : collect();
 
-        return view('student.profile.index', compact('student', 'percent', 'missing', 'bloodGroups', 'religions'));
+        return view('student.profile.index', compact('student', 'percent', 'missing', 'bloodGroups'));
     }
 
     public function update(Request $request)
@@ -43,6 +42,17 @@ class ProfileController extends Controller
         if (!$student) {
             return redirect()->route('student.dashboard')
                 ->with('error', 'শিক্ষার্থীর প্রোফাইল খুঁজে পাওয়া যায়নি।');
+        }
+
+        if ($student->is_common_account || (auth()->user() && auth()->user()->is_common_account)) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'এই অ্যাকাউন্টটি একটি সাধারণ (Common) শেয়ার্ড অ্যাকাউন্ট। প্রোফাইল তথ্য বা পাসওয়ার্ড পরিবর্তন করার অনুমতি নেই।',
+                ], 403);
+            }
+            return redirect()->route('student.profile.index')
+                ->with('error', 'এই অ্যাকাউন্টটি একটি সাধারণ (Common) শেয়ার্ড অ্যাকাউন্ট। প্রোফাইল তথ্য বা পাসওয়ার্ড পরিবর্তন করার অনুমতি নেই।');
         }
 
         $validated = $request->validate([

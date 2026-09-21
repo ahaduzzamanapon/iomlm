@@ -363,6 +363,240 @@ class FeeController extends Controller
             }
         }
 
+        // ── Program Activity Resolution for Dynamic Month Calculation ──
+        $programActivity = \App\Models\ProgramActivity::where(function ($q) use ($course, $activeEnrollment) {
+            if ($course && $activeEnrollment) {
+                $q->where('course_id', $course->id)->where('batch_id', $activeEnrollment->batch_id);
+            }
+        })->orWhere(function ($q) use ($course) {
+            if ($course) {
+                $q->where('course_id', $course->id)->whereNull('batch_id');
+            }
+        })->orWhere(function ($q) {
+            $q->whereNull('course_id')->whereNull('batch_id');
+        })->first();
+
+        $configuredStartMonth = $programActivity?->starting_month ?? 'July';
+        $activityStartDate    = $programActivity?->start_date ? \Carbon\Carbon::parse($programActivity->start_date) : now();
+
+        // ── Determine Selected Semester for Step 1 Dropdown ──
+        $selectedSemesterId = request('semester_id');
+        if (!$selectedSemesterId && $runningSemester) {
+            $selectedSemesterId = $runningSemester->id;
+        }
+        if (!$selectedSemesterId && $allSemesters->isNotEmpty()) {
+            $selectedSemesterId = $allSemesters->first()->id;
+        }
+
+        $selectedSemester = $allSemesters->firstWhere('id', $selectedSemesterId) ?? $runningSemester ?? $allSemesters->first();
+
+        // Build Semester Dropdown Options (e.g. Fall 2026 (Jul-Dec), Spring 2026 (Jan-Jun))
+        $semesterDropdownOptions = [];
+        foreach ($allSemesters as $sem) {
+            $semInvs   = collect($invoicesBySemester[$sem->id] ?? []);
+            $semDue    = (float) $semInvs->sum('due_amount');
+            $isRunning = ($runningSemester && $sem->id == $runningSemester->id);
+
+            // Compose label
+            $semLabel = $sem->name;
+            if ($programActivity && $programActivity->semester_name && $isRunning) {
+                $semLabel = $programActivity->semester_name;
+            } elseif (preg_match('/semester\s*(\d+)/i', $sem->name, $m)) {
+                $num = (int) $m[1];
+                $year = $activityStartDate->year;
+                $semLabel = ($num % 2 !== 0) ? "Spring {$year} (Jan-Jun)" : "Fall {$year} (Jul-Dec)";
+            }
+
+            $semesterDropdownOptions[] = [
+                'id'          => $sem->id,
+                'name'        => $sem->name,
+                'label'       => $semLabel,
+                'due'         => $semDue,
+                'isRunning'   => $isRunning,
+                'sequence_no' => $sem->sequence_no,
+            ];
+        }
+
+        // Fallback option if empty
+        if (empty($semesterDropdownOptions)) {
+            $semesterDropdownOptions[] = [
+                'id'          => 1,
+                'name'        => 'Current Session',
+                'label'       => $programActivity?->semester_name ?? 'Fall 2026 (Jul-Dec)',
+                'due'         => $totalDue,
+                'isRunning'   => true,
+                'sequence_no' => 1,
+            ];
+        }
+
+        // ── Prior Due Guard: Check if earlier semesters have unpaid dues ──
+        $hasPriorSemesterDue   = false;
+        $priorDueAmount        = 0.0;
+        $priorDueSemesterName  = '';
+        $priorDueSemesterId    = null;
+
+        $selectedSeq = $selectedSemester?->sequence_no ?? 1;
+
+        foreach ($allSemesters as $sem) {
+            if ($sem->sequence_no < $selectedSeq) {
+                $earlierInvs = collect($invoicesBySemester[$sem->id] ?? []);
+                $earlierDue  = (float) $earlierInvs->sum('due_amount');
+                if ($earlierDue > 0) {
+                    $hasPriorSemesterDue = true;
+                    $priorDueAmount += $earlierDue;
+                    if (!$priorDueSemesterName) {
+                        $priorDueSemesterName = $sem->name;
+                        $priorDueSemesterId   = $sem->id;
+                    }
+                }
+            }
+        }
+
+        // Also check admission fee due if not in semester 1
+        $admDue = (float) $admissionInvoices->sum('due_amount');
+        if ($admDue > 0 && $selectedSeq > 1) {
+            $hasPriorSemesterDue = true;
+            $priorDueAmount += $admDue;
+            if (!$priorDueSemesterName) {
+                $priorDueSemesterName = 'ভর্তি ফি (Admission Fee)';
+            }
+        }
+
+        // ── Generate Step 1 Particulars (Tuition Months + Mid Term + Final Term) ──
+        $step1Particulars = [];
+        $selectedSemInvoices = collect($invoicesBySemester[$selectedSemesterId] ?? []);
+        $selectedSemesterInvoice = $selectedSemInvoices->first() ?? $nonCancelledInvoices->first();
+
+        $targetPayable = (float) $selectedSemInvoices->sum('payable_amount');
+        $targetPaid    = (float) $selectedSemInvoices->sum('paid_amount');
+        $targetDue     = (float) $selectedSemInvoices->sum('due_amount');
+
+        $monthlyTuition = 500.0;
+        $midFeeAmt      = 300.0;
+        $finalFeeAmt    = 500.0;
+
+        if ($targetPayable > 0) {
+            $unitRate       = $targetPayable / 7.6;
+            $monthlyTuition = round($unitRate, 0);
+            $midFeeAmt      = round($unitRate * 0.6, 0);
+            $finalFeeAmt    = round($unitRate, 0);
+        }
+
+        // Start calendar month Carbon instance
+        try {
+            $monthNum = date('n', strtotime($configuredStartMonth . ' 1 2026'));
+            $startCarbon = \Carbon\Carbon::createFromDate($activityStartDate->year, $monthNum, 1);
+        } catch (\Throwable $e) {
+            $startCarbon = \Carbon\Carbon::createFromDate(now()->year, 7, 1);
+        }
+
+        $paidPool = $targetPaid;
+        $sl = 1;
+
+        // Months 1 to 3
+        for ($i = 0; $i < 3; $i++) {
+            $cDate = $startCarbon->copy()->addMonths($i);
+            $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
+            $dueAmt = $monthlyTuition;
+            $isPaid = false;
+            $paidAmt = 0;
+
+            if ($paidPool >= $dueAmt) {
+                $isPaid = true;
+                $paidAmt = $dueAmt;
+                $dueAmt = 0;
+                $paidPool -= $monthlyTuition;
+            } elseif ($paidPool > 0) {
+                $paidAmt = $paidPool;
+                $dueAmt = $dueAmt - $paidPool;
+                $paidPool = 0;
+            }
+
+            $step1Particulars[] = [
+                'sl'       => $sl++,
+                'name'     => $pName,
+                'amount'   => $monthlyTuition,
+                'paid_amt' => $paidAmt,
+                'due'      => $dueAmt,
+                'is_paid'  => $isPaid,
+            ];
+        }
+
+        // Mid Term Fee
+        $midDue = $midFeeAmt;
+        $midPaid = false;
+        $midPaidAmt = 0;
+        if ($paidPool >= $midDue) {
+            $midPaid = true;
+            $midPaidAmt = $midDue;
+            $midDue = 0;
+            $paidPool -= $midFeeAmt;
+        } elseif ($paidPool > 0) {
+            $midPaidAmt = $paidPool;
+            $midDue = $midDue - $paidPool;
+            $paidPool = 0;
+        }
+        $step1Particulars[] = [
+            'sl'       => $sl++,
+            'name'     => 'Mid Term Fee',
+            'amount'   => $midFeeAmt,
+            'paid_amt' => $midPaidAmt,
+            'due'      => $midDue,
+            'is_paid'  => $midPaid,
+        ];
+
+        // Months 4 to 6
+        for ($i = 3; $i < 6; $i++) {
+            $cDate = $startCarbon->copy()->addMonths($i);
+            $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
+            $dueAmt = $monthlyTuition;
+            $isPaid = false;
+            $paidAmt = 0;
+
+            if ($paidPool >= $dueAmt) {
+                $isPaid = true;
+                $paidAmt = $dueAmt;
+                $dueAmt = 0;
+                $paidPool -= $monthlyTuition;
+            } elseif ($paidPool > 0) {
+                $paidAmt = $paidPool;
+                $dueAmt = $dueAmt - $paidPool;
+                $paidPool = 0;
+            }
+
+            $step1Particulars[] = [
+                'sl'       => $sl++,
+                'name'     => $pName,
+                'amount'   => $monthlyTuition,
+                'paid_amt' => $paidAmt,
+                'due'      => $dueAmt,
+                'is_paid'  => $isPaid,
+            ];
+        }
+
+        // Final Term Fee
+        $finalDue = $finalFeeAmt;
+        $finalPaid = false;
+        $finalPaidAmt = 0;
+        if ($paidPool >= $finalDue) {
+            $finalPaid = true;
+            $finalPaidAmt = $finalDue;
+            $finalDue = 0;
+            $paidPool -= $finalFeeAmt;
+        } elseif ($paidPool > 0) {
+            $finalPaidAmt = $paidPool;
+            $finalDue = $finalDue - $paidPool;
+            $paidPool = 0;
+        }
+        $step1Particulars[] = [
+            'sl'       => $sl++,
+            'name'     => 'Final Term Fee',
+            'amount'   => $finalFeeAmt,
+            'paid_amt' => $finalPaidAmt,
+            'due'      => $finalDue,
+            'is_paid'  => $finalPaid,
+        ];
+
         $sslActive   = \App\Services\PaymentGatewayService::isSslcommerzActive();
         $bkashActive = \App\Services\PaymentGatewayService::isBkashActive();
 
@@ -370,7 +604,11 @@ class FeeController extends Controller
             'student', 'course', 'courseType', 'runningSemester', 'runningSemesterName',
             'invoices', 'payments', 'totalDue', 'totalPaid', 'runningSemesterDue',
             'semesterBreakdown', 'studentCourses', 'packageItemsBreakdown',
-            'sslActive', 'bkashActive'
+            'sslActive', 'bkashActive',
+            'programActivity', 'semesterDropdownOptions', 'selectedSemesterId',
+            'selectedSemester', 'hasPriorSemesterDue', 'priorDueAmount',
+            'priorDueSemesterName', 'priorDueSemesterId', 'step1Particulars',
+            'selectedSemesterInvoice'
         ));
     }
 
@@ -393,6 +631,7 @@ class FeeController extends Controller
             'amount'         => 'required|numeric|min:1|max:' . $invoice->due_amount,
             'payment_method' => 'required|string',
             'transaction_id' => 'nullable|string|max:100',
+            'sender_number'  => 'nullable|string|max:30',
             'remarks'        => 'nullable|string|max:255',
         ]);
 
@@ -454,13 +693,14 @@ class FeeController extends Controller
             return back()->with('error', $initRes['message'] ?? 'পেমেন্ট গেটওয়েতে সংযোগ করতে সমস্যা হয়েছে।');
         }
 
-        // 2. Manual / Offline Payment (Cash, Bank Transfer, Offline TrxID)
+        // 2. Manual / Offline Payment (bKash Manual, Cash, Bank Transfer, Offline TrxID)
         $payment = \App\Services\AccountingService::submitStudentPayment(
             $invoice,
             (float) $validated['amount'],
             strtoupper($validated['payment_method']),
             $validated['transaction_id'] ?? null,
-            $validated['remarks'] ?? null
+            $validated['remarks'] ?? null,
+            $validated['sender_number'] ?? null
         );
 
         return back()->with('success', '⏳ পেমেন্ট ট্রানজেকশন সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন অনুমোদন করার সাথে সাথে ফি রসিদ ও বকেয়া আপডেট হয়ে যাবে।');

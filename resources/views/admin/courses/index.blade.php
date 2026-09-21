@@ -40,7 +40,9 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="width:70px">Code</th>
                         <th>Course Name</th>
+                        <th>Department</th>
                         <th>Type</th>
                         <th>Duration</th>
                         <th>Semesters</th>
@@ -53,8 +55,18 @@
                 <tbody>
                     @forelse($courses as $course)
                     <tr>
+                        <td>
+                            <span class="badge" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;font-family:monospace;font-size:13px;font-weight:800;letter-spacing:1px">
+                                {{ $course->formatted_code }}
+                            </span>
+                        </td>
                         <td class="td-primary">
                             <a href="{{ route('admin.courses.show', $course) }}" style="font-weight:600;color:var(--blue)">{{ $course->name }}</a>
+                        </td>
+                        <td>
+                            <span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:11.5px;font-weight:600">
+                                {{ $course->department ?: 'BA in Dawah and Islamic Studies' }}
+                            </span>
                         </td>
                         <td>
                             @if($course->type === 'SEMESTER_BASED')
@@ -137,7 +149,23 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label>Course Name <span class="required">*</span></label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. B.Sc. in Computer Science" required>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Alim Preparatory Course" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Course Code (২ ডিজিট কোড) <span class="required">*</span></label>
+                            <input type="text" name="code" class="form-control" placeholder="e.g. 01, 02, 15" maxlength="4" style="font-family:monospace;font-weight:700">
+                            <small style="color:var(--text-muted);font-size:12px">এই কোডটি শিক্ষার্থীর আইডির ৫ম ও ৬ষ্ঠ ডিজিটে যুক্ত হবে।</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Department (বিভাগ) <span class="required">*</span></label>
+                            <select name="department" class="form-control">
+                                @foreach($departments as $dept)
+                                    <option value="{{ $dept }}">{{ $dept }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -226,6 +254,22 @@
                         <input type="text" name="name" id="edit_course_name" class="form-control" required>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Course Code (২ ডিজিট কোড) <span class="required">*</span></label>
+                            <input type="text" name="code" id="edit_course_code" class="form-control" placeholder="e.g. 01, 02, 15" maxlength="4" style="font-family:monospace;font-weight:700">
+                            <small style="color:var(--text-muted);font-size:12px">শিক্ষার্থীর আইডির ৫ম ও ৬ষ্ঠ ডিজিট।</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Department (বিভাগ) <span class="required">*</span></label>
+                            <select name="department" id="edit_course_department" class="form-control">
+                                @foreach($departments as $dept)
+                                    <option value="{{ $dept }}">{{ $dept }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>Course Type <span class="required">*</span></label>
                         <select name="type" id="edit_course_type" class="form-control" required>
@@ -295,6 +339,8 @@
     function openEditCourseModal(course) {
         document.getElementById('editCourseForm').action = '/admin/courses/' + course.id;
         document.getElementById('edit_course_name').value = course.name;
+        document.getElementById('edit_course_code').value = course.code || ('0' + (course.id % 100)).slice(-2);
+        document.getElementById('edit_course_department').value = course.department || 'BA in Dawah and Islamic Studies';
         document.getElementById('edit_course_type').value = course.type;
         document.getElementById('edit_course_duration_value').value = course.duration_value;
         document.getElementById('edit_course_duration_unit').value = course.duration_unit;

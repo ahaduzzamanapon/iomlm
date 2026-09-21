@@ -45,6 +45,7 @@ class BroadcastNotificationController extends Controller
             'image_url'            => 'nullable|string|max:1000',
             'image_file'           => 'nullable|image|max:3072',
             'action_url'           => 'nullable|url|max:1000',
+            'scheduled_at'         => 'nullable|date',
         ]);
 
         // Handle Image Upload if file provided
@@ -91,7 +92,30 @@ class BroadcastNotificationController extends Controller
         }
 
         if ($targetUsers->isEmpty()) {
-            return back()->withInput()->with('error', 'No target recipients found for the selected filter.');
+            return back()->withInput()->with('error', 'নির্বাচিত ফিল্টারের জন্য কোনো প্রাপক পাওয়া যায়নি।');
+        }
+
+        // Check if Scheduled for future
+        $isScheduled = !empty($validated['scheduled_at']) && \Carbon\Carbon::parse($validated['scheduled_at'])->isFuture();
+
+        if ($isScheduled) {
+            $scheduledTime = \Carbon\Carbon::parse($validated['scheduled_at']);
+            SentNotification::create([
+                'title'               => $validated['title'],
+                'message'             => $validated['message'],
+                'channel'             => $validated['channel'],
+                'recipient_type'      => $validated['recipient_type'],
+                'recipient_filter_id' => $filterId,
+                'image_url'           => $imageUrl,
+                'action_url'          => $validated['action_url'] ?? null,
+                'sent_count'          => $targetUsers->count(),
+                'sent_by'             => auth()->id(),
+                'scheduled_at'        => $scheduledTime,
+                'status'              => 'SCHEDULED',
+            ]);
+
+            return redirect()->route('admin.notifications.index')
+                ->with('success', "✅ নোটিফিকেশন সফলভাবে শিডিউল করা হয়েছে! নির্ধারিত সময়ে (" . $scheduledTime->format('d M Y, h:i A') . ") এটি {$targetUsers->count()} জন প্রাপকের নিকট স্বয়ংক্রিয়ভাবে প্রেরিত হবে।");
         }
 
         $emailCount = 0;
@@ -106,7 +130,7 @@ class BroadcastNotificationController extends Controller
                         $validated['title'],
                         $validated['message'],
                         $imageUrl,
-                        $validated['action_url']
+                        $validated['action_url'] ?? null
                     );
                     if ($sent) $emailCount++;
                 }
@@ -124,13 +148,11 @@ class BroadcastNotificationController extends Controller
                     $validated['title'],
                     $validated['message'],
                     $imageUrl,
-                    $validated['action_url']
+                    $validated['action_url'] ?? null
                 );
                 $pushCount = $fcmResult['sent'] ?? 0;
             }
         }
-
-        $totalDelivered = max($emailCount, $pushCount, 1);
 
         // 4. Record Audit Log in database
         SentNotification::create([
@@ -140,19 +162,42 @@ class BroadcastNotificationController extends Controller
             'recipient_type'      => $validated['recipient_type'],
             'recipient_filter_id' => $filterId,
             'image_url'           => $imageUrl,
-            'action_url'          => $validated['action_url'],
+            'action_url'          => $validated['action_url'] ?? null,
             'sent_count'          => $targetUsers->count(),
             'sent_by'             => auth()->id(),
+            'scheduled_at'        => now(),
+            'status'              => 'SENT',
         ]);
 
-        $summaryMsg = "Notification broadcast sent successfully! Recipients: {$targetUsers->count()}. ";
+        $summaryMsg = "নোটিফিকেশন সফলভাবে প্রেরিত হয়েছে! প্রাপক: {$targetUsers->count()} জন। ";
         if (in_array($validated['channel'], ['EMAIL', 'BOTH'])) {
-            $summaryMsg .= "Emails Delivered: {$emailCount}. ";
+            $summaryMsg .= "ইমেইল ডেলিভারি: {$emailCount}। ";
         }
         if (in_array($validated['channel'], ['PUSH', 'BOTH'])) {
-            $summaryMsg .= "Push Notifications Delivered: {$pushCount}.";
+            $summaryMsg .= "পুশ নোটিফিকেশন: {$pushCount}।";
         }
 
         return redirect()->route('admin.notifications.index')->with('success', $summaryMsg);
+    }
+
+    /**
+     * Return JSON representation of notification for modal full view
+     */
+    public function showJson(SentNotification $notification)
+    {
+        return response()->json([
+            'id'             => $notification->id,
+            'title'          => $notification->title,
+            'message'        => $notification->message,
+            'channel'        => $notification->channel,
+            'recipient_type' => $notification->recipient_type,
+            'image_url'      => $notification->image_url,
+            'action_url'     => $notification->action_url,
+            'sent_count'     => $notification->sent_count,
+            'status'         => $notification->status ?? 'SENT',
+            'scheduled_at'   => $notification->scheduled_at ? $notification->scheduled_at->format('d M Y, h:i A') : null,
+            'created_at'     => $notification->created_at->format('d M Y, h:i A'),
+            'sender_name'    => $notification->sender?->name ?? 'System',
+        ]);
     }
 }

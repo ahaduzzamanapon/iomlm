@@ -14,7 +14,10 @@
                 Type: <span class="badge badge-info no-dot">{{ $exam->type }}</span>
             </p>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" style="display:flex;gap:10px;align-items:center">
+            <a href="{{ route('admin.exams.test-exam', $exam) }}" class="btn btn-outline" style="background:#fef3c7;border-color:#fde68a;color:#92400e;display:inline-flex;align-items:center;gap:6px">
+                <i class="fa-solid fa-vial"></i> 🧪 টেস্ট এক্সাম (Test Exam)
+            </a>
             <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline">
                 <i class="fa-solid fa-eye"></i> View Exam Details
             </a>
@@ -114,9 +117,41 @@
         <div class="card">
             <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:8px">
                 <span class="card-title"><i class="fa-solid fa-layer-group" style="color:#6366f1"></i> Question Bank Pool</span>
-                <span style="font-size:12px;color:var(--text-muted)">যেকোনো বিষয়, ক্যাটাগরি বা ট্যাগ থেকে প্রশ্ন সিলেক্ট করে যুক্ত করুন</span>
+                <span style="font-size:12px;color:var(--text-muted)">যেকোনো বিষয়, ব্যাচ, সেমিস্টার বা ট্যাগ থেকে প্রশ্ন সিলেক্ট করে যুক্ত করুন</span>
             </div>
             <div style="padding:14px">
+
+                {{-- Pull Random Questions Card --}}
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-bottom:14px">
+                    <div style="font-weight:700;font-size:12px;color:#166534;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-dice" style="color:#16a34a"></i> র‍্যান্ডম প্রশ্ন যোগ করুন (Pull Random Questions)
+                    </div>
+                    <form method="POST" action="{{ route('admin.exams.questions.random', $exam) }}" style="display:flex;flex-direction:column;gap:8px">
+                        @csrf
+                        <input type="hidden" name="pool_subject_id" value="{{ $subjectId }}">
+                        <input type="hidden" name="exam_type" value="{{ $examType }}">
+                        <input type="hidden" name="batch_id" value="{{ $batchId }}">
+                        <input type="hidden" name="semester_id" value="{{ $semesterId }}">
+                        <input type="hidden" name="difficulty" value="{{ $difficulty }}">
+                        <input type="hidden" name="search" value="{{ $search }}">
+
+                        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:6px">
+                            <div>
+                                <label style="font-size:11px;font-weight:600;color:#374151">Number of random questions:</label>
+                                <input type="number" name="count" min="1" max="100" value="10" required class="form-control" style="height:32px;font-size:12px">
+                            </div>
+                            <div>
+                                <label style="font-size:11px;font-weight:600;color:#374151">Marks per question:</label>
+                                <input type="number" step="0.5" name="marks_per_question" min="0.5" value="1" class="form-control" style="height:32px;font-size:12px">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-sm" style="background:#16a34a;color:#fff;height:32px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:600">
+                            <i class="fa-solid fa-plus"></i> + Add random questions
+                        </button>
+                    </form>
+                </div>
+
                 {{-- Filter Bar --}}
                 <form method="GET" action="{{ route('admin.exams.builder', $exam) }}" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;background:#f8fafc;border:1px solid #e2e8f0;padding:10px;border-radius:8px">
                     <input type="text" name="search" class="form-control" placeholder="প্রশ্ন অনুসন্ধান করুন..." value="{{ $search }}" style="height:32px;font-size:12px">
@@ -138,6 +173,22 @@
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                        <select name="batch_id" class="form-control" style="height:32px;font-size:11px">
+                            <option value="">সকল ব্যাচ (All Batches)</option>
+                            @foreach($batches as $b)
+                                <option value="{{ $b->id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                            @endforeach
+                        </select>
+
+                        <select name="semester_id" class="form-control" style="height:32px;font-size:11px">
+                            <option value="">সকল সেমিস্টার (All Semesters)</option>
+                            @foreach($semesters as $sem)
+                                <option value="{{ $sem->id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>{{ $sem->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
                         <select name="difficulty" class="form-control" style="height:32px;font-size:11px">
                             <option value="">সকল কঠিনতা</option>
                             <option value="easy" {{ ($difficulty ?? '') === 'easy' ? 'selected' : '' }}>Easy (সহজ)</option>
@@ -149,7 +200,7 @@
                             <button type="submit" class="btn btn-primary btn-sm" style="flex:1;height:32px;padding:0;font-size:11px">
                                 <i class="fa-solid fa-filter"></i> ফিল্টার
                             </button>
-                            @if($search || $difficulty || $examType || ($subjectId && $subjectId !== $exam->subject_id))
+                            @if($search || $difficulty || $examType || $batchId || $semesterId || ($subjectId && $subjectId !== $exam->subject_id))
                                 <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-outline btn-sm" style="height:32px;padding:4px 8px;font-size:11px" title="Reset">
                                     <i class="fa-solid fa-rotate-left"></i>
                                 </a>

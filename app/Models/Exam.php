@@ -10,10 +10,12 @@ class Exam extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'start_datetime' => 'datetime',
-        'end_datetime'   => 'datetime',
-        'exam_date'      => 'date',
-        'end_date'       => 'date',
+        'start_datetime'       => 'datetime',
+        'end_datetime'         => 'datetime',
+        'exam_date'            => 'date',
+        'end_date'             => 'date',
+        'is_result_published'  => 'boolean',
+        'result_published_at'  => 'datetime',
     ];
 
     public function getEffectiveStartDatetime(): Carbon
@@ -105,5 +107,24 @@ class Exam extends Model
     public function appeals()
     {
         return $this->hasMany(ExamAppeal::class, 'exam_id');
+    }
+
+    public function publishResults(): void
+    {
+        $this->update([
+            'is_result_published' => true,
+            'result_published_at' => now(),
+        ]);
+        // Also mark results as published
+        $this->results()->update(['is_published' => true]);
+    }
+
+    public function unpublishResults(): void
+    {
+        $this->update([
+            'is_result_published' => false,
+            'result_published_at' => null,
+        ]);
+        $this->results()->update(['is_published' => false]);
     }
 }

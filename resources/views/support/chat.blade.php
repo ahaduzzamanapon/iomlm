@@ -95,6 +95,11 @@
                                         <button type="button" onclick="openStudentProfileModal('{{ str_replace('-', '', $codeToCheck) }}')" class="btn btn-sm" style="background:#0284c7;color:#fff;border:none;padding:3px 8px;font-size:11px;font-weight:700;border-radius:4px;cursor:pointer" title="সরাসরি প্রোফাইল চেক করুন">
                                             <i class="fa-solid fa-eye"></i> প্রোফাইল দেখুন
                                         </button>
+                                        @if($ticket->resolved_student)
+                                            <a href="{{ route('support.students.impersonate', $ticket->resolved_student) }}" target="_blank" class="btn btn-sm" style="background:#059669;color:#fff;border:none;padding:3px 8px;font-size:11px;font-weight:700;border-radius:4px;text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="শিক্ষার্থী হিসেবে সরাসরি লগইন করুন">
+                                                <i class="fa-solid fa-arrow-right-to-bracket"></i> লগইন
+                                            </a>
+                                        @endif
                                     </div>
                                 @else
                                     <div style="display:flex;flex-direction:column;gap:6px">

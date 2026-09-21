@@ -433,7 +433,6 @@
                             <option value="">-- সকল লিঙ্গ (All Genders) --</option>
                             <option value="MALE" {{ strtoupper(request('gender')) === 'MALE' ? 'selected' : '' }}>পুরুষ (Male)</option>
                             <option value="FEMALE" {{ strtoupper(request('gender')) === 'FEMALE' ? 'selected' : '' }}>মহিলা (Female)</option>
-                            <option value="OTHER" {{ strtoupper(request('gender')) === 'OTHER' ? 'selected' : '' }}>অন্যান্য (Other)</option>
                         </select>
                     </div>
 
@@ -555,6 +554,11 @@
                                 <a href="{{ route('admin.students.show', $st) }}" style="font-weight:700;color:#047857;text-decoration:none;font-size:14.5px">
                                     {{ $st->name }}
                                 </a>
+                                @if($st->is_common_account)
+                                    <span style="display:inline-block;font-size:11px;font-weight:700;background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:middle" title="স্পেশাল কোর্স কমন/শেয়ার্ড অ্যাকাউন্ট">
+                                        <i class="fa-solid fa-users"></i> কমন
+                                    </span>
+                                @endif
                                 <div>
                                     @if(strtoupper($st->gender ?? '') === 'MALE')
                                         <span class="gender-badge gender-male"><i class="fa-solid fa-mars"></i> পুরুষ (Male)</span>

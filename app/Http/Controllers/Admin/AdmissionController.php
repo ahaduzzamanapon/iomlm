@@ -39,14 +39,21 @@ class AdmissionController extends Controller
         $adminAdmissions    = (clone $base)->where('source', 'ADMIN')->latest()->get();
         $publicApplications = (clone $base)->where('source', 'PUBLIC')->latest()->get();
 
+        $paidFormIds = \App\Models\GatewayTransaction::where('status', 'SUCCESS')->whereNotNull('admission_form_id')->pluck('admission_form_id');
+        $paidInvoiceFormIds = \App\Models\Invoice::where('source_type', AdmissionForm::class)->where('status', 'PAID')->pluck('source_id');
+        $allPaidFormIds = $paidFormIds->merge($paidInvoiceFormIds)->unique();
+
+        $unpaidApplications = (clone $base)->whereNotIn('id', $allPaidFormIds)->latest()->get();
+        $unpaidCount = $unpaidApplications->count();
+
         $totalCount   = $adminAdmissions->count() + $publicApplications->count();
         $adminCount   = $adminAdmissions->count();
         $publicCount  = $publicApplications->count();
         $publicPending = AdmissionForm::where('source', 'PUBLIC')->where('status', 'PENDING')->count();
 
         return view('admin.admissions.index', compact(
-            'adminAdmissions', 'publicApplications',
-            'totalCount', 'adminCount', 'publicCount', 'publicPending',
+            'adminAdmissions', 'publicApplications', 'unpaidApplications', 'allPaidFormIds',
+            'totalCount', 'adminCount', 'publicCount', 'publicPending', 'unpaidCount',
             'tab', 'status', 'search'
         ));
     }
@@ -229,26 +236,49 @@ class AdmissionController extends Controller
 
     public function show(AdmissionForm $admission)
     {
-        $admission->load(['student', 'interestedCourse', 'reviewer']);
+        $admission->load(['student', 'interestedCourse', 'reviewer', 'batch']);
         $activeBatches = Batch::where('course_id', $admission->interested_course_id)
             ->where('status', 'ACTIVE')
             ->get();
+        $allCourses = Course::where('is_active', true)->with(['batches' => function($q) {
+            $q->where('status', 'ACTIVE');
+        }])->orderBy('name')->get();
 
-        return view('admin.admissions.show', compact('admission', 'activeBatches'));
+        return view('admin.admissions.show', compact('admission', 'activeBatches', 'allCourses'));
     }
 
     public function approve(Request $request, AdmissionForm $admission)
     {
         $request->validate([
-            'batch_id' => 'required|exists:batches,id',
+            'batch_id'  => 'required|exists:batches,id',
+            'course_id' => 'nullable|exists:courses,id',
         ]);
 
         return DB::transaction(function () use ($admission, $request) {
             $student = $admission->student;
             $batch   = Batch::findOrFail($request->input('batch_id'));
 
+            // 1. Allow Admin to change course prior to confirmation
+            if ($request->filled('course_id') && $request->course_id != $admission->interested_course_id) {
+                $admission->interested_course_id = $request->course_id;
+            }
+
+            // 2. Allow Admin to adjust fee structure prior to confirmation
+            if ($request->filled('approved_admission_fee')) {
+                $admission->approved_admission_fee = (float) $request->approved_admission_fee;
+            }
+            if ($request->has('discount_percent')) {
+                $admission->discount_percent = (float) $request->discount_percent;
+            }
+            if ($request->has('discount_amount')) {
+                $admission->discount_amount = (float) $request->discount_amount;
+            }
+            if ($request->has('waiver_notes')) {
+                $admission->waiver_notes = $request->waiver_notes;
+            }
+            $admission->batch_id = $batch->id;
+
             // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────
-            // Format: YY-BB-CC-G-RRRR (e.g. 25-13-01-2-0001)
             if (empty($student->student_code)) {
                 // 1. Year Code (2 digits)
                 $yearCode = date('y');
@@ -264,9 +294,14 @@ class AdmissionController extends Controller
                 }
                 $batchCode = str_pad($batchNum % 100, 2, '0', STR_PAD_LEFT);
 
-                // 3. Course Code (2 digits)
-                $courseId = $batch->course_id ?: 1;
-                $courseCode = str_pad($courseId % 100, 2, '0', STR_PAD_LEFT);
+                // 3. Course Code (2 digits - Digits 5 & 6)
+                $course = $batch->course ?: Course::find($batch->course_id);
+                if ($course && !empty($course->code)) {
+                    $digits = preg_replace('/\D/', '', $course->code);
+                    $courseCode = !empty($digits) ? str_pad(substr($digits, 0, 2), 2, '0', STR_PAD_LEFT) : str_pad(($course->id % 100), 2, '0', STR_PAD_LEFT);
+                } else {
+                    $courseCode = str_pad(($batch->course_id ?: 1) % 100, 2, '0', STR_PAD_LEFT);
+                }
 
                 // 4. Gender Code (1 digit: 1 = Male, 2 = Female)
                 $genderCode = '1';
@@ -277,14 +312,14 @@ class AdmissionController extends Controller
                     }
                 }
 
-                // 5. Roll Sequence (4 digits - filtered per Year + Course + Batch)
-                $filterPrefix = "{$yearCode}{$courseCode}{$batchCode}";
+                // 5. Roll Sequence (4 digits)
+                $filterPrefix = "{$yearCode}{$batchCode}{$courseCode}";
                 $existingCount = Student::where('student_code', 'like', "{$filterPrefix}%")
-                    ->orWhere('student_code', 'like', "{$yearCode}-{$courseCode}-{$batchCode}-%")
+                    ->orWhere('student_code', 'like', "{$yearCode}-{$batchCode}-{$courseCode}-%")
                     ->count();
                 $seqNo = str_pad($existingCount + 1, 4, '0', STR_PAD_LEFT);
 
-                $student->student_code = "{$yearCode}{$courseCode}{$batchCode}{$genderCode}{$seqNo}";
+                $student->student_code = "{$yearCode}{$batchCode}{$courseCode}{$genderCode}{$seqNo}";
             }
 
             // Sync all profile details from admission form into student
@@ -304,15 +339,10 @@ class AdmissionController extends Controller
             $student->save();
             $student->calculateProfileCompletion();
 
-            // ── AUTO-CREATE USER ACCOUNT ──────────────────────────────────
-            // Only create if not already linked to a user account
-            $rawPassword = null;
+            // ── AUTO-CREATE OR RETRIEVE USER ACCOUNT ──────────────────────
+            $rawPassword = $request->input('custom_password') ?: ($student->phone ?: 'iom@1234');
             if (empty($student->user_id)) {
-                $loginEmail    = $student->email ?: ($student->student_code . '@iom.student');
-                $tempPassword  = $student->phone ?: 'iom@1234';
-                $rawPassword   = $tempPassword;
-
-                // If email already taken by another user, use student_code based email
+                $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
                 if (User::where('email', $loginEmail)->exists()) {
                     $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code)) . '@iom.student';
                 }
@@ -320,19 +350,21 @@ class AdmissionController extends Controller
                 $user = User::create([
                     'name'     => $student->name,
                     'email'    => $loginEmail,
-                    'password' => Hash::make($tempPassword),
+                    'password' => Hash::make($rawPassword),
                     'role'     => 'student',
                 ]);
 
-                // Link User to Student
                 $student->user_id = $user->id;
                 $student->save();
             } else {
                 $user = $student->user;
+                if ($request->filled('custom_password')) {
+                    $user->password = Hash::make($rawPassword);
+                    $user->save();
+                }
             }
-            // ─────────────────────────────────────────────────────────────
 
-            // Update Admission Form
+            // Update Admission Form with Reviewer ID (Admin Audit)
             $admission->update([
                 'status'      => 'APPROVED',
                 'reviewed_by' => auth()->id(),
@@ -357,43 +389,79 @@ class AdmissionController extends Controller
             \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
             \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
 
-            // ── DISPATCH ADMISSION APPROVAL EMAIL ────────────────────────
+            // ── DISPATCH BATCH-SPECIFIC ADMISSION APPROVAL EMAIL & SMS ───
+            $emailTpl = $batch->getEffectiveEmailTemplate();
+            $smsTpl   = $batch->getEffectiveSmsTemplate();
+
+            $courseName = $admission->interestedCourse->name ?? 'Islamic Online Madrasah';
+            $loginUrl   = url('/login');
+
+            $replaceVars = [
+                '{name}'       => $student->name,
+                '{roll}'       => $student->student_code,
+                '{student_id}' => $student->student_code,
+                '{password}'   => $rawPassword,
+                '{course}'     => $courseName,
+                '{batch}'      => $batch->name,
+                '{login_url}'  => $loginUrl,
+            ];
+
+            $compiledEmailBody = str_replace(array_keys($replaceVars), array_values($replaceVars), $emailTpl);
+            $compiledSmsBody   = str_replace(array_keys($replaceVars), array_values($replaceVars), $smsTpl);
+
+            // Log SMS dispatch
+            \Illuminate\Support\Facades\Log::info("ADMISSION_CONFIRMATION_SMS to {$student->phone}: {$compiledSmsBody}");
+
             $targetEmail = $student->email ?: ($user ? $user->email : null);
             if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
                 try {
                     $mailService = app(\App\Services\DynamicMailService::class);
-                    $subject = "🎉 Admission Approved! Welcome to IOM — Your Student ID & Login Credentials";
-                    $displayPassword = $rawPassword ?: ($student->phone ?: 'Your registered phone number');
-                    $courseName = $admission->interestedCourse->name ?? 'Islamic Online Madrasah';
-
-                    $emailBody = "Assalamu Alaikum, {$student->name}!\n\n"
-                        . "Alhamdulillah! Your admission application (App No: {$admission->application_no}) for \"{$courseName}\" has been APPROVED.\n\n"
-                        . "Here are your Official Student Credentials:\n"
-                        . "----------------------------------------\n"
-                        . "• Official Student ID: {$student->student_code}\n"
-                        . "• Batch Name: {$batch->name}\n"
-                        . "• Login Email / ID: {$user->email} OR {$student->student_code}\n"
-                        . "• Password: {$displayPassword}\n"
-                        . "----------------------------------------\n\n"
-                        . "You can login to your Student Portal using EITHER your Login Email OR your Official Student ID ({$student->student_code}) along with your password.\n\n"
-                        . "Please login to access your class schedule, routine, and learning materials.";
-
+                    $subject = "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";
                     $mailService->sendHtmlNotification(
                         $targetEmail,
                         $subject,
-                        $emailBody,
+                        $compiledEmailBody,
                         null,
-                        url('/login')
+                        $loginUrl
                     );
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Admission Approval Email Exception: ' . $e->getMessage());
                 }
             }
 
-            $loginInfo = "Student ID: {$student->student_code} | Login Email: {$user->email} | Password: " . ($rawPassword ?: $student->phone);
+            $loginInfo = "Student ID: {$student->student_code} | Login Email: {$user->email} | Password: {$rawPassword}";
 
-            return back()->with('success', "Admission APPROVED! Student ID Generated: {$student->student_code}, Batch: {$batch->name}. 🔑 {$loginInfo} 📧 Credentials email dispatched to student.");
+            return back()->with('success', "ভর্তি সফলভাবে অনুমোদিত হয়েছে! স্টুডেন্ট আইডি: {$student->student_code}, ব্যাচ: {$batch->name}। 🔑 {$loginInfo} 📧 ব্যাচ টেমপ্লেট অনুযায়ী কনফার্মেশন মেসেজ প্রেরিত হয়েছে।");
         });
+    }
+
+    public function sendRepaymentEmail(AdmissionForm $admission)
+    {
+        $targetEmail = $admission->email ?: $admission->student?->email;
+        if (empty($targetEmail) || !filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+            return back()->with('error', 'আবেদনকারীর কোনো বৈধ ইমেইল ঠিকানা পাওয়া যায়নি।');
+        }
+
+        $courseName = $admission->interestedCourse->name ?? 'Course';
+        $paymentUrl = route('apply.payment', $admission->application_no);
+        $studentName = $admission->student?->name ?? 'সম্মানিত শিক্ষার্থী';
+
+        $subject = "ভর্তি ফি পরিশোধের রিমাইন্ডার — ইসলামিক অনলাইন মাদ্রাসা ({$admission->application_no})";
+        $body = "আসসালামু আলাইকুম {$studentName},\n\n"
+            . "ইসলামিক অনলাইন মাদ্রাসায় \"{$courseName}\" কোর্সে আপনার ভর্তি আবেদনটি (আবেদন নং: {$admission->application_no}) গ্রহণ করা হয়েছে।\n"
+            . "ভর্তি নিশ্চিতকরণের জন্য অনুগ্রহ করে নির্ধারিত ভর্তি ফি পরিশোধ করুন।\n\n"
+            . "নিচের লিংকে ক্লিক করে আপনি সরাসরি বিকাশ অথবা অন্যান্য কার্ড/মোবাইল ব্যাংকিংয়ের মাধ্যমে নিরাপদে ফি পরিশোধ করতে পারবেন:\n"
+            . "পেমেন্ট লিংক: {$paymentUrl}\n\n"
+            . "ফি পরিশোধ সম্পন্ন হলেই আপনার ভর্তি প্রক্রিয়া চূড়ান্তভাবে সম্পন্ন হবে।";
+
+        try {
+            $mailService = app(\App\Services\DynamicMailService::class);
+            $mailService->sendHtmlNotification($targetEmail, $subject, $body, null, $paymentUrl);
+            return back()->with('success', "আবেদনকারীর ইমেইলে ({$targetEmail}) রি-পেমেন্ট লিংক সফলভাবে পাঠানো হয়েছে।");
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Repayment Email Exception: ' . $e->getMessage());
+            return back()->with('error', 'ইমেইল পাঠাতে সমস্যা হয়েছে: ' . $e->getMessage());
+        }
     }
 
     public function reject(Request $request, AdmissionForm $admission)

@@ -9,7 +9,23 @@ class FinalMark extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'generated_at' => 'datetime',
+        'generated_at'         => 'datetime',
+        'published_at'         => 'datetime',
+        'is_published'         => 'boolean',
+        'total_mark'           => 'float',
+        'gpa'                  => 'float',
+        'class_test_obtained'  => 'float',
+        'class_test_converted' => 'float',
+        'midterm_obtained'     => 'float',
+        'midterm_converted'    => 'float',
+        'final_obtained'       => 'float',
+        'final_converted'      => 'float',
+        'attendance_converted' => 'float',
+        'attendance_percent'   => 'float',
+        'tamrin_mark'          => 'float',
+        'tajweed_mark'         => 'float',
+        'dns_mark'             => 'float',
+        'merit_position'       => 'integer',
     ];
 
     // ── Conversion Constants ───────────────────────────────────────────
@@ -52,6 +68,12 @@ class FinalMark extends Model
         return $this->belongsTo(User::class, 'generated_by');
     }
 
+    // ── Scopes ────────────────────────────────────────────────────────
+    public function scopePublished($query)
+    {
+        return $query->where('is_published', true);
+    }
+
     // ── Grade Calculation Helper ───────────────────────────────────────
     public static function calculateGrade(float $total): array
     {
@@ -61,6 +83,80 @@ class FinalMark extends Model
         if ($total >= 50) return ['grade' => 'B',  'gpa' => 3.00];
         if ($total >= 40) return ['grade' => 'C',  'gpa' => 2.00];
         return ['grade' => 'F', 'gpa' => 0.00];
+    }
+
+    /**
+     * Qawmi Madrasah Result Grade Standard (কওমি মাদরাসা গ্রেডিং মানদণ্ড)
+     * মুমতাজ (Mumtaz): 80%+ (Star / Outstanding)
+     * জায়্যিদ জিদ্দান (Jayyid Jiddan): 65% - 79.99% (1st Div)
+     * জায়্যিদ (Jayyid): 50% - 64.99% (2nd Div)
+     * মাকবুল (Maqbul): 40% - 49.99% (Pass / 3rd Div)
+     * রাসিব (Rasib): < 40% (Fail)
+     */
+    public static function calculateQawmiGrade(float $total, ?float $gpa = null): array
+    {
+        if ($total >= 80 || ($gpa !== null && $gpa >= 4.75)) {
+            return [
+                'name_bn' => 'মুমতাজ (Mumtaz)',
+                'name_ar' => 'ممتاز',
+                'label'   => 'স্টার মার্কস / অসাধারণ',
+                'class'   => 'success'
+            ];
+        }
+        if ($total >= 65 || ($gpa !== null && $gpa >= 3.75)) {
+            return [
+                'name_bn' => 'জায়্যিদ জিদ্দান (Jayyid Jiddan)',
+                'name_ar' => 'جيد جداً',
+                'label'   => 'প্রথম বিভাগ / অতি উত্তম',
+                'class'   => 'primary'
+            ];
+        }
+        if ($total >= 50 || ($gpa !== null && $gpa >= 2.75)) {
+            return [
+                'name_bn' => 'জায়্যিদ (Jayyid)',
+                'name_ar' => 'جيد',
+                'label'   => 'দ্বিতীয় বিভাগ / উত্তম',
+                'class'   => 'info'
+            ];
+        }
+        if ($total >= 40 || ($gpa !== null && $gpa >= 2.00)) {
+            return [
+                'name_bn' => 'মাকবুল (Maqbul)',
+                'name_ar' => 'مقبول',
+                'label'   => 'উত্তীর্ণ / সাধারণ মান',
+                'class'   => 'warning'
+            ];
+        }
+        return [
+            'name_bn' => 'রাসিব (Rasib)',
+            'name_ar' => 'راسب',
+            'label'   => 'অনুত্তীর্ণ (ফেল)',
+            'class'   => 'danger'
+        ];
+    }
+
+    public function getQawmiGradeAttribute(): array
+    {
+        return self::calculateQawmiGrade((float) $this->total_mark, (float) $this->gpa);
+    }
+
+    /**
+     * Convert integer rank to Bengali numeral with suffix (১ম, ২য়, ৩য়, ৪র্থ...)
+     */
+    public function getMeritRankBengaliAttribute(): ?string
+    {
+        if (!$this->merit_position) return null;
+        $num = $this->merit_position;
+        $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        $bnNum = str_replace(range(0, 9), $bnDigits, (string) $num);
+
+        $suffix = match($num) {
+            1 => 'ম',
+            2, 3 => 'য়',
+            4 => 'র্থ',
+            default => 'ম'
+        };
+        return $bnNum . $suffix;
     }
 
     /**
@@ -81,21 +177,24 @@ class FinalMark extends Model
     }
 
     /**
-     * Recalculate total, grade, GPA, and status when attendance or component mark changes.
+     * Recalculate total, grade, GPA, and status when attendance, exams, or non-exam criteria change.
      */
-    public function recalculate(float $newAttendanceConverted, ?float $newAttendancePercent = null): void
+    public function recalculate(array $updates = []): void
     {
         $criteria = self::getCriteria();
-        $this->attendance_converted = round($newAttendanceConverted, 2);
-        if ($newAttendancePercent !== null) {
-            $this->attendance_percent = round($newAttendancePercent, 2);
+
+        foreach ($updates as $key => $val) {
+            $this->{$key} = ($val !== null && $val !== '') ? (float) $val : null;
         }
 
         $total = round(
             ($this->class_test_converted ?? 0) +
             ($this->midterm_converted    ?? 0) +
             ($this->final_converted      ?? 0) +
-            ($this->attendance_converted ?? 0),
+            ($this->attendance_converted ?? 0) +
+            ($this->tamrin_mark          ?? 0) +
+            ($this->tajweed_mark         ?? 0) +
+            ($this->dns_mark             ?? 0),
             2
         );
 
@@ -107,5 +206,27 @@ class FinalMark extends Model
         $this->gpa        = $gradeInfo['gpa'];
         $this->status     = $status;
         $this->save();
+    }
+
+    /**
+     * Automatically recalculate merit ranks for all final marks in a batch + subject + semester
+     */
+    public static function recalculateMeritRanks($batchId, $subjectId, $semesterId = null): void
+    {
+        $query = self::where('batch_id', $batchId)
+            ->where('subject_id', $subjectId);
+
+        if ($semesterId) {
+            $query->where(function ($q) use ($semesterId) {
+                $q->where('semester_id', $semesterId)->orWhereNull('semester_id');
+            });
+        }
+
+        $marks = $query->orderByDesc('total_mark')->get();
+        $rank = 1;
+        foreach ($marks as $mark) {
+            $mark->merit_position = $rank++;
+            $mark->saveQuietly();
+        }
     }
 }

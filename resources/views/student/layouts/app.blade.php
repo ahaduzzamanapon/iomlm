@@ -197,6 +197,10 @@
                 <i class="fa-solid fa-arrow-right-arrow-left"></i>
                 কোর্স পরিবর্তন (Transfer)
             </a>
+            <a href="{{ route('student.readmissions.index') }}" class="nav-item {{ request()->routeIs('student.readmissions*') ? 'active' : '' }}">
+                <i class="fa-solid fa-user-graduate"></i>
+                রি-এডমিশন আবেদন
+            </a>
             <a href="{{ route('student.classes.today') }}" class="nav-item {{ request()->routeIs('student.classes.today') ? 'active' : '' }}" style="{{ !request()->routeIs('student.classes.today') ? 'border-left:3px solid #f59e0b' : '' }}">
                 <i class="fa-solid fa-sun"></i>
                 Today's Classes
@@ -224,6 +228,14 @@
             <a href="{{ route('student.resources.index') }}" class="nav-item {{ request()->routeIs('student.resources*') ? 'active' : '' }}">
                 <i class="fa-solid fa-paperclip"></i>
                 Learning Resources
+            </a>
+            <a href="{{ route('student.subjects.index') }}" class="nav-item {{ request()->routeIs('student.subjects*') ? 'active' : '' }}">
+                <i class="fa-solid fa-book-bookmark"></i>
+                আমার বিষয়সমূহ (Subjects)
+            </a>
+            <a href="{{ route('student.assignments.index') }}" class="nav-item {{ request()->routeIs('student.assignments*') ? 'active' : '' }}">
+                <i class="fa-solid fa-tasks"></i>
+                অ্যাসাইনমেন্ট (Assignments)
             </a>
 
             <!-- Progress -->

@@ -106,29 +106,43 @@
             <input type="text" name="search" class="search-input" placeholder="প্রশ্ন বা ট্যাগ দিয়ে অনুসন্ধান করুন..." value="{{ $search }}">
         </div>
 
-        <select name="subject_id" class="form-control" style="width:170px;height:40px;border-radius:8px;font-size:13px">
+        <select name="subject_id" class="form-control" style="width:160px;height:40px;border-radius:8px;font-size:13px">
             <option value="">সকল বিষয়</option>
             @foreach($subjects as $sub)
                 <option value="{{ $sub->id }}" {{ $subjectId == $sub->id ? 'selected' : '' }}>{{ $sub->name }} ({{ $sub->code }})</option>
             @endforeach
         </select>
 
-        <select name="difficulty" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
+        <select name="exam_type" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
+            <option value="">সকল পরীক্ষা</option>
+            @foreach($examTypes as $et)
+                <option value="{{ $et }}" {{ ($examType ?? '') === $et ? 'selected' : '' }}>{{ $et }}</option>
+            @endforeach
+        </select>
+
+        <select name="batch_id" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
+            <option value="">সকল ব্যাচ</option>
+            @foreach($batches as $b)
+                <option value="{{ $b->id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+            @endforeach
+        </select>
+
+        <select name="semester_id" class="form-control" style="width:140px;height:40px;border-radius:8px;font-size:13px">
+            <option value="">সকল সেমিস্টার</option>
+            @foreach($semesters as $sem)
+                <option value="{{ $sem->id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>{{ $sem->name }}</option>
+            @endforeach
+        </select>
+
+        <select name="difficulty" class="form-control" style="width:120px;height:40px;border-radius:8px;font-size:13px">
             <option value="">সকল কঠিনতা</option>
             <option value="easy" {{ ($difficulty ?? '') === 'easy' ? 'selected' : '' }}>Easy (সহজ)</option>
             <option value="medium" {{ ($difficulty ?? '') === 'medium' ? 'selected' : '' }}>Medium (মধ্যম)</option>
             <option value="hard" {{ ($difficulty ?? '') === 'hard' ? 'selected' : '' }}>Hard (কঠিন)</option>
         </select>
 
-        <select name="exam_type" class="form-control" style="width:140px;height:40px;border-radius:8px;font-size:13px">
-            <option value="">সকল পরীক্ষার ধরন</option>
-            @foreach($examTypes as $et)
-                <option value="{{ $et }}" {{ ($examType ?? '') === $et ? 'selected' : '' }}>{{ $et }}</option>
-            @endforeach
-        </select>
-
-        <select name="source_tag" class="form-control" style="width:150px;height:40px;border-radius:8px;font-size:13px">
-            <option value="">সকল প্রশ্ন ট্যাগ</option>
+        <select name="source_tag" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
+            <option value="">সকল ট্যাগ</option>
             @foreach($sourceTags as $st)
                 <option value="{{ $st }}" {{ ($sourceTag ?? '') === $st ? 'selected' : '' }}>{{ $st }}</option>
             @endforeach
@@ -144,7 +158,7 @@
         </div>
 
         <button type="submit" class="btn-purple" style="height:40px">ফিল্টার</button>
-        @if($search || $subjectId || $difficulty || $examType || $sourceTag || $typeFilter)
+        @if($search || $subjectId || $batchId || $semesterId || $difficulty || $examType || $sourceTag || $typeFilter)
             <a href="{{ route('admin.questions.index') }}" class="btn-ghost-purple" style="height:40px">Reset</a>
         @endif
     </form>
@@ -155,7 +169,7 @@
             <tr>
                 <th style="width:60px">#</th>
                 <th>প্রশ্ন</th>
-                <th style="width:180px">বিষয় ও কঠিনতা</th>
+                <th style="width:190px">বিষয় ও কোর্স/ব্যাচ</th>
                 <th style="width:300px">অপশন / ধরন</th>
                 <th style="width:70px;text-align:center">সঠিক</th>
                 <th style="width:110px;text-align:center">অ্যাকশন</th>
@@ -179,6 +193,18 @@
                             </span>
                         @endif
 
+                        @if($q->batch)
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:600;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0">
+                                <i class="fa-solid fa-users" style="font-size:9px"></i> {{ $q->batch->name }}
+                            </span>
+                        @endif
+
+                        @if($q->semester)
+                            <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:600;background:#fdf2f8;color:#9d174d;border:1px solid #fbcfe8">
+                                <i class="fa-solid fa-calendar" style="font-size:9px"></i> {{ $q->semester->name }}
+                            </span>
+                        @endif
+
                         @if($q->source_tag)
                             <span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:#f1f5f9;color:#475569">
                                 <i class="fa-solid fa-tag" style="font-size:9px"></i> {{ $q->source_tag }}
@@ -199,7 +225,7 @@
                     @else
                         <span style="color:#94a3b8;font-size:12px">Unassigned</span>
                     @endif
-                    <div style="margin-top:6px">
+                    <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">
                         <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:{{ $q->difficulty === 'easy' ? '#dcfce7' : ($q->difficulty === 'medium' ? '#fef3c7' : '#fee2e2') }};color:{{ $q->difficulty === 'easy' ? '#166534' : ($q->difficulty === 'medium' ? '#92400e' : '#991b1b') }};text-transform:uppercase">
                             {{ $q->difficulty }}
                         </span>
@@ -315,6 +341,27 @@
                         </div>
                     </div>
 
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="batch_id" class="form-control">
+                                <option value="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="semester_id" class="form-control">
+                                <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>প্রশ্ন (Question Text) <span class="required">*</span></label>
                         <textarea name="question_text" class="form-control" rows="3" required placeholder="প্রশ্ন লিখুন..."></textarea>
@@ -410,6 +457,27 @@
                         <div class="form-group">
                             <label>প্রশ্ন সেট / সোর্স ট্যাগ</label>
                             <input type="text" name="source_tag" class="form-control" placeholder="যেমন: মিডটার্ম লিখিত">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="batch_id" class="form-control">
+                                <option value="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="semester_id" class="form-control">
+                                <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
@@ -617,6 +685,27 @@ ANSWER: A</pre>
                         </div>
                     </div>
 
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label>ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select id="edit_batch_id" name="batch_id" class="form-control">
+                                <option value="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select id="edit_semester_id" name="semester_id" class="form-control">
+                                <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>প্রশ্ন (Question Text) <span class="required">*</span></label>
                         <textarea id="edit_question_text" name="question_text" class="form-control" rows="3" required placeholder="প্রশ্ন লিখুন..."></textarea>
@@ -682,6 +771,8 @@ ANSWER: A</pre>
             document.getElementById('edit_question_type').value = q.question_type;
             document.getElementById('edit_question_text').value = q.question_text || '';
             document.getElementById('edit_subject_id').value = q.subject_id || '';
+            document.getElementById('edit_batch_id').value = q.batch_id || '';
+            document.getElementById('edit_semester_id').value = q.semester_id || '';
             document.getElementById('edit_difficulty').value = q.difficulty || 'easy';
             document.getElementById('edit_exam_type').value = q.exam_type || '';
             document.getElementById('edit_source_tag').value = q.source_tag || '';

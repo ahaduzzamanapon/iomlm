@@ -193,12 +193,22 @@ class StudentController extends Controller
     public function show(Student $student)
     {
         $student->load([
+            'user',
             'enrollments.batch.course',
             'enrollments.semester',
             'admissions.interestedCourse',
-            'invoices',
+            'invoices.payments',
+            'feePackage',
+            'results.exam.subject',
+            'finalMarks.subject',
+            'finalMarks.semester',
+            'auditLogs.user',
+            'loginHistories.impersonator',
         ]);
-        return view('admin.students.show', compact('student'));
+
+        $feePackages = \App\Models\CourseFeePackage::where('is_active', true)->get();
+
+        return view('admin.students.show', compact('student', 'feePackages'));
     }
 
     public function edit(Student $student)
@@ -209,24 +219,158 @@ class StudentController extends Controller
     public function update(Request $request, Student $student)
     {
         $validated = $request->validate([
-            'name'          => 'required|string|max:200',
-            'phone'         => 'required|string|max:30',
-            'email'         => 'nullable|email|unique:students,email,' . $student->id,
-            'blood_group'   => 'nullable|string',
-            'national_id'   => 'nullable|string|max:50',
-            'address'       => 'nullable|string',
-            'guardian_name' => 'nullable|string|max:200',
-            'guardian_phone'=> 'nullable|string|max:30',
-            'status'        => 'required|in:LEAD,PENDING,ACTIVE,ABSENT,DROPPED,CANCELLED,TRANSFERRED,COMPLETED,GRADUATED',
+            'name'                    => 'required|string|max:200',
+            'phone'                   => 'required|string|max:30',
+            'email'                   => 'nullable|email|unique:students,email,' . $student->id,
+            'gender'                  => 'nullable|string',
+            'date_of_birth'           => 'nullable|date',
+            'blood_group'             => 'nullable|string',
+            'national_id'             => 'nullable|string|max:50',
+            'address'                 => 'nullable|string',
+            'permanent_address'       => 'nullable|string',
+            'father_name'             => 'nullable|string|max:200',
+            'mother_name'             => 'nullable|string|max:200',
+            'guardian_name'           => 'nullable|string|max:200',
+            'guardian_phone'          => 'nullable|string|max:30',
+            'education_qualification' => 'nullable|string|max:200',
+            'occupation'              => 'nullable|string|max:200',
+            'is_common_account'       => 'nullable|boolean',
+            'status'                  => 'required|in:LEAD,PENDING,ACTIVE,ABSENT,DROPPED,CANCELLED,TRANSFERRED,COMPLETED,GRADUATED',
         ]);
+
+        $validated['is_common_account'] = $request->boolean('is_common_account');
+
+        $trackedFields = [
+            'name', 'phone', 'email', 'gender', 'date_of_birth', 'blood_group', 
+            'national_id', 'address', 'permanent_address', 'father_name', 
+            'mother_name', 'guardian_name', 'guardian_phone', 'education_qualification', 'is_common_account', 'status'
+        ];
+
+        $oldValues = [];
+        foreach ($trackedFields as $field) {
+            $oldValues[$field] = $student->{$field};
+        }
 
         $student->update($validated);
 
-        if (!empty($validated['email']) && $student->user) {
-            $student->user->update(['email' => $validated['email']]);
+        $newValues = [];
+        $changed = false;
+        foreach ($trackedFields as $field) {
+            $newValues[$field] = $student->{$field};
+            if ((string)$oldValues[$field] !== (string)$newValues[$field]) {
+                $changed = true;
+            }
         }
 
-        return redirect()->route('admin.students.show', $student)->with('success', 'Student details updated.');
+        if ($changed) {
+            \App\Models\AuditLog::log(
+                'student_profile_updated',
+                $student,
+                $oldValues,
+                $newValues,
+                'শিক্ষার্থীর ব্যক্তিগত ও অ্যাকাডেমিক প্রোফাইল তথ্য আপডেট করা হয়েছে'
+            );
+        }
+
+        if ($student->user) {
+            $userUpdates = [
+                'name'              => $validated['name'] ?? $student->user->name,
+                'is_common_account' => $validated['is_common_account'],
+            ];
+            if (!empty($validated['email'])) {
+                $userUpdates['email'] = $validated['email'];
+            }
+            $student->user->update($userUpdates);
+        }
+
+        return redirect()->route('admin.students.show', $student)->with('success', 'শিক্ষার্থীর প্রোফাইল সফলভাবে আপডেট করা হয়েছে।');
+    }
+
+    /**
+     * Toggle Course Access (কোর্স অ্যাক্সেস চালু / বন্ধ)
+     */
+    public function toggleCourseAccess(Request $request, Student $student)
+    {
+        $newStatus = $student->toggleCourseAccess(
+            $request->has('has_course_access') ? $request->boolean('has_course_access') : null,
+            $request->input('reason')
+        );
+
+        $statusText = $newStatus ? 'চালু (Active)' : 'বন্ধ (Disabled)';
+        return redirect()->back()->with('success', "কোর্স অ্যাক্সেস সফলভাবে {$statusText} করা হয়েছে।");
+    }
+
+    /**
+     * Cancel Admission (ভর্তি বাতিল)
+     */
+    public function cancelAdmission(Request $request, Student $student)
+    {
+        $reason = $request->input('reason', 'প্রশাসনিক সিদ্ধান্তে ভর্তি বাতিল করা হয়েছে');
+        $student->cancelAdmission($reason);
+
+        return redirect()->back()->with('success', 'শিক্ষার্থীর ভর্তি সফলভাবে বাতিল করা হয়েছে এবং কোর্স অ্যাক্সেস স্থগিত করা হয়েছে।');
+    }
+
+    /**
+     * Reset Password (পাসওয়ার্ড রিসেট)
+     */
+    public function resetPassword(Request $request, Student $student)
+    {
+        $request->validate([
+            'new_password' => 'nullable|string|min:6',
+        ]);
+
+        $newPassword = $request->filled('new_password') ? trim($request->new_password) : ($student->phone ?: 'iom@1234');
+
+        $user = $student->user;
+        if (!$user) {
+            $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
+            $user = User::firstOrCreate(
+                ['email' => $loginEmail],
+                [
+                    'name'     => $student->name,
+                    'password' => Hash::make($newPassword),
+                    'role'     => 'student',
+                ]
+            );
+            $student->user_id = $user->id;
+            $student->save();
+        } else {
+            $user->password = Hash::make($newPassword);
+            $user->save();
+        }
+
+        \App\Models\AuditLog::log(
+            'password_reset',
+            $student,
+            null,
+            ['reset_by' => Auth::id(), 'user_id' => $user->id],
+            "শিক্ষার্থীর পোর্টাল পাসওয়ার্ড রিসেট করা হয়েছে (নতুন পাসওয়ার্ড: {$newPassword})"
+        );
+
+        return redirect()->back()->with('success', "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে! নতুন পাসওয়ার্ড: {$newPassword}");
+    }
+
+    /**
+     * Adjust Fee Structure / Poor Fund (ফি কাঠামো ও পুওর ফান্ড সমন্বয়)
+     */
+    public function adjustFeeStructure(Request $request, Student $student)
+    {
+        $request->validate([
+            'fee_package_id'    => 'nullable|exists:course_fee_packages,id',
+            'monthly_discount'  => 'nullable|numeric|min:0',
+            'discount_type'     => 'required|in:FIXED,PERCENT',
+            'poor_fund_remarks' => 'nullable|string|max:500',
+        ]);
+
+        $student->adjustFeeStructure(
+            $request->filled('fee_package_id') ? (int)$request->fee_package_id : null,
+            (float)($request->monthly_discount ?? 0),
+            $request->discount_type,
+            $request->poor_fund_remarks
+        );
+
+        return redirect()->back()->with('success', 'ফি কাঠামো ও পুওর ফান্ড সমন্বয় সফলভাবে সংরক্ষিত হয়েছে।');
     }
 
     public function printGradeSheet(Student $student)
@@ -252,8 +396,9 @@ class StudentController extends Controller
      */
     public function impersonate(Student $student)
     {
-        if (!Auth::check() || !Auth::user()->isAdmin()) {
-            abort(403, 'অননুমোদিত অনুরোধ। শুধুমাত্র অ্যাডমিন এই সুবিধা ব্যবহার করতে পারবেন।');
+        $currentUser = Auth::user();
+        if (!Auth::check() || (!$currentUser->isAdmin() && !$currentUser->isSupportAgent())) {
+            abort(403, 'অননুমোদিত অনুরোধ। শুধুমাত্র অ্যাডমিন বা সাপোর্ট টিম এই সুবিধা ব্যবহার করতে পারবেন।');
         }
 
         $adminId = Auth::id();
@@ -276,8 +421,18 @@ class StudentController extends Controller
             $student->save();
         }
 
-        // Save admin user ID to session
+        // Save admin/support user ID to session
         session()->put('admin_impersonator_id', $adminId);
+
+        // Record login history and audit log
+        \App\Models\LoginHistory::recordLogin($user, $student, true, $adminId);
+        \App\Models\AuditLog::log(
+            'student_impersonated',
+            $student,
+            null,
+            ['impersonator_id' => $adminId],
+            'অ্যাডমিন শিক্ষার্থী হিসেবে সরাসরি সিস্টেমে প্রবেশ করেছেন'
+        );
 
         // Login as the student
         Auth::login($user);
@@ -287,7 +442,7 @@ class StudentController extends Controller
     }
 
     /**
-     * Return back to Admin panel from impersonated student session
+     * Return back to Admin/Support panel from impersonated student session
      */
     public function leaveImpersonation()
     {
@@ -298,12 +453,70 @@ class StudentController extends Controller
         $adminId = session()->pull('admin_impersonator_id');
         $adminUser = User::find($adminId);
 
-        if ($adminUser && $adminUser->isAdmin()) {
+        if ($adminUser) {
             Auth::login($adminUser);
-            return redirect()->route('admin.dashboard')
-                ->with('success', 'অ্যাডমিন প্যানেলে সফলভাবে ফিরে এসেছেন।');
+            if ($adminUser->isAdmin()) {
+                return redirect()->route('admin.dashboard')
+                    ->with('success', 'অ্যাডমিন প্যানেলে সফলভাবে ফিরে এসেছেন।');
+            } elseif ($adminUser->isSupportAgent()) {
+                return redirect()->route('support.dashboard')
+                    ->with('success', 'সাপোর্ট প্যানেলে সফলভাবে ফিরে এসেছেন।');
+            }
+            return redirect()->route('admin.dashboard');
         }
 
         return redirect()->route('login');
+    }
+
+    /**
+     * Live search API for students (by roll, name, phone, email)
+     */
+    public function searchApi(Request $request)
+    {
+        $term = trim($request->input('q', ''));
+        if (strlen($term) < 1) {
+            return response()->json([]);
+        }
+
+        $cleanTerm = str_replace('-', '', $term);
+
+        $students = Student::with(['enrollments.batch.course', 'finalMarks.subject'])
+            ->where(function ($q) use ($term, $cleanTerm) {
+                $q->where('student_code', 'like', "%{$term}%")
+                  ->orWhere('student_code', 'like', "%{$cleanTerm}%")
+                  ->orWhere('name', 'like', "%{$term}%")
+                  ->orWhere('phone', 'like', "%{$term}%")
+                  ->orWhere('email', 'like', "%{$term}%");
+            })
+            ->limit(25)
+            ->get();
+
+        $data = $students->map(function ($s) {
+            $enr = $s->enrollments->firstWhere('status', 'ACTIVE') ?? $s->enrollments->first();
+            $batchName = $enr?->batch?->name ?? '—';
+            $courseName = $enr?->batch?->course?->name ?? '—';
+
+            $failedSubjects = $s->finalMarks
+                ->where('status', 'FAIL')
+                ->map(fn($fm) => [
+                    'id'   => $fm->subject_id,
+                    'name' => $fm->subject?->name ?? '—',
+                    'code' => $fm->subject?->code ?? '',
+                ])
+                ->values();
+
+            return [
+                'id'              => $s->id,
+                'student_code'    => str_replace('-', '', $s->student_code ?? ''),
+                'name'            => $s->name,
+                'phone'           => $s->phone ?? '',
+                'course_name'     => $courseName,
+                'batch_name'      => $batchName,
+                'gender'          => $s->gender ?? '—',
+                'failed_subjects' => $failedSubjects,
+            ];
+        });
+
+        return response()->json($data);
     }
 }
