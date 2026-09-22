@@ -164,6 +164,23 @@
             </div>
             @endif
 
+            {{-- Status Filter Buttons for Step 1 Table --}}
+            <div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+                <span style="font-size:12.5px;font-weight:700;color:#64748b;margin-right:4px">স্ট্যাটাস ফিল্টার:</span>
+                <button type="button" class="step1-filter-btn" id="step1Filter_all" onclick="filterStep1Table('all', this)"
+                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #2563eb;background:#2563eb;color:#fff;transition:all .15s">
+                    <i class="fa-solid fa-list-check"></i> সকল আইটেম (All)
+                </button>
+                <button type="button" class="step1-filter-btn" id="step1Filter_due" onclick="filterStep1Table('due', this)"
+                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #cbd5e1;background:#fff;color:#be123c;transition:all .15s">
+                    <i class="fa-solid fa-clock"></i> বকেয়া (Dues Only)
+                </button>
+                <button type="button" class="step1-filter-btn" id="step1Filter_paid" onclick="filterStep1Table('paid', this)"
+                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #cbd5e1;background:#fff;color:#15803d;transition:all .15s">
+                    <i class="fa-solid fa-circle-check"></i> পরিশোধিত (Paid Only)
+                </button>
+            </div>
+
             {{-- Step 1 Particulars Table --}}
             <div style="max-width:750px;margin:0 auto;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
                 <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -177,7 +194,7 @@
                     </thead>
                     <tbody>
                         @foreach($step1Particulars as $p)
-                        <tr style="border-bottom:1px solid #f1f5f9">
+                        <tr style="border-bottom:1px solid #f1f5f9" data-step1-status="{{ $p['is_paid'] ? 'paid' : 'due' }}">
                             <td style="padding:9px 14px;text-align:center;color:#64748b;font-weight:600">{{ $p['sl'] }}</td>
                             <td style="padding:9px 14px;font-weight:600;color:#1e293b">
                                 {{ $p['name'] }}
@@ -226,241 +243,206 @@
                                 @endif
                             </td>
                         </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+       <div class="card" style="margin-bottom:24px; border-top:3px solid #3b82f6; font-family:'Kalpurush',sans-serif">
+        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
+            <div>
+                <span class="card-title" style="display:flex; align-items:center; gap:8px; font-size:16px; color:#1e293b">
+                    <i class="fa-solid fa-layer-group" style="color:#2563eb"></i>
+                    {{ $courseType === 'SUBJECT_BASED' ? 'কোর্স ফি ও কিস্তি বিবরণ (Course Fee Breakdown)' : 'সেমিস্টারভিত্তিক ফি ও কিস্তি বিবরণ (Semester Breakdown)' }}
+                </span>
+                <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px">
+                    {{ $courseType === 'SUBJECT_BASED' ? 'কোর্সের মোট প্রদেয় ও কিস্তির হিসাব' : 'প্রতিটি সেমিস্টারের প্রদেয়, পরিশোধিত ও মাসিক কিস্তির তথ্য' }}
+                </span>
             </div>
 
-            {{-- Step 1 Action Button --}}
-            <div style="margin-top:20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px">
-                <div id="step1SelectedSummary" style="font-size:13px;font-weight:700;color:#047857;display:none">
-                    নির্বাচিত মোট: ৳<span id="step1TotalDisplay">0</span> (<span id="step1CountDisplay">0</span>টি আইটেম)
-                </div>
-                <button type="button" onclick="goToStep2Payment()"
-                        style="background:#22c55e;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 3px 10px rgba(34,197,94,0.3);transition:all .2s">
-                    <i class="fa-solid fa-arrow-right"></i> Next (for Step 2)
-                </button>
+            {{-- Semester Tabs (For Semester-Based Courses) --}}
+            @if($courseType !== 'SUBJECT_BASED' && $semesterBreakdown->isNotEmpty())
+            <div style="display:flex; gap:6px; flex-wrap:wrap">
+                @foreach($semesterBreakdown as $idx => $row)
+                    @php
+                        $cleanTabName = str_replace(' 🔵', '', $row['label']);
+                        $isTabRunning = $row['isRunning'] ?? false;
+                        $hasDue = ($row['due'] ?? 0) > 0;
+                        $isCleared = ($row['hasInvoice'] ?? false) && !$hasDue;
+                        $isActiveTab = $isTabRunning || ($loop->first && !$semesterBreakdown->contains('isRunning', true));
+                    @endphp
+                    <button type="button" class="sem-breakdown-tab-btn" id="semTabBtn_{{ $idx }}" onclick="switchSemBreakdownTab({{ $idx }})"
+                            style="padding:6px 14px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:1.5px solid {{ $isActiveTab ? '#2563eb' : '#cbd5e1' }}; background:{{ $isActiveTab ? '#2563eb' : '#fff' }}; color:{{ $isActiveTab ? '#fff' : '#334155' }}; display:inline-flex; align-items:center; gap:6px; transition:all .15s">
+                        <span>{{ $cleanTabName }}</span>
+                        @if($isTabRunning)
+                            <span style="background:rgba(255,255,255,0.25); font-size:10px; padding:1px 6px; border-radius:10px">চলতি</span>
+                        @elseif($hasDue)
+                            <span style="background:{{ $isActiveTab ? '#fecdd3' : '#fee2e2' }}; color:{{ $isActiveTab ? '#9f1239' : '#be123c' }}; font-size:10px; padding:1px 6px; border-radius:10px">বকেয়া</span>
+                        @elseif($isCleared)
+                            <span style="background:{{ $isActiveTab ? '#a7f3d0' : '#dcfce7' }}; color:{{ $isActiveTab ? '#065f46' : '#15803d' }}; font-size:10px; padding:1px 6px; border-radius:10px">ক্লিয়ার</span>
+                        @endif
+                    </button>
+                @endforeach
             </div>
+            @endif
         </div>
-    </div>
 
-    <div class="card" style="margin-bottom:24px; border-top:3px solid #3b82f6">
-        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center">
-            <span class="card-title" style="display:flex; align-items:center; gap:8px">
-                {{ $courseType === 'SUBJECT_BASED' ? 'Course Fee & Particulars Breakdown' : 'Semester & Category Payment Breakdown' }}
-            </span>
-            <span style="font-size:12px; color:var(--text-muted)">
-                {{ $courseType === 'SUBJECT_BASED' ? 'Summary by Category' : 'Summary by Semester' }}
-            </span>
-        </div>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr style="background:#f8fafc">
-                        <th>{{ $courseType === 'SUBJECT_BASED' ? 'Particulars / Fee Item' : 'Semester / Particulars' }}</th>
-                        <th style="text-align:right">Payable Amount</th>
-                        <th style="text-align:right">Paid Amount</th>
-                        <th style="text-align:right">Remaining Due</th>
-                        <th style="text-align:center">{{ $courseType === 'SUBJECT_BASED' ? 'Payment Status' : 'Semester Status' }}</th>
-                        <th style="text-align:center">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($semesterBreakdown as $row)
-                        @php
-                            $gPayable   = $row['payable'];
-                            $gPaid      = $row['paid'];
-                            $gDue       = $row['due'];
-                            $isRunning  = $row['isRunning'];
-                            $hasInvoice = $row['hasInvoice'];
-                            $invObj     = $row['invoice'] ?? null;
-                            $cleanName  = str_replace(' 🔵', '', $row['label']);
-                        @endphp
-                        <tr style="{{ $isRunning ? 'background:#f0f9ff;' : (!$hasInvoice ? 'background:#fafafa; opacity:.75;' : '') }}">
-                            <td>
-                                <strong style="font-size:13.5px; color:#1e293b">{{ $cleanName }}</strong>
-                                @if($isRunning)
-                                    <span class="badge badge-primary no-dot" style="font-size:10px; margin-left:6px">Current Running</span>
-                                @elseif(!$hasInvoice)
-                                    <span style="font-size:10px; color:#94a3b8; margin-left:6px; font-style:italic">— upcoming</span>
-                                @endif
-                            </td>
-                            <td style="text-align:right; font-weight:600">
-                                {{ $hasInvoice ? '৳' . number_format($gPayable, 2) : '—' }}
-                            </td>
-                            <td style="text-align:right; color:#10b981; font-weight:600">
-                                {{ $hasInvoice ? '৳' . number_format($gPaid, 2) : '—' }}
-                            </td>
-                            <td style="text-align:right">
-                                @if(!$hasInvoice)
-                                    <span style="color:#94a3b8; font-size:12px">—</span>
-                                @elseif($gDue > 0)
-                                    <strong style="color:#e11d48; font-size:14px">৳{{ number_format($gDue, 2) }}</strong>
-                                @else
-                                    <span style="color:#10b981; font-weight:700">৳0.00</span>
-                                @endif
-                            </td>
-                            <td style="text-align:center">
-                                @if(!$hasInvoice)
-                                    <span class="badge badge-secondary no-dot" style="padding:4px 10px; font-size:11px">⏳ Upcoming</span>
-                                @elseif($gDue <= 0)
-                                    <span class="badge badge-success no-dot" style="padding:4px 10px">Cleared</span>
-                                @elseif($gPaid > 0)
-                                    <span class="badge badge-warning no-dot" style="padding:4px 10px">Partial Paid</span>
-                                @else
-                                    <span class="badge badge-danger no-dot" style="padding:4px 10px">Pending Due</span>
-                                @endif
-                            </td>
-                            <td style="text-align:center">
+        <div style="padding:16px 20px">
+            @forelse($semesterBreakdown as $idx => $row)
+                @php
+                    $gPayable   = $row['payable'];
+                    $gPaid      = $row['paid'];
+                    $gDue       = $row['due'];
+                    $isRunning  = $row['isRunning'] ?? false;
+                    $hasInvoice = $row['hasInvoice'] ?? false;
+                    $invObj     = $row['invoice'] ?? null;
+                    $cleanName  = str_replace(' 🔵', '', $row['label']);
+                    $isActivePane = ($courseType === 'SUBJECT_BASED') ? true : ($isRunning || ($loop->first && !$semesterBreakdown->contains('isRunning', true)));
+                @endphp
+
+                <div class="sem-breakdown-pane" id="semPane_{{ $idx }}" style="display:{{ $isActivePane ? 'block' : 'none' }}">
+                    {{-- Semester Summary Bar --}}
+                    <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:14px 18px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
+                        <div>
+                            <span style="font-size:16px; font-weight:800; color:#1e293b">{{ $cleanName }}</span>
+                            @if($isRunning)
+                                <span class="badge badge-primary no-dot" style="margin-left:6px; font-size:11px">Current Running</span>
+                            @elseif(!$hasInvoice)
+                                <span style="font-size:11px; color:#94a3b8; margin-left:6px; font-style:italic">— Upcoming Semester</span>
+                            @endif
+                        </div>
+
+                        <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap">
+                            <div>
+                                <span style="font-size:11px; color:#64748b">মোট প্রদেয়:</span>
+                                <div style="font-size:14px; font-weight:700; color:#0f172a">{{ $hasInvoice ? '৳' . number_format($gPayable, 2) : '—' }}</div>
+                            </div>
+                            <div>
+                                <span style="font-size:11px; color:#64748b">পরিশোধিত:</span>
+                                <div style="font-size:14px; font-weight:700; color:#10b981">{{ $hasInvoice ? '৳' . number_format($gPaid, 2) : '—' }}</div>
+                            </div>
+                            <div>
+                                <span style="font-size:11px; color:#64748b">অবশিষ্ট বকেয়া:</span>
+                                <div style="font-size:15px; font-weight:800; color:{{ $gDue > 0 ? '#e11d48' : '#10b981' }}">
+                                    {{ !$hasInvoice ? '—' : ($gDue > 0 ? '৳' . number_format($gDue, 2) : '৳0.00') }}
+                                </div>
+                            </div>
+                            <div>
+                                <span style="font-size:11px; color:#64748b">স্ট্যাটাস:</span>
+                                <div>
+                                    @if(!$hasInvoice)
+                                        <span class="badge badge-secondary no-dot" style="padding:4px 10px; font-size:11px">⏳ Upcoming</span>
+                                    @elseif($gDue <= 0)
+                                        <span class="badge badge-success no-dot" style="padding:4px 10px">Cleared</span>
+                                    @elseif($gPaid > 0)
+                                        <span class="badge badge-warning no-dot" style="padding:4px 10px">Partial Paid</span>
+                                    @else
+                                        <span class="badge badge-danger no-dot" style="padding:4px 10px">Pending Due</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <div>
                                 @if($hasInvoice && $gDue > 0 && $invObj)
                                     @php
                                         $firstDueMonth = collect($row['monthlyItems'] ?? [])->where('due', '>', 0)->first();
                                         $mRate = $firstDueMonth['due'] ?? ($row['monthlyRate'] ?? 0);
                                     @endphp
                                     <button onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mRate > 0 ? $mRate : $gDue, $gDue) }}', '{{ $firstDueMonth['label'] ?? '' }} কিস্তি', '{{ $mRate }}')"
-                                        style="background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; border:none; padding:5px 12px; border-radius:7px; font-weight:700; font-size:12px; cursor:pointer; box-shadow:0 2px 6px rgba(22,163,74,0.3); display:inline-flex; align-items:center; gap:4px">
-                                        Pay Now
+                                        style="background:linear-gradient(135deg,#16a34a,#22c55e); color:#fff; border:none; padding:7px 16px; border-radius:7px; font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 2px 6px rgba(22,163,74,0.3); display:inline-flex; align-items:center; gap:5px">
+                                        <i class="fa-solid fa-credit-card"></i> Pay Now
                                     </button>
                                 @elseif($hasInvoice && $gDue <= 0)
-                                    <span style="color:#16a34a; font-size:12px; font-weight:700">Paid</span>
+                                    <span style="color:#16a34a; font-size:13px; font-weight:700; display:inline-flex; align-items:center; gap:4px">
+                                        <i class="fa-solid fa-circle-check"></i> সম্পূর্ণ পরিশোধিত
+                                    </span>
                                 @else
-                                    <span style="color:#cbd5e1; font-size:12px">—</span>
+                                    <span style="color:#cbd5e1; font-size:13px">—</span>
                                 @endif
-                            </td>
-                        </tr>
-                        @if(!empty($row['monthlyItems']))
-                        <tr style="background:#f8fafc">
-                            <td colspan="6" style="padding:12px 18px 16px 28px;border-top:none">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-                                    <div style="font-size:12.5px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:6px;font-family:'Kalpurush',sans-serif">
-                                        <i class="fa-solid fa-calendar-days" style="color:#2563eb"></i> {{ $cleanName }} — মাসভিত্তিক ফি কিস্তি (Monthly Installments):
-                                    </div>
-                                    @if($hasInvoice && $gDue > 0 && $invObj)
-                                    <div style="display:flex;align-items:center;gap:8px;font-family:'Kalpurush',sans-serif">
-                                        @php
-                                            $firstDueMonth = collect($row['monthlyItems'])->where('due', '>', 0)->first();
-                                            $mRate = $firstDueMonth['due'] ?? ($row['monthlyRate'] ?? 0);
-                                        @endphp
-                                        @if($firstDueMonth)
-                                        <button type="button" 
-                                                onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }} — {{ $firstDueMonth['label'] }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mRate, $gDue) }}', '{{ $firstDueMonth['label'] }} কিস্তি', '{{ $mRate }}')"
-                                                style="background:#eff6ff;border:1.5px solid #bfdbfe;color:#1d4ed8;padding:4px 12px;border-radius:7px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 1px 3px rgba(37,99,235,0.1)">
-                                            <i class="fa-solid fa-bolt" style="color:#2563eb"></i> চলতি {{ $firstDueMonth['label'] }} দিন (৳{{ number_format(min($mRate, $gDue), 0) }})
-                                        </button>
-                                        @endif
-                                        <div id="bulkPayBar_{{ $loop->index }}" style="display:none;align-items:center;gap:6px">
-                                            <span id="bulkPayText_{{ $loop->index }}" style="font-size:11.5px;font-weight:700;color:#047857;background:#ecfdf5;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0"></span>
-                                            <button type="button" id="bulkPayBtn_{{ $loop->index }}"
-                                                    style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 4px rgba(16,185,129,0.3)">
-                                                <i class="fa-solid fa-credit-card"></i> নির্বাচিত কিস্তি পরিশোধ করুন
-                                            </button>
-                                        </div>
-                                    </div>
-                                    @endif
-                                </div>
-                                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:10px">
-                                    @foreach($row['monthlyItems'] as $mi)
-                                        @php
-                                            $isPaid = ($mi['status'] === 'PAID');
-                                            $isPartial = ($mi['status'] === 'PARTIAL');
-                                            $mStatusBadge = match($mi['status']) {
-                                                'PAID' => 'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;',
-                                                'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
-                                                default => 'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;',
-                                            };
-                                            $mStatusText = match($mi['status']) {
-                                                'PAID' => 'পরিশোধিত',
-                                                'PARTIAL' => 'আংশিক',
-                                                default => 'অপরিশোধিত',
-                                            };
-                                        @endphp
-                                        <div style="background:#fff;border:1.5px solid {{ $isPaid ? '#bbf7d0' : '#e2e8f0' }};border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.03);display:flex;flex-direction:column;justify-content:space-between;transition:all .15s" class="month-card-box">
-                                            <div>
-                                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                                                    <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:{{ $isPaid ? 'default' : 'pointer' }}">
-                                                        @if(!$isPaid && $hasInvoice && $gDue > 0 && $invObj)
-                                                            <input type="checkbox" class="month-chk-sem-{{ $loop->parent->index }}" 
-                                                                   data-label="{{ $mi['label'] }}" 
-                                                                   data-due="{{ min($mi['due'], $gDue) }}" 
-                                                                   data-invid="{{ $invObj->id }}" 
-                                                                   data-invno="{{ $invObj->invoice_no }}" 
-                                                                   data-sem="{{ e($cleanName) }}" 
-                                                                   data-gdue="{{ $gDue }}"
-                                                                   data-mrate="{{ $row['monthlyRate'] ?? $mi['payable'] }}"
-                                                                   onchange="onMonthCheckChange({{ $loop->parent->index }})" 
-                                                                   style="cursor:pointer;accent-color:#2563eb;width:14px;height:14px">
-                                                        @endif
-                                                        <strong style="font-size:12.5px;color:#1e293b">{{ $mi['label'] }}</strong>
-                                                    </label>
-                                                    <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;{{ $mStatusBadge }}">
-                                                        @if($isPaid) <i class="fa-solid fa-check" style="font-size:9px"></i> @endif
-                                                        {{ $mStatusText }}
-                                                    </span>
-                                                </div>
-                                                <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:4px">
-                                                    <span>নির্ধারিত: ৳{{ number_format($mi['payable'], 0) }}</span>
-                                                    @if($mi['due'] > 0)
-                                                        <span style="color:#e11d48;font-weight:700">বকেয়া: ৳{{ number_format($mi['due'], 0) }}</span>
-                                                    @else
-                                                        <span style="color:#10b981;font-weight:700">ক্লিয়ার</span>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                            <div style="margin-top:8px;padding-top:6px;border-top:1px dashed #e2e8f0;display:flex;justify-content:space-between;align-items:center">
-                                                @if($isPaid)
-                                                    <span style="color:#16a34a;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px">
-                                                        <i class="fa-solid fa-circle-check"></i> পরিশোধ সম্পন্ন
-                                                    </span>
-                                                @elseif($hasInvoice && $gDue > 0 && $invObj)
-                                                    <span style="font-size:10.5px;color:#64748b">কিস্তি নং {{ $mi['month_no'] }}</span>
-                                                    <button type="button" 
-                                                            onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }} — {{ $mi['label'] }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mi['due'], $gDue) }}', '{{ $mi['label'] }} কিস্তি', '{{ $row['monthlyRate'] ?? $mi['payable'] }}')"
-                                                            style="background:linear-gradient(135deg,#059669,#10b981);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 4px rgba(16,185,129,0.25)">
-                                                        <i class="fa-solid fa-credit-card" style="font-size:10px"></i> পে করুন
-                                                    </button>
-                                                @else
-                                                    <span style="color:#94a3b8;font-size:11px">—</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </td>
-                        </tr>
-                        @endif
-                    @empty
-                        <tr>
-                            <td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted)">No breakdown available.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                            </div>
+                        </div>
+                    </div>
 
-        @if(isset($packageItemsBreakdown) && $packageItemsBreakdown->isNotEmpty())
-        <div style="background:#f8fafc; padding:16px 20px; border-top:1px solid #e2e8f0">
-            <div style="font-size:13px; font-weight:700; color:#334155; margin-bottom:10px; display:flex; align-items:center; gap:8px">
-                কোর্স ফি প্যাকেজের আইটেমভিত্তিক বিস্তারিত হিসেব (Itemized Package Fee Breakdown)
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:12px">
-                @foreach($packageItemsBreakdown as $pItem)
-                <div style="background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px">
-                    <div style="font-size:12px; font-weight:700; color:#1e293b">{{ $pItem['name'] }}</div>
-                    <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:11px; color:#64748b">
-                        <span>{{ $courseType === 'SUBJECT_BASED' ? 'কোর্স ফি:' : 'প্রতি সেমিস্টারে অংশ:' }}</span>
-                        <strong style="color:#2563eb">৳{{ number_format($pItem['per_semester_amt'], 2) }}</strong>
-                    </div>
-                    @if($courseType !== 'SUBJECT_BASED')
-                    <div style="display:flex; justify-content:space-between; margin-top:2px; font-size:10.5px; color:#94a3b8">
-                        <span>মোট প্যাকেজ মূল্য:</span>
-                        <span>৳{{ number_format($pItem['total_package'], 2) }}</span>
-                    </div>
+                    {{-- Monthly Installment Cards for this Semester --}}
+                    @if(!empty($row['monthlyItems']))
+                        <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px">
+                            <div style="font-size:13px; font-weight:700; color:#334155; display:flex; align-items:center; gap:6px">
+                                <i class="fa-solid fa-calendar-days" style="color:#2563eb"></i> মাসিক ফি কিস্তি তালিকা (Monthly Installments):
+                            </div>
+                            @if($hasInvoice && $gDue > 0 && $invObj)
+                                @php
+                                    $firstDueMonth = collect($row['monthlyItems'])->where('due', '>', 0)->first();
+                                    $mRate = $firstDueMonth['due'] ?? ($row['monthlyRate'] ?? 0);
+                                @endphp
+                                @if($firstDueMonth)
+                                <button type="button" 
+                                        onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }} — {{ $firstDueMonth['label'] }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mRate, $gDue) }}', '{{ $firstDueMonth['label'] }} কিস্তি', '{{ $mRate }}')"
+                                        style="background:#eff6ff; border:1.5px solid #bfdbfe; color:#1d4ed8; padding:5px 14px; border-radius:7px; font-size:12px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; box-shadow:0 1px 3px rgba(37,99,235,0.1)">
+                                    <i class="fa-solid fa-bolt" style="color:#2563eb"></i> চলতি {{ $firstDueMonth['label'] }} পরিশোধ করুন (৳{{ number_format(min($mRate, $gDue), 0) }})
+                                </button>
+                                @endif
+                            @endif
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px">
+                            @foreach($row['monthlyItems'] as $mi)
+                                @php
+                                    $isPaid = ($mi['status'] === 'PAID');
+                                    $isPartial = ($mi['status'] === 'PARTIAL');
+                                    $mStatusBadge = match($mi['status']) {
+                                        'PAID' => 'background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;',
+                                        'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
+                                        default => 'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;',
+                                    };
+                                    $mStatusText = match($mi['status']) {
+                                        'PAID' => 'পরিশোধিত',
+                                        'PARTIAL' => 'আংশিক',
+                                        default => 'অপরিশোধিত',
+                                    };
+                                @endphp
+                                <div style="background:#fff; border:1.5px solid {{ $isPaid ? '#bbf7d0' : '#e2e8f0' }}; border-radius:10px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between; transition:all .15s" class="month-card-box">
+                                    <div>
+                                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                                            <strong style="font-size:13px; color:#1e293b">{{ $mi['label'] }}</strong>
+                                            <span style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; {{ $mStatusBadge }}">
+                                                @if($isPaid) <i class="fa-solid fa-check" style="font-size:9px"></i> @endif
+                                                {{ $mStatusText }}
+                                            </span>
+                                        </div>
+                                        <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#64748b; margin-bottom:4px">
+                                            <span>নির্ধারিত: ৳{{ number_format($mi['payable'], 0) }}</span>
+                                            @if($mi['due'] > 0)
+                                                <span style="color:#e11d48; font-weight:700">বকেয়া: ৳{{ number_format($mi['due'], 0) }}</span>
+                                            @else
+                                                <span style="color:#10b981; font-weight:700">ক্লিয়ার</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #e2e8f0; display:flex; justify-content:space-between; align-items:center">
+                                        @if($isPaid)
+                                            <span style="color:#16a34a; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px">
+                                                <i class="fa-solid fa-circle-check"></i> পরিশোধ সম্পন্ন
+                                            </span>
+                                        @elseif($hasInvoice && $gDue > 0 && $invObj)
+                                            <span style="font-size:11px; color:#64748b">কিস্তি নং {{ $mi['month_no'] }}</span>
+                                            <button type="button" 
+                                                    onclick="openPayModal('{{ $invObj->id }}', '{{ e($cleanName) }} — {{ $mi['label'] }}', '{{ $invObj->invoice_no }}', '{{ $gDue }}', '{{ min($mi['due'], $gDue) }}', '{{ $mi['label'] }} কিস্তি', '{{ $row['monthlyRate'] ?? $mi['payable'] }}')"
+                                                    style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; border:none; padding:4px 11px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 4px rgba(16,185,129,0.25)">
+                                                <i class="fa-solid fa-credit-card" style="font-size:10px"></i> পে করুন
+                                            </button>
+                                        @else
+                                            <span style="color:#94a3b8; font-size:11px">—</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div style="text-align:center; padding:20px; color:#94a3b8; font-size:13px">
+                            এই সেমিস্টারের জন্য কোনো কিস্তি সক্রিয় নেই।
+                        </div>
                     @endif
                 </div>
-                @endforeach
-            </div>
+            @empty
+                <div style="text-align:center; padding:30px; color:var(--text-muted)">
+                    কোনো সেমিস্টার বা কোর্স ফি তথ্য পাওয়া যায়নি।
+                </div>
+            @endforelse
         </div>
-        @endif
     </div>
     </div>{{-- Close #portalSection_monthly --}}
 
@@ -1283,6 +1265,57 @@
             btn.disabled = false;
             btn.innerHTML = originalText;
             alert('সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে।');
+        });
+    }
+
+    function filterStep1Table(type, btn) {
+        document.querySelectorAll('.step1-filter-btn').forEach(b => {
+            b.style.background = '#fff';
+            b.style.color = '#475569';
+            b.style.borderColor = '#cbd5e1';
+        });
+        if (type === 'all') {
+            btn.style.background = '#2563eb';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#2563eb';
+        } else if (type === 'due') {
+            btn.style.background = '#be123c';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#be123c';
+        } else if (type === 'paid') {
+            btn.style.background = '#15803d';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#15803d';
+        }
+
+        const rows = document.querySelectorAll('tr[data-step1-status]');
+        rows.forEach(r => {
+            const status = r.getAttribute('data-step1-status');
+            if (type === 'all') {
+                r.style.display = '';
+            } else if (type === 'due') {
+                r.style.display = (status === 'due') ? '' : 'none';
+            } else if (type === 'paid') {
+                r.style.display = (status === 'paid') ? '' : 'none';
+            }
+        });
+    }
+
+    function switchSemBreakdownTab(activeIdx) {
+        document.querySelectorAll('.sem-breakdown-tab-btn').forEach((btn, idx) => {
+            if (idx === activeIdx) {
+                btn.style.background = '#2563eb';
+                btn.style.color = '#fff';
+                btn.style.borderColor = '#2563eb';
+            } else {
+                btn.style.background = '#fff';
+                btn.style.color = '#334155';
+                btn.style.borderColor = '#cbd5e1';
+            }
+        });
+
+        document.querySelectorAll('.sem-breakdown-pane').forEach((pane, idx) => {
+            pane.style.display = (idx === activeIdx) ? 'block' : 'none';
         });
     }
     </script>

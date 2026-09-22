@@ -173,17 +173,23 @@
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-                        <select name="batch_id" class="form-control" style="height:32px;font-size:11px">
+                        <select name="batch_id" id="pool_batch_select" class="form-control" style="height:32px;font-size:11px">
                             <option value="">সকল ব্যাচ (All Batches)</option>
                             @foreach($batches as $b)
-                                <option value="{{ $b->id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
                             @endforeach
                         </select>
 
-                        <select name="semester_id" class="form-control" style="height:32px;font-size:11px">
+                        <select name="semester_id" id="pool_semester_select" class="form-control" style="height:32px;font-size:11px">
                             <option value="">সকল সেমিস্টার (All Semesters)</option>
-                            @foreach($semesters as $sem)
-                                <option value="{{ $sem->id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>{{ $sem->name }}</option>
+                            @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
+                                <optgroup label="{{ $courseName }}" data-course-id="{{ $courseSemesters->first()?->course_id }}">
+                                    @foreach($courseSemesters as $sem)
+                                        <option value="{{ $sem->id }}" data-course-id="{{ $sem->course_id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>
+                                            {{ $sem->name }} ({{ $courseName }})
+                                        </option>
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                     </div>
@@ -260,4 +266,48 @@
         </div>
 
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const batchSelect = document.getElementById('pool_batch_select');
+            const semSelect = document.getElementById('pool_semester_select');
+            if (!batchSelect || !semSelect) return;
+
+            const originalOptgroups = Array.from(semSelect.querySelectorAll('optgroup')).map(og => og.cloneNode(true));
+            const allOption = semSelect.querySelector('option[value=""]');
+
+            function filterSemesters() {
+                const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+                const courseId = selectedOption ? selectedOption.getAttribute('data-course-id') : null;
+                const currentVal = semSelect.value;
+
+                semSelect.innerHTML = '';
+                if (allOption) {
+                    semSelect.appendChild(allOption.cloneNode(true));
+                }
+
+                let foundSelected = false;
+
+                originalOptgroups.forEach(og => {
+                    const ogCourseId = og.getAttribute('data-course-id');
+                    if (!courseId || ogCourseId === courseId) {
+                        const clonedOg = og.cloneNode(true);
+                        semSelect.appendChild(clonedOg);
+                        if (currentVal && clonedOg.querySelector(`option[value="${currentVal}"]`)) {
+                            foundSelected = true;
+                        }
+                    }
+                });
+
+                if (foundSelected && currentVal) {
+                    semSelect.value = currentVal;
+                } else if (courseId && !foundSelected) {
+                    semSelect.value = '';
+                }
+            }
+
+            batchSelect.addEventListener('change', filterSemesters);
+            filterSemesters();
+        });
+    </script>
 </x-admin-layout>

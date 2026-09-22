@@ -303,20 +303,6 @@ class FeeController extends Controller
             }
         }
 
-        // 2. Admission fee row
-        if ($admissionInvoices->isNotEmpty()) {
-            $firstUnpaid = $admissionInvoices->where('due_amount', '>', 0)->first() ?? $admissionInvoices->first();
-            $semesterBreakdown->push([
-                'label'      => 'ভর্তি ফি (Admission Fee)',
-                'category'   => 'ADMISSION',
-                'isRunning'  => false,
-                'payable'    => $admissionInvoices->sum('payable_amount'),
-                'paid'       => $admissionInvoices->sum('paid_amount'),
-                'due'        => $admissionInvoices->sum('due_amount'),
-                'hasInvoice' => true,
-                'invoice'    => $firstUnpaid,
-            ]);
-        }
 
         // 3. Retake / Exam fee row
         if ($retakeInvoices->isNotEmpty()) {

@@ -127,10 +127,16 @@
             @endforeach
         </select>
 
-        <select name="semester_id" class="form-control" style="width:140px;height:40px;border-radius:8px;font-size:13px">
+        <select name="semester_id" class="form-control" style="width:170px;height:40px;border-radius:8px;font-size:13px">
             <option value="">সকল সেমিস্টার</option>
-            @foreach($semesters as $sem)
-                <option value="{{ $sem->id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>{{ $sem->name }}</option>
+            @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
+                <optgroup label="{{ $courseName }}">
+                    @foreach($courseSemesters as $sem)
+                        <option value="{{ $sem->id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>
+                            {{ $sem->name }} ({{ $courseName }})
+                        </option>
+                    @endforeach
+                </optgroup>
             @endforeach
         </select>
 
@@ -364,8 +370,12 @@
                             <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
                             <select name="semester_id" class="form-control">
                                 <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
-                                @foreach($semesters as $sem)
-                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
+                                    <optgroup label="{{ $courseName }}">
+                                        @foreach($courseSemesters as $sem)
+                                            <option value="{{ $sem->id }}">{{ $sem->name }} ({{ $courseName }})</option>
+                                        @endforeach
+                                    </optgroup>
                                 @endforeach
                             </select>
                         </div>
@@ -483,8 +493,12 @@
                             <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
                             <select name="semester_id" class="form-control">
                                 <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
-                                @foreach($semesters as $sem)
-                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
+                                    <optgroup label="{{ $courseName }}">
+                                        @foreach($courseSemesters as $sem)
+                                            <option value="{{ $sem->id }}">{{ $sem->name }} ({{ $courseName }})</option>
+                                        @endforeach
+                                    </optgroup>
                                 @endforeach
                             </select>
                         </div>
@@ -708,8 +722,12 @@ ANSWER: A</pre>
                             <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
                             <select id="edit_semester_id" name="semester_id" class="form-control">
                                 <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
-                                @foreach($semesters as $sem)
-                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
+                                    <optgroup label="{{ $courseName }}">
+                                        @foreach($courseSemesters as $sem)
+                                            <option value="{{ $sem->id }}">{{ $sem->name }} ({{ $courseName }})</option>
+                                        @endforeach
+                                    </optgroup>
                                 @endforeach
                             </select>
                         </div>
