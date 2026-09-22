@@ -366,7 +366,7 @@
             </div>
 
             <form method="GET" action="{{ route('admin.students.index') }}" id="studentFilterForm">
-                @if($status && !request()->filled('status'))
+                @if($status)
                     <input type="hidden" name="status" value="{{ $status }}">
                 @endif
 
@@ -448,19 +448,6 @@
                             @endforeach
                         </select>
                     </div>
-
-                    <!-- Status Filter -->
-                    <div class="filter-field">
-                        <label><i class="fa-solid fa-circle-check" style="color:#047857"></i> স্ট্যাটাস (Status)</label>
-                        <select name="status">
-                            <option value="">-- সকল স্ট্যাটাস --</option>
-                            <option value="ACTIVE" {{ strtoupper(request('status')) === 'ACTIVE' ? 'selected' : '' }}>সক্রিয় (Active)</option>
-                            <option value="PENDING" {{ strtoupper(request('status')) === 'PENDING' ? 'selected' : '' }}>অপেক্ষমান (Pending)</option>
-                            <option value="LEAD" {{ strtoupper(request('status')) === 'LEAD' ? 'selected' : '' }}>লিড (Lead)</option>
-                            <option value="GRADUATED" {{ strtoupper(request('status')) === 'GRADUATED' ? 'selected' : '' }}>উত্তীর্ণ (Graduated)</option>
-                            <option value="INACTIVE" {{ strtoupper(request('status')) === 'INACTIVE' ? 'selected' : '' }}>নিষ্ক্রিয় (Inactive)</option>
-                        </select>
-                    </div>
                 </div>
 
                 <!-- Form Action Buttons -->
@@ -469,7 +456,7 @@
                         <button type="submit" class="btn btn-primary" style="background:#047857;border-color:#047857;font-weight:700">
                             <i class="fa-solid fa-filter"></i> ফিল্টার প্রয়োগ করুন (Filter)
                         </button>
-                        <a href="{{ route('admin.students.index') }}" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569">
+                        <a href="{{ route('admin.students.index', $status ? ['status' => $status] : []) }}" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569">
                             <i class="fa-solid fa-rotate-left"></i> রিসেট (Reset)
                         </a>
                     </div>
@@ -504,10 +491,7 @@
                 @if(request('blood_group'))
                     <span class="active-filter-badge">রক্তের গ্রুপ: {{ request('blood_group') }}</span>
                 @endif
-                @if(request('status'))
-                    <span class="active-filter-badge">স্ট্যাটাস: {{ request('status') }}</span>
-                @endif
-                <a href="{{ route('admin.students.index') }}" style="margin-left:auto;color:#b91c1c;font-weight:700;font-size:12px;text-decoration:none">
+                <a href="{{ route('admin.students.index', $status ? ['status' => $status] : []) }}" style="margin-left:auto;color:#b91c1c;font-weight:700;font-size:12px;text-decoration:none">
                     <i class="fa-solid fa-xmark"></i> ফিল্টার মুছুন
                 </a>
             </div>

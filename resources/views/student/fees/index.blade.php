@@ -118,10 +118,25 @@
             <i class="fa-solid fa-forward-step"></i> Step 1: Select Payment Amount
         </div>
         <div style="padding:20px">
+            @php
+                $isAdminSession = session()->has('admin_impersonator_id') 
+                    || (auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'ADMIN'));
+            @endphp
+
+            @if($isAdminSession)
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:#1e40af">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-user-shield" style="font-size:16px;color:#2563eb"></i>
+                        <span><strong>অ্যাডমিন মোড:</strong> আপনি নিচে টেবিলের ফি আইটেমের টাকা সরাসরি এডিট (কমানো/বাড়ানো) করে সেভ করতে পারবেন।</span>
+                    </div>
+                    <span style="background:#2563eb;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px">অ্যাডমিন এডিট সক্রিয়</span>
+                </div>
+            @endif
+
             {{-- Semester Selector --}}
             <div style="display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap">
                 <label style="font-weight:700;color:#1e293b;font-size:14px">Check Due For:</label>
-                <select id="checkDueSemesterSelect" onchange="location.href='{{ route('student.fees.index') }}?semester_id=' + this.value"
+                <select id="checkDueSemesterSelect" onchange="location.href='{{ route('student.fees.index') }}?course_id={{ $course?->id }}&semester_id=' + this.value"
                         style="padding:6px 16px;border:1.5px solid #10b981;border-radius:6px;font-size:13.5px;font-weight:600;color:#0f172a;background:#fff;outline:none;cursor:pointer">
                     @foreach($semesterDropdownOptions as $sOpt)
                         <option value="{{ $sOpt['id'] }}" {{ $selectedSemesterId == $sOpt['id'] ? 'selected' : '' }}>
@@ -156,7 +171,7 @@
                         <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1">
                             <th style="padding:10px 14px;width:60px;text-align:center;font-weight:700;color:#334155">#SL</th>
                             <th style="padding:10px 14px;font-weight:700;color:#334155;text-align:left">Particular Name</th>
-                            <th style="padding:10px 14px;width:150px;text-align:center;font-weight:700;color:#334155">Dues</th>
+                            <th style="padding:10px 14px;width:160px;text-align:center;font-weight:700;color:#334155">Dues</th>
                             <th style="padding:10px 14px;width:100px;text-align:center;font-weight:700;color:#334155">Pay</th>
                         </tr>
                     </thead>
@@ -164,15 +179,41 @@
                         @foreach($step1Particulars as $p)
                         <tr style="border-bottom:1px solid #f1f5f9">
                             <td style="padding:9px 14px;text-align:center;color:#64748b;font-weight:600">{{ $p['sl'] }}</td>
-                            <td style="padding:9px 14px;font-weight:600;color:#1e293b">{{ $p['name'] }}</td>
-                            <td style="padding:9px 14px;text-align:center">
-                                @if($p['is_paid'])
-                                    <span style="color:#16a34a;font-weight:700">Paid ({{ number_format($p['amount'], 0) }})</span>
-                                @else
-                                    <span style="font-weight:700;color:#0f172a">{{ number_format($p['due'], 0) }}</span>
+                            <td style="padding:9px 14px;font-weight:600;color:#1e293b">
+                                {{ $p['name'] }}
+                                @if(!empty($p['is_custom']))
+                                    <span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক সমন্বয়কৃত' }}">সমন্বয়কৃত</span>
                                 @endif
                             </td>
-                            <td style="padding:9px 14px;text-align:center">
+                            <td style="padding:9px 14px;text-align:center" id="particularDueCell_{{ $p['sl'] }}">
+                                @if($p['is_paid'])
+                                    <div style="display:inline-flex;align-items:center;gap:6px">
+                                        <span id="particularDueVal_{{ $p['sl'] }}" style="color:#16a34a;font-weight:700">Paid ({{ number_format($p['amount'], 0) }})</span>
+                                        @if($isAdminSession && $selectedSemesterInvoice)
+                                            <button type="button"
+                                                    onclick="openAdminParticularEditModal('{{ $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }})"
+                                                    title="টাকার পরিমাণ এডিট করুন (Admin Edit)"
+                                                    style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:2px">
+                                                <i class="fa-solid fa-pencil"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                @else
+                                    <div style="display:inline-flex;align-items:center;gap:6px">
+                                        <span id="particularDueVal_{{ $p['sl'] }}" style="font-weight:700;color:#0f172a">{{ number_format($p['due'], 0) }}</span>
+                                        @if($isAdminSession && $selectedSemesterInvoice)
+                                            <button type="button"
+                                                    onclick="openAdminParticularEditModal('{{ $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }})"
+                                                    title="টাকার পরিমাণ এডিট বা সমন্বয় করুন (Admin Edit: Increase/Decrease Taka)"
+                                                    style="background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:all .15s"
+                                                    onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                                                <i class="fa-solid fa-pencil" style="font-size:10px"></i> এডিট
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endif
+                            </td>
+                            <td style="padding:9px 14px;text-align:center" id="particularPayCell_{{ $p['sl'] }}">
                                 @if(!$p['is_paid'])
                                     @if($hasPriorSemesterDue && ($selectedSemester?->sequence_no > 1))
                                         <span title="পূর্বের বকেয়া পরিশোধ আবশ্যক" style="display:inline-flex;align-items:center;gap:4px">
@@ -1086,6 +1127,162 @@
             } else if (type === 'paid') {
                 r.style.display = r.classList.contains('row-paid') ? '' : 'none';
             }
+    {{-- ── Admin Fee Particular Edit Modal ── --}}
+    <div id="adminParticularEditModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:999999;align-items:center;justify-content:center;font-family:'Kalpurush',sans-serif">
+        <div style="background:#fff;border-radius:12px;width:95%;max-width:440px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #cbd5e1">
+            <div style="background:#1e40af;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
+                <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-pencil"></i> ফি এর পরিমাণ পরিবর্তন / সমন্বয় (Admin Edit)
+                </div>
+                <button type="button" onclick="closeAdminParticularEditModal()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1">&times;</button>
+            </div>
+            <form id="adminParticularEditForm" onsubmit="submitAdminParticularEdit(event)" style="padding:20px">
+                <input type="hidden" id="ape_invoice_id" name="invoice_id">
+                <input type="hidden" id="ape_particular_name" name="particular_name">
+                <input type="hidden" id="ape_current_due" name="current_due">
+                <input type="hidden" id="ape_row_sl" name="row_sl">
+
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">আইটেমের নাম (Particular Name):</label>
+                    <div id="ape_display_name" style="font-size:13.5px;font-weight:700;color:#1e293b;background:#f8fafc;padding:8px 12px;border-radius:6px;border:1px solid #e2e8f0"></div>
+                </div>
+
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">বর্তমান বকেয়া (Current Dues):</label>
+                    <div id="ape_display_current_due" style="font-size:15px;font-weight:800;color:#be123c"></div>
+                </div>
+
+                <div style="margin-bottom:16px">
+                    <label for="ape_new_amount" style="display:block;font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">
+                        নতুন টাকার পরিমাণ (New Amount - ৳): <span style="color:#dc2626">*</span>
+                    </label>
+                    <div style="position:relative">
+                        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:700;color:#64748b;font-size:15px">৳</span>
+                        <input type="number" step="1" min="0" id="ape_new_amount" name="new_amount" required
+                               style="width:100%;padding:10px 12px 10px 32px;border:1.5px solid #2563eb;border-radius:8px;font-size:16px;font-weight:800;color:#0f172a;outline:none;box-sizing:border-box">
+                    </div>
+                    <div style="font-size:11.5px;color:#64748b;margin-top:4px">
+                        (টাকা কমাতে চাইলে কম লিখুন, বাড়াতে চাইলে বেশি লিখুন, বা সম্পূর্ণ মওকুফ করতে ০ লিখুন)
+                    </div>
+                </div>
+
+                <div style="margin-bottom:18px">
+                    <label for="ape_remarks" style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">
+                        সমন্বয়ের কারণ / নোট (Reason / Remarks):
+                    </label>
+                    <input type="text" id="ape_remarks" name="remarks" placeholder="যেমন: কর্তৃপক্ষের অনুমোদনক্রমে বিশেষ ফি ছাড়..."
+                           style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;box-sizing:border-box;outline:none">
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #f1f5f9;padding-top:14px">
+                    <button type="button" onclick="closeAdminParticularEditModal()" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569">
+                        বাতিল (Cancel)
+                    </button>
+                    <button type="submit" id="ape_submit_btn" class="btn btn-primary" style="background:#2563eb;border-color:#2563eb;font-weight:700">
+                        <i class="fa-solid fa-check"></i> সংরক্ষণ করুন (Save Amount)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+    function openAdminParticularEditModal(invoiceId, pName, currentDue, sl) {
+        document.getElementById('ape_invoice_id').value = invoiceId;
+        document.getElementById('ape_particular_name').value = pName;
+        document.getElementById('ape_current_due').value = currentDue;
+        document.getElementById('ape_row_sl').value = sl;
+
+        document.getElementById('ape_display_name').innerText = pName;
+        document.getElementById('ape_display_current_due').innerText = '৳' + Number(currentDue).toLocaleString('en-BD');
+        document.getElementById('ape_new_amount').value = currentDue;
+        document.getElementById('ape_remarks').value = '';
+
+        const modal = document.getElementById('adminParticularEditModal');
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            const input = document.getElementById('ape_new_amount');
+            if (input) { input.focus(); input.select(); }
+        }, 100);
+    }
+
+    function closeAdminParticularEditModal() {
+        const modal = document.getElementById('adminParticularEditModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function submitAdminParticularEdit(e) {
+        e.preventDefault();
+        const btn = document.getElementById('ape_submit_btn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> সেভ হচ্ছে...';
+
+        const invoiceId = document.getElementById('ape_invoice_id').value;
+        const pName = document.getElementById('ape_particular_name').value;
+        const currentDue = document.getElementById('ape_current_due').value;
+        const newAmount = document.getElementById('ape_new_amount').value;
+        const remarks = document.getElementById('ape_remarks').value;
+        const sl = document.getElementById('ape_row_sl').value;
+
+        fetch("{{ route('student.fees.particular.update') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                invoice_id: invoiceId,
+                particular_name: pName,
+                current_due: currentDue,
+                new_amount: newAmount,
+                remarks: remarks
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            if (data.success) {
+                closeAdminParticularEditModal();
+                // Update UI elements
+                const cell = document.getElementById('particularDueCell_' + sl);
+                const payCell = document.getElementById('particularPayCell_' + sl);
+                const valSpan = document.getElementById('particularDueVal_' + sl);
+                const chk = document.querySelector('.step1-chk[data-name="' + pName + '"]');
+
+                if (data.is_paid) {
+                    if (cell) {
+                        cell.innerHTML = '<div style="display:inline-flex;align-items:center;gap:6px"><span style="color:#16a34a;font-weight:700">Paid (0)</span><button type="button" onclick="openAdminParticularEditModal(\'' + invoiceId + '\', \'' + pName.replace(/'/g, "\\'") + '\', 0, ' + sl + ')" style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;cursor:pointer"><i class="fa-solid fa-pencil"></i></button></div>';
+                    }
+                    if (payCell) {
+                        payCell.innerHTML = '';
+                    }
+                } else {
+                    if (valSpan) {
+                        valSpan.innerText = Number(data.new_due).toLocaleString('en-BD');
+                        valSpan.style.color = '#2563eb';
+                    }
+                    if (chk) {
+                        chk.dataset.amount = data.new_due;
+                    }
+                }
+
+                if (typeof updateStep1Total === 'function') {
+                    updateStep1Total();
+                }
+
+                alert(data.message);
+            } else {
+                alert(data.message || 'Error updating fee amount.');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            alert('সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে।');
         });
     }
     </script>

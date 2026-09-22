@@ -311,26 +311,6 @@
                         </select>
                     </div>
 
-                    {{-- 3. Fee Structure Setup --}}
-                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
-                        <div style="font-size:12.5px;font-weight:700;color:#047857;margin-bottom:8px;text-transform:uppercase;">
-                            <i class="fa-solid fa-money-bill-wave"></i> ফি স্ট্রাকচার ও পুওর ফান্ড ছাড় নির্ধারণ (Fee Setup)
-                        </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;">
-                            <div>
-                                <label style="font-size:12px;font-weight:600;color:#475569;">ভর্তি ফি নির্ধারণ (৳)</label>
-                                <input type="number" step="0.01" name="approved_admission_fee" value="{{ $admission->approved_admission_fee ?? ($admission->interestedCourse->admission_fee ?? 0) }}" class="form-control" style="height:34px;font-size:13px;" placeholder="Admission Fee">
-                            </div>
-                            <div>
-                                <label style="font-size:12px;font-weight:600;color:#475569;">পুওর ফান্ড ছাড় (%)</label>
-                                <input type="number" step="0.01" name="discount_percent" value="{{ $admission->discount_percent ?? 0 }}" class="form-control" style="height:34px;font-size:13px;" placeholder="Waiver %">
-                            </div>
-                        </div>
-                        <div>
-                            <label style="font-size:12px;font-weight:600;color:#475569;">ছাড় / পুওর ফান্ড সংক্রান্ত নোট</label>
-                            <input type="text" name="waiver_notes" value="{{ $admission->waiver_notes ?? '' }}" placeholder="উদাঃ পুওর ফান্ড অনুমোদন সাপেক্ষে বিশেষ ছাড়" class="form-control" style="height:34px;font-size:13px;">
-                        </div>
-                    </div>
 
                     {{-- 4. Custom Initial Password --}}
                     <div class="form-group" style="margin-bottom:14px;">

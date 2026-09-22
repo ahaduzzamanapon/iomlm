@@ -41,9 +41,9 @@
     </div>
 
     {{-- ── 1. MONTHLY PAYMENTS SECTION (মান্থলি পেমেন্ট সেকশন) ── --}}
-    @if(isset($dashboardMonthly) && count($dashboardMonthly) > 0)
+    @if((isset($dashboardMonthly) && count($dashboardMonthly) > 0) || (isset($studentCourses) && $studentCourses->count() > 0))
     <div class="card" style="margin-bottom:24px;border-top:4px solid #2563eb;font-family:'Kalpurush',sans-serif">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
             <div>
                 <span class="card-title" style="display:flex;align-items:center;gap:8px;font-size:16px;color:#1e40af">
                     <i class="fa-solid fa-calendar-days" style="color:#2563eb"></i> {{ $runningSemesterName }} — মান্থলি পেমেন্ট (Monthly Fees Breakdown)
@@ -52,8 +52,26 @@
                     চলতি সেমিস্টারের মাসভিত্তিক কিস্তির অবস্থা ও পরিশোধের হিসাব
                 </div>
             </div>
+
+            {{-- Multi-Course Switcher in Dashboard --}}
+            @if(isset($studentCourses) && $studentCourses->count() > 1)
+                <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;padding:4px 10px;border-radius:20px;border:1px solid #e2e8f0;flex-wrap:wrap">
+                    <span style="font-size:11.5px;font-weight:700;color:#64748b">কোর্স নির্বাচন:</span>
+                    @foreach($studentCourses as $sC)
+                        <a href="{{ route('student.dashboard', ['course_id' => $sC->id]) }}"
+                           style="padding:3px 10px;border-radius:14px;font-size:11.5px;font-weight:700;text-decoration:none;transition:all .15s;{{ ($selectedCourse && $selectedCourse->id == $sC->id) ? 'background:#2563eb;color:#fff;' : 'background:#fff;color:#475569;border:1px solid #cbd5e1' }}">
+                            {{ $sC->name }}
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+
             <div style="display:flex;align-items:center;gap:10px">
-                @if($runningSemDue > 0)
+                @if(!$hasRunningSemesterInvoices)
+                    <span class="badge" style="background:#f1f5f9;color:#475569;font-size:12px;padding:4px 10px;border:1px solid #cbd5e1">
+                        চলতি সেমিস্টার ফি নির্ধারিত নেই
+                    </span>
+                @elseif($runningSemDue > 0)
                     <span class="badge badge-danger no-dot" style="font-size:12px;padding:4px 10px">
                         চলতি সেমিস্টার বকেয়া: ৳{{ number_format($runningSemDue, 0) }}
                     </span>
@@ -62,39 +80,46 @@
                         চলতি সেমিস্টার পরিশোধিত (Cleared)
                     </span>
                 @endif
-                <a href="{{ route('student.fees.index', ['tab' => 'monthly']) }}" class="btn btn-primary btn-sm" style="font-size:12px">
+                <a href="{{ route('student.fees.index', array_filter(['course_id' => $selectedCourse?->id, 'tab' => 'monthly'])) }}" class="btn btn-primary btn-sm" style="font-size:12px">
                     মান্থলি ফি পরিশোধ →
                 </a>
             </div>
         </div>
         <div style="padding:14px 18px">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px">
-                @foreach($dashboardMonthly as $dm)
-                    @php
-                        $badgeStyle = match($dm['status']) {
-                            'PAID' => 'background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;',
-                            'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
-                            default => 'background:#fff1f2;color:#be123c;border:1px solid #fecdd3;',
-                        };
-                        $badgeText = match($dm['status']) {
-                            'PAID' => 'পরিশোধিত',
-                            'PARTIAL' => 'আংশিক',
-                            default => 'অপরিশোধিত',
-                        };
-                    @endphp
-                    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                            <strong style="font-size:13px;color:#1e293b">{{ $dm['name'] }}</strong>
-                            <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:12px;{{ $badgeStyle }}">
-                                {{ $badgeText }}
-                            </span>
+            @if(count($dashboardMonthly) > 0)
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:10px">
+                    @foreach($dashboardMonthly as $dm)
+                        @php
+                            $badgeStyle = match($dm['status']) {
+                                'PAID' => 'background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;',
+                                'PARTIAL' => 'background:#fef3c7;color:#92400e;border:1px solid #fde68a;',
+                                default => 'background:#fff1f2;color:#be123c;border:1px solid #fecdd3;',
+                            };
+                            $badgeText = match($dm['status']) {
+                                'PAID' => 'পরিশোধিত',
+                                'PARTIAL' => 'আংশিক',
+                                default => 'অপরিশোধিত',
+                            };
+                        @endphp
+                        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                                <strong style="font-size:13px;color:#1e293b">{{ $dm['name'] }}</strong>
+                                <span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:12px;{{ $badgeStyle }}">
+                                    {{ $badgeText }}
+                                </span>
+                            </div>
+                            <div style="font-size:12px;color:#64748b;font-weight:600">
+                                ফি: ৳{{ number_format($dm['rate'], 0) }}
+                            </div>
                         </div>
-                        <div style="font-size:12px;color:#64748b;font-weight:600">
-                            ফি: ৳{{ number_format($dm['rate'], 0) }}
-                        </div>
-                    </div>
-                @endforeach
-            </div>
+                    @endforeach
+                </div>
+            @else
+                <div style="text-align:center;padding:14px;color:#64748b;font-size:13px;background:#f8fafc;border-radius:8px;border:1px dashed #cbd5e1">
+                    <i class="fa-solid fa-circle-info" style="color:#3b82f6;margin-right:4px"></i>
+                    নির্বাচিত কোর্স @if($selectedCourse)<strong>'{{ $selectedCourse->name }}'</strong>@endif-এর চলতি সেমিস্টারের কোনো বকেয়া বা ফি শিডিউল নির্ধারিত নেই।
+                </div>
+            @endif
         </div>
     </div>
     @endif

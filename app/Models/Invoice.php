@@ -18,6 +18,7 @@ class Invoice extends Model
         'paid_amount'    => 'float',
         'due_amount'     => 'float',
         'due_date'       => 'date',
+        'custom_particulars' => 'array',
     ];
 
     public function student()

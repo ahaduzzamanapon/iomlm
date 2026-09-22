@@ -15,11 +15,44 @@ use Illuminate\Http\Request;
 
 class ExamController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $exams    = Exam::with(['subject', 'attendees.student'])->latest()->get();
+        $status    = $request->query('status');
+        $subjectId = $request->query('subject_id');
+        $search    = $request->query('search');
+
+        $query = Exam::with(['subject', 'attendees.student']);
+
+        if ($status && in_array(strtoupper($status), ['SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELLED'])) {
+            $query->where('status', strtoupper($status));
+        }
+
+        if ($subjectId) {
+            $query->where('subject_id', $subjectId);
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhereHas('subject', function ($sq) use ($search) {
+                      $sq->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $exams    = $query->latest()->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
-        return view('admin.exams.index', compact('exams', 'subjects'));
+
+        $statusCounts = [
+            'ALL'       => Exam::count(),
+            'SCHEDULED' => Exam::where('status', 'SCHEDULED')->count(),
+            'RUNNING'   => Exam::where('status', 'RUNNING')->count(),
+            'COMPLETED' => Exam::where('status', 'COMPLETED')->count(),
+            'CANCELLED' => Exam::where('status', 'CANCELLED')->count(),
+        ];
+
+        return view('admin.exams.index', compact('exams', 'subjects', 'status', 'subjectId', 'search', 'statusCounts'));
     }
 
     public function store(Request $request)
@@ -212,7 +245,7 @@ class ExamController extends Controller
         $availableQuestions = $query->latest()->limit(80)->get();
         $subjects           = Subject::where('is_active', true)->orderBy('name')->get();
         $batches            = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
-        $semesters          = Semester::where('is_active', true)->orderBy('sequence_no')->get();
+        $semesters          = Semester::with('course')->orderBy('sequence_no')->get();
         $sourceTags         = Question::whereNotNull('source_tag')->where('source_tag', '!=', '')->distinct()->pluck('source_tag')->filter()->values();
         $examTypes          = ['CT', 'MID', 'FINAL', 'QUIZ', 'PRACTICE'];
 

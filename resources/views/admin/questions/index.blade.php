@@ -236,10 +236,19 @@
                         <span class="written-col"><i class="fa-solid fa-file-pen"></i> ছাত্র হাতে লিখে Image Upload করবে</span>
                     @else
                         <div class="options-grid">
-                            @foreach($q->options ?? [] as $opt)
-                            @php $isRight = strtolower($opt['id'] ?? '') === strtolower($q->correct_option_id); @endphp
+                            @foreach($q->options ?? [] as $idx => $opt)
+                            @php
+                                if (is_array($opt)) {
+                                    $optId = $opt['id'] ?? (is_numeric($idx) ? chr(65 + (int)$idx) : $idx);
+                                    $optText = $opt['text'] ?? '';
+                                } else {
+                                    $optId = is_numeric($idx) ? chr(65 + (int)$idx) : $idx;
+                                    $optText = (string)$opt;
+                                }
+                                $isRight = strtolower((string)$optId) === strtolower((string)$q->correct_option_id);
+                            @endphp
                             <div class="option-item {{ $isRight ? 'correct' : '' }}">
-                                <strong>{{ strtoupper($opt['id']) }}:</strong> {{ $opt['text'] ?? '' }}
+                                <strong>{{ strtoupper((string)$optId) }}:</strong> {{ $optText }}
                             </div>
                             @endforeach
                         </div>

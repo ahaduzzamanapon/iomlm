@@ -63,7 +63,7 @@ class QuestionController extends Controller
         $questions  = $query->paginate(20)->withQueryString();
         $subjects   = Subject::where('is_active', true)->orderBy('name')->get();
         $batches    = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
-        $semesters  = Semester::where('is_active', true)->orderBy('sequence_no')->get();
+        $semesters  = Semester::with('course')->orderBy('sequence_no')->get();
         $sourceTags = Question::whereNotNull('source_tag')->where('source_tag', '!=', '')->distinct()->pluck('source_tag')->filter()->values();
         $examTypes  = ['CT', 'MID', 'FINAL', 'QUIZ', 'PRACTICE'];
 

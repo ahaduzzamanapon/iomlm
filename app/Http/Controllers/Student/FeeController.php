@@ -390,212 +390,318 @@ class FeeController extends Controller
 
         $selectedSemester = $allSemesters->firstWhere('id', $selectedSemesterId) ?? $runningSemester ?? $allSemesters->first();
 
-        // Build Semester Dropdown Options (e.g. Fall 2026 (Jul-Dec), Spring 2026 (Jan-Jun))
+        // Build Semester Dropdown Options (e.g. Semester 1, Semester 2, ...)
         $semesterDropdownOptions = [];
-        foreach ($allSemesters as $sem) {
-            $semInvs   = collect($invoicesBySemester[$sem->id] ?? []);
-            $semDue    = (float) $semInvs->sum('due_amount');
-            $isRunning = ($runningSemester && $sem->id == $runningSemester->id);
+        if ($courseType === 'SEMESTER_BASED') {
+            foreach ($allSemesters as $sem) {
+                $semInvs   = collect($invoicesBySemester[$sem->id] ?? []);
+                $semDue    = (float) $semInvs->sum('due_amount');
+                $isRunning = ($runningSemester && $sem->id == $runningSemester->id);
 
-            // Compose label
-            $semLabel = $sem->name;
-            if ($programActivity && $programActivity->semester_name && $isRunning) {
-                $semLabel = $programActivity->semester_name;
-            } elseif (preg_match('/semester\s*(\d+)/i', $sem->name, $m)) {
-                $num = (int) $m[1];
-                $year = $activityStartDate->year;
-                $semLabel = ($num % 2 !== 0) ? "Spring {$year} (Jan-Jun)" : "Fall {$year} (Jul-Dec)";
+                // Clean and numbered label: "Semester 1", "Semester 2", ...
+                $semLabel = $sem->name;
+                if ($isRunning) {
+                    $semLabel .= ' (চলতি সেমিস্টার)';
+                }
+
+                $semesterDropdownOptions[] = [
+                    'id'          => $sem->id,
+                    'name'        => $sem->name,
+                    'label'       => $semLabel,
+                    'due'         => $semDue,
+                    'isRunning'   => $isRunning,
+                    'sequence_no' => $sem->sequence_no,
+                ];
             }
-
+        } else {
+            // SUBJECT_BASED course: No semesters, flat course fee & all subjects option
             $semesterDropdownOptions[] = [
-                'id'          => $sem->id,
-                'name'        => $sem->name,
-                'label'       => $semLabel,
-                'due'         => $semDue,
-                'isRunning'   => $isRunning,
-                'sequence_no' => $sem->sequence_no,
-            ];
-        }
-
-        // Fallback option if empty
-        if (empty($semesterDropdownOptions)) {
-            $semesterDropdownOptions[] = [
-                'id'          => 1,
-                'name'        => 'Current Session',
-                'label'       => $programActivity?->semester_name ?? 'Fall 2026 (Jul-Dec)',
+                'id'          => 0,
+                'name'        => 'Full Course',
+                'label'       => 'সম্পূর্ণ কোর্স ফি (Full Course / All Subjects)',
                 'due'         => $totalDue,
                 'isRunning'   => true,
                 'sequence_no' => 1,
             ];
         }
 
-        // ── Prior Due Guard: Check if earlier semesters have unpaid dues ──
+        // Fallback option if empty
+        if (empty($semesterDropdownOptions)) {
+            $semesterDropdownOptions[] = [
+                'id'          => 0,
+                'name'        => 'Full Course',
+                'label'       => 'সম্পূর্ণ কোর্স ফি (Full Course)',
+                'due'         => $totalDue,
+                'isRunning'   => true,
+                'sequence_no' => 1,
+            ];
+        }
+
+        // ── Prior Due Guard: Check if earlier semesters have unpaid dues (Semester-based only) ──
         $hasPriorSemesterDue   = false;
         $priorDueAmount        = 0.0;
         $priorDueSemesterName  = '';
         $priorDueSemesterId    = null;
 
-        $selectedSeq = $selectedSemester?->sequence_no ?? 1;
+        if ($courseType === 'SEMESTER_BASED') {
+            $selectedSeq = $selectedSemester?->sequence_no ?? 1;
 
-        foreach ($allSemesters as $sem) {
-            if ($sem->sequence_no < $selectedSeq) {
-                $earlierInvs = collect($invoicesBySemester[$sem->id] ?? []);
-                $earlierDue  = (float) $earlierInvs->sum('due_amount');
-                if ($earlierDue > 0) {
-                    $hasPriorSemesterDue = true;
-                    $priorDueAmount += $earlierDue;
-                    if (!$priorDueSemesterName) {
-                        $priorDueSemesterName = $sem->name;
-                        $priorDueSemesterId   = $sem->id;
+            foreach ($allSemesters as $sem) {
+                if ($sem->sequence_no < $selectedSeq) {
+                    $earlierInvs = collect($invoicesBySemester[$sem->id] ?? []);
+                    $earlierDue  = (float) $earlierInvs->sum('due_amount');
+                    if ($earlierDue > 0) {
+                        $hasPriorSemesterDue = true;
+                        $priorDueAmount += $earlierDue;
+                        if (!$priorDueSemesterName) {
+                            $priorDueSemesterName = $sem->name;
+                            $priorDueSemesterId   = $sem->id;
+                        }
                     }
+                }
+            }
+
+            // Also check admission fee due if not in semester 1
+            $admDue = (float) $admissionInvoices->sum('due_amount');
+            if ($admDue > 0 && $selectedSeq > 1) {
+                $hasPriorSemesterDue = true;
+                $priorDueAmount += $admDue;
+                if (!$priorDueSemesterName) {
+                    $priorDueSemesterName = 'ভর্তি ফি (Admission Fee)';
                 }
             }
         }
 
-        // Also check admission fee due if not in semester 1
-        $admDue = (float) $admissionInvoices->sum('due_amount');
-        if ($admDue > 0 && $selectedSeq > 1) {
-            $hasPriorSemesterDue = true;
-            $priorDueAmount += $admDue;
-            if (!$priorDueSemesterName) {
-                $priorDueSemesterName = 'ভর্তি ফি (Admission Fee)';
-            }
-        }
-
-        // ── Generate Step 1 Particulars (Tuition Months + Mid Term + Final Term) ──
+        // ── Generate Step 1 Particulars ──
         $step1Particulars = [];
-        $selectedSemInvoices = collect($invoicesBySemester[$selectedSemesterId] ?? []);
-        $selectedSemesterInvoice = $selectedSemInvoices->first() ?? $nonCancelledInvoices->first();
 
-        $targetPayable = (float) $selectedSemInvoices->sum('payable_amount');
-        $targetPaid    = (float) $selectedSemInvoices->sum('paid_amount');
-        $targetDue     = (float) $selectedSemInvoices->sum('due_amount');
+        if ($courseType === 'SEMESTER_BASED') {
+            $selectedSemInvoices = collect($invoicesBySemester[$selectedSemesterId] ?? []);
+            $selectedSemesterInvoice = $selectedSemInvoices->first() ?? $nonCancelledInvoices->first();
 
-        $monthlyTuition = 500.0;
-        $midFeeAmt      = 300.0;
-        $finalFeeAmt    = 500.0;
+            $targetPayable = (float) $selectedSemInvoices->sum('payable_amount');
+            $targetPaid    = (float) $selectedSemInvoices->sum('paid_amount');
+            $targetDue     = (float) $selectedSemInvoices->sum('due_amount');
 
-        if ($targetPayable > 0) {
-            $unitRate       = $targetPayable / 7.6;
-            $monthlyTuition = round($unitRate, 0);
-            $midFeeAmt      = round($unitRate * 0.6, 0);
-            $finalFeeAmt    = round($unitRate, 0);
-        }
+            $monthlyTuition = 500.0;
+            $midFeeAmt      = 300.0;
+            $finalFeeAmt    = 500.0;
 
-        // Start calendar month Carbon instance
-        try {
-            $monthNum = date('n', strtotime($configuredStartMonth . ' 1 2026'));
-            $startCarbon = \Carbon\Carbon::createFromDate($activityStartDate->year, $monthNum, 1);
-        } catch (\Throwable $e) {
-            $startCarbon = \Carbon\Carbon::createFromDate(now()->year, 7, 1);
-        }
-
-        $paidPool = $targetPaid;
-        $sl = 1;
-
-        // Months 1 to 3
-        for ($i = 0; $i < 3; $i++) {
-            $cDate = $startCarbon->copy()->addMonths($i);
-            $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
-            $dueAmt = $monthlyTuition;
-            $isPaid = false;
-            $paidAmt = 0;
-
-            if ($paidPool >= $dueAmt) {
-                $isPaid = true;
-                $paidAmt = $dueAmt;
-                $dueAmt = 0;
-                $paidPool -= $monthlyTuition;
-            } elseif ($paidPool > 0) {
-                $paidAmt = $paidPool;
-                $dueAmt = $dueAmt - $paidPool;
-                $paidPool = 0;
+            if ($targetPayable > 0) {
+                $unitRate       = $targetPayable / 7.6;
+                $monthlyTuition = round($unitRate, 0);
+                $midFeeAmt      = round($unitRate * 0.6, 0);
+                $finalFeeAmt    = round($unitRate, 0);
             }
 
-            $step1Particulars[] = [
-                'sl'       => $sl++,
-                'name'     => $pName,
-                'amount'   => $monthlyTuition,
-                'paid_amt' => $paidAmt,
-                'due'      => $dueAmt,
-                'is_paid'  => $isPaid,
-            ];
-        }
-
-        // Mid Term Fee
-        $midDue = $midFeeAmt;
-        $midPaid = false;
-        $midPaidAmt = 0;
-        if ($paidPool >= $midDue) {
-            $midPaid = true;
-            $midPaidAmt = $midDue;
-            $midDue = 0;
-            $paidPool -= $midFeeAmt;
-        } elseif ($paidPool > 0) {
-            $midPaidAmt = $paidPool;
-            $midDue = $midDue - $paidPool;
-            $paidPool = 0;
-        }
-        $step1Particulars[] = [
-            'sl'       => $sl++,
-            'name'     => 'Mid Term Fee',
-            'amount'   => $midFeeAmt,
-            'paid_amt' => $midPaidAmt,
-            'due'      => $midDue,
-            'is_paid'  => $midPaid,
-        ];
-
-        // Months 4 to 6
-        for ($i = 3; $i < 6; $i++) {
-            $cDate = $startCarbon->copy()->addMonths($i);
-            $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
-            $dueAmt = $monthlyTuition;
-            $isPaid = false;
-            $paidAmt = 0;
-
-            if ($paidPool >= $dueAmt) {
-                $isPaid = true;
-                $paidAmt = $dueAmt;
-                $dueAmt = 0;
-                $paidPool -= $monthlyTuition;
-            } elseif ($paidPool > 0) {
-                $paidAmt = $paidPool;
-                $dueAmt = $dueAmt - $paidPool;
-                $paidPool = 0;
+            // Start calendar month Carbon instance
+            try {
+                $monthNum = date('n', strtotime($configuredStartMonth . ' 1 2026'));
+                $startCarbon = \Carbon\Carbon::createFromDate($activityStartDate->year, $monthNum, 1);
+            } catch (\Throwable $e) {
+                $startCarbon = \Carbon\Carbon::createFromDate(now()->year, 7, 1);
             }
 
+            $paidPool = $targetPaid;
+            $sl = 1;
+
+            // Months 1 to 3
+            for ($i = 0; $i < 3; $i++) {
+                $cDate = $startCarbon->copy()->addMonths($i);
+                $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
+                $dueAmt = $monthlyTuition;
+                $isPaid = false;
+                $paidAmt = 0;
+
+                if ($paidPool >= $dueAmt) {
+                    $isPaid = true;
+                    $paidAmt = $dueAmt;
+                    $dueAmt = 0;
+                    $paidPool -= $monthlyTuition;
+                } elseif ($paidPool > 0) {
+                    $paidAmt = $paidPool;
+                    $dueAmt = $dueAmt - $paidPool;
+                    $paidPool = 0;
+                }
+
+                $step1Particulars[] = [
+                    'sl'       => $sl++,
+                    'name'     => $pName,
+                    'amount'   => $monthlyTuition,
+                    'paid_amt' => $paidAmt,
+                    'due'      => $dueAmt,
+                    'is_paid'  => $isPaid,
+                ];
+            }
+
+            // Mid Term Fee
+            $midDue = $midFeeAmt;
+            $midPaid = false;
+            $midPaidAmt = 0;
+            if ($paidPool >= $midDue) {
+                $midPaid = true;
+                $midPaidAmt = $midDue;
+                $midDue = 0;
+                $paidPool -= $midFeeAmt;
+            } elseif ($paidPool > 0) {
+                $midPaidAmt = $paidPool;
+                $midDue = $midDue - $paidPool;
+                $paidPool = 0;
+            }
             $step1Particulars[] = [
                 'sl'       => $sl++,
-                'name'     => $pName,
-                'amount'   => $monthlyTuition,
-                'paid_amt' => $paidAmt,
-                'due'      => $dueAmt,
-                'is_paid'  => $isPaid,
+                'name'     => 'Mid Term Fee',
+                'amount'   => $midFeeAmt,
+                'paid_amt' => $midPaidAmt,
+                'due'      => $midDue,
+                'is_paid'  => $midPaid,
             ];
+
+            // Months 4 to 6
+            for ($i = 3; $i < 6; $i++) {
+                $cDate = $startCarbon->copy()->addMonths($i);
+                $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
+                $dueAmt = $monthlyTuition;
+                $isPaid = false;
+                $paidAmt = 0;
+
+                if ($paidPool >= $dueAmt) {
+                    $isPaid = true;
+                    $paidAmt = $dueAmt;
+                    $dueAmt = 0;
+                    $paidPool -= $monthlyTuition;
+                } elseif ($paidPool > 0) {
+                    $paidAmt = $paidPool;
+                    $dueAmt = $dueAmt - $paidPool;
+                    $paidPool = 0;
+                }
+
+                $step1Particulars[] = [
+                    'sl'       => $sl++,
+                    'name'     => $pName,
+                    'amount'   => $monthlyTuition,
+                    'paid_amt' => $paidAmt,
+                    'due'      => $dueAmt,
+                    'is_paid'  => $isPaid,
+                ];
+            }
+
+            // Final Term Fee
+            $finalDue = $finalFeeAmt;
+            $finalPaid = false;
+            $finalPaidAmt = 0;
+            if ($paidPool >= $finalDue) {
+                $finalPaid = true;
+                $finalPaidAmt = $finalDue;
+                $finalDue = 0;
+                $paidPool -= $finalFeeAmt;
+            } elseif ($paidPool > 0) {
+                $finalPaidAmt = $paidPool;
+                $finalDue = $finalDue - $paidPool;
+                $paidPool = 0;
+            }
+            $step1Particulars[] = [
+                'sl'       => $sl++,
+                'name'     => 'Final Term Fee',
+                'amount'   => $finalFeeAmt,
+                'paid_amt' => $finalPaidAmt,
+                'due'      => $finalDue,
+                'is_paid'  => $finalPaid,
+            ];
+        } else {
+            // ── SUBJECT_BASED COURSE PARTICULAR GENERATION ──
+            $courseInvoices = $invoices->where('status', '!=', 'CANCELLED');
+            $selectedSemesterInvoice = $courseInvoices->where('category', 'SEMESTER')->first()
+                ?? $courseInvoices->where('category', 'MANUAL')->first()
+                ?? $courseInvoices->first();
+
+            $totalCourseMonths = 1;
+            if ($course) {
+                $totalCourseMonths = $course->duration_unit === 'YEAR' 
+                    ? (int) round($course->duration_value * 12) 
+                    : (int) round($course->duration_value);
+                $totalCourseMonths = max(1, min(12, $totalCourseMonths));
+            }
+
+            $targetPayable = $selectedSemesterInvoice ? (float) $selectedSemesterInvoice->payable_amount : 0.0;
+            $targetPaid    = $selectedSemesterInvoice ? (float) $selectedSemesterInvoice->paid_amount : 0.0;
+            $targetDue     = $selectedSemesterInvoice ? (float) $selectedSemesterInvoice->due_amount : 0.0;
+
+            $sl = 1;
+            $paidPool = $targetPaid;
+
+            if ($totalCourseMonths > 1 && $targetPayable > 0) {
+                $monthlyRate = round($targetPayable / $totalCourseMonths, 2);
+                $startCarbon = $activityStartDate->copy();
+
+                for ($i = 0; $i < $totalCourseMonths; $i++) {
+                    $cDate   = $startCarbon->copy()->addMonths($i);
+                    $pName   = 'Course Tuition Fee (' . $cDate->format('M-Y') . ')';
+                    $dueAmt  = $monthlyRate;
+                    $isPaid  = false;
+                    $paidAmt = 0;
+
+                    if ($paidPool >= $dueAmt) {
+                        $isPaid = true;
+                        $paidAmt = $dueAmt;
+                        $dueAmt = 0;
+                        $paidPool -= $monthlyRate;
+                    } elseif ($paidPool > 0) {
+                        $paidAmt = $paidPool;
+                        $dueAmt = $dueAmt - $paidPool;
+                        $paidPool = 0;
+                    }
+
+                    $step1Particulars[] = [
+                        'sl'       => $sl++,
+                        'name'     => $pName,
+                        'amount'   => $monthlyRate,
+                        'paid_amt' => $paidAmt,
+                        'due'      => $dueAmt,
+                        'is_paid'  => $isPaid,
+                    ];
+                }
+            } elseif ($targetPayable > 0) {
+                $step1Particulars[] = [
+                    'sl'       => $sl++,
+                    'name'     => $selectedSemesterInvoice->title ?: 'Course Tuition Fee',
+                    'amount'   => $targetPayable,
+                    'paid_amt' => $targetPaid,
+                    'due'      => $targetDue,
+                    'is_paid'  => $targetDue <= 0,
+                ];
+            } else {
+                $step1Particulars[] = [
+                    'sl'       => $sl++,
+                    'name'     => $course ? "{$course->name} Tuition Fee" : 'Course Tuition Fee',
+                    'amount'   => 0,
+                    'paid_amt' => 0,
+                    'due'      => 0,
+                    'is_paid'  => true,
+                ];
+            }
         }
 
-        // Final Term Fee
-        $finalDue = $finalFeeAmt;
-        $finalPaid = false;
-        $finalPaidAmt = 0;
-        if ($paidPool >= $finalDue) {
-            $finalPaid = true;
-            $finalPaidAmt = $finalDue;
-            $finalDue = 0;
-            $paidPool -= $finalFeeAmt;
-        } elseif ($paidPool > 0) {
-            $finalPaidAmt = $paidPool;
-            $finalDue = $finalDue - $paidPool;
-            $paidPool = 0;
+        // Apply custom_particulars overrides from $selectedSemesterInvoice
+        $customOverrides = $selectedSemesterInvoice?->custom_particulars ?? [];
+        if (!empty($customOverrides)) {
+            foreach ($step1Particulars as &$item) {
+                if (isset($customOverrides[$item['name']])) {
+                    $cDue = (float) $customOverrides[$item['name']]['due'];
+                    $item['due'] = $cDue;
+                    if ($cDue <= 0) {
+                        $item['is_paid'] = true;
+                    } else {
+                        $item['is_paid'] = false;
+                    }
+                    $item['is_custom'] = true;
+                    if (isset($customOverrides[$item['name']]['remarks'])) {
+                        $item['custom_remarks'] = $customOverrides[$item['name']]['remarks'];
+                    }
+                }
+            }
+            unset($item);
         }
-        $step1Particulars[] = [
-            'sl'       => $sl++,
-            'name'     => 'Final Term Fee',
-            'amount'   => $finalFeeAmt,
-            'paid_amt' => $finalPaidAmt,
-            'due'      => $finalDue,
-            'is_paid'  => $finalPaid,
-        ];
 
         $sslActive   = \App\Services\PaymentGatewayService::isSslcommerzActive();
         $bkashActive = \App\Services\PaymentGatewayService::isBkashActive();
@@ -714,5 +820,82 @@ class FeeController extends Controller
         }
         $payment->load(['invoice', 'student', 'receivedBy']);
         return view('admin.accounts.print_receipt', compact('payment'));
+    }
+
+    /**
+     * Admin manual fee particular override (Taka increase / decrease & save).
+     */
+    public function updateParticular(Request $request)
+    {
+        $isAdmin = session()->has('admin_impersonator_id') 
+            || (auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'ADMIN'));
+
+        if (!$isAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'অননুমোদিত অনুরোধ। শুধুমাত্র অ্যাডমিন ফি পরিবর্তন করতে পারবেন।'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'invoice_id'      => 'required|exists:invoices,id',
+            'particular_name' => 'required|string',
+            'new_amount'      => 'required|numeric|min:0',
+            'current_due'     => 'nullable|numeric|min:0',
+            'remarks'         => 'nullable|string|max:255',
+        ]);
+
+        $invoice = Invoice::findOrFail($validated['invoice_id']);
+        $pName   = trim($validated['particular_name']);
+        $newDue  = round((float)$validated['new_amount'], 2);
+
+        $custom = $invoice->custom_particulars ?? [];
+        $oldDue = isset($custom[$pName]['due']) ? (float)$custom[$pName]['due'] : (float)($request->input('current_due') ?? $newDue);
+
+        $diff = $newDue - $oldDue;
+
+        $custom[$pName] = [
+            'due'         => $newDue,
+            'adjusted_at' => now()->toDateTimeString(),
+            'adjusted_by' => session('admin_impersonator_id') ?? auth()->id(),
+            'remarks'     => $validated['remarks'] ?? 'Admin manual adjustment',
+        ];
+
+        $newPayable = max(0, $invoice->payable_amount + $diff);
+        $newDueAmt  = max(0, $invoice->due_amount + $diff);
+
+        $status = 'UNPAID';
+        if ($newDueAmt <= 0 && $invoice->paid_amount > 0) {
+            $status = 'PAID';
+        } elseif ($invoice->paid_amount > 0) {
+            $status = 'PARTIAL';
+        }
+
+        $invoice->update([
+            'custom_particulars' => $custom,
+            'payable_amount'     => $newPayable,
+            'due_amount'         => $newDueAmt,
+            'status'             => $status,
+        ]);
+
+        try {
+            \App\Models\AuditLog::log(
+                'fee_particular_adjusted',
+                $invoice,
+                ['old_due' => $oldDue],
+                ['new_due' => $newDue, 'particular' => $pName, 'remarks' => $validated['remarks']],
+                "অ্যাডমিন {$pName} ফি ৳{$oldDue} থেকে পরিবর্তন করে ৳{$newDue} করেছেন।"
+            );
+        } catch (\Throwable $e) {}
+
+        return response()->json([
+            'success'       => true,
+            'message'       => "✓ {$pName} এর ফি সফলভাবে ৳" . number_format($newDue, 0) . " এ আপডেট এবং সেভ করা হয়েছে।",
+            'particular'    => $pName,
+            'new_due'       => $newDue,
+            'is_paid'       => $newDue <= 0,
+            'invoice_due'   => $newDueAmt,
+            'invoice_id'    => $invoice->id,
+        ]);
     }
 }
