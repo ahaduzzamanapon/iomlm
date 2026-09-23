@@ -236,7 +236,7 @@
                     <i class="fa-solid fa-square-poll-vertical" style="color:#a7f3d0"></i> Result Management (ফলাফল ও মার্কশীট ব্যবস্থাপনা)
                 </h1>
                 <p style="margin:0; font-size:13px; color:#d1fae5">
-                    সেমিস্টারভিত্তিক টেবুলেশন শীট, ম্যানুয়াল মার্কিং (তামরিন/DNS), একক ও সামগ্রিক মেধা তালিকা এবং অফিশিয়াল নম্বরপত্র
+                    সেমিস্টারভিত্তিক টেবুলেশন শীট, ম্যানুয়াল মার্কিং (তামরিন/এসাইনমেন্ট), একক ও সামগ্রিক মেধা তালিকা এবং অফিশিয়াল নম্বরপত্র
                 </p>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
@@ -261,11 +261,6 @@
                     @endif
                 </form>
                 @endif
-
-                <button type="button" onclick="window.print()"
-                   style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:9px 16px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px">
-                    <i class="fa-solid fa-print"></i> প্রিন্ট করুন
-                </button>
             </div>
         </div>
 
@@ -279,7 +274,7 @@
             <a href="{{ route('admin.result-book.index', ['tab' => 'manual_marking', 'batch_id' => $selectedBatch?->id, 'semester_id' => $selectedSemester?->id]) }}" 
                class="nav-tab-btn {{ $tab === 'manual_marking' ? 'active' : '' }}">
                 <i class="fa-solid fa-pen-ruler" style="color:{{ $tab === 'manual_marking' ? '#047857' : '#94a3b8' }}"></i>
-                ২. ম্যানুয়াল মার্কিং (তামরিন, তাজবীদ, DNS ও এটেন্ডেন্স)
+                ২. ম্যানুয়াল মার্কিং (তামরিন / এসাইনমেন্ট ও এটেন্ডেন্স)
             </a>
             <a href="{{ route('admin.result-book.index', ['tab' => 'batch_merit', 'batch_id' => $selectedBatch?->id]) }}" 
                class="nav-tab-btn {{ $tab === 'batch_merit' ? 'active' : '' }}">
@@ -694,7 +689,7 @@
                             ম্যানুয়াল মার্কিং স্প্রেডশীট: {{ $selectedSubject->name }} ({{ $selectedBatch->name }})
                         </h3>
                         <span style="font-size:12px; color:#64748b">
-                            তামরিন, তাজবীদ, DNS ও এটেন্ডেন্স নম্বর ইনপুট দিয়ে নিচে সংরক্ষণ করুন
+                            তামরিন / এসাইনমেন্ট ও উপস্থিতি নম্বর ইনপুট দিয়ে নিচে সংরক্ষণ করুন
                         </span>
                     </div>
 
@@ -709,9 +704,7 @@
                                     <tr>
                                         <th style="width:60px">#</th>
                                         <th style="text-align:left; min-width:160px">রোল ও শিক্ষার্থী</th>
-                                        <th style="min-width:110px">তামরিন নম্বর</th>
-                                        <th style="min-width:110px">তাজবীদ নম্বর</th>
-                                        <th style="min-width:110px">DNS / এসাইনমেন্ট</th>
+                                        <th style="min-width:140px">তামরিন / এসাইনমেন্ট নম্বর</th>
                                         <th style="min-width:110px">উপস্থিতি নম্বর (/১০)</th>
                                         <th style="min-width:110px">বর্তমান মোট নম্বর</th>
                                         <th style="min-width:140px">মন্তব্য</th>
@@ -727,19 +720,11 @@
                                         </td>
                                         <td>
                                             <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][tamrin_mark]" 
-                                                   value="{{ $fm->tamrin_mark }}" class="form-control" style="width:90px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
-                                        </td>
-                                        <td>
-                                            <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][tajweed_mark]" 
-                                                   value="{{ $fm->tajweed_mark }}" class="form-control" style="width:90px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
-                                        </td>
-                                        <td>
-                                            <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][dns_mark]" 
-                                                   value="{{ $fm->dns_mark }}" class="form-control" style="width:90px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                                   value="{{ $fm->tamrin_mark }}" class="form-control" placeholder="—" style="width:110px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
                                         </td>
                                         <td>
                                             <input type="number" step="0.1" min="0" max="10" name="marks[{{ $fm->id }}][attendance_converted]" 
-                                                   value="{{ $fm->attendance_converted }}" class="form-control" style="width:90px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                                   value="{{ $fm->attendance_converted }}" class="form-control" placeholder="০-১০" style="width:90px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
                                         </td>
                                         <td>
                                             <strong style="font-size:14px; color:#047857">{{ $fm->total_mark }}</strong>
@@ -1073,19 +1058,9 @@
                         </div>
                     </div>
 
-                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px">
-                        <div>
-                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">তামরিন নম্বর</label>
-                            <input type="number" step="0.1" min="0" max="100" name="tamrin_mark" id="editTamrinMark" class="form-control" style="border-radius:8px">
-                        </div>
-                        <div>
-                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">তাজবীদ নম্বর</label>
-                            <input type="number" step="0.1" min="0" max="100" name="tajweed_mark" id="editTajweedMark" class="form-control" style="border-radius:8px">
-                        </div>
-                        <div>
-                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">DNS / এসাইনমেন্ট</label>
-                            <input type="number" step="0.1" min="0" max="100" name="dns_mark" id="editDnsMark" class="form-control" style="border-radius:8px">
-                        </div>
+                    <div style="margin-bottom:14px">
+                        <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">তামরিন / এসাইনমেন্ট নম্বর</label>
+                        <input type="number" step="0.1" min="0" max="100" name="tamrin_mark" id="editTamrinMark" class="form-control" style="border-radius:8px">
                     </div>
 
                     <div style="margin-bottom:14px">
@@ -1226,8 +1201,6 @@
             document.getElementById('editFinObtained').value = sm.raw_final ?? '';
             document.getElementById('editAttConverted').value = sm.att_conv ?? '';
             document.getElementById('editTamrinMark').value = sm.tamrin ?? '';
-            document.getElementById('editTajweedMark').value = sm.tajweed ?? '';
-            document.getElementById('editDnsMark').value = sm.dns ?? '';
 
             if (sm.final_mark_id) {
                 document.getElementById('editMarkForm').action = '/admin/result-book/' + sm.final_mark_id + '/override';

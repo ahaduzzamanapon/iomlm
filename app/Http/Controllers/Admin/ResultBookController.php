@@ -183,8 +183,6 @@ class ResultBookController extends Controller
                                     'raw_final'     => $fm->raw_final,
                                     'att_conv'      => $fm->attendance_converted,
                                     'tamrin'        => $fm->tamrin_mark,
-                                    'tajweed'       => $fm->tajweed_mark,
-                                    'dns'           => $fm->dns_mark,
                                 ];
                             } else {
                                 $hasFail = true;
@@ -208,8 +206,6 @@ class ResultBookController extends Controller
                                     'raw_final'     => null,
                                     'att_conv'      => null,
                                     'tamrin'        => null,
-                                    'tajweed'       => null,
-                                    'dns'           => null,
                                 ];
                             }
                         }
@@ -423,8 +419,6 @@ class ResultBookController extends Controller
             'final_obtained'       => 'nullable|numeric|min:0|max:100',
             'attendance_converted' => 'nullable|numeric|min:0|max:100',
             'tamrin_mark'          => 'nullable|numeric|min:0|max:100',
-            'tajweed_mark'         => 'nullable|numeric|min:0|max:100',
-            'dns_mark'             => 'nullable|numeric|min:0|max:100',
             'remarks'              => 'nullable|string|max:500',
         ]);
 
@@ -442,8 +436,6 @@ class ResultBookController extends Controller
             'final_converted'      => $finOb !== null ? round(($finOb / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2) : null,
             'attendance_converted' => $attConv,
             'tamrin_mark'          => $request->filled('tamrin_mark') ? (float) $request->tamrin_mark : null,
-            'tajweed_mark'         => $request->filled('tajweed_mark') ? (float) $request->tajweed_mark : null,
-            'dns_mark'             => $request->filled('dns_mark') ? (float) $request->dns_mark : null,
         ];
 
         if ($request->has('remarks')) {
@@ -480,12 +472,6 @@ class ResultBookController extends Controller
             if (isset($data['tamrin_mark'])) {
                 $updates['tamrin_mark'] = is_numeric($data['tamrin_mark']) ? (float) $data['tamrin_mark'] : null;
             }
-            if (isset($data['tajweed_mark'])) {
-                $updates['tajweed_mark'] = is_numeric($data['tajweed_mark']) ? (float) $data['tajweed_mark'] : null;
-            }
-            if (isset($data['dns_mark'])) {
-                $updates['dns_mark'] = is_numeric($data['dns_mark']) ? (float) $data['dns_mark'] : null;
-            }
             if (isset($data['attendance_converted'])) {
                 $updates['attendance_converted'] = is_numeric($data['attendance_converted']) ? (float) $data['attendance_converted'] : null;
             }
@@ -499,7 +485,7 @@ class ResultBookController extends Controller
 
         FinalMark::recalculateMeritRanks($batchId, $subjectId, $semesterId);
 
-        return back()->with('success', "✅ মোট {$updatedCount} জন শিক্ষার্থীর ম্যানুয়াল মার্ক (তামরিন, তাজবীদ, DNS ও এটেন্ডেন্স) সফলভাবে সংরক্ষিত হয়েছে।");
+        return back()->with('success', "✅ মোট {$updatedCount} জন শিক্ষার্থীর ম্যানুয়াল মার্ক (তামরিন/এসাইনমেন্ট ও এটেন্ডেন্স) সফলভাবে সংরক্ষিত হয়েছে।");
     }
 
     /**
