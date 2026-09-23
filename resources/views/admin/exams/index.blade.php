@@ -1,6 +1,62 @@
 <x-admin-layout>
     <x-slot name="title">Exams & Results</x-slot>
 
+    <style>
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-menu {
+            position: absolute;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+            min-width: 190px;
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+            padding: 6px 0;
+            text-align: left;
+        }
+        .dropdown-menu.open { display: block !important; }
+        .table-wrapper:has(.dropdown-menu.open),
+        .card:has(.dropdown-menu.open),
+        td:has(.dropdown-menu.open) {
+            overflow: visible !important;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 16px;
+            font-size: 13px;
+            color: #1e293b;
+            text-decoration: none;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-family: 'Kalpurush', sans-serif;
+            font-weight: 600;
+        }
+        .dropdown-item:hover {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .dropdown-item.danger {
+            color: #dc2626;
+        }
+        .dropdown-item.danger:hover {
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+        .dropdown-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 0;
+        }
+    </style>
+
     <div class="page-header">
         <div class="page-header-left">
             <h1>Exams & Evaluation Management</h1>
@@ -166,14 +222,38 @@
                         </td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right">
-                            <div style="display:flex;gap:6px;justify-content:flex-end">
-                                <button type="button" class="btn btn-outline btn-sm" onclick='openEditExamModal(@json($exam))' style="color:#0284c7;border-color:#bae6fd;font-weight:600" title="মূল্যায়ন কাঠামো ও তথ্য এডিট করুন">
-                                    <i class="fa-solid fa-pen-to-square"></i> কাঠামো এডিট
+                            <div class="dropdown" style="display:inline-block;position:relative">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="toggleDropdown('eact-{{ $exam->id }}')" style="gap:6px;display:inline-flex;align-items:center;font-family:'Kalpurush',sans-serif;font-weight:700;padding:5px 12px">
+                                    <i class="fa-solid fa-ellipsis-vertical" style="font-size:12px"></i>
+                                    অ্যাকশন (Actions)
+                                    <i class="fa-solid fa-chevron-down" style="font-size:9px"></i>
                                 </button>
-                                <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-outline btn-sm" style="color:#4f46e5;border-color:#c7d2fe;font-weight:600">
-                                    <i class="fa-solid fa-puzzle-piece"></i> Paper Builder
-                                </a>
-                                <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-outline btn-sm">Inspect Exam</a>
+                                <div class="dropdown-menu" id="eact-{{ $exam->id }}" style="right:0;min-width:200px">
+                                    <a href="{{ route('admin.exams.builder', $exam) }}" class="dropdown-item">
+                                        <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5;width:16px"></i>
+                                        Paper Builder (প্রশ্নপত্র)
+                                    </a>
+                                    <button type="button" class="dropdown-item" onclick='openEditExamModal(@json($exam));toggleDropdown("eact-{{ $exam->id }}")'>
+                                        <i class="fa-solid fa-pen-to-square" style="color:#0284c7;width:16px"></i>
+                                        কাঠামো এডিট (Edit Setup)
+                                    </button>
+                                    <a href="{{ route('admin.exams.show', $exam) }}" class="dropdown-item">
+                                        <i class="fa-solid fa-eye" style="color:#059669;width:16px"></i>
+                                        Inspect Exam (পরিদর্শন)
+                                    </a>
+                                    <a href="{{ route('admin.exams.test-exam', $exam) }}" class="dropdown-item" target="_blank">
+                                        <i class="fa-solid fa-vial-circle-check" style="color:#f59e0b;width:16px"></i>
+                                        Test Exam (টেস্ট পরীক্ষা)
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <form method="POST" action="{{ route('admin.exams.destroy', $exam) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই পরীক্ষাটি মুছে ফেলতে চান?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="dropdown-item danger">
+                                            <i class="fa-solid fa-trash" style="color:#dc2626;width:16px"></i>
+                                            মুছে ফেলুন (Delete)
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </td>
                     </tr>

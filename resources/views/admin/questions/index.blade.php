@@ -120,23 +120,23 @@
             @endforeach
         </select>
 
-        <select name="batch_id" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
-            <option value="">সকল ব্যাচ</option>
+        <select name="batch_id" id="qb_filter_batch" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
+            <option value="" data-course-id="">সকল ব্যাচ</option>
             @foreach($batches as $b)
-                <option value="{{ $b->id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
             @endforeach
         </select>
 
-        <select name="semester_id" class="form-control" style="width:170px;height:40px;border-radius:8px;font-size:13px">
-            <option value="">সকল সেমিস্টার</option>
-            @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
-                <optgroup label="{{ $courseName }}">
-                    @foreach($courseSemesters as $sem)
-                        <option value="{{ $sem->id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>
-                            {{ $sem->name }} ({{ $courseName }})
-                        </option>
-                    @endforeach
-                </optgroup>
+        <select name="semester_id" id="qb_filter_semester" class="form-control" style="width:170px;height:40px;border-radius:8px;font-size:13px">
+            <option value="" data-course-id="">সকল সেমিস্টার</option>
+            @foreach($semesters as $sem)
+                <option value="{{ $sem->id }}" 
+                        data-course-id="{{ $sem->course_id }}" 
+                        data-course-name="{{ $sem->course?->name ?? 'অন্যান্য কোর্স' }}"
+                        data-name="{{ $sem->name }}"
+                        {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>
+                    {{ $sem->name }} ({{ $sem->course?->name ?? 'Course' }})
+                </option>
             @endforeach
         </select>
 
@@ -359,23 +359,24 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
                             <label>ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
-                            <select name="batch_id" class="form-control">
-                                <option value="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                            <select name="batch_id" id="mcq_batch_select" class="form-control">
+                                <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
                             <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
-                            <select name="semester_id" class="form-control">
-                                <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
-                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
-                                    <optgroup label="{{ $courseName }}">
-                                        @foreach($courseSemesters as $sem)
-                                            <option value="{{ $sem->id }}">{{ $sem->name }} ({{ $courseName }})</option>
-                                        @endforeach
-                                    </optgroup>
+                            <select name="semester_id" id="mcq_semester_select" class="form-control">
+                                <option value="" data-course-id="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}" 
+                                            data-course-id="{{ $sem->course_id }}" 
+                                            data-course-name="{{ $sem->course?->name ?? 'অন্যান্য কোর্স' }}"
+                                            data-name="{{ $sem->name }}">
+                                        {{ $sem->name }} ({{ $sem->course?->name ?? 'Course' }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -482,23 +483,24 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
                             <label>ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
-                            <select name="batch_id" class="form-control">
-                                <option value="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                            <select name="batch_id" id="written_batch_select" class="form-control">
+                                <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
                             <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
-                            <select name="semester_id" class="form-control">
-                                <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
-                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
-                                    <optgroup label="{{ $courseName }}">
-                                        @foreach($courseSemesters as $sem)
-                                            <option value="{{ $sem->id }}">{{ $sem->name }} ({{ $courseName }})</option>
-                                        @endforeach
-                                    </optgroup>
+                            <select name="semester_id" id="written_semester_select" class="form-control">
+                                <option value="" data-course-id="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}" 
+                                            data-course-id="{{ $sem->course_id }}" 
+                                            data-course-name="{{ $sem->course?->name ?? 'অন্যান্য কোর্স' }}"
+                                            data-name="{{ $sem->name }}">
+                                        {{ $sem->name }} ({{ $sem->course?->name ?? 'Course' }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -712,22 +714,23 @@ ANSWER: A</pre>
                         <div class="form-group">
                             <label>ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
                             <select id="edit_batch_id" name="batch_id" class="form-control">
-                                <option value="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                                <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
                             <label>সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
                             <select id="edit_semester_id" name="semester_id" class="form-control">
-                                <option value="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
-                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
-                                    <optgroup label="{{ $courseName }}">
-                                        @foreach($courseSemesters as $sem)
-                                            <option value="{{ $sem->id }}">{{ $sem->name }} ({{ $courseName }})</option>
-                                        @endforeach
-                                    </optgroup>
+                                <option value="" data-course-id="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}" 
+                                            data-course-id="{{ $sem->course_id }}" 
+                                            data-course-name="{{ $sem->course?->name ?? 'অন্যান্য কোর্স' }}"
+                                            data-name="{{ $sem->name }}">
+                                        {{ $sem->name }} ({{ $sem->course?->name ?? 'Course' }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -792,6 +795,94 @@ ANSWER: A</pre>
     </div>
 
     <script>
+        function setupBatchSemesterCascading(batchSelectId, semesterSelectId, defaultSemText) {
+            const batchSelect = typeof batchSelectId === 'string' ? document.getElementById(batchSelectId) : batchSelectId;
+            const semSelect = typeof semesterSelectId === 'string' ? document.getElementById(semesterSelectId) : semesterSelectId;
+            if (!batchSelect || !semSelect) return () => {};
+
+            const allSemesterData = [];
+            Array.from(semSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                allSemesterData.push({
+                    value: opt.value,
+                    courseId: String(opt.getAttribute('data-course-id') || ''),
+                    courseName: opt.getAttribute('data-course-name') || '',
+                    name: opt.getAttribute('data-name') || opt.text
+                });
+            });
+
+            function update() {
+                const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+                const selectedCourseId = selectedOption ? String(selectedOption.getAttribute('data-course-id') || '') : '';
+                const currentSemVal = String(semSelect.value || '');
+
+                semSelect.innerHTML = '';
+
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = defaultSemText || 'সকল সেমিস্টার';
+                semSelect.appendChild(defaultOpt);
+
+                if (selectedCourseId) {
+                    const filtered = allSemesterData.filter(s => s.courseId === selectedCourseId);
+                    filtered.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.value;
+                        opt.textContent = s.name;
+                        opt.setAttribute('data-course-id', s.courseId);
+                        opt.setAttribute('data-name', s.name);
+                        if (currentSemVal === String(s.value)) {
+                            opt.selected = true;
+                        }
+                        semSelect.appendChild(opt);
+                    });
+                } else {
+                    const groups = {};
+                    allSemesterData.forEach(s => {
+                        const cName = s.courseName || 'অন্যান্য কোর্স';
+                        if (!groups[cName]) groups[cName] = [];
+                        groups[cName].push(s);
+                    });
+
+                    Object.keys(groups).forEach(cName => {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = cName;
+                        groups[cName].forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.value;
+                            opt.textContent = `${s.name} (${cName})`;
+                            opt.setAttribute('data-course-id', s.courseId);
+                            opt.setAttribute('data-name', s.name);
+                            if (currentSemVal === String(s.value)) {
+                                opt.selected = true;
+                            }
+                            optgroup.appendChild(opt);
+                        });
+                        semSelect.appendChild(optgroup);
+                    });
+                }
+            }
+
+            batchSelect.addEventListener('change', update);
+            update();
+            return update;
+        }
+
+        let updateEditSemesters = null;
+
+        function initQuestionBankCascading() {
+            setupBatchSemesterCascading('qb_filter_batch', 'qb_filter_semester', 'সকল সেমিস্টার');
+            setupBatchSemesterCascading('mcq_batch_select', 'mcq_semester_select', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
+            setupBatchSemesterCascading('written_batch_select', 'written_semester_select', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
+            updateEditSemesters = setupBatchSemesterCascading('edit_batch_id', 'edit_semester_id', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initQuestionBankCascading);
+        } else {
+            initQuestionBankCascading();
+        }
+
         function openEditQuestionModal(q) {
             const form = document.getElementById('editQuestionForm');
             form.action = '/admin/questions/' + q.id;
@@ -799,6 +890,9 @@ ANSWER: A</pre>
             document.getElementById('edit_question_text').value = q.question_text || '';
             document.getElementById('edit_subject_id').value = q.subject_id || '';
             document.getElementById('edit_batch_id').value = q.batch_id || '';
+            if (typeof updateEditSemesters === 'function') {
+                updateEditSemesters();
+            }
             document.getElementById('edit_semester_id').value = q.semester_id || '';
             document.getElementById('edit_difficulty').value = q.difficulty || 'easy';
             document.getElementById('edit_exam_type').value = q.exam_type || '';

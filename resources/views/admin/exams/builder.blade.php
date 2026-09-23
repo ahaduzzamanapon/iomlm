@@ -194,7 +194,7 @@
                                 {!! e($q?->question_text) !!}
                             </div>
                             <div style="font-size:12px; color:#64748b">
-                                সঠিক উত্তর: <strong style="color:#10b981">{{ strtoupper($q->correct_option_id) }}</strong> &middot;
+                                সঠিক উত্তর: <strong style="color:#10b981">{{ strtoupper($q?->correct_option_id ?? '—') }}</strong> &middot;
                                 নম্বর: <strong>{{ $eq->marks }}</strong>
                             </div>
                         </div>
@@ -381,6 +381,28 @@
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                        <select name="batch_id" id="pool_batch_select" class="form-control" style="height:32px;font-size:11px">
+                            <option value="" data-course-id="">সকল ব্যাচ (All Batches)</option>
+                            @foreach($batches as $b)
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                            @endforeach
+                        </select>
+
+                        <select name="semester_id" id="pool_semester_select" class="form-control" style="height:32px;font-size:11px">
+                            <option value="" data-course-id="">সকল সেমিস্টার (All Semesters)</option>
+                            @foreach($semesters as $sem)
+                                <option value="{{ $sem->id }}" 
+                                        data-course-id="{{ $sem->course_id }}" 
+                                        data-course-name="{{ $sem->course?->name ?? 'অন্যান্য কোর্স' }}"
+                                        data-name="{{ $sem->name }}"
+                                        {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>
+                                    {{ $sem->name }} ({{ $sem->course?->name ?? 'Course' }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
                         <select name="exam_type" class="form-control" style="height:32px;font-size:11px">
                             <option value="">সকল পরীক্ষার ধরন</option>
                             @foreach($examTypes as $et)
@@ -388,46 +410,23 @@
                             @endforeach
                         </select>
 
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-                        <select name="batch_id" id="pool_batch_select" class="form-control" style="height:32px;font-size:11px">
-                            <option value="">সকল ব্যাচ (All Batches)</option>
-                            @foreach($batches as $b)
-                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
-                            @endforeach
-                        </select>
-
-                        <select name="semester_id" id="pool_semester_select" class="form-control" style="height:32px;font-size:11px">
-                            <option value="">সকল সেমিস্টার (All Semesters)</option>
-                            @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
-                                <optgroup label="{{ $courseName }}" data-course-id="{{ $courseSemesters->first()?->course_id }}">
-                                    @foreach($courseSemesters as $sem)
-                                        <option value="{{ $sem->id }}" data-course-id="{{ $sem->course_id }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>
-                                            {{ $sem->name }} ({{ $courseName }})
-                                        </option>
-                                    @endforeach
-                                </optgroup>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
                         <select name="difficulty" class="form-control" style="height:32px;font-size:11px">
                             <option value="">সকল কঠিনতা</option>
                             <option value="easy" {{ ($difficulty ?? '') === 'easy' ? 'selected' : '' }}>Easy (সহজ)</option>
                             <option value="medium" {{ ($difficulty ?? '') === 'medium' ? 'selected' : '' }}>Medium (মধ্যম)</option>
                             <option value="hard" {{ ($difficulty ?? '') === 'hard' ? 'selected' : '' }}>Hard (কঠিন)</option>
                         </select>
+                    </div>
 
-                        <div style="display:flex;gap:4px">
-                            <button type="submit" class="btn btn-primary btn-sm" style="flex:1;height:32px;padding:0;font-size:11px">
-                                <i class="fa-solid fa-filter"></i> ফিল্টার
-                            </button>
-                            @if($search || $difficulty || $examType || $batchId || $semesterId || ($subjectId && $subjectId !== $exam->subject_id))
-                                <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-outline btn-sm" style="height:32px;padding:4px 8px;font-size:11px" title="Reset">
-                                    <i class="fa-solid fa-rotate-left"></i>
-                                </a>
-                            @endif
-                        </div>
+                    <div style="display:flex;gap:6px">
+                        <button type="submit" class="btn btn-primary btn-sm" style="flex:1;height:32px;padding:0;font-size:11px">
+                            <i class="fa-solid fa-filter"></i> ফিল্টার
+                        </button>
+                        @if($search || $difficulty || $examType || $batchId || $semesterId || ($subjectId && $subjectId !== $exam->subject_id))
+                            <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-outline btn-sm" style="height:32px;padding:4px 8px;font-size:11px" title="Reset">
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </a>
+                        @endif
                     </div>
                 </form>
 
@@ -484,46 +483,85 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const batchSelect = document.getElementById('pool_batch_select');
-            const semSelect = document.getElementById('pool_semester_select');
-            if (!batchSelect || !semSelect) return;
+        function setupBatchSemesterCascading(batchSelectId, semesterSelectId, defaultSemText) {
+            const batchSelect = typeof batchSelectId === 'string' ? document.getElementById(batchSelectId) : batchSelectId;
+            const semSelect = typeof semesterSelectId === 'string' ? document.getElementById(semesterSelectId) : semesterSelectId;
+            if (!batchSelect || !semSelect) return () => {};
 
-            const originalOptgroups = Array.from(semSelect.querySelectorAll('optgroup')).map(og => og.cloneNode(true));
-            const allOption = semSelect.querySelector('option[value=""]');
+            const allSemesterData = [];
+            Array.from(semSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                allSemesterData.push({
+                    value: opt.value,
+                    courseId: String(opt.getAttribute('data-course-id') || ''),
+                    courseName: opt.getAttribute('data-course-name') || '',
+                    name: opt.getAttribute('data-name') || opt.text
+                });
+            });
 
-            function filterSemesters() {
+            function update() {
                 const selectedOption = batchSelect.options[batchSelect.selectedIndex];
-                const courseId = selectedOption ? selectedOption.getAttribute('data-course-id') : null;
-                const currentVal = semSelect.value;
+                const selectedCourseId = selectedOption ? String(selectedOption.getAttribute('data-course-id') || '') : '';
+                const currentSemVal = String(semSelect.value || '');
 
                 semSelect.innerHTML = '';
-                if (allOption) {
-                    semSelect.appendChild(allOption.cloneNode(true));
-                }
 
-                let foundSelected = false;
+                const defaultOpt = document.createElement('option');
+                defaultOpt.value = '';
+                defaultOpt.textContent = defaultSemText || 'সকল সেমিস্টার (All Semesters)';
+                semSelect.appendChild(defaultOpt);
 
-                originalOptgroups.forEach(og => {
-                    const ogCourseId = og.getAttribute('data-course-id');
-                    if (!courseId || ogCourseId === courseId) {
-                        const clonedOg = og.cloneNode(true);
-                        semSelect.appendChild(clonedOg);
-                        if (currentVal && clonedOg.querySelector(`option[value="${currentVal}"]`)) {
-                            foundSelected = true;
+                if (selectedCourseId) {
+                    const filtered = allSemesterData.filter(s => s.courseId === selectedCourseId);
+                    filtered.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.value;
+                        opt.textContent = s.name;
+                        opt.setAttribute('data-course-id', s.courseId);
+                        opt.setAttribute('data-name', s.name);
+                        if (currentSemVal === String(s.value)) {
+                            opt.selected = true;
                         }
-                    }
-                });
+                        semSelect.appendChild(opt);
+                    });
+                } else {
+                    const groups = {};
+                    allSemesterData.forEach(s => {
+                        const cName = s.courseName || 'অন্যান্য কোর্স';
+                        if (!groups[cName]) groups[cName] = [];
+                        groups[cName].push(s);
+                    });
 
-                if (foundSelected && currentVal) {
-                    semSelect.value = currentVal;
-                } else if (courseId && !foundSelected) {
-                    semSelect.value = '';
+                    Object.keys(groups).forEach(cName => {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = cName;
+                        groups[cName].forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.value;
+                            opt.textContent = `${s.name} (${cName})`;
+                            opt.setAttribute('data-course-id', s.courseId);
+                            opt.setAttribute('data-name', s.name);
+                            if (currentSemVal === String(s.value)) {
+                                opt.selected = true;
+                            }
+                            optgroup.appendChild(opt);
+                        });
+                        semSelect.appendChild(optgroup);
+                    });
                 }
             }
 
-            batchSelect.addEventListener('change', filterSemesters);
-            filterSemesters();
-        });
+            batchSelect.addEventListener('change', update);
+            update();
+            return update;
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                setupBatchSemesterCascading('pool_batch_select', 'pool_semester_select', 'সকল সেমিস্টার (All Semesters)');
+            });
+        } else {
+            setupBatchSemesterCascading('pool_batch_select', 'pool_semester_select', 'সকল সেমিস্টার (All Semesters)');
+        }
     </script>
 </x-admin-layout>

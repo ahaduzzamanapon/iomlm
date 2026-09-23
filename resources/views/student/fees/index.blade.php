@@ -779,6 +779,65 @@
         </div>
     </div>
 
+    {{-- ── Admin Fee Particular Edit Modal ── --}}
+    <div id="adminParticularEditModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:999999;align-items:center;justify-content:center;font-family:'Kalpurush',sans-serif">
+        <div style="background:#fff;border-radius:12px;width:95%;max-width:440px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #cbd5e1">
+            <div style="background:#1e40af;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
+                <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-pencil"></i> ফি এর পরিমাণ পরিবর্তন / সমন্বয় (Admin Edit)
+                </div>
+                <button type="button" onclick="closeAdminParticularEditModal()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1">&times;</button>
+            </div>
+            <form id="adminParticularEditForm" onsubmit="submitAdminParticularEdit(event)" style="padding:20px">
+                <input type="hidden" id="ape_invoice_id" name="invoice_id">
+                <input type="hidden" id="ape_particular_name" name="particular_name">
+                <input type="hidden" id="ape_current_due" name="current_due">
+                <input type="hidden" id="ape_row_sl" name="row_sl">
+
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">আইটেমের নাম (Particular Name):</label>
+                    <div id="ape_display_name" style="font-size:13.5px;font-weight:700;color:#1e293b;background:#f8fafc;padding:8px 12px;border-radius:6px;border:1px solid #e2e8f0"></div>
+                </div>
+
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">বর্তমান বকেয়া (Current Dues):</label>
+                    <div id="ape_display_current_due" style="font-size:15px;font-weight:800;color:#be123c"></div>
+                </div>
+
+                <div style="margin-bottom:16px">
+                    <label for="ape_new_amount" style="display:block;font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">
+                        নতুন টাকার পরিমাণ (New Amount - ৳): <span style="color:#dc2626">*</span>
+                    </label>
+                    <div style="position:relative">
+                        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:700;color:#64748b;font-size:15px">৳</span>
+                        <input type="number" step="1" min="0" id="ape_new_amount" name="new_amount" required
+                               style="width:100%;padding:10px 12px 10px 32px;border:1.5px solid #2563eb;border-radius:8px;font-size:16px;font-weight:800;color:#0f172a;outline:none;box-sizing:border-box">
+                    </div>
+                    <div style="font-size:11.5px;color:#64748b;margin-top:4px">
+                        (টাকা কমাতে চাইলে কম লিখুন, বাড়াতে চাইলে বেশি লিখুন, বা সম্পূর্ণ মওকুফ করতে ০ লিখুন)
+                    </div>
+                </div>
+
+                <div style="margin-bottom:18px">
+                    <label for="ape_remarks" style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">
+                        সমন্বয়ের কারণ / নোট (Reason / Remarks):
+                    </label>
+                    <input type="text" id="ape_remarks" name="remarks" placeholder="যেমন: কর্তৃপক্ষের অনুমোদনক্রমে বিশেষ ফি ছাড়..."
+                           style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;box-sizing:border-box;outline:none">
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #f1f5f9;padding-top:14px">
+                    <button type="button" onclick="closeAdminParticularEditModal()" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569">
+                        বাতিল (Cancel)
+                    </button>
+                    <button type="submit" id="ape_submit_btn" class="btn btn-primary" style="background:#2563eb;border-color:#2563eb;font-weight:700">
+                        <i class="fa-solid fa-check"></i> সংরক্ষণ করুন (Save Amount)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
     let currentSelectedGateway = 'sslcommerz';
@@ -1125,67 +1184,9 @@
             } else if (type === 'paid') {
                 r.style.display = r.classList.contains('row-paid') ? '' : 'none';
             }
-    {{-- ── Admin Fee Particular Edit Modal ── --}}
-    <div id="adminParticularEditModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:999999;align-items:center;justify-content:center;font-family:'Kalpurush',sans-serif">
-        <div style="background:#fff;border-radius:12px;width:95%;max-width:440px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);overflow:hidden;border:1px solid #cbd5e1">
-            <div style="background:#1e40af;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
-                <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px">
-                    <i class="fa-solid fa-pencil"></i> ফি এর পরিমাণ পরিবর্তন / সমন্বয় (Admin Edit)
-                </div>
-                <button type="button" onclick="closeAdminParticularEditModal()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1">&times;</button>
-            </div>
-            <form id="adminParticularEditForm" onsubmit="submitAdminParticularEdit(event)" style="padding:20px">
-                <input type="hidden" id="ape_invoice_id" name="invoice_id">
-                <input type="hidden" id="ape_particular_name" name="particular_name">
-                <input type="hidden" id="ape_current_due" name="current_due">
-                <input type="hidden" id="ape_row_sl" name="row_sl">
+        });
+    }
 
-                <div style="margin-bottom:14px">
-                    <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">আইটেমের নাম (Particular Name):</label>
-                    <div id="ape_display_name" style="font-size:13.5px;font-weight:700;color:#1e293b;background:#f8fafc;padding:8px 12px;border-radius:6px;border:1px solid #e2e8f0"></div>
-                </div>
-
-                <div style="margin-bottom:14px">
-                    <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">বর্তমান বকেয়া (Current Dues):</label>
-                    <div id="ape_display_current_due" style="font-size:15px;font-weight:800;color:#be123c"></div>
-                </div>
-
-                <div style="margin-bottom:16px">
-                    <label for="ape_new_amount" style="display:block;font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">
-                        নতুন টাকার পরিমাণ (New Amount - ৳): <span style="color:#dc2626">*</span>
-                    </label>
-                    <div style="position:relative">
-                        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:700;color:#64748b;font-size:15px">৳</span>
-                        <input type="number" step="1" min="0" id="ape_new_amount" name="new_amount" required
-                               style="width:100%;padding:10px 12px 10px 32px;border:1.5px solid #2563eb;border-radius:8px;font-size:16px;font-weight:800;color:#0f172a;outline:none;box-sizing:border-box">
-                    </div>
-                    <div style="font-size:11.5px;color:#64748b;margin-top:4px">
-                        (টাকা কমাতে চাইলে কম লিখুন, বাড়াতে চাইলে বেশি লিখুন, বা সম্পূর্ণ মওকুফ করতে ০ লিখুন)
-                    </div>
-                </div>
-
-                <div style="margin-bottom:18px">
-                    <label for="ape_remarks" style="display:block;font-size:12.5px;font-weight:700;color:#334155;margin-bottom:4px">
-                        সমন্বয়ের কারণ / নোট (Reason / Remarks):
-                    </label>
-                    <input type="text" id="ape_remarks" name="remarks" placeholder="যেমন: কর্তৃপক্ষের অনুমোদনক্রমে বিশেষ ফি ছাড়..."
-                           style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;box-sizing:border-box;outline:none">
-                </div>
-
-                <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #f1f5f9;padding-top:14px">
-                    <button type="button" onclick="closeAdminParticularEditModal()" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569">
-                        বাতিল (Cancel)
-                    </button>
-                    <button type="submit" id="ape_submit_btn" class="btn btn-primary" style="background:#2563eb;border-color:#2563eb;font-weight:700">
-                        <i class="fa-solid fa-check"></i> সংরক্ষণ করুন (Save Amount)
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    @push('scripts')
-    <script>
     function openAdminParticularEditModal(invoiceId, pName, currentDue, sl) {
         document.getElementById('ape_invoice_id').value = invoiceId;
         document.getElementById('ape_particular_name').value = pName;

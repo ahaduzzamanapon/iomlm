@@ -163,6 +163,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
 
         // Result Book & 6-Semester Consolidated Transcript
         Route::get('result-book', [\App\Http\Controllers\Admin\ResultBookController::class, 'index'])->name('result-book.index');
+        Route::get('result-book/batch-merit', [\App\Http\Controllers\Admin\ResultBookController::class, 'batchMerit'])->name('result-book.batch-merit');
         Route::post('result-book/{finalMark}/override', [\App\Http\Controllers\Admin\ResultBookController::class, 'override'])->name('result-book.override');
         Route::post('result-book/publish-exam', [\App\Http\Controllers\Admin\ResultBookController::class, 'publishExam'])->name('result-book.publish-exam');
         Route::get('students/{student}/transcript', [\App\Http\Controllers\Admin\ResultBookController::class, 'transcript'])->name('students.transcript');

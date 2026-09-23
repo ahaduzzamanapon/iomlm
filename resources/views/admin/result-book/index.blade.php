@@ -104,11 +104,28 @@
                 </p>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap">
+                <a href="{{ route('admin.result-book.batch-merit', request()->only('batch_id')) }}"
+                   style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:10px 18px; border-radius:10px; font-weight:700; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:7px">
+                    <i class="fa-solid fa-trophy" style="color:#fef08a"></i> ৬-সেমিস্টার ব্যাচ মেধা তালিকা
+                </a>
                 <a href="{{ route('admin.final-marks.index') }}"
                    style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:10px 18px; border-radius:10px; font-weight:700; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:7px">
                     <i class="fa-solid fa-calculator"></i> ফাইনাল মার্ক জেনারেটর
                 </a>
             </div>
+        </div>
+
+        {{-- Navigation Tabs --}}
+        <div style="display:flex; gap:10px; border-bottom:2px solid #e2e8f0; margin-bottom:24px; padding-bottom:2px">
+            <a href="{{ route('admin.result-book.index', request()->query()) }}" style="padding:10px 20px; font-size:13.5px; font-weight:800; color:#1e40af; text-decoration:none; border-radius:10px 10px 0 0; background:#eff6ff; border-bottom:3px solid #1e40af; display:inline-flex; align-items:center; gap:8px">
+                <i class="fa-solid fa-book-bookmark"></i> বিষয়ভিত্তিক ফলাফল ও সংশোধন (Subject Mark Sheets)
+            </a>
+            <a href="{{ route('admin.result-book.batch-merit', request()->only('batch_id')) }}" style="padding:10px 20px; font-size:13.5px; font-weight:800; color:#64748b; text-decoration:none; border-radius:10px 10px 0 0; display:inline-flex; align-items:center; gap:8px">
+                <i class="fa-solid fa-trophy"></i> ৬-সেমিস্টার ব্যাচ মেধা তালিকা (Batch 6-Sem Merit: ১ম, ২য়, ৩য়...)
+            </a>
+            <a href="{{ route('admin.final-marks.index') }}" style="padding:10px 20px; font-size:13.5px; font-weight:800; color:#64748b; text-decoration:none; border-radius:10px 10px 0 0; display:inline-flex; align-items:center; gap:8px">
+                <i class="fa-solid fa-calculator"></i> ফাইনাল মার্ক জেনারেটর
+            </a>
         </div>
 
         {{-- Alerts --}}

@@ -276,4 +276,133 @@ class ResultBookController extends Controller
             'cgpa', 'overallQawmiGrade', 'overallStatus'
         ));
     }
+
+    /**
+     * 6-Semester Batch Combined Merit Ranking (ব্যাচভিত্তিক ৬ সেমিস্টার সমন্বিত মেধা তালিকা: ১ম, ২য়, ৩য়...)
+     */
+    public function batchMerit(Request $request)
+    {
+        $batches = Batch::with(['course.semesters' => function ($q) {
+            $q->orderBy('sequence_no');
+        }])->orderByDesc('id')->get();
+
+        $selectedBatch = null;
+        $rankedStudents = collect();
+        $semesters = collect();
+
+        if ($request->filled('batch_id')) {
+            $selectedBatch = Batch::with(['course.semesters' => function ($q) {
+                $q->orderBy('sequence_no');
+            }])->find($request->batch_id);
+
+            if ($selectedBatch) {
+                $course = $selectedBatch->course;
+                $semesters = $course?->semesters ?? collect();
+
+                $enrollments = \App\Models\Enrollment::with('student')
+                    ->where('batch_id', $selectedBatch->id)
+                    ->whereIn('status', ['ACTIVE', 'active', 'ENROLLED', 'enrolled', 'COMPLETED', 'completed'])
+                    ->get();
+
+                if ($enrollments->isEmpty()) {
+                    $enrollments = \App\Models\Enrollment::with('student')
+                        ->where('batch_id', $selectedBatch->id)
+                        ->whereNotIn('status', ['DROPOUT', 'CANCELLED'])
+                        ->get();
+                }
+
+                $studentsData = [];
+
+                foreach ($enrollments as $enr) {
+                    $student = $enr->student;
+                    if (!$student) continue;
+
+                    $finalMarks = FinalMark::with('subject')
+                        ->where('student_id', $student->id)
+                        ->where('batch_id', $selectedBatch->id)
+                        ->get();
+
+                    $semestersSgpa = [];
+                    $totalCreditsAttempted = 0;
+                    $totalCreditsEarned = 0;
+                    $totalWeightedGpaPoints = 0;
+                    $totalMarksSum = 0;
+
+                    foreach ($semesters as $sem) {
+                        $semMarks = $finalMarks->where('semester_id', $sem->id);
+                        $semCredit = 0;
+                        $semEarnedCredit = 0;
+                        $semPoints = 0;
+
+                        foreach ($semMarks as $fm) {
+                            $credit = $fm->subject->credit ?? 3;
+                            $semCredit += $credit;
+                            if ($fm->status === 'PASS') {
+                                $semEarnedCredit += $credit;
+                            }
+                            $semPoints += ($fm->gpa * $credit);
+                            $totalMarksSum += (float) $fm->total_mark;
+                        }
+
+                        $sgpa = $semCredit > 0 ? round($semPoints / $semCredit, 2) : 0.00;
+                        $semestersSgpa[$sem->sequence_no] = [
+                            'semester'      => $sem,
+                            'sgpa'          => $sgpa,
+                            'credit'        => $semCredit,
+                            'earned_credit' => $semEarnedCredit,
+                            'qawmi_grade'   => FinalMark::calculateQawmiGrade(0, $sgpa),
+                        ];
+
+                        $totalCreditsAttempted += $semCredit;
+                        $totalCreditsEarned += $semEarnedCredit;
+                        $totalWeightedGpaPoints += $semPoints;
+                    }
+
+                    $cgpa = $totalCreditsAttempted > 0 ? round($totalWeightedGpaPoints / $totalCreditsAttempted, 2) : 0.00;
+                    $qawmiGrade = FinalMark::calculateQawmiGrade(0, $cgpa);
+
+                    $studentsData[] = [
+                        'student'                 => $student,
+                        'enrollment'              => $enr,
+                        'semesters_sgpa'          => $semestersSgpa,
+                        'total_credits_attempted' => $totalCreditsAttempted,
+                        'total_credits_earned'    => $totalCreditsEarned,
+                        'total_marks'             => round($totalMarksSum, 2),
+                        'cgpa'                    => $cgpa,
+                        'qawmi_grade'             => $qawmiGrade,
+                    ];
+                }
+
+                // Sort: 1. CGPA desc, 2. Total Marks desc
+                usort($studentsData, function ($a, $b) {
+                    if ($b['cgpa'] != $a['cgpa']) {
+                        return $b['cgpa'] <=> $a['cgpa'];
+                    }
+                    return $b['total_marks'] <=> $a['total_marks'];
+                });
+
+                // Assign Bengali merit ranks
+                $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+                foreach ($studentsData as $idx => &$item) {
+                    $pos = $idx + 1;
+                    $bnNum = str_replace(range(0, 9), $bnDigits, (string) $pos);
+                    $suffix = match($pos) {
+                        1 => 'ম',
+                        2, 3 => 'য়',
+                        4 => 'র্থ',
+                        default => 'ম'
+                    };
+                    $item['merit_rank_bengali'] = $bnNum . $suffix;
+                    $item['merit_position'] = $pos;
+                }
+                unset($item);
+
+                $rankedStudents = collect($studentsData);
+            }
+        }
+
+        return view('admin.result-book.batch-merit', compact(
+            'batches', 'selectedBatch', 'rankedStudents', 'semesters'
+        ));
+    }
 }
