@@ -64,7 +64,7 @@
         </div>
         <div class="page-header-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
             <a href="{{ route('admin.result-book.index') }}" class="btn" style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; font-weight:800; display:inline-flex; align-items:center; gap:7px; border-radius:8px; padding:8px 16px; text-decoration:none; font-size:13.5px">
-                <i class="fa-solid fa-book-bookmark"></i> রেজাল্ট বুক (Result Book)
+                <i class="fa-solid fa-square-poll-vertical"></i> রেজাল্ট ম্যানেজমেন্ট (Result Management)
             </a>
             <button class="btn btn-primary" onclick="openModal('addExamModal')">
                 <i class="fa-solid fa-plus"></i> Schedule Exam
@@ -264,9 +264,6 @@
                         </td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right; white-space:nowrap">
-                            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-sm" style="background:#2563eb; color:#fff; font-weight:800; border-radius:8px; padding:6px 12px; font-size:12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px; margin-right:6px; box-shadow:0 1px 3px rgba(37,99,235,0.25)">
-                                <i class="fa-solid fa-trophy" style="color:#fef08a"></i> মেধা তালিকা ও মার্কশীট
-                            </a>
                             <div class="dropdown" style="display:inline-block;position:relative">
                                 <button type="button" class="btn btn-outline btn-sm" onclick="toggleDropdown('eact-{{ $exam->id }}')" style="gap:6px;display:inline-flex;align-items:center;font-family:'Kalpurush',sans-serif;font-weight:700;padding:5px 12px">
                                     <i class="fa-solid fa-ellipsis-vertical" style="font-size:12px"></i>
@@ -274,9 +271,9 @@
                                     <i class="fa-solid fa-chevron-down" style="font-size:9px"></i>
                                 </button>
                                 <div class="dropdown-menu" id="eact-{{ $exam->id }}" style="right:0;min-width:210px">
-                                    <a href="{{ route('admin.exams.show', $exam) }}" class="dropdown-item" style="font-weight:800; color:#1e40af; background:#eff6ff">
-                                        <i class="fa-solid fa-trophy" style="color:#eab308;width:16px"></i>
-                                        মেধা তালিকা ও মার্কশীট (Merit)
+                                    <a href="{{ route('admin.exams.show', $exam) }}" class="dropdown-item">
+                                        <i class="fa-solid fa-eye" style="color:#2563eb;width:16px"></i>
+                                        ফলাফল ও বিবরণ (Inspect Exam)
                                     </a>
                                     <a href="{{ route('admin.exams.builder', $exam) }}" class="dropdown-item">
                                         <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5;width:16px"></i>

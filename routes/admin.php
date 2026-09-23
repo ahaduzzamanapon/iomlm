@@ -150,22 +150,14 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('promotions/bulk-promote', [\App\Http\Controllers\Admin\PromotionController::class, 'bulkPromote'])->name('promotions.bulk-promote');
         Route::post('promotions/send-readmission', [\App\Http\Controllers\Admin\PromotionController::class, 'sendReadmission'])->name('promotions.send-readmission');
 
-        // Final Mark Generator & Manual Marking
-        Route::get('final-marks', [\App\Http\Controllers\Admin\FinalMarkController::class, 'index'])->name('final-marks.index');
-        Route::post('final-marks/generate', [\App\Http\Controllers\Admin\FinalMarkController::class, 'generate'])->name('final-marks.generate');
-        Route::get('final-marks/export-csv', [\App\Http\Controllers\Admin\FinalMarkController::class, 'exportCsv'])->name('final-marks.export-csv');
-        Route::post('final-marks/update-criteria', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateCriteria'])->name('final-marks.update-criteria');
-        Route::patch('final-marks/{finalMark}/update-attendance', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateAttendance'])->name('final-marks.update-attendance');
-        Route::get('final-marks/batch-subjects', [\App\Http\Controllers\Admin\FinalMarkController::class, 'getBatchSubjects'])->name('final-marks.batch-subjects');
-        Route::post('final-marks/publish-toggle', [\App\Http\Controllers\Admin\FinalMarkController::class, 'publishToggle'])->name('final-marks.publish-toggle');
-        Route::post('final-marks/auto-attendance', [\App\Http\Controllers\Admin\FinalMarkController::class, 'autoAttendance'])->name('final-marks.auto-attendance');
-        Route::post('final-marks/{finalMark}/manual-mark', [\App\Http\Controllers\Admin\FinalMarkController::class, 'updateManualMark'])->name('final-marks.update-manual');
-
-        // Result Book & 6-Semester Consolidated Transcript
+        // Result Management & Marksheets
         Route::get('result-book', [\App\Http\Controllers\Admin\ResultBookController::class, 'index'])->name('result-book.index');
-        Route::get('result-book/batch-merit', [\App\Http\Controllers\Admin\ResultBookController::class, 'batchMerit'])->name('result-book.batch-merit');
+        Route::get('result-book/batch-merit', fn() => redirect()->route('admin.result-book.index', ['tab' => 'batch_merit']))->name('result-book.batch-merit');
+        Route::get('final-marks', fn() => redirect()->route('admin.result-book.index'))->name('final-marks.index');
         Route::post('result-book/{finalMark}/override', [\App\Http\Controllers\Admin\ResultBookController::class, 'override'])->name('result-book.override');
-        Route::post('result-book/publish-exam', [\App\Http\Controllers\Admin\ResultBookController::class, 'publishExam'])->name('result-book.publish-exam');
+        Route::post('result-book/publish-toggle', [\App\Http\Controllers\Admin\ResultBookController::class, 'publishToggle'])->name('result-book.publish-toggle');
+        Route::post('result-book/manual-marks-bulk', [\App\Http\Controllers\Admin\ResultBookController::class, 'saveManualMarksBulk'])->name('result-book.manual-marks-bulk');
+        Route::post('result-book/auto-attendance', [\App\Http\Controllers\Admin\ResultBookController::class, 'autoAttendance'])->name('result-book.auto-attendance');
         Route::get('students/{student}/transcript', [\App\Http\Controllers\Admin\ResultBookController::class, 'transcript'])->name('students.transcript');
     });
 

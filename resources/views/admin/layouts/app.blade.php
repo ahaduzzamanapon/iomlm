@@ -445,8 +445,8 @@
                 </div>
                 <div class="tree-children {{ $examsActive ? 'open' : '' }}">
                     <a href="{{ route('admin.exams.index') }}" class="nav-item {{ request()->routeIs('admin.exams.index', 'admin.exams.show', 'admin.exams.builder') ? 'active' : '' }}">
-                        <i class="fa-solid fa-trophy" style="color:#eab308"></i>
-                        Exams &amp; Merit (একক মেধা তালিকা)
+                        <i class="fa-solid fa-file-pen"></i>
+                        Exam Management
                     </a>
                     <a href="{{ route('admin.exams.appeals.index') }}" class="nav-item {{ request()->routeIs('admin.exams.appeals*') ? 'active' : '' }}">
                         <i class="fa-solid fa-file-circle-question"></i>
@@ -469,13 +469,9 @@
                         <i class="fa-solid fa-arrow-trend-up"></i>
                         Promotions
                     </a>
-                    <a href="{{ route('admin.final-marks.index') }}" class="nav-item {{ request()->routeIs('admin.final-marks*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-chart-pie"></i>
-                        Final Mark Generator
-                    </a>
                     <a href="{{ route('admin.result-book.index') }}" class="nav-item {{ request()->routeIs('admin.result-book*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-book-bookmark"></i>
-                        Result Book (রেজাল্ট বুক)
+                        <i class="fa-solid fa-square-poll-vertical"></i>
+                        Result Management
                     </a>
                 </div>
             </div>

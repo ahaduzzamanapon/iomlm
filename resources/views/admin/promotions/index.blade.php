@@ -273,9 +273,6 @@
                 <p>ব্যাচভিত্তিক সেমিস্টার পরীক্ষার ফলাফল অডিট, প্রমোশন ও রি-এডমিশন যোগ্যতা নির্ধারণ</p>
             </div>
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap">
-                <a href="{{ route('admin.final-marks.index') }}" class="btn btn-outline" style="font-weight:700; font-size:13px">
-                    <i class="fa-solid fa-calculator"></i> ফাইনাল মার্ক জেনারেটর
-                </a>
                 <a href="{{ route('admin.readmissions.index') }}" class="btn btn-outline" style="font-weight:700; font-size:13px">
                     <i class="fa-solid fa-user-clock"></i> রি-এডমিশন তালিকা
                 </a>
@@ -366,8 +363,8 @@
                                 ক্রাইটেরিয়া: সিটি {{ $examAudit['criteria']['class_test_convert'] }} + মিড {{ $examAudit['criteria']['midterm_convert'] }} + ফাইনাল {{ $examAudit['criteria']['final_convert'] }} + উপস্থিতি {{ $examAudit['criteria']['attendance_convert'] }} = ১০০
                             </span>
                             @if(!$examAudit['all_completed'])
-                                <a href="{{ route('admin.final-marks.index', ['batch_id' => $selectedBatch->id, 'semester_id' => $selectedSemesterId]) }}" class="btn btn-sm btn-outline" style="background:#fff; font-weight:700">
-                                    <i class="fa-solid fa-wand-magic-sparkles"></i> মার্ক জেনারেটরে যান
+                                <a href="{{ route('admin.result-book.index', ['batch_id' => $selectedBatch->id, 'semester_id' => $selectedSemesterId]) }}" class="btn btn-sm btn-outline" style="background:#fff; font-weight:700">
+                                    <i class="fa-solid fa-square-poll-vertical"></i> রেজাল্ট ম্যানেজমেন্টে যান
                                 </a>
                             @endif
                         </div>
@@ -670,8 +667,8 @@
                                                 </button>
                                             </form>
                                         @elseif($st['action_type'] === 'GENERATE_MARKS')
-                                            <a href="{{ route('admin.final-marks.index', ['batch_id' => $selectedBatch->id, 'semester_id' => $selectedSemesterId]) }}" class="btn btn-sm btn-outline" style="font-size:11.5px">
-                                                <i class="fa-solid fa-calculator"></i> মার্ক জেনারেট
+                                            <a href="{{ route('admin.result-book.index', ['batch_id' => $selectedBatch->id, 'semester_id' => $selectedSemesterId]) }}" class="btn btn-sm btn-outline" style="font-size:11.5px">
+                                                <i class="fa-solid fa-square-poll-vertical"></i> রেজাল্ট ম্যানেজমেন্ট
                                             </a>
                                         @else
                                             <span style="font-size:12px; color:#94a3b8">—</span>
