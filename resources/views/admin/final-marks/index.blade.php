@@ -331,12 +331,9 @@
                                         উপস্থিতি<br>
                                         <small style="color:#047857;font-weight:700">/{{ $criteria['attendance_convert'] }}</small>
                                     </th>
-                                    <th style="padding:12px 8px; text-align:center; background:#fefce8">তামরিন</th>
-                                    <th style="padding:12px 8px; text-align:center; background:#fefce8">তাজবীদ</th>
-                                    <th style="padding:12px 8px; text-align:center; background:#fefce8">ডিএনএস</th>
                                     <th style="padding:12px 12px; text-align:center; font-weight:800; color:#064e3b; background:#ecfdf5">
                                         মোট নম্বর<br>
-                                        <small style="font-weight:700;color:#047857">/{{ $totalConvert }}</small>
+                                        <small style="font-weight:700;color:#047857">/১০০</small>
                                     </th>
                                     <th style="padding:12px 10px; text-align:center">গ্রেড</th>
                                     <th style="padding:12px 8px; text-align:center">জিপিএ</th>
@@ -391,21 +388,10 @@
                                         @endif
                                     </td>
 
-                                    {{-- Attendance Cell with Direct Edit Button --}}
+                                    {{-- Attendance Cell --}}
                                     <td style="padding:14px 10px; text-align:center; background:#f0fdf4">
                                         <div style="font-size:11px; color:#64748b">{{ $fm->attendance_percent ?? 0 }}%</div>
                                         <strong style="color:#065f46; font-size:14px">{{ $fm->attendance_converted ?? 0 }}</strong>
-                                    </td>
-
-                                    {{-- Non-Exam Criteria --}}
-                                    <td style="padding:14px 8px; text-align:center; background:#fefce8">
-                                        <strong style="color:#854d0e">{{ $fm->tamrin_mark !== null ? $fm->tamrin_mark : '—' }}</strong>
-                                    </td>
-                                    <td style="padding:14px 8px; text-align:center; background:#fefce8">
-                                        <strong style="color:#854d0e">{{ $fm->tajweed_mark !== null ? $fm->tajweed_mark : '—' }}</strong>
-                                    </td>
-                                    <td style="padding:14px 8px; text-align:center; background:#fefce8">
-                                        <strong style="color:#854d0e">{{ $fm->dns_mark !== null ? $fm->dns_mark : '—' }}</strong>
                                     </td>
 
                                     <td style="padding:14px 12px; text-align:center; background:#ecfdf5">
@@ -446,7 +432,7 @@
                                     <td style="padding:14px 10px; text-align:center">
                                         <div style="display:inline-flex; gap:6px; align-items:center">
                                             <button type="button" 
-                                                onclick="openManualMarkModal({{ $fm->id }}, '{{ addslashes($fm->student->name ?? 'Student') }}', {{ $fm->class_test_converted ?? 'null' }}, {{ $fm->midterm_converted ?? 'null' }}, {{ $fm->final_converted ?? 'null' }}, {{ $fm->attendance_converted ?? 'null' }}, {{ $fm->tamrin_mark ?? 'null' }}, {{ $fm->tajweed_mark ?? 'null' }}, {{ $fm->dns_mark ?? 'null' }}, '{{ addslashes($fm->remarks ?? '') }}')"
+                                                onclick="openManualMarkModal({{ $fm->id }}, '{{ addslashes($fm->student->name ?? 'Student') }}', {{ $fm->class_test_converted ?? 'null' }}, {{ $fm->midterm_converted ?? 'null' }}, {{ $fm->final_converted ?? 'null' }}, {{ $fm->attendance_converted ?? 'null' }}, '{{ addslashes($fm->remarks ?? '') }}')"
                                                 style="padding:4px 9px; background:#f0fdf4; border:1px solid #86efac; color:#15803d; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700"
                                                 title="নম্বর এডিট ও তামরিন/তাজবীদ/DNS মার্ক দিন">
                                                 <i class="fa-solid fa-pen-to-square"></i> মার্ক এডিট
@@ -652,23 +638,8 @@
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:14px">
-                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
-                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">তামরিন মার্ক</label>
-                        <input type="number" step="0.1" min="0" max="100" name="tamrin_mark" id="mmTamrinMark" class="form-control" style="height:38px; font-weight:700">
-                    </div>
-                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
-                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">তাজবীদ মার্ক</label>
-                        <input type="number" step="0.1" min="0" max="100" name="tajweed_mark" id="mmTajweedMark" class="form-control" style="height:38px; font-weight:700">
-                    </div>
-                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
-                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">ডিএনএস মার্ক</label>
-                        <input type="number" step="0.1" min="0" max="100" name="dns_mark" id="mmDnsMark" class="form-control" style="height:38px; font-weight:700">
-                    </div>
-                </div>
-
                 <div style="margin-bottom:14px">
-                    <label style="font-size:12.5px; font-weight:700; color:#065f46; display:block; margin-bottom:4px">উপস্থিতি রূপান্তর নম্বর</label>
+                    <label style="font-size:12.5px; font-weight:700; color:#065f46; display:block; margin-bottom:4px">উপস্থিতি রূপান্তর নম্বর (/১০)</label>
                     <input type="number" step="0.1" min="0" max="100" name="attendance_converted" id="mmAttConverted" class="form-control" style="height:38px">
                 </div>
 
@@ -868,7 +839,7 @@
         };
 
         // ── 4. Student Manual Marks Modal Controls ──
-        window.openManualMarkModal = function(finalMarkId, studentName, ctConv, midConv, finalConv, attConv, tamrin, tajweed, dns, remarks) {
+        window.openManualMarkModal = function(finalMarkId, studentName, ctConv, midConv, finalConv, attConv, remarks) {
             const nameEl = document.getElementById('mmStudentName');
             if (nameEl) nameEl.textContent = studentName;
             
@@ -876,9 +847,6 @@
             document.getElementById('mmMidConverted').value = midConv !== null ? midConv : '';
             document.getElementById('mmFinalConverted').value = finalConv !== null ? finalConv : '';
             document.getElementById('mmAttConverted').value = attConv !== null ? attConv : '';
-            document.getElementById('mmTamrinMark').value = tamrin !== null ? tamrin : '';
-            document.getElementById('mmTajweedMark').value = tajweed !== null ? tajweed : '';
-            document.getElementById('mmDnsMark').value = dns !== null ? dns : '';
             document.getElementById('mmRemarks').value = remarks || '';
             
             const form = document.getElementById('manualMarkForm');

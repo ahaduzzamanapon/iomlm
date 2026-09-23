@@ -16,6 +16,14 @@ class Exam extends Model
         'end_date'             => 'date',
         'is_result_published'  => 'boolean',
         'result_published_at'  => 'datetime',
+        'has_mcq'              => 'boolean',
+        'has_written'          => 'boolean',
+        'has_tamrin'           => 'boolean',
+        'has_viva'             => 'boolean',
+        'mcq_marks'            => 'float',
+        'written_marks'        => 'float',
+        'tamrin_marks'         => 'float',
+        'viva_marks'           => 'float',
     ];
 
     public function getEffectiveStartDatetime(): Carbon
@@ -126,5 +134,97 @@ class Exam extends Model
             'result_published_at' => null,
         ]);
         $this->results()->update(['is_published' => false]);
+    }
+
+    /**
+     * Get active assessment components with metadata
+     */
+    public function getActiveComponents(): array
+    {
+        $components = [];
+
+        if ($this->has_mcq) {
+            $components['MCQ'] = [
+                'name'        => 'MCQ (বহুনির্বাচনী)',
+                'key'         => 'mcq',
+                'target'      => (float) ($this->mcq_marks ?? 0),
+                'pool_marks'  => $this->getPoolMcqMarks(),
+                'icon'        => 'fa-solid fa-list-check',
+                'color'       => '#4f46e5',
+                'badge_class' => 'badge-primary',
+                'type'        => 'AUTO',
+                'desc'        => 'অনলাইন টাইমারযুক্ত এমসিকিউ পরীক্ষা',
+            ];
+        }
+
+        if ($this->has_written) {
+            $components['WRITTEN'] = [
+                'name'        => 'লিখিত (Written)',
+                'key'         => 'written',
+                'target'      => (float) ($this->written_marks ?? 0),
+                'pool_marks'  => $this->getPoolWrittenMarks(),
+                'icon'        => 'fa-solid fa-pen-nib',
+                'color'       => '#db2777',
+                'badge_class' => 'badge-danger',
+                'type'        => 'TEACHER_GRADED',
+                'desc'        => 'খাতায় লিখে ছবি আপলোড বা টেক্সট উত্তর',
+            ];
+        }
+
+        if ($this->has_tamrin) {
+            $components['TAMRIN'] = [
+                'name'        => 'তামরিন (হাতের কাজ)',
+                'key'         => 'tamrin',
+                'target'      => (float) ($this->tamrin_marks ?? 0),
+                'pool_marks'  => (float) ($this->tamrin_marks ?? 0),
+                'icon'        => 'fa-solid fa-hand-holding-hand',
+                'color'       => '#d97706',
+                'badge_class' => 'badge-warning',
+                'type'        => 'DIRECT_ENTRY',
+                'desc'        => 'হোমওয়ার্ক/অ্যাসাইনমেন্ট/হাতে লেখার মার্ক',
+            ];
+        }
+
+        if ($this->has_viva) {
+            $components['VIVA'] = [
+                'name'        => 'ভাইভা (মৌখিক)',
+                'key'         => 'viva',
+                'target'      => (float) ($this->viva_marks ?? 0),
+                'pool_marks'  => (float) ($this->viva_marks ?? 0),
+                'icon'        => 'fa-solid fa-microphone',
+                'color'       => '#059669',
+                'badge_class' => 'badge-success',
+                'type'        => 'DIRECT_ENTRY',
+                'desc'        => 'মৌখিক পরীক্ষা/তেলাওয়াত শুনে মূল্যায়ন',
+            ];
+        }
+
+        return $components;
+    }
+
+    public function getPoolMcqMarks(): float
+    {
+        return (float) $this->examQuestions
+            ->filter(fn($eq) => ($eq->question?->question_type ?? 'MCQ') === 'MCQ')
+            ->sum('marks');
+    }
+
+    public function getPoolWrittenMarks(): float
+    {
+        return (float) $this->examQuestions
+            ->filter(fn($eq) => ($eq->question?->question_type ?? '') === 'WRITTEN')
+            ->sum('marks');
+    }
+
+    public function isMcqTargetMet(): bool
+    {
+        if (!$this->has_mcq) return true;
+        return $this->getPoolMcqMarks() >= (float) ($this->mcq_marks ?? 0);
+    }
+
+    public function isWrittenTargetMet(): bool
+    {
+        if (!$this->has_written) return true;
+        return $this->getPoolWrittenMarks() >= (float) ($this->written_marks ?? 0);
     }
 }

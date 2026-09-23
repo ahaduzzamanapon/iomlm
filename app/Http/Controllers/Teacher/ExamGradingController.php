@@ -59,12 +59,30 @@ class ExamGradingController extends Controller
             'graded_by'        => $teacher?->user_id ?? auth()->id(),
         ]);
 
-        // Recalculate submission total_score
+        // Recalculate submission scores
         $submission = $answer->submission;
-        $submission->load('answers');
-        $totalScore = $submission->answers->sum('marks_awarded');
+        $submission->load(['answers.question', 'exam']);
+        
+        $writtenScore = 0.0;
+        $mcqEarned = 0.0;
+        foreach ($submission->answers as $ans) {
+            if ($ans->question?->question_type === 'WRITTEN') {
+                $writtenScore += (float) ($ans->marks_awarded ?? 0);
+            } else {
+                $mcqEarned += (float) ($ans->marks_awarded ?? 0);
+            }
+        }
+        $negativeDeducted = (float) ($submission->negative_marks_deducted ?? 0);
+        $mcqScore = max(0, $mcqEarned - $negativeDeducted);
+        $tamrinScore = (float) ($submission->tamrin_score ?? 0);
+        $vivaScore = (float) ($submission->viva_score ?? 0);
+        $totalScore = $mcqScore + $writtenScore + $tamrinScore + $vivaScore;
 
-        $submission->update(['total_score' => $totalScore]);
+        $submission->update([
+            'written_score' => $writtenScore,
+            'mcq_score'     => $mcqScore,
+            'total_score'   => $totalScore,
+        ]);
 
         return back()->with('success', 'নম্বর ও শিক্ষক মূল্যায়ন সফলভাবে সংরক্ষিত হয়েছে।');
     }

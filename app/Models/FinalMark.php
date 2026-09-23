@@ -191,10 +191,7 @@ class FinalMark extends Model
             ($this->class_test_converted ?? 0) +
             ($this->midterm_converted    ?? 0) +
             ($this->final_converted      ?? 0) +
-            ($this->attendance_converted ?? 0) +
-            ($this->tamrin_mark          ?? 0) +
-            ($this->tajweed_mark         ?? 0) +
-            ($this->dns_mark             ?? 0),
+            ($this->attendance_converted ?? 0),
             2
         );
 

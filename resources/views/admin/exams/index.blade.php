@@ -123,8 +123,27 @@
                 <tbody>
                     @forelse($exams as $exam)
                     <tr>
-                        <td class="td-primary"><strong>{{ $exam->subject->name ?? '—' }}</strong></td>
-                        <td>{{ $exam->title }}</td>
+                        <td class="td-primary">
+                            <strong>{{ $exam->subject->name ?? '—' }}</strong>
+                            <div style="font-size:11px;color:#64748b">{{ $exam->subject->code ?? '' }}</div>
+                        </td>
+                        <td>
+                            <div style="font-weight:700;color:#0f172a;margin-bottom:4px">{{ $exam->title }}</div>
+                            <div style="display:flex;gap:4px;flex-wrap:wrap">
+                                @if($exam->has_mcq)
+                                    <span class="badge badge-primary no-dot" style="font-size:10px;padding:2px 7px">MCQ: {{ (int)$exam->mcq_marks }}</span>
+                                @endif
+                                @if($exam->has_written)
+                                    <span class="badge badge-danger no-dot" style="font-size:10px;padding:2px 7px">লিখিত: {{ (int)$exam->written_marks }}</span>
+                                @endif
+                                @if($exam->has_tamrin)
+                                    <span class="badge badge-warning no-dot" style="font-size:10px;padding:2px 7px">তামরিন: {{ (int)$exam->tamrin_marks }}</span>
+                                @endif
+                                @if($exam->has_viva)
+                                    <span class="badge badge-success no-dot" style="font-size:10px;padding:2px 7px">ভাইভা: {{ (int)$exam->viva_marks }}</span>
+                                @endif
+                            </div>
+                        </td>
                         <td><span class="badge badge-secondary no-dot">{{ $exam->type }}</span></td>
                         <td class="td-muted">
                             <div><i class="fa-solid fa-calendar-day"></i> {{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }}
@@ -141,10 +160,16 @@
                                 ⏱️ {{ $exam->duration_minutes ?? 90 }} মি.
                             </div>
                         </td>
-                        <td>{{ $exam->full_marks }} / {{ $exam->pass_marks }}</td>
+                        <td>
+                            <strong style="font-size:14px;color:#0f172a">{{ $exam->full_marks }}</strong>
+                            <span style="font-size:11px;color:#64748b">/ পাস: {{ $exam->pass_marks }}</span>
+                        </td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right">
                             <div style="display:flex;gap:6px;justify-content:flex-end">
+                                <button type="button" class="btn btn-outline btn-sm" onclick='openEditExamModal(@json($exam))' style="color:#0284c7;border-color:#bae6fd;font-weight:600" title="মূল্যায়ন কাঠামো ও তথ্য এডিট করুন">
+                                    <i class="fa-solid fa-pen-to-square"></i> কাঠামো এডিট
+                                </button>
                                 <a href="{{ route('admin.exams.builder', $exam) }}" class="btn btn-outline btn-sm" style="color:#4f46e5;border-color:#c7d2fe;font-weight:600">
                                     <i class="fa-solid fa-puzzle-piece"></i> Paper Builder
                                 </a>
@@ -234,14 +259,89 @@
                         </div>
                     </div>
 
+                    {{-- 📋 পরীক্ষার মূল্যায়ন কাঠামো নির্বাচন (Assessment Structure) --}}
+                    <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; font-family:'Kalpurush',sans-serif">
+                        <div style="font-weight:700; font-size:13.5px; color:#1e293b; margin-bottom:4px; display:flex; align-items:center; gap:8px">
+                            <i class="fa-solid fa-clipboard-list" style="color:#2563eb"></i>
+                            <span>পরীক্ষার মূল্যায়ন কাঠামো নির্বাচন (Assessment Structure)</span>
+                        </div>
+                        <div style="font-size:11.5px; color:#64748b; margin-bottom:10px">
+                            প্রতিটি উপাদানের জন্য স্বাধীন চেকবক্স ও পূর্ণমান ইনপুট (টিক দেওয়া উপাদানগুলোর মোট যোগফল নিচে স্বয়ংক্রিয়ভাবে ফুল মার্কস হবে):
+                        </div>
+
+                        <div style="border:1px solid #cbd5e1; border-radius:8px; overflow:hidden">
+                            <table style="width:100%; border-collapse:collapse; font-size:12px; background:#fff">
+                                <thead>
+                                    <tr style="background:#f1f5f9; border-bottom:1px solid #cbd5e1">
+                                        <th style="padding:7px 10px; text-align:left; font-weight:700; color:#334155">কম্পোনেন্ট</th>
+                                        <th style="padding:7px 10px; text-align:center; width:80px; font-weight:700; color:#334155">সক্রিয়?</th>
+                                        <th style="padding:7px 10px; text-align:center; width:100px; font-weight:700; color:#334155">পূর্ণমান</th>
+                                        <th style="padding:7px 10px; text-align:left; font-weight:700; color:#334155">কাজের ধরন</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom:1px solid #f1f5f9">
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-list-check" style="color:#4f46e5; margin-right:4px"></i> MCQ (বহুনির্বাচনী)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_mcq" id="add_has_mcq" value="1" checked onchange="calcAssessmentMarks('add')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="mcq_marks" id="add_mcq_marks" value="40" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('add')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">অনলাইন টাইমারযুক্ত এমসিকিউ পরীক্ষা</td>
+                                    </tr>
+                                    <tr style="border-bottom:1px solid #f1f5f9">
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-pen-nib" style="color:#db2777; margin-right:4px"></i> লিখিত (Written)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_written" id="add_has_written" value="1" checked onchange="calcAssessmentMarks('add')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="written_marks" id="add_written_marks" value="40" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('add')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">খাতায় লিখে ছবি আপলোড বা টেক্সট উত্তর</td>
+                                    </tr>
+                                    <tr style="border-bottom:1px solid #f1f5f9">
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-hand-holding-hand" style="color:#d97706; margin-right:4px"></i> তামরিন (হাতের কাজ)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_tamrin" id="add_has_tamrin" value="1" checked onchange="calcAssessmentMarks('add')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="tamrin_marks" id="add_tamrin_marks" value="10" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('add')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">হোমওয়ার্ক/অ্যাসাইনমেন্ট/হাতে লেখার মার্ক</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-microphone" style="color:#059669; margin-right:4px"></i> ভাইভা (মৌখিক)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_viva" id="add_has_viva" value="1" checked onchange="calcAssessmentMarks('add')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="viva_marks" id="add_viva_marks" value="10" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('add')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">মৌখিক পরীক্ষা/তেলাওয়াত শুনে মূল্যায়ন</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Full Marks <span class="required">*</span></label>
-                            <input type="number" name="full_marks" class="form-control" value="100" required>
+                            <label>মোট পূর্ণমান (Full Marks) <span class="required">*</span></label>
+                            <input type="number" name="full_marks" id="add_full_marks" class="form-control" value="100" required>
+                            <span style="font-size:11px;color:#059669;margin-top:2px;display:block">💡 সক্রিয় উপাদানগুলোর মোট নম্বর স্বয়ংক্রিয়ভাবে হিসাব হবে</span>
                         </div>
                         <div class="form-group">
                             <label>Pass Marks <span class="required">*</span></label>
-                            <input type="number" name="pass_marks" class="form-control" value="40" required>
+                            <input type="number" name="pass_marks" id="add_pass_marks" class="form-control" value="40" required>
                         </div>
                     </div>
 
@@ -257,4 +357,185 @@
             </form>
         </div>
     </div>
+
+    <!-- Edit Exam Assessment Structure Modal -->
+    <div class="modal-overlay" id="editExamModal">
+        <div class="modal" style="max-width:650px">
+            <div class="modal-header">
+                <span class="modal-title" id="editModalTitle">মূল্যায়ন কাঠামো ও তথ্য পরিবর্তন</span>
+                <button class="modal-close" onclick="closeModal('editExamModal')">&times;</button>
+            </div>
+            <form method="POST" id="editExamForm" action="">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:13px; color:#1e40af">
+                        বিষয়: <strong id="editExamSubjectName">—</strong> &middot; ধরন: <span id="editExamTypeBadge" class="badge badge-secondary no-dot">MIDTERM</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Exam Title <span class="required">*</span></label>
+                        <input type="text" name="title" id="edit_title" class="form-control" required>
+                    </div>
+
+                    {{-- 📋 পরীক্ষার মূল্যায়ন কাঠামো নির্বাচন (Assessment Structure) --}}
+                    <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; font-family:'Kalpurush',sans-serif">
+                        <div style="font-weight:700; font-size:13.5px; color:#1e293b; margin-bottom:4px; display:flex; align-items:center; gap:8px">
+                            <i class="fa-solid fa-clipboard-list" style="color:#2563eb"></i>
+                            <span>পরীক্ষার মূল্যায়ন কাঠামো নির্বাচন (Assessment Structure)</span>
+                        </div>
+                        <div style="font-size:11.5px; color:#64748b; margin-bottom:10px">
+                            প্রতিটি উপাদানের জন্য স্বাধীন চেকবক্স ও পূর্ণমান নির্ধারণ করুন:
+                        </div>
+
+                        <div style="border:1px solid #cbd5e1; border-radius:8px; overflow:hidden">
+                            <table style="width:100%; border-collapse:collapse; font-size:12px; background:#fff">
+                                <thead>
+                                    <tr style="background:#f1f5f9; border-bottom:1px solid #cbd5e1">
+                                        <th style="padding:7px 10px; text-align:left; font-weight:700; color:#334155">কম্পোনেন্ট</th>
+                                        <th style="padding:7px 10px; text-align:center; width:80px; font-weight:700; color:#334155">সক্রিয়?</th>
+                                        <th style="padding:7px 10px; text-align:center; width:100px; font-weight:700; color:#334155">পূর্ণমান</th>
+                                        <th style="padding:7px 10px; text-align:left; font-weight:700; color:#334155">কাজের ধরন</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom:1px solid #f1f5f9">
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-list-check" style="color:#4f46e5; margin-right:4px"></i> MCQ (বহুনির্বাচনী)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_mcq" id="edit_has_mcq" value="1" onchange="calcAssessmentMarks('edit')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="mcq_marks" id="edit_mcq_marks" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('edit')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">অনলাইন টাইমারযুক্ত এমসিকিউ পরীক্ষা</td>
+                                    </tr>
+                                    <tr style="border-bottom:1px solid #f1f5f9">
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-pen-nib" style="color:#db2777; margin-right:4px"></i> লিখিত (Written)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_written" id="edit_has_written" value="1" onchange="calcAssessmentMarks('edit')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="written_marks" id="edit_written_marks" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('edit')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">খাতায় লিখে ছবি আপলোড বা টেক্সট উত্তর</td>
+                                    </tr>
+                                    <tr style="border-bottom:1px solid #f1f5f9">
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-hand-holding-hand" style="color:#d97706; margin-right:4px"></i> তামরিন (হাতের কাজ)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_tamrin" id="edit_has_tamrin" value="1" onchange="calcAssessmentMarks('edit')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="tamrin_marks" id="edit_tamrin_marks" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('edit')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">হোমওয়ার্ক/অ্যাসাইনমেন্ট/হাতে লেখার মার্ক</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:7px 10px; font-weight:600; color:#1e293b">
+                                            <i class="fa-solid fa-microphone" style="color:#059669; margin-right:4px"></i> ভাইভা (মৌখিক)
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="checkbox" name="has_viva" id="edit_has_viva" value="1" onchange="calcAssessmentMarks('edit')" style="width:16px;height:16px;cursor:pointer;accent-color:#2563eb">
+                                        </td>
+                                        <td style="padding:7px 10px; text-align:center">
+                                            <input type="number" step="1" name="viva_marks" id="edit_viva_marks" class="form-control" style="height:30px; font-size:12px; text-align:center; font-weight:700" oninput="calcAssessmentMarks('edit')">
+                                        </td>
+                                        <td style="padding:7px 10px; color:#64748b; font-size:11px">মৌখিক পরীক্ষা/তেলাওয়াত শুনে মূল্যায়ন</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>মোট পূর্ণমান (Full Marks) <span class="required">*</span></label>
+                            <input type="number" name="full_marks" id="edit_full_marks" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>পাস মার্কস (Pass Marks) <span class="required">*</span></label>
+                            <input type="number" name="pass_marks" id="edit_pass_marks" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>স্ট্যাটাস (Status)</label>
+                        <select name="status" id="edit_status" class="form-control">
+                            <option value="SCHEDULED">SCHEDULED</option>
+                            <option value="RUNNING">RUNNING</option>
+                            <option value="COMPLETED">COMPLETED</option>
+                            <option value="CANCELLED">CANCELLED</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editExamModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">পরিবর্তন সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @push('scripts')
+    <script>
+    function calcAssessmentMarks(prefix) {
+        const hasMcq = document.getElementById(prefix + '_has_mcq')?.checked ?? false;
+        const hasWritten = document.getElementById(prefix + '_has_written')?.checked ?? false;
+        const hasTamrin = document.getElementById(prefix + '_has_tamrin')?.checked ?? false;
+        const hasViva = document.getElementById(prefix + '_has_viva')?.checked ?? false;
+
+        const mcqInput = document.getElementById(prefix + '_mcq_marks');
+        const writtenInput = document.getElementById(prefix + '_written_marks');
+        const tamrinInput = document.getElementById(prefix + '_tamrin_marks');
+        const vivaInput = document.getElementById(prefix + '_viva_marks');
+
+        if (mcqInput) mcqInput.disabled = !hasMcq;
+        if (writtenInput) writtenInput.disabled = !hasWritten;
+        if (tamrinInput) tamrinInput.disabled = !hasTamrin;
+        if (vivaInput) vivaInput.disabled = !hasViva;
+
+        let total = 0;
+        if (hasMcq) total += parseFloat(mcqInput.value || 0);
+        if (hasWritten) total += parseFloat(writtenInput.value || 0);
+        if (hasTamrin) total += parseFloat(tamrinInput.value || 0);
+        if (hasViva) total += parseFloat(vivaInput.value || 0);
+
+        const fullMarksInput = document.getElementById(prefix + '_full_marks');
+        if (fullMarksInput && total > 0) {
+            fullMarksInput.value = Math.round(total);
+        }
+    }
+
+    function openEditExamModal(exam) {
+        document.getElementById('editExamForm').action = "{{ url('admin/exams') }}/" + exam.id;
+        document.getElementById('edit_title').value = exam.title || '';
+        document.getElementById('editExamSubjectName').textContent = exam.subject ? (exam.subject.code + ': ' + exam.subject.name) : '—';
+        document.getElementById('editExamTypeBadge').textContent = exam.type || '';
+
+        document.getElementById('edit_has_mcq').checked = !!exam.has_mcq;
+        document.getElementById('edit_mcq_marks').value = exam.mcq_marks ?? 0;
+
+        document.getElementById('edit_has_written').checked = !!exam.has_written;
+        document.getElementById('edit_written_marks').value = exam.written_marks ?? 0;
+
+        document.getElementById('edit_has_tamrin').checked = !!exam.has_tamrin;
+        document.getElementById('edit_tamrin_marks').value = exam.tamrin_marks ?? 0;
+
+        document.getElementById('edit_has_viva').checked = !!exam.has_viva;
+        document.getElementById('edit_viva_marks').value = exam.viva_marks ?? 0;
+
+        document.getElementById('edit_full_marks').value = exam.full_marks || 100;
+        document.getElementById('edit_pass_marks').value = exam.pass_marks || 40;
+        document.getElementById('edit_status').value = exam.status || 'SCHEDULED';
+
+        calcAssessmentMarks('edit');
+        openModal('editExamModal');
+    }
+    </script>
+    @endpush
 </x-admin-layout>

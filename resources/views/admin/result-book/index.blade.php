@@ -308,11 +308,8 @@
                                 <th style="padding:12px 8px; text-align:center">সিটি</th>
                                 <th style="padding:12px 8px; text-align:center">মিড</th>
                                 <th style="padding:12px 8px; text-align:center">ফাইনাল</th>
-                                <th style="padding:12px 8px; text-align:center; background:#f0fdf4">উপস্থিতি</th>
-                                <th style="padding:12px 8px; text-align:center; background:#fefce8">তামরিন</th>
-                                <th style="padding:12px 8px; text-align:center; background:#fefce8">তাজবীদ</th>
-                                <th style="padding:12px 8px; text-align:center; background:#fefce8">ডিএনএস</th>
-                                <th style="padding:12px 10px; text-align:center; background:#ecfdf5; font-weight:800; color:#064e3b">মোট নম্বর</th>
+                                <th style="padding:12px 8px; text-align:center; background:#f0fdf4">উপস্থিতি (/১০)</th>
+                                <th style="padding:12px 10px; text-align:center; background:#ecfdf5; font-weight:800; color:#064e3b">মোট নম্বর (/১০০)</th>
                                 <th style="padding:12px 8px; text-align:center">গ্রেড (GPA)</th>
                                 <th style="padding:12px 10px; text-align:center">কওমি মান</th>
                                 <th style="padding:12px 8px; text-align:center">স্ট্যাটাস</th>
@@ -356,15 +353,6 @@
                                 <td style="padding:14px 8px; text-align:center; background:#f0fdf4; font-weight:700; color:#065f46">
                                     {{ $fm->attendance_converted ?? '—' }}
                                 </td>
-                                <td style="padding:14px 8px; text-align:center; background:#fefce8; font-weight:700; color:#854d0e">
-                                    {{ $fm->tamrin_mark ?? '—' }}
-                                </td>
-                                <td style="padding:14px 8px; text-align:center; background:#fefce8; font-weight:700; color:#854d0e">
-                                    {{ $fm->tajweed_mark ?? '—' }}
-                                </td>
-                                <td style="padding:14px 8px; text-align:center; background:#fefce8; font-weight:700; color:#854d0e">
-                                    {{ $fm->dns_mark ?? '—' }}
-                                </td>
                                 <td style="padding:14px 10px; text-align:center; background:#ecfdf5">
                                     <span style="font-size:17px; font-weight:900; color:{{ $fm->total_mark >= 40 ? '#059669' : '#dc2626' }}">
                                         {{ $fm->total_mark }}
@@ -396,7 +384,7 @@
                                 <td style="padding:14px 10px; text-align:center">
                                     <div style="display:inline-flex; gap:6px; align-items:center">
                                         <button type="button" 
-                                            onclick="openOverrideModal({{ $fm->id }}, '{{ addslashes($fm->student->name ?? 'Student') }}', '{{ addslashes($fm->student->student_code ?? $fm->student->student_id ?? '') }}', {{ $fm->class_test_converted ?? 'null' }}, {{ $fm->midterm_converted ?? 'null' }}, {{ $fm->final_converted ?? 'null' }}, {{ $fm->attendance_converted ?? 'null' }}, {{ $fm->tamrin_mark ?? 'null' }}, {{ $fm->tajweed_mark ?? 'null' }}, {{ $fm->dns_mark ?? 'null' }}, '{{ addslashes($fm->remarks ?? '') }}')"
+                                            onclick="openOverrideModal({{ $fm->id }}, '{{ addslashes($fm->student->name ?? 'Student') }}', '{{ addslashes($fm->student->student_code ?? $fm->student->student_id ?? '') }}', {{ $fm->class_test_converted ?? 'null' }}, {{ $fm->midterm_converted ?? 'null' }}, {{ $fm->final_converted ?? 'null' }}, {{ $fm->attendance_converted ?? 'null' }}, '{{ addslashes($fm->remarks ?? '') }}')"
                                             style="padding:4px 9px; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700"
                                             title="নম্বর সংশোধন ও ওভাররাইড">
                                             <i class="fa-solid fa-pen-to-square"></i> সংশোধন
@@ -450,20 +438,7 @@
                     </div>
                 </div>
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:14px">
-                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
-                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">তামরিন মার্ক</label>
-                        <input type="number" step="0.1" min="0" max="100" name="tamrin_mark" id="ovTamrin" class="form-control" style="height:38px; font-weight:700">
-                    </div>
-                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
-                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">তাজবীদ মার্ক</label>
-                        <input type="number" step="0.1" min="0" max="100" name="tajweed_mark" id="ovTajweed" class="form-control" style="height:38px; font-weight:700">
-                    </div>
-                    <div style="background:#fefce8; padding:8px 10px; border-radius:8px; border:1px solid #fef08a">
-                        <label style="font-size:12px; font-weight:800; color:#854d0e; display:block; margin-bottom:4px">ডিএনএস মার্ক</label>
-                        <input type="number" step="0.1" min="0" max="100" name="dns_mark" id="ovDns" class="form-control" style="height:38px; font-weight:700">
-                    </div>
-                </div>
+                
 
                 <div style="margin-bottom:14px">
                     <label style="font-size:12.5px; font-weight:700; color:#065f46; display:block; margin-bottom:4px">উপস্থিতি রূপান্তর নম্বর</label>
@@ -486,16 +461,13 @@
     </div>
 
     <script>
-        window.openOverrideModal = function(fmId, name, roll, ct, mid, final, att, tamrin, tajweed, dns, remarks) {
+        window.openOverrideModal = function(fmId, name, roll, ct, mid, final, att, remarks) {
             document.getElementById('ovStudentName').textContent = name;
             document.getElementById('ovStudentRoll').textContent = 'রোল: ' + (roll || '—');
             document.getElementById('ovCt').value = ct !== null ? ct : '';
             document.getElementById('ovMid').value = mid !== null ? mid : '';
             document.getElementById('ovFinal').value = final !== null ? final : '';
             document.getElementById('ovAtt').value = att !== null ? att : '';
-            document.getElementById('ovTamrin').value = tamrin !== null ? tamrin : '';
-            document.getElementById('ovTajweed').value = tajweed !== null ? tajweed : '';
-            document.getElementById('ovDns').value = dns !== null ? dns : '';
             document.getElementById('ovRemarks').value = remarks || '';
 
             const form = document.getElementById('overrideForm');

@@ -57,6 +57,33 @@ class ExamController extends Controller
 
     public function store(Request $request)
     {
+        $hasMcq     = $request->boolean('has_mcq');
+        $hasWritten = $request->boolean('has_written');
+        $hasTamrin  = $request->boolean('has_tamrin');
+        $hasViva    = $request->boolean('has_viva');
+
+        // If none checked, default to MCQ
+        if (!$hasMcq && !$hasWritten && !$hasTamrin && !$hasViva) {
+            $hasMcq = true;
+        }
+
+        $mcqMarks     = $hasMcq ? (float) $request->input('mcq_marks', 0) : 0.00;
+        $writtenMarks = $hasWritten ? (float) $request->input('written_marks', 0) : 0.00;
+        $tamrinMarks  = $hasTamrin ? (float) $request->input('tamrin_marks', 0) : 0.00;
+        $vivaMarks    = $hasViva ? (float) $request->input('viva_marks', 0) : 0.00;
+
+        $computedFullMarks = $mcqMarks + $writtenMarks + $tamrinMarks + $vivaMarks;
+        $requestedFullMarks = (int) $request->input('full_marks', 0);
+        $finalFullMarks = ($requestedFullMarks > 0) ? $requestedFullMarks : (int) $computedFullMarks;
+        if ($finalFullMarks <= 0) {
+            $finalFullMarks = 100;
+        }
+
+        // If only MCQ is active and mcq_marks was 0, sync with finalFullMarks
+        if ($hasMcq && !$hasWritten && !$hasTamrin && !$hasViva && $mcqMarks <= 0) {
+            $mcqMarks = $finalFullMarks;
+        }
+
         $validated = $request->validate([
             'subject_id'       => 'required|exists:subjects,id',
             'title'            => 'required|string|max:200',
@@ -66,7 +93,7 @@ class ExamController extends Controller
             'start_time'       => 'nullable|string',
             'end_time'         => 'nullable|string',
             'duration_minutes' => 'nullable|integer|min:5|max:360',
-            'full_marks'       => 'required|integer|min:1',
+            'full_marks'       => 'nullable|integer|min:1',
             'pass_marks'       => 'required|integer|min:1',
             'negative_marking' => 'nullable|numeric|min:0|max:5',
         ]);
@@ -90,9 +117,17 @@ class ExamController extends Controller
             'start_datetime'   => $startDatetime,
             'end_datetime'     => $endDatetime,
             'duration_minutes' => $validated['duration_minutes'] ?? 90,
-            'full_marks'       => $validated['full_marks'],
+            'full_marks'       => $finalFullMarks,
             'pass_marks'       => $validated['pass_marks'],
             'negative_marking' => $validated['negative_marking'] ?? 0.00,
+            'has_mcq'          => $hasMcq,
+            'mcq_marks'        => $mcqMarks,
+            'has_written'      => $hasWritten,
+            'written_marks'    => $writtenMarks,
+            'has_tamrin'       => $hasTamrin,
+            'tamrin_marks'     => $tamrinMarks,
+            'has_viva'         => $hasViva,
+            'viva_marks'       => $vivaMarks,
             'status'           => 'SCHEDULED',
         ]);
 
@@ -107,6 +142,44 @@ class ExamController extends Controller
 
     public function update(Request $request, Exam $exam)
     {
+        if ($request->has('has_mcq') || $request->has('title') || $request->has('full_marks')) {
+            $hasMcq     = $request->boolean('has_mcq');
+            $hasWritten = $request->boolean('has_written');
+            $hasTamrin  = $request->boolean('has_tamrin');
+            $hasViva    = $request->boolean('has_viva');
+
+            $mcqMarks     = $hasMcq ? (float) $request->input('mcq_marks', 0) : 0.00;
+            $writtenMarks = $hasWritten ? (float) $request->input('written_marks', 0) : 0.00;
+            $tamrinMarks  = $hasTamrin ? (float) $request->input('tamrin_marks', 0) : 0.00;
+            $vivaMarks    = $hasViva ? (float) $request->input('viva_marks', 0) : 0.00;
+
+            $computedFullMarks = $mcqMarks + $writtenMarks + $tamrinMarks + $vivaMarks;
+            $requestedFullMarks = (int) $request->input('full_marks', 0);
+            $finalFullMarks = ($requestedFullMarks > 0) ? $requestedFullMarks : (($computedFullMarks > 0) ? (int)$computedFullMarks : $exam->full_marks);
+
+            $updateData = [
+                'has_mcq'       => $hasMcq,
+                'mcq_marks'     => $mcqMarks,
+                'has_written'   => $hasWritten,
+                'written_marks' => $writtenMarks,
+                'has_tamrin'    => $hasTamrin,
+                'tamrin_marks'  => $tamrinMarks,
+                'has_viva'      => $hasViva,
+                'viva_marks'    => $vivaMarks,
+                'full_marks'    => $finalFullMarks,
+            ];
+
+            if ($request->filled('pass_marks')) {
+                $updateData['pass_marks'] = (int) $request->input('pass_marks');
+            }
+            if ($request->filled('status')) {
+                $updateData['status'] = $request->input('status');
+            }
+
+            $exam->update($updateData);
+            return back()->with('success', 'পরীক্ষার মূল্যায়ন কাঠামো ও তথ্য সফলভাবে আপডেট করা হয়েছে।');
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:SCHEDULED,ONGOING,COMPLETED,CANCELLED',
         ]);
@@ -197,16 +270,28 @@ class ExamController extends Controller
     {
         $exam->load(['subject', 'examQuestions.question', 'submissions.student']);
 
-        $subjectId  = $request->query('pool_subject_id');
-        $batchId    = $request->query('batch_id');
-        $semesterId = $request->query('semester_id');
-        $difficulty = $request->query('difficulty');
-        $examType   = $request->query('exam_type');
-        $sourceTag  = $request->query('source_tag');
-        $search     = $request->query('search');
+        $subjectId     = $request->query('pool_subject_id');
+        $batchId       = $request->query('batch_id');
+        $semesterId    = $request->query('semester_id');
+        $difficulty    = $request->query('difficulty');
+        $examType      = $request->query('exam_type');
+        $sourceTag     = $request->query('source_tag');
+        $search        = $request->query('search');
+        $selectedQType = $request->query('question_type');
 
         $query = Question::with('subject')
             ->whereNotIn('id', $exam->examQuestions->pluck('question_id'));
+
+        // Smart auto-filter based on exam component configuration
+        if ($selectedQType) {
+            $query->where('question_type', strtoupper($selectedQType));
+        } else {
+            if ($exam->has_mcq && !$exam->has_written) {
+                $query->where('question_type', 'MCQ');
+            } elseif ($exam->has_written && !$exam->has_mcq) {
+                $query->where('question_type', 'WRITTEN');
+            }
+        }
 
         if ($subjectId !== 'all') {
             $effectiveSubjectId = $subjectId ?? $exam->subject_id;
@@ -251,7 +336,7 @@ class ExamController extends Controller
 
         return view('admin.exams.builder', compact(
             'exam', 'availableQuestions', 'subjects', 'batches', 'semesters', 'sourceTags', 'examTypes',
-            'subjectId', 'batchId', 'semesterId', 'difficulty', 'examType', 'sourceTag', 'search'
+            'subjectId', 'batchId', 'semesterId', 'difficulty', 'examType', 'sourceTag', 'search', 'selectedQType'
         ));
     }
 

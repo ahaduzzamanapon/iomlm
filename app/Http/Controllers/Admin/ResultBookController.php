@@ -112,9 +112,6 @@ class ResultBookController extends Controller
             'midterm_converted'    => 'nullable|numeric|min:0|max:100',
             'final_converted'      => 'nullable|numeric|min:0|max:100',
             'attendance_converted' => 'nullable|numeric|min:0|max:100',
-            'tamrin_mark'          => 'nullable|numeric|min:0|max:100',
-            'tajweed_mark'         => 'nullable|numeric|min:0|max:100',
-            'dns_mark'             => 'nullable|numeric|min:0|max:100',
             'remarks'              => 'nullable|string|max:500',
         ]);
 

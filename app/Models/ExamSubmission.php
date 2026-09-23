@@ -12,6 +12,11 @@ class ExamSubmission extends Model
         'assigned_question_ids' => 'array',
         'started_at'            => 'datetime',
         'submitted_at'          => 'datetime',
+        'mcq_score'             => 'float',
+        'written_score'         => 'float',
+        'tamrin_score'          => 'float',
+        'viva_score'            => 'float',
+        'total_score'           => 'float',
     ];
 
     public function exam()

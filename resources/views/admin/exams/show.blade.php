@@ -8,6 +8,28 @@
             </div>
             <h1>{{ $exam->title }}</h1>
             <p>Subject: {{ $exam->subject->name ?? '—' }} · Date: {{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }} · Marks: {{ $exam->full_marks }} (Pass: {{ $exam->pass_marks }})</p>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+                @if($exam->has_mcq)
+                    <span style="font-size:11px;font-weight:700;background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px">
+                        MCQ: {{ $exam->mcq_marks }}
+                    </span>
+                @endif
+                @if($exam->has_written)
+                    <span style="font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:2px 8px;border-radius:6px">
+                        লিখিত: {{ $exam->written_marks }}
+                    </span>
+                @endif
+                @if($exam->has_tamrin)
+                    <span style="font-size:11px;font-weight:700;background:#f3e8ff;color:#7e22ce;border:1px solid #e9d5ff;padding:2px 8px;border-radius:6px">
+                        তামরিন: {{ $exam->tamrin_marks }}
+                    </span>
+                @endif
+                @if($exam->has_viva)
+                    <span style="font-size:11px;font-weight:700;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;padding:2px 8px;border-radius:6px">
+                        ভাইভা: {{ $exam->viva_marks }}
+                    </span>
+                @endif
+            </div>
         </div>
         <div class="page-header-actions" style="display:flex;gap:10px;align-items:center">
             <a href="{{ route('admin.exams.test-exam', $exam) }}" class="btn btn-outline" style="background:#fef3c7;border-color:#fde68a;color:#92400e;display:inline-flex;align-items:center;gap:6px">
@@ -70,7 +92,17 @@
                         @forelse($exam->results as $res)
                         <tr>
                             <td class="td-primary">{{ $res->student->name ?? '—' }}</td>
-                            <td>{{ $res->marks }}/{{ $exam->full_marks }}</td>
+                            <td>
+                                <strong>{{ $res->marks }}/{{ $exam->full_marks }}</strong>
+                                @if($res->mcq_marks !== null || $res->written_marks !== null || $res->tamrin_marks !== null || $res->viva_marks !== null)
+                                    <div style="font-size:11px;color:#64748b;margin-top:2px">
+                                        @if($res->mcq_marks !== null) <span>MCQ: {{ $res->mcq_marks }}</span> @endif
+                                        @if($res->written_marks !== null) <span style="margin-left:4px">লিখিত: {{ $res->written_marks }}</span> @endif
+                                        @if($res->tamrin_marks !== null) <span style="margin-left:4px">তামরিন: {{ $res->tamrin_marks }}</span> @endif
+                                        @if($res->viva_marks !== null) <span style="margin-left:4px">ভাইভা: {{ $res->viva_marks }}</span> @endif
+                                    </div>
+                                @endif
+                            </td>
                             <td><strong>{{ $res->grade ?? '—' }}</strong></td>
                             <td><span class="badge badge-{{ strtolower($res->status) }}">{{ ucfirst(strtolower($res->status)) }}</span></td>
                         </tr>
@@ -117,7 +149,16 @@
                     <tr>
                         <td class="td-primary"><strong>{{ $sub->student?->name ?? '—' }}</strong></td>
                         <td><span style="font-family:monospace;font-weight:700">{{ $sub->student?->student_code ?? $sub->student?->student_id ?? '—' }}</span></td>
-                        <td><strong style="color:#4338ca;font-size:15px">{{ number_format($sub->total_score, 1) }}</strong></td>
+                        <td>
+                            <strong style="color:#4338ca;font-size:15px">{{ number_format($sub->total_score, 1) }}</strong>
+                            @if($sub->written_score > 0 || $sub->tamrin_score > 0 || $sub->viva_score > 0)
+                                <div style="font-size:10.5px;color:#64748b">
+                                    MCQ: {{ number_format($sub->mcq_score, 1) }} | লিখিত: {{ number_format($sub->written_score, 1) }}
+                                    @if($sub->tamrin_score > 0) | তামরিন: {{ number_format($sub->tamrin_score, 1) }} @endif
+                                    @if($sub->viva_score > 0) | ভাইভা: {{ number_format($sub->viva_score, 1) }} @endif
+                                </div>
+                            @endif
+                        </td>
                         <td>
                             <span style="color:#166534;font-weight:600"><i class="fa-solid fa-check"></i> {{ $sub->correct_count }}</span> /
                             <span style="color:#991b1b;font-weight:600"><i class="fa-solid fa-xmark"></i> {{ $sub->wrong_count }}</span>

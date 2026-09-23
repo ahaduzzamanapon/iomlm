@@ -50,6 +50,31 @@ class ExamController extends Controller
             $assignedSubjectIds = Subject::where('is_active', true)->pluck('id');
         }
 
+        $hasMcq     = $request->boolean('has_mcq');
+        $hasWritten = $request->boolean('has_written');
+        $hasTamrin  = $request->boolean('has_tamrin');
+        $hasViva    = $request->boolean('has_viva');
+
+        if (!$hasMcq && !$hasWritten && !$hasTamrin && !$hasViva) {
+            $hasMcq = true;
+        }
+
+        $mcqMarks     = $hasMcq ? (float) $request->input('mcq_marks', 0) : 0.00;
+        $writtenMarks = $hasWritten ? (float) $request->input('written_marks', 0) : 0.00;
+        $tamrinMarks  = $hasTamrin ? (float) $request->input('tamrin_marks', 0) : 0.00;
+        $vivaMarks    = $hasViva ? (float) $request->input('viva_marks', 0) : 0.00;
+
+        $computedFullMarks = $mcqMarks + $writtenMarks + $tamrinMarks + $vivaMarks;
+        $requestedFullMarks = (int) $request->input('full_marks', 0);
+        $finalFullMarks = ($requestedFullMarks > 0) ? $requestedFullMarks : (int) $computedFullMarks;
+        if ($finalFullMarks <= 0) {
+            $finalFullMarks = 100;
+        }
+
+        if ($hasMcq && !$hasWritten && !$hasTamrin && !$hasViva && $mcqMarks <= 0) {
+            $mcqMarks = $finalFullMarks;
+        }
+
         $validated = $request->validate([
             'subject_id'       => 'required|in:' . $assignedSubjectIds->implode(','),
             'title'            => 'required|string|max:200',
@@ -59,7 +84,7 @@ class ExamController extends Controller
             'start_time'       => 'nullable|string',
             'end_time'         => 'nullable|string',
             'duration_minutes' => 'required|integer|min:5|max:300',
-            'full_marks'       => 'required|integer|min:1',
+            'full_marks'       => 'nullable|integer|min:1',
             'pass_marks'       => 'required|integer|min:1',
             'negative_marking' => 'nullable|numeric|min:0|max:5',
             'is_anti_cheating' => 'nullable|boolean',
@@ -90,14 +115,22 @@ class ExamController extends Controller
             'start_datetime'   => $startDatetime,
             'end_datetime'     => $endDatetime,
             'duration_minutes' => $validated['duration_minutes'],
-            'full_marks'       => $validated['full_marks'],
+            'full_marks'       => $finalFullMarks,
             'pass_marks'       => $validated['pass_marks'],
             'negative_marking' => $validated['negative_marking'] ?? 0.00,
             'is_anti_cheating' => $request->boolean('is_anti_cheating', true),
+            'has_mcq'          => $hasMcq,
+            'mcq_marks'        => $mcqMarks,
+            'has_written'      => $hasWritten,
+            'written_marks'    => $writtenMarks,
+            'has_tamrin'       => $hasTamrin,
+            'tamrin_marks'     => $tamrinMarks,
+            'has_viva'         => $hasViva,
+            'viva_marks'       => $vivaMarks,
             'status'           => 'SCHEDULED',
         ]);
 
-        return back()->with('success', "{$validated['type']} exam created successfully! Now attach questions from Question Bank.");
+        return back()->with('success', "{$validated['type']} পরীক্ষা সফলভাবে তৈরি করা হয়েছে!");
     }
 
     public function update(Request $request, Exam $exam)

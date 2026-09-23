@@ -755,7 +755,7 @@
                                     {{ $fm->class_test_converted }} + {{ $fm->midterm_converted }} + {{ $fm->final_converted }}
                                 </td>
                                 <td style="padding:10px 16px;text-align:center">
-                                    {{ $fm->attendance_converted }} + {{ ($fm->tamrin_mark ?? 0) + ($fm->tajweed_mark ?? 0) + ($fm->dns_mark ?? 0) }}
+                                    {{ $fm->attendance_converted }}
                                 </td>
                                 <td style="padding:10px 16px;text-align:center;font-weight:700;color:#2563eb">
                                     {{ number_format($fm->total_mark, 1) }}

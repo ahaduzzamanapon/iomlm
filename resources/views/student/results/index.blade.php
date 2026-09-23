@@ -60,11 +60,8 @@
                             <th style="padding:12px 8px; text-align:center">সিটি</th>
                             <th style="padding:12px 8px; text-align:center">মিড</th>
                             <th style="padding:12px 8px; text-align:center">ফাইনাল</th>
-                            <th style="padding:12px 8px; text-align:center">উপস্থিতি</th>
-                            <th style="padding:12px 8px; text-align:center; background:#fefce8">তামরিন</th>
-                            <th style="padding:12px 8px; text-align:center; background:#fefce8">তাজবীদ</th>
-                            <th style="padding:12px 8px; text-align:center; background:#fefce8">ডিএনএস</th>
-                            <th style="padding:12px 10px; text-align:center; background:#ecfdf5; font-weight:800; color:#064e3b">মোট নম্বর</th>
+                            <th style="padding:12px 8px; text-align:center">উপস্থিতি (/১০)</th>
+                            <th style="padding:12px 10px; text-align:center; background:#ecfdf5; font-weight:800; color:#064e3b">মোট নম্বর (/১০০)</th>
                             <th style="padding:12px 8px; text-align:center">গ্রেড (GPA)</th>
                             <th style="padding:12px 10px; text-align:center">কওমি মান</th>
                             <th style="padding:12px 10px; text-align:center">ফলাফল</th>
@@ -93,9 +90,6 @@
                             <td style="padding:14px 8px; text-align:center">{{ $fm->midterm_converted ?? '—' }}</td>
                             <td style="padding:14px 8px; text-align:center">{{ $fm->final_converted ?? '—' }}</td>
                             <td style="padding:14px 8px; text-align:center">{{ $fm->attendance_converted ?? '—' }}</td>
-                            <td style="padding:14px 8px; text-align:center; background:#fefce8; color:#854d0e; font-weight:700">{{ $fm->tamrin_mark ?? '—' }}</td>
-                            <td style="padding:14px 8px; text-align:center; background:#fefce8; color:#854d0e; font-weight:700">{{ $fm->tajweed_mark ?? '—' }}</td>
-                            <td style="padding:14px 8px; text-align:center; background:#fefce8; color:#854d0e; font-weight:700">{{ $fm->dns_mark ?? '—' }}</td>
                             <td style="padding:14px 10px; text-align:center; background:#ecfdf5">
                                 <strong style="font-size:16px; color:{{ $fm->total_mark >= 40 ? '#059669' : '#dc2626' }}">
                                     {{ $fm->total_mark }}
@@ -120,7 +114,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="14" style="text-align:center; padding:35px; color:#94a3b8">
+                            <td colspan="11" style="text-align:center; padding:35px; color:#94a3b8">
                                 এখনো কোনো সেমিস্টার ফাইনাল ফলাফল প্রকাশিত হয়নি।
                             </td>
                         </tr>

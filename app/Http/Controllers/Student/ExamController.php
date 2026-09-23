@@ -265,6 +265,7 @@ class ExamController extends Controller
         $finalScore       = max(0, $totalEarned - $negativeDeducted);
 
         $submission->update([
+            'mcq_score'               => $finalScore,
             'total_score'             => $finalScore,
             'correct_count'           => $correctCount,
             'wrong_count'             => $wrongCount,

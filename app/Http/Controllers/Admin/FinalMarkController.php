@@ -390,20 +390,12 @@ class FinalMarkController extends Controller
                     $attendancePercent   = $existing->attendance_percent;
                 }
 
-                // Non-exam criteria preservation
-                $tamrinMark  = $existing ? $existing->tamrin_mark : null;
-                $tajweedMark = $existing ? $existing->tajweed_mark : null;
-                $dnsMark     = $existing ? $existing->dns_mark : null;
-
-                // ── 6. Total & Grade ───────────────────────────────────────
+                // ── 6. Total & Grade (Clean 100-mark scale: CT /20 + Mid /30 + Final /40 + Attendance /10 = 100) ──
                 $total = round(
                     ($classTestConverted  ?? 0) +
                     ($midtermConverted    ?? 0) +
                     ($finalConverted      ?? 0) +
-                    ($attendanceConverted ?? 0) +
-                    ($tamrinMark          ?? 0) +
-                    ($tajweedMark         ?? 0) +
-                    ($dnsMark             ?? 0),
+                    ($attendanceConverted ?? 0),
                     2
                 );
 
@@ -427,9 +419,9 @@ class FinalMarkController extends Controller
                         'final_converted'      => $finalConverted,
                         'attendance_percent'   => $attendancePercent,
                         'attendance_converted' => $attendanceConverted,
-                        'tamrin_mark'          => $tamrinMark,
-                        'tajweed_mark'         => $tajweedMark,
-                        'dns_mark'             => $dnsMark,
+                        'tamrin_mark'          => null,
+                        'tajweed_mark'         => null,
+                        'dns_mark'             => null,
                         'total_mark'           => $total,
                         'grade'                => $gradeInfo['grade'],
                         'gpa'                  => $gradeInfo['gpa'],
@@ -575,9 +567,6 @@ class FinalMarkController extends Controller
     public function updateManualMark(Request $request, FinalMark $finalMark)
     {
         $validated = $request->validate([
-            'tamrin_mark'          => 'nullable|numeric|min:0|max:100',
-            'tajweed_mark'         => 'nullable|numeric|min:0|max:100',
-            'dns_mark'             => 'nullable|numeric|min:0|max:100',
             'attendance_converted' => 'nullable|numeric|min:0|max:100',
             'class_test_converted' => 'nullable|numeric|min:0|max:100',
             'midterm_converted'    => 'nullable|numeric|min:0|max:100',
