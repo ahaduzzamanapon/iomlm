@@ -154,4 +154,93 @@ class ClassSessionController extends Controller
 
         return back()->with('success', 'Session marked as cancelled.');
     }
+
+    /**
+     * Update attendance records for a class session directly by admin.
+     */
+    public function updateAttendance(Request $request, ClassSession $class)
+    {
+        // Support single student quick AJAX update
+        if ($request->has('student_id') && $request->has('status')) {
+            $request->validate([
+                'student_id' => 'required|exists:students,id',
+                'status'     => 'required|in:PRESENT,ABSENT,LATE,EXCUSED,NONE',
+            ]);
+
+            $studentId = $request->input('student_id');
+            $status    = $request->input('status');
+
+            if ($status === 'NONE') {
+                \App\Models\Attendance::where('class_session_id', $class->id)
+                    ->where('student_id', $studentId)
+                    ->delete();
+            } else {
+                $enrollment = \App\Models\Enrollment::where('student_id', $studentId)
+                    ->where('batch_id', $class->batch_id)
+                    ->first();
+
+                \App\Models\Attendance::updateOrCreate(
+                    ['class_session_id' => $class->id, 'student_id' => $studentId],
+                    ['status' => $status, 'enrollment_id' => $enrollment?->id]
+                );
+            }
+
+            if ($request->expectsJson() || $request->ajax()) {
+                $attendances = \App\Models\Attendance::where('class_session_id', $class->id)->get();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'হাজিরা সফলভাবে পরিবর্তন করা হয়েছে।',
+                    'stats'   => [
+                        'present' => $attendances->where('status', 'PRESENT')->count(),
+                        'absent'  => $attendances->where('status', 'ABSENT')->count(),
+                        'late'    => $attendances->where('status', 'LATE')->count(),
+                        'excused' => $attendances->where('status', 'EXCUSED')->count(),
+                        'total'   => $attendances->count(),
+                    ],
+                ]);
+            }
+
+            return back()->with('success', 'হাজিরা সফলভাবে পরিবর্তন করা হয়েছে।');
+        }
+
+        // Bulk attendance update (form submit or AJAX bulk)
+        $request->validate([
+            'attendance'   => 'nullable|array',
+            'attendance.*' => 'in:PRESENT,ABSENT,LATE,EXCUSED,NONE',
+        ]);
+
+        foreach ($request->input('attendance', []) as $studentId => $status) {
+            if ($status === 'NONE' || empty($status)) {
+                \App\Models\Attendance::where('class_session_id', $class->id)
+                    ->where('student_id', $studentId)
+                    ->delete();
+            } else {
+                $enrollment = \App\Models\Enrollment::where('student_id', $studentId)
+                    ->where('batch_id', $class->batch_id)
+                    ->first();
+
+                \App\Models\Attendance::updateOrCreate(
+                    ['class_session_id' => $class->id, 'student_id' => $studentId],
+                    ['status' => $status, 'enrollment_id' => $enrollment?->id]
+                );
+            }
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            $attendances = \App\Models\Attendance::where('class_session_id', $class->id)->get();
+            return response()->json([
+                'success' => true,
+                'message' => 'সকল শিক্ষার্থীর হাজিরা সফলভাবে সংরক্ষিত হয়েছে।',
+                'stats'   => [
+                    'present' => $attendances->where('status', 'PRESENT')->count(),
+                    'absent'  => $attendances->where('status', 'ABSENT')->count(),
+                    'late'    => $attendances->where('status', 'LATE')->count(),
+                    'excused' => $attendances->where('status', 'EXCUSED')->count(),
+                    'total'   => $attendances->count(),
+                ],
+            ]);
+        }
+
+        return back()->with('success', 'সকল শিক্ষার্থীর হাজিরা সফলভাবে সংরক্ষিত হয়েছে।');
+    }
 }

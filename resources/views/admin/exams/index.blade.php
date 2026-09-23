@@ -126,14 +126,21 @@
             {{-- Row 2: Dropdowns & Search Filter Controls --}}
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 {{-- Batch Select --}}
-                <div style="min-width:170px">
+                <div style="min-width:220px">
                     <select name="batch_id" id="exam_filter_batch" class="form-control" onchange="this.form.submit()"
                             style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
-                        <option value="">-- সকল ব্যাচ (All Batches) --</option>
-                        @foreach($batches as $b)
-                            <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>
-                                {{ $b->name }} ({{ $b->course->name ?? 'কোর্স' }})
-                            </option>
+                        <option value="">-- সকল কোর্স ও ব্যাচ (All Batches) --</option>
+                        @php
+                            $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য কোর্স');
+                        @endphp
+                        @foreach($batchesByCourse as $courseName => $courseBatches)
+                            <optgroup label="🎓 কোর্স: {{ $courseName }}">
+                                @foreach($courseBatches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>
+                                        {{ $b->name }} — [কোর্স: {{ $courseName }}]
+                                    </option>
+                                @endforeach
+                            </optgroup>
                         @endforeach
                     </select>
                 </div>

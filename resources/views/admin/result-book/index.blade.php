@@ -293,16 +293,23 @@
                     <input type="hidden" name="tab" value="tabulation">
 
                     {{-- Batch Select --}}
-                    <div style="flex:1; min-width:240px">
+                    <div style="flex:1; min-width:260px">
                         <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
-                            <i class="fa-solid fa-users" style="color:#059669"></i> ব্যাচ নির্বাচন করুন (Batch)
+                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> কোর্স ও ব্যাচ নির্বাচন করুন (Course & Batch)
                         </label>
                         <select name="batch_id" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
-                            <option value="">-- ব্যাচ নির্বাচন করুন --</option>
-                            @foreach($batches as $b)
-                                <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
-                                    {{ $b->name }} ({{ $b->course->name ?? 'কোর্স' }})
-                                </option>
+                            <option value="">-- কোর্স ও ব্যাচ নির্বাচন করুন --</option>
+                            @php
+                                $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য / সাধারণ কোর্স');
+                            @endphp
+                            @foreach($batchesByCourse as $courseName => $courseBatches)
+                                <optgroup label="🎓 কোর্স: {{ $courseName }}">
+                                    @foreach($courseBatches as $b)
+                                        <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
+                                            {{ $b->name }} — [কোর্স: {{ $courseName }}]
+                                        </option>
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                     </div>
@@ -359,6 +366,28 @@
                         </button>
                     </div>
                 </form>
+
+                @if($selectedBatch)
+                <div style="margin-top:14px; padding:10px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:13px; color:#166534">
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-graduation-cap" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">কোর্স:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedBatch->course->name ?? 'কোর্স নির্ধারিত নেই' }}</strong>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-users" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">ব্যাচ:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedBatch->name }}</strong>
+                    </div>
+                    @if($isSemesterBased && $selectedSemester)
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-layer-group" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">সেমিস্টার:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedSemester->name }}</strong>
+                    </div>
+                    @endif
+                </div>
+                @endif
             </div>
 
             {{-- Summary KPI Cards --}}
@@ -603,13 +632,23 @@
                     <input type="hidden" name="tab" value="manual_marking">
 
                     {{-- Batch --}}
-                    <div style="flex:1; min-width:220px">
-                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">ব্যাচ নির্বাচন করুন</label>
+                    <div style="flex:1; min-width:260px">
+                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
+                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> কোর্স ও ব্যাচ নির্বাচন করুন (Course & Batch)
+                        </label>
                         <select name="batch_id" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
-                            @foreach($batches as $b)
-                                <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
-                                    {{ $b->name }}
-                                </option>
+                            <option value="">-- কোর্স ও ব্যাচ নির্বাচন করুন --</option>
+                            @php
+                                $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য / সাধারণ কোর্স');
+                            @endphp
+                            @foreach($batchesByCourse as $courseName => $courseBatches)
+                                <optgroup label="🎓 কোর্স: {{ $courseName }}">
+                                    @foreach($courseBatches as $b)
+                                        <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
+                                            {{ $b->name }} — [কোর্স: {{ $courseName }}]
+                                        </option>
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                     </div>
@@ -646,6 +685,35 @@
                         </button>
                     </div>
                 </form>
+
+                @if($selectedBatch)
+                <div style="margin-top:14px; padding:10px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:13px; color:#166534">
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-graduation-cap" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">কোর্স:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedBatch->course->name ?? 'কোর্স নির্ধারিত নেই' }}</strong>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-users" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">ব্যাচ:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedBatch->name }}</strong>
+                    </div>
+                    @if($isSemesterBased && $selectedSemester)
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-layer-group" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">সেমিস্টার:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedSemester->name }}</strong>
+                    </div>
+                    @endif
+                    @if($selectedSubject)
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-book" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">বিষয়:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedSubject->name }} ({{ $selectedSubject->code }})</strong>
+                    </div>
+                    @endif
+                </div>
+                @endif
             </div>
 
             {{-- Auto Attendance Action Card --}}
@@ -757,12 +825,22 @@
                 <form method="GET" action="{{ route('admin.result-book.index') }}" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end">
                     <input type="hidden" name="tab" value="batch_merit">
                     <div style="flex:1; min-width:260px">
-                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">ব্যাচ নির্বাচন করুন</label>
+                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
+                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> কোর্স ও ব্যাচ নির্বাচন করুন (Course & Batch)
+                        </label>
                         <select name="batch_id" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
-                            @foreach($batches as $b)
-                                <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
-                                    {{ $b->name }} ({{ $b->course->name ?? 'কোর্স' }})
-                                </option>
+                            <option value="">-- কোর্স ও ব্যাচ নির্বাচন করুন --</option>
+                            @php
+                                $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য / সাধারণ কোর্স');
+                            @endphp
+                            @foreach($batchesByCourse as $courseName => $courseBatches)
+                                <optgroup label="🎓 কোর্স: {{ $courseName }}">
+                                    @foreach($courseBatches as $b)
+                                        <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
+                                            {{ $b->name }} — [কোর্স: {{ $courseName }}]
+                                        </option>
+                                    @endforeach
+                                </optgroup>
                             @endforeach
                         </select>
                     </div>
@@ -772,6 +850,21 @@
                         </button>
                     </div>
                 </form>
+
+                @if($selectedBatch)
+                <div style="margin-top:14px; padding:10px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; font-size:13px; color:#166534">
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-graduation-cap" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">কোর্স:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedBatch->course->name ?? 'কোর্স নির্ধারিত নেই' }}</strong>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-users" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">ব্যাচ:</span>
+                        <strong style="color:#065f46; font-size:13.5px">{{ $selectedBatch->name }}</strong>
+                    </div>
+                </div>
+                @endif
             </div>
 
             <div class="tabulation-card">
