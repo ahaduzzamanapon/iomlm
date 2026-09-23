@@ -445,8 +445,8 @@
                 </div>
                 <div class="tree-children {{ $examsActive ? 'open' : '' }}">
                     <a href="{{ route('admin.exams.index') }}" class="nav-item {{ request()->routeIs('admin.exams.index', 'admin.exams.show', 'admin.exams.builder') ? 'active' : '' }}">
-                        <i class="fa-solid fa-file-pen"></i>
-                        Exams &amp; Results
+                        <i class="fa-solid fa-trophy" style="color:#eab308"></i>
+                        Exams &amp; Merit (একক মেধা তালিকা)
                     </a>
                     <a href="{{ route('admin.exams.appeals.index') }}" class="nav-item {{ request()->routeIs('admin.exams.appeals*') ? 'active' : '' }}">
                         <i class="fa-solid fa-file-circle-question"></i>

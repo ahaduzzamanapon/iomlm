@@ -77,14 +77,59 @@ class ResultBookController extends Controller
             ->orderByDesc('total_mark')
             ->get();
 
-        // Get exams for selected subject/semester to allow toggling CT/Mid/Final publish
+        // Get exams for selected subject/semester, batch, or general exams
         $exams = collect();
         if ($selectedSubject) {
-            $exams = Exam::where('subject_id', $selectedSubject->id)
+            $exams = Exam::with(['subject', 'semester.course'])
+                ->where('subject_id', $selectedSubject->id)
                 ->when($selectedSemester, fn($q) => $q->where(function ($q2) use ($selectedSemester) {
                     $q2->where('semester_id', $selectedSemester->id)->orWhereNull('semester_id');
                 }))
                 ->get();
+        } elseif ($selectedBatch && $selectedBatch->course) {
+            $subjectIds = $selectedBatch->course->subjects->pluck('id');
+            $exams = Exam::with(['subject', 'semester.course'])
+                ->whereIn('subject_id', $subjectIds)
+                ->when($selectedSemester, fn($q) => $q->where(function ($q2) use ($selectedSemester) {
+                    $q2->where('semester_id', $selectedSemester->id)->orWhereNull('semester_id');
+                }))
+                ->latest()
+                ->take(12)
+                ->get();
+        } else {
+            $exams = Exam::with(['subject', 'semester.course'])
+                ->latest()
+                ->take(8)
+                ->get();
+        }
+
+        // Exam lookup map for direct links from CT, Mid, and Final columns in table
+        $examLookup = collect();
+        foreach (Exam::all() as $e) {
+            $type = strtoupper($e->type);
+            $semId = $e->semester_id ?? 0;
+            
+            $types = [$type];
+            if ($type === 'QUIZ') {
+                $types[] = 'CLASS_TEST';
+                $types[] = 'CT';
+            } elseif ($type === 'CLASS_TEST' || $type === 'CT') {
+                $types[] = 'QUIZ';
+            }
+
+            foreach ($types as $t) {
+                $keys = [
+                    $e->subject_id . '_' . $semId . '_' . $t,
+                    $e->subject_id . '_0_' . $t,
+                    $e->subject_id . '_' . $t,
+                ];
+                foreach ($keys as $k) {
+                    if (!$examLookup->has($k)) {
+                        $examLookup->put($k, collect());
+                    }
+                    $examLookup->get($k)->push($e);
+                }
+            }
         }
 
         // Summary Statistics
@@ -97,7 +142,7 @@ class ResultBookController extends Controller
         return view('admin.result-book.index', compact(
             'batches', 'courses', 'subjects', 'semesters',
             'selectedBatch', 'selectedSubject', 'selectedSemester',
-            'finalMarks', 'exams',
+            'finalMarks', 'exams', 'examLookup',
             'totalStudents', 'passedCount', 'failedCount', 'publishedCount', 'avgScore'
         ));
     }

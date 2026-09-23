@@ -40,10 +40,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width:70px">Code</th>
-                        <th>Course Name</th>
-                        <th>Department</th>
-                        <th>Type</th>
+                        <th style="min-width:240px">কোর্স ও বিবরণ (Course Details)</th>
                         <th>Duration</th>
                         <th>Semesters</th>
                         <th>Fee (ভর্তি / রি-এডমিশন)</th>
@@ -55,25 +52,25 @@
                 <tbody>
                     @forelse($courses as $course)
                     <tr>
-                        <td>
-                            <span class="badge" style="background:#f1f5f9;color:#0f172a;border:1px solid #cbd5e1;font-family:monospace;font-size:13px;font-weight:800;letter-spacing:1px">
-                                {{ $course->formatted_code }}
-                            </span>
-                        </td>
                         <td class="td-primary">
-                            <a href="{{ route('admin.courses.show', $course) }}" style="font-weight:600;color:var(--blue)">{{ $course->name }}</a>
-                        </td>
-                        <td>
-                            <span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:11.5px;font-weight:600">
-                                {{ $course->department ?: 'BA in Dawah and Islamic Studies' }}
-                            </span>
-                        </td>
-                        <td>
-                            @if($course->type === 'SEMESTER_BASED')
-                                <span class="badge badge-scheduled no-dot">Semester Based</span>
-                            @else
-                                <span class="badge badge-secondary no-dot">Subject Based</span>
-                            @endif
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px; flex-wrap:wrap">
+                                <span class="badge" style="background:#f1f5f9; color:#0f172a; border:1px solid #cbd5e1; font-family:monospace; font-size:12px; font-weight:800; letter-spacing:0.5px; padding:2px 7px" title="কোর্স কোড">
+                                    {{ $course->formatted_code }}
+                                </span>
+                                <a href="{{ route('admin.courses.show', $course) }}" style="font-weight:800; color:#1d4ed8; font-size:14px; text-decoration:none">
+                                    {{ $course->name }}
+                                </a>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+                                <span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-size:11px; font-weight:600; padding:2px 7px" title="ডিপার্টমেন্ট / বিভাগ">
+                                    <i class="fa-solid fa-building-columns" style="font-size:10px; margin-right:3px"></i>{{ $course->department ?: 'BA in Dawah and Islamic Studies' }}
+                                </span>
+                                @if($course->type === 'SEMESTER_BASED')
+                                    <span class="badge badge-scheduled no-dot" style="font-size:10.5px; padding:2px 6px" title="কোর্সের ধরন">Semester Based</span>
+                                @else
+                                    <span class="badge badge-secondary no-dot" style="font-size:10.5px; padding:2px 6px" title="কোর্সের ধরন">Subject Based</span>
+                                @endif
+                            </div>
                         </td>
                         <td>{{ $course->duration_value }} {{ ucfirst(strtolower($course->duration_unit)) }}s</td>
                         <td>
@@ -130,7 +127,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted)">No courses found. Click "New Course" to create one.</td></tr>
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted)">No courses found. Click "New Course" to create one.</td></tr>
                     @endforelse
                 </tbody>
             </table>
