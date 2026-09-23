@@ -122,20 +122,47 @@
 
             {{-- Row 2: Dropdowns & Search Filter Controls --}}
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                {{-- Status Select --}}
-                <div style="min-width:180px">
-                    <select name="status" class="form-control" onchange="this.form.submit()"
+                {{-- Batch Select --}}
+                <div style="min-width:170px">
+                    <select name="batch_id" id="exam_filter_batch" class="form-control" onchange="this.form.submit()"
                             style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
-                        <option value="">-- সকল স্ট্যাটাস (All Status) --</option>
-                        <option value="SCHEDULED" {{ $currStatus === 'SCHEDULED' ? 'selected' : '' }}>● Scheduled (নির্ধারিত)</option>
-                        <option value="RUNNING" {{ $currStatus === 'RUNNING' ? 'selected' : '' }}>● Running (চলমান)</option>
-                        <option value="COMPLETED" {{ $currStatus === 'COMPLETED' ? 'selected' : '' }}>● Completed (সম্পন্ন)</option>
-                        <option value="CANCELLED" {{ $currStatus === 'CANCELLED' ? 'selected' : '' }}>● Cancelled (বাতিল)</option>
+                        <option value="">-- সকল ব্যাচ (All Batches) --</option>
+                        @foreach($batches as $b)
+                            <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>
+                                {{ $b->name }} ({{ $b->course->name ?? 'কোর্স' }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Semester Select --}}
+                <div style="min-width:170px">
+                    <select name="semester_id" id="exam_filter_semester" class="form-control" onchange="this.form.submit()"
+                            style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
+                        <option value="">-- সকল সেমিস্টার (All Semesters) --</option>
+                        @foreach($semesters as $sem)
+                            <option value="{{ $sem->id }}" data-course-id="{{ $sem->course_id }}" data-course-name="{{ $sem->course->name ?? '' }}" data-name="{{ $sem->name }}" {{ ($semesterId ?? '') == $sem->id ? 'selected' : '' }}>
+                                {{ $sem->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Exam Type Select --}}
+                <div style="min-width:160px">
+                    <select name="type" class="form-control" onchange="this.form.submit()"
+                            style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
+                        <option value="">-- পরীক্ষার ধরন (All Types) --</option>
+                        <option value="FINAL" {{ strtoupper($examType ?? '') === 'FINAL' ? 'selected' : '' }}>🏆 Final (ফাইনাল)</option>
+                        <option value="MIDTERM" {{ strtoupper($examType ?? '') === 'MIDTERM' ? 'selected' : '' }}>📝 Midterm (মিডটার্ম)</option>
+                        <option value="QUIZ" {{ strtoupper($examType ?? '') === 'QUIZ' ? 'selected' : '' }}>⚡ Class Test / Quiz (সিটি)</option>
+                        <option value="RETAKE" {{ strtoupper($examType ?? '') === 'RETAKE' ? 'selected' : '' }}>🔄 Retake (রিটেক)</option>
+                        <option value="PRACTICAL" {{ strtoupper($examType ?? '') === 'PRACTICAL' ? 'selected' : '' }}>🔬 Practical (ব্যবহারিক)</option>
                     </select>
                 </div>
 
                 {{-- Subject Select --}}
-                <div style="min-width:200px">
+                <div style="min-width:180px">
                     <select name="subject_id" class="form-control" onchange="this.form.submit()"
                             style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
                         <option value="">-- সকল বিষয় (All Subjects) --</option>
@@ -147,16 +174,28 @@
                     </select>
                 </div>
 
+                {{-- Status Select --}}
+                <div style="min-width:150px">
+                    <select name="status" class="form-control" onchange="this.form.submit()"
+                            style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
+                        <option value="">-- স্ট্যাটাস --</option>
+                        <option value="SCHEDULED" {{ $currStatus === 'SCHEDULED' ? 'selected' : '' }}>● Scheduled</option>
+                        <option value="RUNNING" {{ $currStatus === 'RUNNING' ? 'selected' : '' }}>● Running</option>
+                        <option value="COMPLETED" {{ $currStatus === 'COMPLETED' ? 'selected' : '' }}>● Completed</option>
+                        <option value="CANCELLED" {{ $currStatus === 'CANCELLED' ? 'selected' : '' }}>● Cancelled</option>
+                    </select>
+                </div>
+
                 {{-- Search Input --}}
-                <div style="flex:1;min-width:220px;position:relative">
+                <div style="flex:1;min-width:190px;position:relative">
                     <input type="text" name="search" value="{{ $currSearch }}" class="form-control"
-                           placeholder="পরীক্ষার নাম বা কোড দিয়ে খুঁজুন..."
+                           placeholder="পরীক্ষার নাম দিয়ে খুঁজুন..."
                            style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;padding-left:34px;padding-right:12px;width:100%">
                     <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:11px;top:12px;color:#94a3b8;font-size:13px"></i>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="height:38px;padding:0 18px;border-radius:8px;font-size:13px;font-weight:700">
-                    <i class="fa-solid fa-search"></i> খুঁজুন
+                <button type="submit" class="btn btn-primary" style="height:38px;padding:0 16px;border-radius:8px;font-size:13px;font-weight:700">
+                    <i class="fa-solid fa-filter"></i> ফিল্টার
                 </button>
             </div>
         </form>
@@ -616,6 +655,69 @@
         calcAssessmentMarks('edit');
         openModal('editExamModal');
     }
+
+    function setupBatchSemesterCascading(batchSelectId, semesterSelectId, defaultSemText) {
+        const batchSelect = typeof batchSelectId === 'string' ? document.getElementById(batchSelectId) : batchSelectId;
+        const semSelect = typeof semesterSelectId === 'string' ? document.getElementById(semesterSelectId) : semesterSelectId;
+        if (!batchSelect || !semSelect) return;
+
+        const allSemesterData = [];
+        Array.from(semSelect.options).forEach(opt => {
+            if (!opt.value) return;
+            allSemesterData.push({
+                value: opt.value,
+                courseId: String(opt.getAttribute('data-course-id') || ''),
+                courseName: opt.getAttribute('data-course-name') || '',
+                name: opt.getAttribute('data-name') || opt.text
+            });
+        });
+
+        function update() {
+            const selectedOption = batchSelect.options[batchSelect.selectedIndex];
+            const selectedCourseId = selectedOption ? String(selectedOption.getAttribute('data-course-id') || '') : '';
+            const currentSemVal = String(semSelect.value || '');
+
+            semSelect.innerHTML = '';
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = defaultSemText || '-- সকল সেমিস্টার (All Semesters) --';
+            semSelect.appendChild(defaultOpt);
+
+            if (selectedCourseId) {
+                const filtered = allSemesterData.filter(s => s.courseId === selectedCourseId);
+                filtered.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.value;
+                    opt.textContent = s.name;
+                    opt.setAttribute('data-course-id', s.courseId);
+                    opt.setAttribute('data-name', s.name);
+                    if (currentSemVal === String(s.value)) {
+                        opt.selected = true;
+                    }
+                    semSelect.appendChild(opt);
+                });
+            } else {
+                allSemesterData.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.value;
+                    opt.textContent = s.name + (s.courseName ? ` (${s.courseName})` : '');
+                    opt.setAttribute('data-course-id', s.courseId);
+                    opt.setAttribute('data-name', s.name);
+                    if (currentSemVal === String(s.value)) {
+                        opt.selected = true;
+                    }
+                    semSelect.appendChild(opt);
+                });
+            }
+        }
+
+        batchSelect.addEventListener('change', update);
+        update();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setupBatchSemesterCascading('exam_filter_batch', 'exam_filter_semester', '-- সকল সেমিস্টার (All Semesters) --');
+    });
     </script>
     @endpush
 </x-admin-layout>

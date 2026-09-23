@@ -108,24 +108,63 @@ class ResultBookController extends Controller
     public function override(Request $request, FinalMark $finalMark)
     {
         $validated = $request->validate([
+            'class_test_obtained'  => 'nullable|numeric|min:0|max:100',
             'class_test_converted' => 'nullable|numeric|min:0|max:100',
+            'midterm_obtained'     => 'nullable|numeric|min:0|max:100',
             'midterm_converted'    => 'nullable|numeric|min:0|max:100',
+            'final_obtained'       => 'nullable|numeric|min:0|max:100',
             'final_converted'      => 'nullable|numeric|min:0|max:100',
             'attendance_converted' => 'nullable|numeric|min:0|max:100',
             'remarks'              => 'nullable|string|max:500',
         ]);
 
+        $ctOb = $request->filled('class_test_obtained') ? (float) $request->class_test_obtained : null;
+        $ctConv = $request->filled('class_test_converted') ? (float) $request->class_test_converted : null;
+        if ($ctOb !== null && $ctConv === null) {
+            $ctConv = round(($ctOb / FinalMark::CLASS_TEST_FULL) * FinalMark::CLASS_TEST_CONVERT, 2);
+        } elseif ($ctConv !== null && $ctOb === null) {
+            $ctOb = round(($ctConv / FinalMark::CLASS_TEST_CONVERT) * FinalMark::CLASS_TEST_FULL, 2);
+        }
+
+        $midOb = $request->filled('midterm_obtained') ? (float) $request->midterm_obtained : null;
+        $midConv = $request->filled('midterm_converted') ? (float) $request->midterm_converted : null;
+        if ($midOb !== null && $midConv === null) {
+            $midConv = round(($midOb / FinalMark::MIDTERM_FULL) * FinalMark::MIDTERM_CONVERT, 2);
+        } elseif ($midConv !== null && $midOb === null) {
+            $midOb = round(($midConv / FinalMark::MIDTERM_CONVERT) * FinalMark::MIDTERM_FULL, 2);
+        }
+
+        $finOb = $request->filled('final_obtained') ? (float) $request->final_obtained : null;
+        $finConv = $request->filled('final_converted') ? (float) $request->final_converted : null;
+        if ($finOb !== null && $finConv === null) {
+            $finConv = round(($finOb / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2);
+        } elseif ($finConv !== null && $finOb === null) {
+            $finOb = round(($finConv / FinalMark::FINAL_CONVERT) * FinalMark::FINAL_FULL, 2);
+        }
+
+        $attConv = $request->filled('attendance_converted') ? (float) $request->attendance_converted : null;
+
+        $updates = [
+            'class_test_obtained'  => $ctOb,
+            'class_test_converted' => $ctConv,
+            'midterm_obtained'     => $midOb,
+            'midterm_converted'    => $midConv,
+            'final_obtained'       => $finOb,
+            'final_converted'      => $finConv,
+            'attendance_converted' => $attConv,
+        ];
+
         if ($request->has('remarks')) {
             $finalMark->remarks = $validated['remarks'] ?? null;
         }
 
-        $finalMark->recalculate($validated);
+        $finalMark->recalculate($updates);
 
         // Re-evaluate batch merit ranks
         FinalMark::recalculateMeritRanks($finalMark->batch_id, $finalMark->subject_id, $finalMark->semester_id);
 
         $studentName = $finalMark->student->name ?? 'শিক্ষার্থী';
-        return back()->with('success', "✅ শিক্ষার্থী '{$studentName}'-এর ফলাফল ম্যানুয়ালি সংশোধন করা হয়েছে। নতুন মোট: {$finalMark->total_mark} (গ্রেড: {$finalMark->grade}, মেধাক্রম: {$finalMark->merit_rank_bengali})");
+        return back()->with('success', "✅ শিক্ষার্থী '{$studentName}'-এর ফলাফল ম্যানুয়ালি সংশোধন করা হয়েছে। মোট প্রাপ্ত: {$finalMark->raw_total_obtained}/{$finalMark->raw_total_full_marks}, ১০০% রূপান্তর: {$finalMark->total_mark} (গ্রেড: {$finalMark->grade}, জিপিএ: {$finalMark->gpa})");
     }
 
     /**

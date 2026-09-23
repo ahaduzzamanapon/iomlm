@@ -135,6 +135,63 @@ class FinalMark extends Model
         ];
     }
 
+    public function getRawClassTestAttribute(): ?float
+    {
+        if ($this->class_test_obtained !== null) {
+            return (float) $this->class_test_obtained;
+        }
+        if ($this->class_test_converted !== null) {
+            return round(($this->class_test_converted / self::CLASS_TEST_CONVERT) * self::CLASS_TEST_FULL, 1);
+        }
+        return null;
+    }
+
+    public function getRawMidtermAttribute(): ?float
+    {
+        if ($this->midterm_obtained !== null) {
+            return (float) $this->midterm_obtained;
+        }
+        if ($this->midterm_converted !== null) {
+            return round(($this->midterm_converted / self::MIDTERM_CONVERT) * self::MIDTERM_FULL, 1);
+        }
+        return null;
+    }
+
+    public function getRawFinalAttribute(): ?float
+    {
+        if ($this->final_obtained !== null) {
+            return (float) $this->final_obtained;
+        }
+        if ($this->final_converted !== null) {
+            return round(($this->final_converted / self::FINAL_CONVERT) * self::FINAL_FULL, 1);
+        }
+        return null;
+    }
+
+    public function getRawAttendanceAttribute(): ?float
+    {
+        if ($this->attendance_converted !== null) {
+            return (float) $this->attendance_converted;
+        }
+        return null;
+    }
+
+    public function getRawTotalObtainedAttribute(): float
+    {
+        return round(
+            ($this->raw_class_test ?? 0) +
+            ($this->raw_midterm ?? 0) +
+            ($this->raw_final ?? 0) +
+            ($this->raw_attendance ?? 0),
+            2
+        );
+    }
+
+    public function getRawTotalFullMarksAttribute(): float
+    {
+        return (float) (self::CLASS_TEST_FULL + self::MIDTERM_FULL + self::FINAL_FULL + self::ATTENDANCE_CONVERT);
+    }
+
     public function getQawmiGradeAttribute(): array
     {
         return self::calculateQawmiGrade((float) $this->total_mark, (float) $this->gpa);

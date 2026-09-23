@@ -17,14 +17,37 @@ class ExamController extends Controller
 {
     public function index(Request $request)
     {
-        $status    = $request->query('status');
-        $subjectId = $request->query('subject_id');
-        $search    = $request->query('search');
+        $status     = $request->query('status');
+        $subjectId  = $request->query('subject_id');
+        $search     = $request->query('search');
+        $examType   = $request->query('type');
+        $batchId    = $request->query('batch_id');
+        $semesterId = $request->query('semester_id');
 
-        $query = Exam::with(['subject', 'attendees.student']);
+        $query = Exam::with(['subject', 'semester', 'attendees.student']);
 
         if ($status && in_array(strtoupper($status), ['SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELLED'])) {
             $query->where('status', strtoupper($status));
+        }
+
+        if ($examType && in_array(strtoupper($examType), ['FINAL', 'MIDTERM', 'QUIZ', 'RETAKE', 'PRACTICAL'])) {
+            $query->where('type', strtoupper($examType));
+        }
+
+        if ($semesterId) {
+            $query->where('semester_id', $semesterId);
+        }
+
+        if ($batchId) {
+            $batch = Batch::with('course.semesters', 'course.subjects')->find($batchId);
+            if ($batch && $batch->course) {
+                $batchCourseSubjectIds = $batch->course->subjects->pluck('id');
+                $batchCourseSemIds     = $batch->course->semesters->pluck('id');
+                $query->where(function ($q) use ($batchCourseSubjectIds, $batchCourseSemIds) {
+                    $q->whereIn('subject_id', $batchCourseSubjectIds)
+                      ->orWhereIn('semester_id', $batchCourseSemIds);
+                });
+            }
         }
 
         if ($subjectId) {
@@ -41,8 +64,10 @@ class ExamController extends Controller
             });
         }
 
-        $exams    = $query->latest()->get();
-        $subjects = Subject::where('is_active', true)->orderBy('name')->get();
+        $exams     = $query->latest()->get();
+        $subjects  = Subject::where('is_active', true)->orderBy('name')->get();
+        $batches   = Batch::with('course.semesters')->orderByDesc('id')->get();
+        $semesters = Semester::orderBy('sequence_no')->get();
 
         $statusCounts = [
             'ALL'       => Exam::count(),
@@ -52,7 +77,10 @@ class ExamController extends Controller
             'CANCELLED' => Exam::where('status', 'CANCELLED')->count(),
         ];
 
-        return view('admin.exams.index', compact('exams', 'subjects', 'status', 'subjectId', 'search', 'statusCounts'));
+        return view('admin.exams.index', compact(
+            'exams', 'subjects', 'batches', 'semesters',
+            'status', 'subjectId', 'search', 'examType', 'batchId', 'semesterId', 'statusCounts'
+        ));
     }
 
     public function store(Request $request)
@@ -136,8 +164,91 @@ class ExamController extends Controller
 
     public function show(Exam $exam)
     {
-        $exam->load(['subject', 'attendees.student', 'results.student', 'submissions.student', 'examQuestions.question', 'appeals.student']);
-        return view('admin.exams.show', compact('exam'));
+        $exam->load([
+            'subject',
+            'semester.course',
+            'attendees.student',
+            'results.student',
+            'submissions.student',
+            'examQuestions.question',
+            'appeals.student'
+        ]);
+
+        $results = $exam->results;
+        $allStudentScores = [];
+
+        foreach ($results as $res) {
+            if (!$res->student) continue;
+            $allStudentScores[$res->student_id] = [
+                'student'       => $res->student,
+                'marks'         => (float) $res->marks,
+                'mcq_marks'     => $res->mcq_marks,
+                'written_marks' => $res->written_marks,
+                'tamrin_marks'  => $res->tamrin_marks,
+                'viva_marks'    => $res->viva_marks,
+                'grade'         => $res->grade,
+                'status'        => $res->status,
+                'attempt_no'    => $res->attempt_no ?? 1,
+            ];
+        }
+
+        foreach ($exam->submissions as $sub) {
+            if (!$sub->student) continue;
+            if (!isset($allStudentScores[$sub->student_id])) {
+                $status = ($sub->total_score >= $exam->pass_marks) ? 'PASS' : 'FAIL';
+                $pct = $exam->full_marks > 0 ? (($sub->total_score / $exam->full_marks) * 100) : 0;
+                $grade = match(true) {
+                    $pct >= 80 => 'A+',
+                    $pct >= 70 => 'A',
+                    $pct >= 60 => 'A-',
+                    $pct >= 50 => 'B',
+                    $pct >= 40 => 'C',
+                    default    => 'F',
+                };
+                $allStudentScores[$sub->student_id] = [
+                    'student'       => $sub->student,
+                    'marks'         => (float) $sub->total_score,
+                    'mcq_marks'     => $sub->mcq_score,
+                    'written_marks' => $sub->written_score,
+                    'tamrin_marks'  => $sub->tamrin_score,
+                    'viva_marks'    => $sub->viva_score,
+                    'grade'         => $grade,
+                    'status'        => $status,
+                    'attempt_no'    => 1,
+                ];
+            }
+        }
+
+        // Sort descending by marks
+        usort($allStudentScores, fn($a, $b) => $b['marks'] <=> $a['marks']);
+
+        $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        foreach ($allStudentScores as $idx => &$item) {
+            $pos = $idx + 1;
+            $bnNum = str_replace(range(0, 9), $bnDigits, (string) $pos);
+            $suffix = match($pos) {
+                1 => 'ম',
+                2, 3 => 'য়',
+                4 => 'র্থ',
+                default => 'ম'
+            };
+            $item['merit_rank_bengali'] = $bnNum . $suffix;
+            $item['merit_position'] = $pos;
+
+            $fullMarks = $exam->full_marks > 0 ? $exam->full_marks : 100;
+            $pct = round(($item['marks'] / $fullMarks) * 100, 1);
+            $item['percentage'] = $pct;
+            $item['qawmi_grade'] = \App\Models\FinalMark::calculateQawmiGrade($pct);
+            if (empty($item['grade'])) {
+                $gInfo = \App\Models\FinalMark::calculateGrade($pct);
+                $item['grade'] = $gInfo['grade'];
+            }
+        }
+        unset($item);
+
+        $meritList = collect($allStudentScores);
+
+        return view('admin.exams.show', compact('exam', 'meritList'));
     }
 
     public function update(Request $request, Exam $exam)
