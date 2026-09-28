@@ -49,12 +49,26 @@
                 <p style="margin:4px 0 0;font-size:12px;color:#047857">
                     অনুমোদনের তারিখ: {{ $latestAppeal->reviewed_at?->format('d M Y, h:i A') }}
                     @if($latestAppeal->admin_remarks) &middot; মন্তব্য: "{{ $latestAppeal->admin_remarks }}" @endif
-                    <br>আপনার পূর্বের খাতা রিসেট করা হয়েছে। আপনি এখন পুনরায় নতুন করে পরীক্ষা দিতে পারবেন।
+                    @if(($latestAppeal->fee_amount ?? 0) > 0)
+                        &middot; <strong>ফি: ৳{{ number_format($latestAppeal->fee_amount, 0) }} ({{ $latestAppeal->isPaid() ? 'পরিশোধিত' : 'বকেয়া' }})</strong>
+                    @endif
+                    <br>
+                    @if($latestAppeal->requiresPayment())
+                        পরীক্ষায় বসার পূর্বে নির্ধারিত ফি (৳{{ number_format($latestAppeal->fee_amount, 0) }}) পরিশোধ করতে হবে। ফি পরিশোধের পর পরীক্ষা শুরু করতে পারবেন।
+                    @else
+                        আপনার পূর্বের খাতা রিসেট করা হয়েছে। আপনি এখন পুনরায় নতুন করে পরীক্ষা দিতে পারবেন।
+                    @endif
                 </p>
             </div>
-            <a href="{{ route('student.exams.take', $exam) }}" class="btn btn-primary" style="background:#059669;border-color:#047857;color:#fff;font-weight:700;padding:10px 20px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(5,150,105,0.3)">
-                <i class="fa-solid fa-rotate-right"></i> পুনরায় পরীক্ষা শুরু করুন (Start Re-Exam)
-            </a>
+            @if($latestAppeal->requiresPayment())
+                <a href="{{ route('student.fees.index') }}" class="btn btn-primary" style="background:#0284c7;border-color:#0369a1;color:#fff;font-weight:700;padding:10px 20px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(2,132,199,0.3)">
+                    <i class="fa-solid fa-credit-card"></i> ফি পরিশোধ করুন (৳{{ number_format($latestAppeal->fee_amount, 0) }})
+                </a>
+            @else
+                <a href="{{ route('student.exams.take', $exam) }}" class="btn btn-primary" style="background:#059669;border-color:#047857;color:#fff;font-weight:700;padding:10px 20px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(5,150,105,0.3)">
+                    <i class="fa-solid fa-rotate-right"></i> পুনরায় পরীক্ষা শুরু করুন (Start Re-Exam)
+                </a>
+            @endif
         </div>
     @elseif(isset($latestAppeal) && $latestAppeal && $latestAppeal->isPending())
         <div style="background:#fefce8;border:1.5px solid #fef08a;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
@@ -190,23 +204,38 @@
                 {{-- MCQ Options --}}
                 @if($q->question_type === 'MCQ')
                 @php
-                    $rightOpt = strtolower($q->correct_option_id ?? '');
-                    $userOpt  = strtolower($answer?->selected_option_id ?? '');
+                    $shuffledData = $submission->shuffled_options[$q->id] ?? null;
+                    $displayOptions = (!empty($shuffledData['options'])) ? $shuffledData['options'] : ($q->options ?? []);
+                    $rightOpt = $shuffledData && !empty($shuffledData['correct_option_id'])
+                        ? strtolower(trim($shuffledData['correct_option_id']))
+                        : strtolower(trim($q->correct_option_id ?? ''));
+                    $userOpt  = strtolower(trim($answer?->selected_option_id ?? ''));
                 @endphp
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
-                    @foreach($q->options ?? [] as $opt)
+                    @foreach($displayOptions as $opt)
                     @php
-                        $optId  = strtolower($opt['id'] ?? '');
-                        $isCorr = $optId === $rightOpt;
-                        $isUser = $optId === $userOpt && !($answer?->is_correct);
+                        $optId       = strtolower(trim($opt['id'] ?? ''));
+                        $isCorr      = ($optId !== '' && $optId === $rightOpt);
+                        $isUser      = ($optId !== '' && $optId === $userOpt);
+                        $isUserWrong = ($isUser && !$answer?->is_correct);
+                        $isUserRight = ($isUser && $answer?->is_correct);
+
                         $bg     = '#fff'; $border = '#e2e8f0';
-                        if ($isCorr)      { $bg = '#dcfce7'; $border = '#86efac'; }
-                        elseif ($isUser)  { $bg = '#fee2e2'; $border = '#fca5a5'; }
+                        if ($isCorr) {
+                            $bg = '#dcfce7'; $border = '#86efac';
+                        } elseif ($isUserWrong) {
+                            $bg = '#fee2e2'; $border = '#fca5a5';
+                        }
                     @endphp
                     <div style="background:{{ $bg }};border:1px solid {{ $border }};padding:8px 12px;border-radius:6px">
                         <strong>{{ strtoupper($optId) }}:</strong> {{ $opt['text'] ?? '' }}
-                        @if($isCorr) <span style="color:#166534;font-weight:700"> (সঠিক উত্তর)</span> @endif
-                        @if($isUser) <span style="color:#991b1b;font-weight:700"> (আপনার উত্তর)</span> @endif
+                        @if($isUserRight)
+                            <span style="color:#166534;font-weight:700"> (আপনার উত্তর - সঠিক ✓)</span>
+                        @elseif($isCorr)
+                            <span style="color:#166534;font-weight:700"> (সঠিক উত্তর)</span>
+                        @elseif($isUserWrong)
+                            <span style="color:#991b1b;font-weight:700"> (আপনার উত্তর - ভুল ✗)</span>
+                        @endif
                     </div>
                     @endforeach
                 </div>

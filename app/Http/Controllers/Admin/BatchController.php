@@ -16,12 +16,41 @@ use Illuminate\Support\Str;
 
 class BatchController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $batches = Batch::with(['course', 'academicYear'])->withCount('classSessions')->latest()->get();
-        $courses = Course::where('is_active', true)->orderBy('name')->get();
+        $courseId       = $request->query('course_id');
+        $academicYearId = $request->query('academic_year_id');
+        $status         = $request->query('status');
+        $search         = $request->query('search');
+
+        $query = Batch::with(['course', 'academicYear'])->withCount('classSessions')->latest();
+
+        if ($courseId) {
+            $query->where('course_id', $courseId);
+        }
+
+        if ($academicYearId) {
+            $query->where('academic_year_id', $academicYearId);
+        }
+
+        if ($status) {
+            $query->where('status', strtoupper($status));
+        }
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('batch_code', 'like', "%{$search}%");
+            });
+        }
+
+        $batches       = $query->get();
+        $courses       = Course::where('is_active', true)->orderBy('name')->get();
         $academicYears = AcademicYear::where('is_active', true)->orderBy('name')->get();
-        return view('admin.batches.index', compact('batches', 'courses', 'academicYears'));
+
+        return view('admin.batches.index', compact(
+            'batches', 'courses', 'academicYears', 'courseId', 'academicYearId', 'status', 'search'
+        ));
     }
 
     public function store(Request $request)

@@ -90,6 +90,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('classes/{class}/complete', [\App\Http\Controllers\Admin\ClassSessionController::class, 'markComplete'])->name('classes.complete');
         Route::post('classes/{class}/cancel', [\App\Http\Controllers\Admin\ClassSessionController::class, 'markCancelled'])->name('classes.cancel');
         Route::post('classes/{class}/attendance', [\App\Http\Controllers\Admin\ClassSessionController::class, 'updateAttendance'])->name('classes.updateAttendance');
+        Route::post('classes/{class}/recording', [\App\Http\Controllers\Admin\ClassSessionController::class, 'updateRecording'])->name('classes.recording');
 
         // Routine
         Route::get('routine', [\App\Http\Controllers\Admin\RoutineController::class, 'index'])->name('routine.index');

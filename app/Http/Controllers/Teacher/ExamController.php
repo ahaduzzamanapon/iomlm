@@ -364,13 +364,51 @@ class ExamController extends Controller
         $backUrl = route('teacher.exams.show', $exam);
         $savedAnswers = collect();
 
-        return view('student.exams.take', compact('exam', 'isTestMode', 'testSubmitRoute', 'backUrl', 'savedAnswers'));
+        // Shuffled options for test exam mode
+        $testShuffled = [];
+        $letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        foreach ($exam->examQuestions as $eq) {
+            $q = $eq->question;
+            if (!$q || $q->question_type !== 'MCQ') continue;
+            $rawOptions = is_array($q->options) ? $q->options : [];
+            if (count($rawOptions) > 1) {
+                $shuffledRaw     = collect($rawOptions)->shuffle()->values()->all();
+                $shuffledList    = [];
+                $shuffledCorrect = null;
+                $origCorrect     = strtolower(trim($q->correct_option_id ?? ''));
+
+                foreach ($shuffledRaw as $idx => $opt) {
+                    $newLetter  = $letters[$idx] ?? chr(97 + $idx);
+                    $origLetter = strtolower(trim($opt['id'] ?? ''));
+
+                    if ($origLetter === $origCorrect) {
+                        $shuffledCorrect = $newLetter;
+                    }
+
+                    $shuffledList[] = [
+                        'id'          => $newLetter,
+                        'text'        => $opt['text'] ?? '',
+                        'original_id' => $origLetter,
+                    ];
+                }
+
+                $testShuffled[$q->id] = [
+                    'options'           => $shuffledList,
+                    'correct_option_id' => $shuffledCorrect,
+                    'original_correct'  => $origCorrect,
+                ];
+            }
+        }
+        session(["test_exam_shuffled_{$exam->id}" => $testShuffled]);
+
+        return view('student.exams.take', compact('exam', 'isTestMode', 'testSubmitRoute', 'backUrl', 'savedAnswers', 'testShuffled'));
     }
 
     public function submitTestExam(Request $request, Exam $exam)
     {
         $exam->load('examQuestions.question');
         $answersInput = $request->input('answers', []);
+        $testShuffled = session("test_exam_shuffled_{$exam->id}", []);
 
         $mcqQuestions = $exam->examQuestions->filter(fn($eq) => $eq->question?->question_type === 'MCQ');
         $writtenQuestions = $exam->examQuestions->filter(fn($eq) => $eq->question?->question_type === 'WRITTEN');
@@ -383,7 +421,9 @@ class ExamController extends Controller
         foreach ($mcqQuestions as $eq) {
             $q = $eq->question;
             $userAns = isset($answersInput[$q->id]) ? strtolower(trim($answersInput[$q->id])) : null;
-            $correctAns = strtolower(trim($q->correct_option_id ?? ''));
+            $correctAns = !empty($testShuffled[$q->id]['correct_option_id'])
+                ? strtolower(trim($testShuffled[$q->id]['correct_option_id']))
+                : strtolower(trim($q->correct_option_id ?? ''));
 
             if ($userAns === null || $userAns === '') {
                 $unansweredCount++;
@@ -410,6 +450,7 @@ class ExamController extends Controller
             'totalMcq'          => $mcqQuestions->count(),
             'writtenCount'      => $writtenQuestions->count(),
             'answersInput'      => $answersInput,
+            'testShuffled'      => $testShuffled,
             'backUrl'           => route('teacher.exams.show', $exam),
         ]);
     }
@@ -460,6 +501,13 @@ class ExamController extends Controller
      */
     public function approveAppeal(Request $request, ExamAppeal $appeal)
     {
+        $request->validate([
+            'fee_amount' => 'nullable|numeric|min:0',
+            'remarks'    => 'nullable|string|max:1000',
+        ]);
+
+        $feeRate = max(0, (float) $request->input('fee_amount', 0));
+
         if ($appeal->submission_id) {
             \App\Models\ExamAnswer::where('submission_id', $appeal->submission_id)->delete();
             \App\Models\ExamSubmission::where('id', $appeal->submission_id)->delete();
@@ -474,14 +522,21 @@ class ExamController extends Controller
         }
 
         $appeal->update([
-            'status'        => 'APPROVED',
-            'reviewed_by'   => auth()->id(),
-            'reviewed_at'   => now(),
-            'admin_remarks' => $request->input('remarks'),
+            'status'         => 'APPROVED',
+            'fee_amount'     => $feeRate,
+            'payment_status' => $feeRate > 0 ? 'UNPAID' : 'PAID',
+            'reviewed_by'    => auth()->id(),
+            'reviewed_at'    => now(),
+            'admin_remarks'  => $request->input('remarks'),
         ]);
 
+        if ($feeRate > 0 && $appeal->student) {
+            \App\Services\AccountingService::createReExamAppealInvoice($appeal->student, $appeal, $feeRate);
+        }
+
         $studentName = $appeal->student?->name ?? 'শিক্ষার্থী';
-        return back()->with('success', "{$studentName}-এর পুনরায় পরীক্ষার আপিল সফলভাবে অনুমোদন করা হয়েছে এবং পূর্বের খাতা রিসেট করা হয়েছে।");
+        $feeMsg = $feeRate > 0 ? " এবং ৳" . number_format($feeRate, 0) . " ফি নির্ধারণ করা হয়েছে (ফি পরিশোধের পর শিক্ষার্থী পরীক্ষা দিতে পারবেন)" : "। শিক্ষার্থী এখন সরাসরি পরীক্ষা দিতে পারবেন";
+        return back()->with('success', "{$studentName}-এর পুনরায় পরীক্ষার আপিল সফলভাবে অনুমোদন করা হয়েছে{$feeMsg}।");
     }
 
     /**

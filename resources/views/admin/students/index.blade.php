@@ -268,6 +268,59 @@
             color: #64748b;
             margin-top: 2px;
         }
+
+        /* Action Dropdown Menu */
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-menu {
+            position: absolute;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+            min-width: 195px;
+            z-index: 9999;
+            display: none;
+            overflow: hidden;
+            padding: 6px 0;
+            text-align: left;
+        }
+        .dropdown-menu.open { display: block !important; }
+        .table-wrapper:has(.dropdown-menu.open),
+        .card:has(.dropdown-menu.open),
+        td:has(.dropdown-menu.open) {
+            overflow: visible !important;
+        }
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 16px;
+            font-size: 13px;
+            color: #1e293b;
+            text-decoration: none;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            font-family: 'Kalpurush', sans-serif;
+            font-weight: 600;
+        }
+        .dropdown-item:hover {
+            background: #f8fafc;
+            color: #047857;
+        }
+        .dropdown-item i {
+            width: 16px;
+            text-align: center;
+            font-size: 13px;
+        }
+        .dropdown-divider {
+            height: 1px;
+            background: #f1f5f9;
+            margin: 4px 0;
+        }
     </style>
 
     <div class="student-roster">
@@ -284,7 +337,7 @@
                 <a href="{{ route('admin.students.export-csv', request()->query()) }}" class="btn btn-outline" style="border-color:#059669;color:#047857;font-weight:700" title="বর্তমান ফিল্টার অনুযায়ী CSV ফাইল ডাউনলোড করুন">
                     <i class="fa-solid fa-file-csv"></i> এক্সপোর্ট CSV
                 </a>
-                <a href="{{ route('admin.students.create') }}" class="btn btn-primary" style="background:#047857;border-color:#047857">
+                <a href="{{ route('admin.admissions.create') }}" class="btn btn-primary" style="background:#047857;border-color:#047857">
                     <i class="fa-solid fa-user-plus"></i> নতুন শিক্ষার্থী ভর্তি
                 </a>
             </div>
@@ -498,7 +551,7 @@
         @endif
 
         <!-- Students Table -->
-        <div class="card" style="box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);border: 1px solid #e2e8f0;border-radius:14px;overflow:hidden">
+        <div class="card" style="box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);border: 1px solid #e2e8f0;border-radius:14px">
             <div class="table-wrapper">
                 <table style="width:100%;margin-bottom:0">
                     <thead style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
@@ -606,26 +659,41 @@
                                 </span>
                             </td>
 
-                            <!-- Action Buttons -->
+                            <!-- Action Dropdown -->
                             <td style="text-align:right;white-space:nowrap;padding:14px 16px">
-                                <a href="{{ route('admin.students.impersonate', $st) }}"
-                                   class="btn btn-outline btn-sm"
-                                   style="color:#047857;border-color:#a7f3d0;margin-right:4px;display:inline-flex;align-items:center;gap:4px"
-                                   title="শিক্ষার্থী হিসেবে লগইন">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-                                    <span>লগইন</span>
-                                </a>
-                                <a href="{{ route('admin.students.accounts', $st) }}"
-                                   class="btn btn-outline btn-sm"
-                                   style="color:#4f46e5;border-color:#c7d2fe;margin-right:4px"
-                                   title="লেজার ও ফি হিসাব">
-                                    <i class="fa-solid fa-wallet"></i> লেজার
-                                </a>
-                                <a href="{{ route('admin.students.show', $st) }}"
-                                   class="btn btn-outline btn-sm"
-                                   style="border-color:#cbd5e1">
-                                    প্রোফাইল →
-                                </a>
+                                <div class="dropdown" style="display:inline-block;position:relative">
+                                    <button type="button"
+                                            class="btn btn-outline btn-sm"
+                                            onclick="toggleDropdown('stact-{{ $st->id }}')"
+                                            style="display:inline-flex;align-items:center;gap:6px;font-family:'Kalpurush',sans-serif;font-weight:700;border-color:#cbd5e1;color:#1e293b;padding:5px 12px;border-radius:7px;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.04)"
+                                            title="শিক্ষার্থী অ্যাকশন মেনু">
+                                        <span>অ্যাকশন</span>
+                                        <i class="fa-solid fa-chevron-down" style="font-size:10px;color:#64748b"></i>
+                                    </button>
+                                    <div class="dropdown-menu" id="stact-{{ $st->id }}" style="right:0;min-width:195px;text-align:left;font-family:'Kalpurush',sans-serif">
+                                        <a href="{{ route('admin.students.show', $st) }}" class="dropdown-item">
+                                            <i class="fa-solid fa-user" style="color:#047857"></i>
+                                            <span>প্রোফাইল দেখুন</span>
+                                        </a>
+                                        <a href="{{ route('admin.students.impersonate', $st) }}" class="dropdown-item" title="শিক্ষার্থী হিসেবে লগইন">
+                                            <i class="fa-solid fa-right-to-bracket" style="color:#0284c7"></i>
+                                            <span>শিক্ষার্থী লগইন</span>
+                                        </a>
+                                        <a href="{{ route('admin.students.accounts', $st) }}" class="dropdown-item" title="লেজার ও ফি হিসাব">
+                                            <i class="fa-solid fa-wallet" style="color:#4f46e5"></i>
+                                            <span>লেজার ও ফি হিসাব</span>
+                                        </a>
+                                        <a href="{{ route('admin.students.id-card', $st) }}" target="_blank" class="dropdown-item" title="আইডি কার্ড প্রিন্ট করুন">
+                                            <i class="fa-solid fa-id-card" style="color:#d97706"></i>
+                                            <span>আইডি কার্ড</span>
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a href="{{ route('admin.students.edit', $st) }}" class="dropdown-item" title="তথ্য সম্পাদনা">
+                                            <i class="fa-solid fa-pen-to-square" style="color:#2563eb"></i>
+                                            <span>তথ্য সম্পাদনা</span>
+                                        </a>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                         @empty

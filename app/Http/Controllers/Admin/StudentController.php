@@ -120,6 +120,22 @@ class StudentController extends Controller
     }
 
     /**
+     * Show the form for creating a new student (redirects to central admission form).
+     */
+    public function create()
+    {
+        return redirect()->route('admin.admissions.create');
+    }
+
+    /**
+     * Store a newly created student (delegates to AdmissionController).
+     */
+    public function store(Request $request)
+    {
+        return app(\App\Http\Controllers\Admin\AdmissionController::class)->store($request);
+    }
+
+    /**
      * Export filtered student list to CSV (with UTF-8 BOM for Excel)
      */
     public function exportCsv(Request $request)

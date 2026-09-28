@@ -152,9 +152,20 @@ class RoutineController extends Controller
             ]];
         })->all();
 
+        $extraQuery = ClassSession::with(['subject', 'batch', 'teacher'])
+            ->extra()
+            ->whereDate('session_date', '>=', today())
+            ->orderBy('session_date')
+            ->orderBy('start_time');
+
+        if ($selectedBatchId) {
+            $extraQuery->where('batch_id', $selectedBatchId);
+        }
+        $upcomingExtraClasses = $extraQuery->limit(10)->get();
+
         return view('admin.routine.index', compact(
             'slots', 'batches', 'batchData', 'days', 'entries', 'weekends',
-            'batchColors', 'subjects', 'teachers', 'selectedBatchId', 'selectedGroup', 'holidays', 'subjectTeachers'
+            'batchColors', 'subjects', 'teachers', 'selectedBatchId', 'selectedGroup', 'holidays', 'subjectTeachers', 'upcomingExtraClasses'
         ));
     }
 

@@ -17,10 +17,53 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>My Weekly Class Routine</h1>
-            <p>Your batch's scheduled weekly classes at a glance</p>
+            <h1 style="font-family:'Kalpurush',sans-serif">সাপ্তাহিক ক্লাস রুটিন (My Class Routine)</h1>
+            <p style="font-family:'Kalpurush',sans-serif">আপনার ব্যাচের নিয়মিত সাপ্তাহিক রুটিন ও রুটিনের বাইরের অতিরিক্ত ক্লাস</p>
         </div>
     </div>
+
+    {{-- Upcoming Extra Classes Outside Routine --}}
+    @if(isset($upcomingExtraClasses) && $upcomingExtraClasses->isNotEmpty())
+        <div class="card" style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:16px;margin-bottom:20px;font-family:'Kalpurush',sans-serif">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                <div style="font-weight:700;font-size:14px;color:#92400e;display:flex;align-items:center;gap:8px">
+                    <span style="display:inline-flex;width:10px;height:10px;border-radius:50%;background:#d97706;box-shadow:0 0 8px #d97706"></span>
+                    <i class="fa-solid fa-bullhorn" style="color:#d97706"></i> বিশেষ নোটিশ: রুটিনের বাইরে নির্ধারিত এক্সট্রা ক্লাস (Extra Classes Outside Routine)
+                </div>
+                <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px">
+                    {{ $upcomingExtraClasses->count() }}টি এক্সট্রা ক্লাস নির্ধারিত আছে
+                </span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px">
+                @foreach($upcomingExtraClasses as $ec)
+                <div style="background:#ffffff;border:1px solid #fed7aa;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
+                    <div>
+                        <div style="font-weight:700;font-size:13.5px;color:#1e293b">{{ $ec->subject?->name ?? '—' }}</div>
+                        <div style="font-size:12px;color:#b45309;font-weight:600;margin-top:2px">
+                            <i class="fa-regular fa-calendar-check"></i> {{ $ec->session_date ? $ec->session_date->format('d M Y (D)') : '' }}
+                            &middot; {{ $ec->start_time ? \Carbon\Carbon::parse($ec->start_time)->format('h:i A') : '' }}
+                        </div>
+                        @if($ec->title)
+                            <div style="font-size:11.5px;color:#475569;margin-top:2px">{{ $ec->title }}</div>
+                        @endif
+                        @if($ec->teacher)
+                            <div style="font-size:11px;color:#64748b"><i class="fa-solid fa-chalkboard-user"></i> {{ $ec->teacher->name }}</div>
+                        @endif
+                    </div>
+                    <div>
+                        @if($ec->meeting_link)
+                            <a href="{{ route('student.classes.join', $ec) }}" target="_blank" class="btn btn-sm btn-primary" style="background:#047857;border-color:#047857;font-size:11.5px;padding:5px 12px;white-space:nowrap">
+                                <i class="fa-solid fa-video"></i> জয়েন করুন
+                            </a>
+                        @else
+                            <span class="badge badge-secondary no-dot" style="font-size:11px;white-space:nowrap">লিংক শীঘ্রই আসবে</span>
+                        @endif
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     @if($slots->isEmpty())
         <div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">

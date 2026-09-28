@@ -229,9 +229,9 @@
                 <i class="fa-solid fa-paperclip"></i>
                 Learning Resources
             </a>
-            <a href="{{ route('student.subjects.index') }}" class="nav-item {{ request()->routeIs('student.subjects*') ? 'active' : '' }}">
-                <i class="fa-solid fa-book-bookmark"></i>
-                আমার বিষয়সমূহ (Subjects)
+            <a href="{{ route('student.recordings.index') }}" class="nav-item {{ request()->routeIs('student.recordings*') ? 'active' : '' }}">
+                <i class="fa-solid fa-circle-play"></i>
+                ক্লাস রেকর্ড (Class Records)
             </a>
             <a href="{{ route('student.assignments.index') }}" class="nav-item {{ request()->routeIs('student.assignments*') ? 'active' : '' }}">
                 <i class="fa-solid fa-tasks"></i>

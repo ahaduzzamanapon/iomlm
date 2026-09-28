@@ -521,9 +521,9 @@
 
     {{-- Bulk CSV Upload Modal --}}
     <div class="modal-overlay" id="bulkUploadModal">
-        <div class="modal" style="max-width:600px">
+        <div class="modal" style="max-width:680px;font-family:'Kalpurush',sans-serif">
             <div class="modal-header">
-                <span class="modal-title"><i class="fa-solid fa-file-arrow-up" style="color:#6366f1"></i> Bulk CSV Upload</span>
+                <span class="modal-title" style="font-family:'Kalpurush',sans-serif"><i class="fa-solid fa-file-arrow-up" style="color:#6366f1"></i> Bulk CSV Upload</span>
                 <button class="modal-close" onclick="closeModal('bulkUploadModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.questions.bulk-upload') }}" enctype="multipart/form-data">
@@ -544,22 +544,69 @@
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
-                            <label>ডিফল্ট পরীক্ষার ধরন (Exam Type)</label>
-                            <select name="exam_type" class="form-control">
-                                <option value="">-- ফাইলে না থাকলে এটি হবে --</option>
+                            <label style="font-weight:600;margin-bottom:4px;display:block">বিষয় (Subject) <span style="font-size:12px;color:var(--text-muted)">(ঐচ্ছিক)</span></label>
+                            <select name="subject_id" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="">-- বিষয় নির্বাচন করুন --</option>
+                                @foreach($subjects as $sub)
+                                    <option value="{{ $sub->id }}">{{ $sub->name }} ({{ $sub->code }})</option>
+                                @endforeach
+                            </select>
+                            <small style="color:var(--text-muted);font-size:11px">ফাইলে বিষয় না থাকলে সব প্রশ্ন এতে যুক্ত হবে</small>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">কঠিনতা (Difficulty) <span class="required">*</span></label>
+                            <select name="difficulty" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px" required>
+                                <option value="easy">Easy (সহজ)</option>
+                                <option value="medium">Medium (মধ্যম)</option>
+                                <option value="hard">Hard (কঠিন)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">পরীক্ষার ধরন (Exam Type)</label>
+                            <select name="exam_type" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="">-- ধরন নির্বাচন করুন --</option>
                                 @foreach($examTypes as $et)
                                     <option value="{{ $et }}">{{ $et }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>ডিফল্ট প্রশ্ন ট্যাগ (Source Tag)</label>
-                            <input type="text" name="source_tag" class="form-control" placeholder="যেমন: ২০২৪ ফাইনাল">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">প্রশ্ন সেট / সোর্স ট্যাগ</label>
+                            <input type="text" name="source_tag" class="form-control" placeholder="যেমন: সেট ক, ২০২৪ ফাইনাল" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="batch_id" id="bulk_batch_select" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="semester_id" id="bulk_semester_select" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="" data-course-id="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}" 
+                                            data-course-id="{{ $sem->course_id }}" 
+                                            data-course-name="{{ $sem->course?->name ?? 'অন্যান্য কোর্স' }}"
+                                            data-name="{{ $sem->name }}">
+                                        {{ $sem->name }} ({{ $sem->course?->name ?? 'Course' }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label>CSV ফাইল নির্বাচন করুন <span class="required">*</span></label>
+                        <label style="font-weight:600;margin-bottom:4px;display:block">CSV ফাইল নির্বাচন করুন <span class="required">*</span></label>
                         <input type="file" name="csv_file" class="form-control" accept=".csv,.txt" required>
                     </div>
                 </div>
@@ -635,6 +682,32 @@ ANSWER: A</pre>
                         <div class="form-group">
                             <label style="font-weight:600;margin-bottom:4px;display:block">প্রশ্ন ট্যাগ / সেট (Source Tag)</label>
                             <input type="text" name="source_tag" class="form-control" placeholder="যেমন: সেট ক, ২০২৪ ফাইনাল" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                        </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">ব্যাচ (Batch) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="batch_id" id="aiken_batch_select" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:600;margin-bottom:4px;display:block">সেমিস্টার (Semester) <span style="font-size:11px;color:#94a3b8">(ঐচ্ছিক)</span></label>
+                            <select name="semester_id" id="aiken_semester_select" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
+                                <option value="" data-course-id="">-- সকল সেমিস্টারের জন্য প্রযোজ্য --</option>
+                                @foreach($semesters as $sem)
+                                    <option value="{{ $sem->id }}" 
+                                            data-course-id="{{ $sem->course_id }}" 
+                                            data-course-name="{{ $sem->course?->name ?? 'অন্যান্য কোর্স' }}"
+                                            data-name="{{ $sem->name }}">
+                                        {{ $sem->name }} ({{ $sem->course?->name ?? 'Course' }})
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
@@ -874,6 +947,8 @@ ANSWER: A</pre>
             setupBatchSemesterCascading('qb_filter_batch', 'qb_filter_semester', 'সকল সেমিস্টার');
             setupBatchSemesterCascading('mcq_batch_select', 'mcq_semester_select', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
             setupBatchSemesterCascading('written_batch_select', 'written_semester_select', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
+            setupBatchSemesterCascading('bulk_batch_select', 'bulk_semester_select', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
+            setupBatchSemesterCascading('aiken_batch_select', 'aiken_semester_select', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
             updateEditSemesters = setupBatchSemesterCascading('edit_batch_id', 'edit_semester_id', '-- সকল সেমিস্টারের জন্য প্রযোজ্য --');
         }
 

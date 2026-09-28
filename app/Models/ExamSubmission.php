@@ -10,6 +10,7 @@ class ExamSubmission extends Model
 
     protected $casts = [
         'assigned_question_ids' => 'array',
+        'shuffled_options'      => 'array',
         'started_at'            => 'datetime',
         'submitted_at'          => 'datetime',
         'mcq_score'             => 'float',

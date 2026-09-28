@@ -92,8 +92,12 @@
                     $q = $eq->question;
                     if (!$q || $q->question_type !== 'MCQ') continue;
                     $mcqSerial++;
+                    $shuffledData = $testShuffled[$q->id] ?? null;
+                    $displayOptions = (!empty($shuffledData['options'])) ? $shuffledData['options'] : ($q->options ?? []);
+                    $correctAns = !empty($shuffledData['correct_option_id'])
+                        ? strtolower(trim($shuffledData['correct_option_id']))
+                        : strtolower(trim($q->correct_option_id ?? ''));
                     $userAns = isset($answersInput[$q->id]) ? strtolower(trim($answersInput[$q->id])) : null;
-                    $correctAns = strtolower(trim($q->correct_option_id ?? ''));
                     $isCorrect = ($userAns !== null && $userAns === $correctAns);
                     $isWrong = ($userAns !== null && $userAns !== '' && $userAns !== $correctAns);
                     $isUnanswered = ($userAns === null || $userAns === '');
@@ -119,7 +123,7 @@
                         </div>
 
                         <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:8px;font-size:12px">
-                            @foreach($q->options ?? [] as $opt)
+                            @foreach($displayOptions as $opt)
                                 @php
                                     $optId = strtolower($opt['id'] ?? '');
                                     $optSelected = ($userAns === $optId);

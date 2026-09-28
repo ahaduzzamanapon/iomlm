@@ -31,7 +31,9 @@ class ClassController extends Controller
 
         if (!$teacher) {
             $sessions = collect();
-            return view('teacher.classes.index', compact('sessions', 'today', 'meetingProvider'));
+            $batches = collect();
+            $subjects = collect();
+            return view('teacher.classes.index', compact('sessions', 'today', 'meetingProvider', 'batches', 'subjects'));
         }
 
         $sessions = ClassSession::with(['subject', 'batch', 'routineEntry.slot', 'moduleCovered', 'attendances', 'teacher'])
@@ -40,7 +42,18 @@ class ClassController extends Controller
             ->get()
             ->groupBy(fn($s) => $s->session_date?->format('Y-W'));
 
-        return view('teacher.classes.index', compact('sessions', 'today', 'meetingProvider'));
+        $assignedSubjectIds = \App\Models\SubjectTeacherAssignment::where('teacher_id', $teacher->id)->pluck('subject_id');
+        $subjects = \App\Models\Subject::where('is_active', true)
+            ->where(function($q) use ($assignedSubjectIds) {
+                if ($assignedSubjectIds->isNotEmpty()) {
+                    $q->whereIn('id', $assignedSubjectIds);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+        $batches = \App\Models\Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+
+        return view('teacher.classes.index', compact('sessions', 'today', 'meetingProvider', 'batches', 'subjects'));
     }
 
     /**
@@ -276,14 +289,51 @@ class ClassController extends Controller
             'notes'             => 'nullable|string',
         ]);
 
-        $class->update([
+        $updateData = [
             'teacher_present'   => true,
             'class_conducted'   => true,
             'status'            => 'COMPLETED',
             'ended_at'          => now(),
             'module_covered_id' => $request->input('module_covered_id'),
             'notes'             => $request->input('notes'),
-        ]);
+        ];
+
+        // Process optional recording data if submitted
+        if ($request->has('videos') && is_array($request->input('videos'))) {
+            $submittedVideos = [];
+            foreach ($request->input('videos') as $index => $vidData) {
+                $vTitle     = trim($vidData['title'] ?? '');
+                $vUrl       = trim($vidData['url'] ?? '');
+                $vEmbedCode = trim($vidData['embed_code'] ?? '');
+                $vFile      = trim($vidData['existing_file'] ?? '');
+
+                if ($request->hasFile("videos.{$index}.file")) {
+                    $uploaded = $request->file("videos.{$index}.file");
+                    if ($uploaded && $uploaded->isValid()) {
+                        $vFile = $uploaded->store('class_recordings', 'public');
+                    }
+                }
+
+                if (!empty($vUrl) || !empty($vFile) || !empty($vEmbedCode)) {
+                    $submittedVideos[] = [
+                        'title'      => !empty($vTitle) ? $vTitle : ('ক্লাস ভিডিও ' . (count($submittedVideos) + 1)),
+                        'url'        => !empty($vUrl) ? $vUrl : null,
+                        'embed_code' => !empty($vEmbedCode) ? $vEmbedCode : null,
+                        'file'       => !empty($vFile) ? $vFile : null,
+                    ];
+                }
+            }
+            if (!empty($submittedVideos)) {
+                $first = $submittedVideos[0];
+                $updateData['recording_url']   = $first['url'] ?? null;
+                $updateData['recording_file']  = $first['file'] ?? null;
+                $updateData['recording_embed'] = $first['embed_code'] ?? null;
+                $updateData['recorded_videos'] = $submittedVideos;
+                $updateData['has_recording']   = true;
+            }
+        }
+
+        $class->update($updateData);
 
         foreach ($request->input('attendance', []) as $studentId => $status) {
             Attendance::updateOrCreate(
@@ -350,8 +400,131 @@ class ClassController extends Controller
     /**
      * Weekly schedule view (alias for index).
      */
-    public function schedule()
+     public function schedule()
+     {
+         return $this->index();
+     }
+
+    /**
+     * Teacher schedule an extra class session.
+     */
+    public function storeExtra(Request $request)
     {
-        return $this->index();
+        $teacher = $this->teacher();
+        if (!$teacher) {
+            return back()->with('error', 'অনুমোদিত শিক্ষক পাওয়া যায়নি।');
+        }
+
+        $validated = $request->validate([
+            'batch_id'     => 'required|exists:batches,id',
+            'subject_id'   => 'required|exists:subjects,id',
+            'session_date' => 'required|date',
+            'start_time'   => 'required|string',
+            'end_time'     => 'nullable|string',
+            'title'        => 'nullable|string|max:250',
+            'reason'       => 'nullable|string|max:250',
+            'group_tag'    => 'nullable|in:ALL,MALE,FEMALE,GROUP_A,GROUP_B',
+            'meeting_link' => 'nullable|url|max:500',
+            'notes'        => 'nullable|string',
+        ]);
+
+        $extraSession = ClassSession::create([
+            'batch_id'         => $validated['batch_id'],
+            'subject_id'       => $validated['subject_id'],
+            'teacher_id'       => $teacher->id,
+            'session_date'     => $validated['session_date'],
+            'start_time'       => $validated['start_time'],
+            'end_time'         => $validated['end_time'] ?? null,
+            'title'            => $validated['title'] ?? 'শিক্ষক কর্তৃক এক্সট্রা ক্লাস',
+            'reason'           => $validated['reason'] ?? 'রুটিনের অতিরিক্ত ক্লাস',
+            'group_tag'        => $validated['group_tag'] ?? 'ALL',
+            'meeting_link'     => $validated['meeting_link'] ?? null,
+            'notes'            => $validated['notes'] ?? null,
+            'is_extra_class'   => true,
+            'routine_entry_id' => null,
+            'status'           => 'SCHEDULED',
+            'teacher_present'  => false,
+            'class_conducted'  => false,
+        ]);
+
+        return back()->with('success', "আপনার এক্সট্রা ক্লাস '{$extraSession->title}' সফলভাবে শিডিউল করা হয়েছে।");
+    }
+
+    /**
+     * Teacher upload / update recorded video(s) for a class session.
+     */
+    public function updateRecording(Request $request, ClassSession $class)
+    {
+        $this->authorizeSession($class);
+
+        $request->validate([
+            'recording_url'   => 'nullable|string|max:1000',
+            'recording_embed' => 'nullable|string',
+            'video_file'      => 'nullable|file|mimes:mp4,webm,ogg,mov,avi,mkv|max:512000',
+            'videos'          => 'nullable|array',
+            'videos.*.title'  => 'nullable|string|max:250',
+            'videos.*.url'    => 'nullable|string|max:1000',
+            'videos.*.embed_code' => 'nullable|string',
+            'videos.*.file'   => 'nullable|file|mimes:mp4,webm,ogg,mov,avi,mkv|max:512000',
+            'videos.*.existing_file' => 'nullable|string|max:500',
+        ]);
+
+        $recordedVideos = [];
+
+        if ($request->has('videos') && is_array($request->input('videos'))) {
+            foreach ($request->input('videos') as $index => $vidData) {
+                $vTitle     = trim($vidData['title'] ?? '');
+                $vUrl       = trim($vidData['url'] ?? '');
+                $vEmbedCode = trim($vidData['embed_code'] ?? '');
+                $vFile      = trim($vidData['existing_file'] ?? '');
+
+                if ($request->hasFile("videos.{$index}.file")) {
+                    $uploaded = $request->file("videos.{$index}.file");
+                    if ($uploaded && $uploaded->isValid()) {
+                        $vFile = $uploaded->store('class_recordings', 'public');
+                    }
+                }
+
+                if (!empty($vUrl) || !empty($vFile) || !empty($vEmbedCode)) {
+                    $recordedVideos[] = [
+                        'title'      => !empty($vTitle) ? $vTitle : ('ক্লাস ভিডিও ' . (count($recordedVideos) + 1)),
+                        'url'        => !empty($vUrl) ? $vUrl : null,
+                        'embed_code' => !empty($vEmbedCode) ? $vEmbedCode : null,
+                        'file'       => !empty($vFile) ? $vFile : null,
+                    ];
+                }
+            }
+        }
+
+        if ($request->hasFile('video_file')) {
+            $singleFile = $request->file('video_file')->store('class_recordings', 'public');
+            $recordedVideos[] = [
+                'title'      => 'ক্লাস ভিডিও রেকর্ড',
+                'url'        => null,
+                'file'       => $singleFile,
+                'embed_code' => null,
+            ];
+        }
+
+        if (empty($recordedVideos) && ($request->filled('recording_url') || $request->filled('recording_embed'))) {
+            $recordedVideos[] = [
+                'title'      => 'ক্লাস ভিডিও রেকর্ড',
+                'url'        => $request->input('recording_url'),
+                'file'       => null,
+                'embed_code' => $request->input('recording_embed'),
+            ];
+        }
+
+        $firstVideo = $recordedVideos[0] ?? null;
+
+        $class->update([
+            'recording_url'   => $firstVideo['url'] ?? null,
+            'recording_file'  => $firstVideo['file'] ?? null,
+            'recording_embed' => $firstVideo['embed_code'] ?? null,
+            'recorded_videos' => !empty($recordedVideos) ? $recordedVideos : null,
+            'has_recording'   => !empty($recordedVideos),
+        ]);
+
+        return back()->with('success', 'ক্লাস রেকর্ড ভিডিও সফলভাবে সংরক্ষিত ও আপডেট করা হয়েছে।');
     }
 }

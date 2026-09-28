@@ -49,7 +49,7 @@
     </form>
     @endif
 
-    <form method="POST" action="{{ route('teacher.classes.complete', $class) }}">
+    <form method="POST" action="{{ route('teacher.classes.complete', $class) }}" enctype="multipart/form-data">
         @csrf
         <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:start">
 
@@ -140,6 +140,25 @@
                     <div style="padding:12px">
                         <textarea name="notes" class="form-control" rows="4"
                             placeholder="Topics covered, student questions, announcements...">{{ $class->notes }}</textarea>
+                    </div>
+                </div>
+
+                {{-- Class Recording (Optional) --}}
+                <div class="card" style="border:1px solid #cbd5e1;font-family:'Kalpurush',sans-serif">
+                    <div class="card-header" style="background:#eff6ff">
+                        <span class="card-title" style="color:#1e40af;font-size:13px;display:flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-circle-play"></i> ক্লাস রেকর্ড আপলোড (ঐচ্ছিক)
+                        </span>
+                    </div>
+                    <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+                        <div class="form-group" style="margin-bottom:0">
+                            <label style="font-size:11.5px;font-weight:700">ভিডিও লিংক (YouTube / Drive URL)</label>
+                            <input type="text" name="videos[0][url]" class="form-control" style="font-size:12px" placeholder="https://..." value="{{ $class->recording_url }}">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0">
+                            <label style="font-size:11.5px;font-weight:700">অথবা ভিডিও ফাইল (MP4)</label>
+                            <input type="file" name="videos[0][file]" class="form-control" style="font-size:11px" accept="video/*">
+                        </div>
                     </div>
                 </div>
 

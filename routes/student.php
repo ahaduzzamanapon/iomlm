@@ -32,6 +32,10 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::get('classes/{class}',       [\App\Http\Controllers\Student\ClassController::class, 'show'])->name('classes.show');
         Route::get('classes/{class}/join',  [\App\Http\Controllers\Student\ClassController::class, 'join'])->name('classes.join');
 
+        // Class Records (ক্লাস রেকর্ড ও ভিডিও)
+        Route::get('recordings',         [\App\Http\Controllers\Student\ClassRecordingController::class, 'index'])->name('recordings.index');
+        Route::get('recordings/{class}', [\App\Http\Controllers\Student\ClassRecordingController::class, 'show'])->name('recordings.show');
+
         // My Course
         Route::get('my-course',       [\App\Http\Controllers\Student\MyCourseController::class, 'index'])->name('my-course.index');
         Route::post('my-course/apply', [\App\Http\Controllers\Student\MyCourseController::class, 'applyStore'])->name('my-course.apply');

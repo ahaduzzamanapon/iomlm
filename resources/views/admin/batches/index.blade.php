@@ -1,28 +1,88 @@
 <x-admin-layout>
     <x-slot name="title">Batches & Timelines</x-slot>
 
-    <div class="page-header">
+    <div class="page-header" style="font-family:'Kalpurush',sans-serif">
         <div class="page-header-left">
-            <h1>Batches</h1>
-            <p>Create cohorts and manage class sessions from routine</p>
+            <h1 style="font-family:'Kalpurush',sans-serif">ব্যাচ ব্যবস্থাপনা (Batches)</h1>
+            <p style="font-family:'Kalpurush',sans-serif">কোর্স ও সেশন অনুযায়ী ব্যাচ তৈরি এবং নিয়মিত রুটিন অনুযায়ী ক্লাস সেশন পরিচালনা করুন</p>
         </div>
         <div class="page-header-actions">
-            <button class="btn btn-primary" onclick="openModal('addBatchModal')">
-                New Batch
+            <button class="btn btn-primary" onclick="openModal('addBatchModal')" style="font-family:'Kalpurush',sans-serif">
+                <i class="fa-solid fa-plus" style="margin-right:6px"></i> নতুন ব্যাচ (New Batch)
             </button>
         </div>
     </div>
 
-    <div class="card" style="overflow:visible">
+    {{-- Filter Bar: Course-wise and Session-wise Filtering --}}
+    <form method="GET" action="{{ route('admin.batches.index') }}" class="card" style="padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:'Kalpurush',sans-serif">
+        <div style="flex:1;min-width:200px;position:relative">
+            <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8"></i>
+            <input type="text" name="search" class="form-control" placeholder="ব্যাচের নাম বা কোড দিয়ে খুঁজুন..." value="{{ $search ?? '' }}" style="padding-left:36px;height:40px;border-radius:8px;font-family:'Kalpurush',sans-serif">
+        </div>
+
+        <div style="min-width:220px">
+            <select name="course_id" class="form-control" style="height:40px;border-radius:8px;font-family:'Kalpurush',sans-serif" onchange="this.form.submit()">
+                <option value="">-- সকল কোর্স (All Courses) --</option>
+                @foreach($courses as $c)
+                    <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>
+                        {{ $c->name }} ({{ str_replace('_', ' ', $c->type) }})
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div style="min-width:200px">
+            <select name="academic_year_id" class="form-control" style="height:40px;border-radius:8px;font-family:'Kalpurush',sans-serif" onchange="this.form.submit()">
+                <option value="">-- সকল সেশন (All Sessions) --</option>
+                @foreach($academicYears as $ay)
+                    <option value="{{ $ay->id }}" {{ ($academicYearId ?? '') == $ay->id ? 'selected' : '' }}>
+                        {{ $ay->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div style="min-width:140px">
+            <select name="status" class="form-control" style="height:40px;border-radius:8px;font-family:'Kalpurush',sans-serif" onchange="this.form.submit()">
+                <option value="">-- সকল স্ট্যাটাস --</option>
+                <option value="ACTIVE" {{ ($status ?? '') === 'ACTIVE' ? 'selected' : '' }}>Active (সক্রিয়)</option>
+                <option value="PLANNED" {{ ($status ?? '') === 'PLANNED' ? 'selected' : '' }}>Planned</option>
+                <option value="COMPLETED" {{ ($status ?? '') === 'COMPLETED' ? 'selected' : '' }}>Completed</option>
+                <option value="SUSPENDED" {{ ($status ?? '') === 'SUSPENDED' ? 'selected' : '' }}>Suspended</option>
+                <option value="CANCELLED" {{ ($status ?? '') === 'CANCELLED' ? 'selected' : '' }}>Cancelled</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="height:40px;padding:0 16px;border-radius:8px;font-family:'Kalpurush',sans-serif">
+            <i class="fa-solid fa-filter" style="margin-right:6px"></i> ফিল্টার
+        </button>
+
+        @if(!empty($courseId) || !empty($academicYearId) || !empty($status) || !empty($search))
+            <a href="{{ route('admin.batches.index') }}" class="btn btn-outline" style="height:40px;padding:0 14px;border-radius:8px;color:#64748b;display:inline-flex;align-items:center;font-family:'Kalpurush',sans-serif">
+                <i class="fa-solid fa-rotate-left" style="margin-right:6px"></i> রিসেট
+            </a>
+        @endif
+    </form>
+
+    <div class="card" style="overflow:visible;font-family:'Kalpurush',sans-serif">
+        <div style="padding:12px 18px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:700;color:#334155;font-size:14px">
+                <i class="fa-solid fa-layer-group" style="color:#6366f1;margin-right:6px"></i> ব্যাচ তালিকা
+            </span>
+            <span class="badge badge-info no-dot" style="font-size:12px">
+                মোট {{ $batches->count() }}টি ব্যাচ পাওয়া গেছে
+            </span>
+        </div>
         <div class="table-wrapper" style="overflow:visible">
             <table>
                 <thead>
                     <tr>
                         <th>Batch Code</th>
                         <th>Batch Name</th>
-                        <th>Course</th>
+                        <th>Course (কোর্স)</th>
+                        <th>Session (সেশন)</th>
                         <th>Start Date</th>
-                        <th>Sessions</th>
+                        <th>Class Sessions</th>
                         <th>Status</th>
                         <th>Admission Status</th>
                         <th style="text-align:right">Actions</th>
@@ -36,6 +96,13 @@
                             <a href="{{ route('admin.batches.show', $batch) }}" style="font-weight:600;color:var(--blue)">{{ $batch->name }}</a>
                         </td>
                         <td>{{ $batch->course->name ?? '—' }}</td>
+                        <td>
+                            @if($batch->academicYear)
+                                <span class="badge badge-info no-dot"><i class="fa-solid fa-calendar-days" style="margin-right:4px"></i> {{ $batch->academicYear->name }}</span>
+                            @else
+                                <span class="td-muted">—</span>
+                            @endif
+                        </td>
                         <td class="td-muted">{{ \Carbon\Carbon::parse($batch->start_date)->format('d M Y') }}</td>
                         <td>
                             <span class="badge badge-scheduled no-dot">{{ $batch->class_sessions_count ?? 0 }} Sessions</span>
@@ -54,7 +121,7 @@
                             <div class="dropdown" style="display:inline-block">
                                 <button class="btn btn-outline btn-sm" onclick="toggleDropdown('bact-{{ $batch->id }}')" style="gap:4px">
                                     Actions
-                                    </button>
+                                </button>
                                 <div class="dropdown-menu" id="bact-{{ $batch->id }}" style="right:0;min-width:165px">
                                     <a href="{{ route('admin.batches.show', $batch) }}" class="dropdown-item">
                                         <i class="fa-solid fa-eye" style="margin-right:6px"></i>
@@ -83,7 +150,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-muted)">No batches found. Click "New Batch" to create one.</td></tr>
+                    <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted)">কোনো ব্যাচ পাওয়া যায়নি। ফিল্টার পরিবর্তন করুন অথবা নতুন ব্যাচ তৈরি করুন।</td></tr>
                     @endforelse
                 </tbody>
             </table>

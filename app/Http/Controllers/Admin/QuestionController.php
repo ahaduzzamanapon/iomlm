@@ -246,8 +246,24 @@ class QuestionController extends Controller
             $eq = \App\Models\ExamQuestion::where('exam_id', $exam->id)->where('question_id', $question->id)->first();
             $qMarks = $eq ? (float) $eq->marks : 1.0;
 
-            $selected = strtolower($ans->selected_option_id ?? '');
-            $isCorrect = ($selected !== '' && $selected === $correctOption);
+            $selected = strtolower(trim($ans->selected_option_id ?? ''));
+
+            // Check if submission used shuffled options
+            $shuffledData = $sub->shuffled_options[$question->id] ?? null;
+            if ($shuffledData && !empty($shuffledData['options'])) {
+                $targetShuffledLetter = null;
+                foreach ($shuffledData['options'] as $sOpt) {
+                    if (strtolower(trim($sOpt['original_id'] ?? '')) === $correctOption) {
+                        $targetShuffledLetter = strtolower(trim($sOpt['id']));
+                        break;
+                    }
+                }
+                $effectiveCorrect = $targetShuffledLetter ?? strtolower(trim($shuffledData['correct_option_id'] ?? $correctOption));
+            } else {
+                $effectiveCorrect = $correctOption;
+            }
+
+            $isCorrect = ($selected !== '' && $selected === $effectiveCorrect);
             $marksAwarded = $isCorrect ? $qMarks : 0.00;
 
             $ans->update([
@@ -304,17 +320,27 @@ class QuestionController extends Controller
     public function bulkUpload(Request $request)
     {
         $request->validate([
-            'csv_file'   => 'nullable|file|mimes:csv,txt',
-            'exam_type'  => 'nullable|string|max:50',
-            'source_tag' => 'nullable|string|max:150',
+            'csv_file'    => 'nullable|file|mimes:csv,txt',
+            'subject_id'  => 'nullable|exists:subjects,id',
+            'batch_id'    => 'nullable|exists:batches,id',
+            'semester_id' => 'nullable|exists:semesters,id',
+            'difficulty'  => 'nullable|in:easy,medium,hard',
+            'exam_type'   => 'nullable|string|max:50',
+            'source_tag'  => 'nullable|string|max:150',
         ]);
 
         if (!$request->hasFile('csv_file')) {
             return back()->with('error', 'অনুগ্রহ করে একটি CSV ফাইল নির্বাচন করুন।');
         }
 
+        $defaultSubjectId = $request->input('subject_id') ? (int) $request->input('subject_id') : null;
+        $defaultBatchId   = $request->input('batch_id') ? (int) $request->input('batch_id') : null;
+        $defaultSemesterId= $request->input('semester_id') ? (int) $request->input('semester_id') : null;
+        $defaultDifficulty= $request->input('difficulty', 'easy');
         $defaultExamType  = $request->input('exam_type');
         $defaultSourceTag = $request->input('source_tag');
+
+        $defaultSubject = $defaultSubjectId ? Subject::find($defaultSubjectId) : null;
 
         $path = $request->file('csv_file')->getRealPath();
         $file = fopen($path, 'r');
@@ -347,32 +373,48 @@ class QuestionController extends Controller
                 continue;
             }
 
-            // Find subject by code
+            // Find subject by code or fallback to default
             $subject = null;
             $subjectCode = trim($data['subject_code'] ?? '');
             if ($subjectCode) {
                 $subject = Subject::where('code', $subjectCode)->orWhere('id', $subjectCode)->first();
             }
+            if (!$subject && $defaultSubject) {
+                $subject = $defaultSubject;
+            }
 
-            $difficulty = strtolower(trim($data['difficulty'] ?? 'easy'));
-            if (!in_array($difficulty, ['easy', 'medium', 'hard'])) {
+            $diffInput = strtolower(trim($data['difficulty'] ?? ''));
+            if (in_array($diffInput, ['easy', 'medium', 'hard'])) {
+                $difficulty = $diffInput;
+            } elseif (in_array($defaultDifficulty, ['easy', 'medium', 'hard'])) {
+                $difficulty = $defaultDifficulty;
+            } else {
                 $difficulty = 'easy';
             }
 
-            $rowExamType  = !empty($data['exam_type']) ? trim($data['exam_type']) : $defaultExamType;
-            $rowSourceTag = !empty($data['source_tag']) ? trim($data['source_tag']) : $defaultSourceTag;
+            $rowExamType   = !empty($data['exam_type']) ? trim($data['exam_type']) : $defaultExamType;
+            $rowSourceTag  = !empty($data['source_tag']) ? trim($data['source_tag']) : $defaultSourceTag;
+            $rowBatchId    = !empty($data['batch_id']) ? (int) trim($data['batch_id']) : $defaultBatchId;
+            $rowSemesterId = !empty($data['semester_id']) ? (int) trim($data['semester_id']) : $defaultSemesterId;
 
             if ($type === 'WRITTEN') {
                 Question::firstOrCreate(
-                    ['question_text' => $questionText],
+                    [
+                        'question_text' => $questionText,
+                        'subject_id'    => $subject?->id,
+                    ],
                     [
                         'question_type'     => 'WRITTEN',
                         'subject_id'        => $subject?->id,
+                        'subject_code'      => $subject?->code,
+                        'batch_id'          => $rowBatchId,
+                        'semester_id'       => $rowSemesterId,
                         'difficulty'        => $difficulty,
                         'exam_type'         => $rowExamType,
                         'source_tag'        => $rowSourceTag,
                         'options'           => [],
                         'correct_option_id' => null,
+                        'is_active'         => true,
                     ]
                 );
             } else {
@@ -395,15 +437,22 @@ class QuestionController extends Controller
                 ];
 
                 Question::firstOrCreate(
-                    ['question_text' => $questionText],
+                    [
+                        'question_text' => $questionText,
+                        'subject_id'    => $subject?->id,
+                    ],
                     [
                         'question_type'     => 'MCQ',
                         'subject_id'        => $subject?->id,
+                        'subject_code'      => $subject?->code,
+                        'batch_id'          => $rowBatchId,
+                        'semester_id'       => $rowSemesterId,
                         'options'           => $options,
                         'correct_option_id' => $correct,
                         'difficulty'        => $difficulty,
                         'exam_type'         => $rowExamType,
                         'source_tag'        => $rowSourceTag,
+                        'is_active'         => true,
                     ]
                 );
             }
@@ -516,12 +565,14 @@ class QuestionController extends Controller
     public function importAiken(Request $request)
     {
         $request->validate([
-            'aiken_file' => 'nullable|file|max:5120',
-            'aiken_text' => 'nullable|string',
-            'subject_id' => 'nullable|exists:subjects,id',
-            'difficulty' => 'nullable|in:easy,medium,hard',
-            'exam_type'  => 'nullable|string|max:50',
-            'source_tag' => 'nullable|string|max:150',
+            'aiken_file'  => 'nullable|file|max:5120',
+            'aiken_text'  => 'nullable|string',
+            'subject_id'  => 'nullable|exists:subjects,id',
+            'batch_id'    => 'nullable|exists:batches,id',
+            'semester_id' => 'nullable|exists:semesters,id',
+            'difficulty'  => 'nullable|in:easy,medium,hard',
+            'exam_type'   => 'nullable|string|max:50',
+            'source_tag'  => 'nullable|string|max:150',
         ]);
 
         $content = '';
@@ -536,6 +587,8 @@ class QuestionController extends Controller
         }
 
         $subjectId  = $request->input('subject_id') ? (int) $request->input('subject_id') : null;
+        $batchId    = $request->input('batch_id') ? (int) $request->input('batch_id') : null;
+        $semesterId = $request->input('semester_id') ? (int) $request->input('semester_id') : null;
         $difficulty = $request->input('difficulty', 'easy');
         if (!in_array($difficulty, ['easy', 'medium', 'hard'])) {
             $difficulty = 'easy';
@@ -598,6 +651,8 @@ class QuestionController extends Controller
                     'question_type'     => 'MCQ',
                     'subject_id'        => $sub?->id,
                     'subject_code'      => $sub?->code,
+                    'batch_id'          => $batchId,
+                    'semester_id'       => $semesterId,
                     'options'           => $options,
                     'correct_option_id' => strtolower($ansLetter),
                     'difficulty'        => $difficulty,

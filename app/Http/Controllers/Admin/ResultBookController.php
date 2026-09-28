@@ -95,8 +95,20 @@ class ResultBookController extends Controller
                 }
 
                 // Retrieve all exams for this batch & semester for direct linking to Merit List & Marksheets
+                $subjectIds = $subjects->pluck('id')->filter()->values();
                 $examsQuery = \App\Models\Exam::with(['subject', 'semester'])
-                    ->where('batch_id', $selectedBatch->id);
+                    ->where(function ($q) use ($selectedBatch, $subjectIds, $selectedSemester, $isSemesterBased) {
+                        $q->whereHas('attendees', function ($aq) use ($selectedBatch) {
+                            $aq->where('batch_id', $selectedBatch->id);
+                        });
+                        if ($subjectIds->isNotEmpty()) {
+                            $q->orWhereIn('subject_id', $subjectIds);
+                        }
+                        if ($isSemesterBased && $selectedSemester) {
+                            $q->orWhere('semester_id', $selectedSemester->id);
+                        }
+                    });
+
                 if ($isSemesterBased && $selectedSemester) {
                     $examsQuery->where(function($q) use ($selectedSemester) {
                         $q->where('semester_id', $selectedSemester->id)

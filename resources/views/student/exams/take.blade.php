@@ -213,8 +213,14 @@
                         <span class="q-marks">{{ $eq->marks }} নম্বর</span>
                     </div>
                     <div class="q-text">{!! e($q->question_text) !!}</div>
+                    @php
+                        $shuffledData = isset($submission) && !empty($submission->shuffled_options[$q->id])
+                            ? $submission->shuffled_options[$q->id]
+                            : ($testShuffled[$q->id] ?? null);
+                        $optionsToRender = (!empty($shuffledData['options'])) ? $shuffledData['options'] : ($q->options ?? []);
+                    @endphp
                     <div class="options-list">
-                        @foreach($q->options ?? [] as $opt)
+                        @foreach($optionsToRender as $opt)
                         @php $optId = strtolower($opt['id'] ?? ''); @endphp
                         <label class="opt-label" onclick="markAnswered('{{ $q->id }}')">
                             <input type="radio" name="answers[{{ $q->id }}]" value="{{ $optId }}"

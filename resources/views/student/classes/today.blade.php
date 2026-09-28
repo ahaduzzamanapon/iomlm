@@ -41,6 +41,8 @@
                         @endif
                         @if($cs->routineEntry?->slot)
                             <div style="font-size:9px;color:var(--text-muted);margin-top:4px;text-align:center">{{ $cs->routineEntry->slot->name }}</div>
+                        @elseif($cs->is_extra)
+                            <span style="background:#fef3c7;color:#92400e;border-radius:4px;font-size:9px;padding:2px 4px;font-weight:700;margin-top:4px">এক্সট্রা ক্লাস</span>
                         @endif
                     </div>
 
@@ -48,7 +50,17 @@
                     <div style="flex:1;padding:16px 20px">
                         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
                             <div>
-                                <div style="font-size:16px;font-weight:700;color:#1e293b">{{ $cs->subject?->name ?? '—' }}</div>
+                                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                                    <span style="font-size:16px;font-weight:700;color:#1e293b">{{ $cs->subject?->name ?? '—' }}</span>
+                                    @if($cs->is_extra)
+                                        <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:10.5px;font-weight:700">
+                                            <i class="fa-solid fa-star"></i> এক্সট্রা ক্লাস
+                                        </span>
+                                    @endif
+                                </div>
+                                @if($cs->title)
+                                    <div style="font-size:12px;color:#be123c;font-weight:600;margin-top:2px">{{ $cs->title }}</div>
+                                @endif
                                 <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
                                     {{ $cs->batch?->name ?? '' }}
                                     @if($cs->teacher) · {{ $cs->teacher->name }} @endif

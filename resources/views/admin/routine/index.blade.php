@@ -129,14 +129,54 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>Class Routine</h1>
-            <p>Weekly class schedule grid — manage time slots, assign classes, detect teacher conflicts</p>
+            <h1 style="font-family:'Kalpurush',sans-serif">ক্লাস রুটিন (Class Routine)</h1>
+            <p style="font-family:'Kalpurush',sans-serif">সাপ্তাহিক রুটিন গ্রিড ও রুটিনের বাইরের অতিরিক্ত ক্লাস শিডিউলিং</p>
         </div>
         <div class="page-header-actions" style="gap:8px">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openAddExtraClassModal()" style="background:#be123c;border-color:#be123c;font-family:'Kalpurush',sans-serif;font-weight:700">
+                <i class="fa-solid fa-calendar-plus"></i> + এক্সট্রা ক্লাস শিডিউল করুন
+            </button>
             <a href="{{ route('admin.routine.unassigned') }}" class="btn btn-outline btn-sm">Assign Class</a>
             <button class="btn btn-outline btn-sm" onclick="openAddSlotModal()">+ Add Time Slot</button>
         </div>
     </div>
+
+    {{-- Upcoming Extra Classes Outside Routine Banner --}}
+    @if(isset($upcomingExtraClasses) && $upcomingExtraClasses->isNotEmpty())
+        <div class="card" style="margin-bottom:16px;background:#fff1f2;border:1px solid #fecdd3;padding:14px 18px;border-radius:10px;font-family:'Kalpurush',sans-serif">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+                <span style="font-weight:700;font-size:14px;color:#9f1239;display:flex;align-items:center;gap:6px">
+                    <i class="fa-solid fa-star" style="color:#e11d48"></i> রুটিনের বাইরে আসন্ন এক্সট্রা ক্লাসসমূহ (Upcoming Extra Classes)
+                </span>
+                <a href="{{ route('admin.classes.index', ['type' => 'extra']) }}" class="btn btn-sm btn-outline" style="font-size:11.5px;color:#be123c;border-color:#f43f5e;font-weight:600">
+                    সকল এক্সট্রা ক্লাস দেখুন →
+                </a>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px">
+                @foreach($upcomingExtraClasses as $ec)
+                <div style="background:#fff;border:1px solid #fbcfe8;border-radius:8px;padding:10px 14px;box-shadow:0 1px 2px rgba(0,0,0,0.03);display:flex;justify-content:space-between;align-items:center;gap:10px">
+                    <div>
+                        <div style="font-weight:700;font-size:13px;color:#0f172a">{{ $ec->subject?->name ?? '—' }}</div>
+                        <div style="font-size:11.5px;color:#64748b;margin-top:2px">
+                            <span style="font-weight:700;color:#be123c">{{ $ec->session_date ? $ec->session_date->format('d M (D)') : '' }}</span> &middot;
+                            {{ $ec->start_time ? \Carbon\Carbon::parse($ec->start_time)->format('h:i A') : '' }} &middot;
+                            {{ $ec->batch?->name }} ({{ $ec->group_label }})
+                        </div>
+                        @if($ec->title)
+                            <div style="font-size:11px;color:#9d174d;font-weight:600;margin-top:2px">{{ $ec->title }}</div>
+                        @endif
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+                        @if($ec->meeting_link)
+                            <a href="{{ $ec->meeting_link }}" target="_blank" class="btn btn-sm btn-outline" style="font-size:11px;padding:3px 8px">Join</a>
+                        @endif
+                        <a href="{{ route('admin.classes.show', $ec) }}" class="btn btn-sm btn-outline" style="font-size:11px;padding:3px 8px">ম্যানেজ</a>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     {{-- Batch Filter + Group Filter + Auto-Generate --}}
     <div class="card" style="margin-bottom:16px;padding:14px 16px">
@@ -1088,7 +1128,115 @@
 
         openModal('editSlotModal');
     }
+
+    function openAddExtraClassModal() {
+        openModal('addExtraClassModal');
+    }
     </script>
     @endpush
 
+    {{-- ── Add Extra Class Modal in Routine ── --}}
+    <div class="modal-overlay" id="addExtraClassModal">
+        <div class="modal" style="max-width:620px;width:95%;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header" style="background:#be123c;color:#fff">
+                <span class="modal-title" style="color:#fff;font-size:15px;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-calendar-plus"></i> রুটিনের বাইরে এক্সট্রা ক্লাস শিডিউল করুন (Extra Class)
+                </span>
+                <button class="modal-close" style="color:#fff" onclick="closeModal('addExtraClassModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.classes.store') }}">
+                @csrf
+                <div class="modal-body" style="padding:20px">
+                    <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#9f1239">
+                        <i class="fa-solid fa-circle-info"></i> <strong>এক্সট্রা ক্লাস:</strong> নিয়মিত সাপ্তাহিক রুটিনের বাইরে যেকোনো দিন ও সময়ে মেকআপ বা অতিরিক্ত ক্লাস শিডিউল করুন। এটি রুটিন ও ড্যাশবোর্ডে প্রদর্শিত হবে।
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>টার্গেট ব্যাচ <span class="required" style="color:#e11d48">*</span></label>
+                            <select name="batch_id" class="form-control" required>
+                                <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>বিষয় (Subject) <span class="required" style="color:#e11d48">*</span></label>
+                            <select name="subject_id" class="form-control" required>
+                                <option value="">-- বিষয় নির্বাচন করুন --</option>
+                                @foreach($subjects as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ক্লাস শিক্ষক (Teacher)</label>
+                            <select name="teacher_id" class="form-control">
+                                <option value="">-- শিক্ষক নির্বাচন করুন (ঐচ্ছিক) --</option>
+                                @foreach($teachers as $t)
+                                    <option value="{{ $t->id }}">{{ $t->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>শাখা / গ্রুপ (Branch / Group)</label>
+                            <select name="group_tag" class="form-control">
+                                <option value="ALL">যৌথ / উভয় শাখা (All)</option>
+                                <option value="MALE">ভাই শাখা (Male)</option>
+                                <option value="FEMALE">বোন শাখা (Female)</option>
+                                <option value="GROUP_A">গ্রুপ ক (Group A)</option>
+                                <option value="GROUP_B">গ্রুপ খ (Group B)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ক্লাসের তারিখ (Date) <span class="required" style="color:#e11d48">*</span></label>
+                            <input type="date" name="session_date" class="form-control" value="{{ now()->toDateString() }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>শুরুর সময় (Start Time) <span class="required" style="color:#e11d48">*</span></label>
+                            <input type="time" name="start_time" class="form-control" value="19:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>শেষের সময় (End Time)</label>
+                            <input type="time" name="end_time" class="form-control" value="20:30">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>ক্লাসের শিরোনাম বা টপিক (Title)</label>
+                            <input type="text" name="title" class="form-control" placeholder="যেমনঃ বিশেষ মেকআপ ক্লাস / রিভিশন লেকচার" value="বিশেষ এক্সট্রা ক্লাস">
+                        </div>
+                        <div class="form-group">
+                            <label>এক্সট্রা ক্লাসের কারণ (Reason)</label>
+                            <input type="text" name="reason" class="form-control" placeholder="যেমনঃ ছুটির দিনের ক্ষতিপূরণ / পরীক্ষা পূর্ব প্রস্তুতি">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>অনলাইন মিটিং লিংক (Zoom / Google Meet URL)</label>
+                        <input type="url" name="meeting_link" class="form-control" placeholder="https://meet.google.com/xxx-xxxx-xxx বা https://zoom.us/j/...">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:0">
+                        <label>অতিরিক্ত নোট / শিক্ষার্থীদের জন্য নির্দেশনা</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="ক্লাসে অংশগ্রহণের জন্য কোনো পূর্বশর্ত বা নোট থাকলে লিখুন..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding:14px 20px;background:#f8fafc">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addExtraClassModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#be123c;border-color:#be123c;font-weight:700">
+                        <i class="fa-solid fa-check"></i> এক্সট্রা ক্লাস শিডিউল করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </x-admin-layout>

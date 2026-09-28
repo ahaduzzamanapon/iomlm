@@ -22,6 +22,12 @@ class SubjectModuleController extends Controller
             'drive_link'               => 'nullable|url|max:500',
             'recorded_url'             => 'nullable|string|max:500',
             'embed_code'               => 'nullable|string',
+            'videos'                   => 'nullable|array',
+            'videos.*.title'           => 'nullable|string|max:250',
+            'videos.*.url'             => 'nullable|string|max:1000',
+            'videos.*.embed_code'      => 'nullable|string',
+            'videos.*.file'            => 'nullable|file|mimes:mp4,webm,ogg,mov,avi,mkv|max:512000',
+            'videos.*.existing_file'   => 'nullable|string|max:500',
             'is_hidden'                => 'nullable|boolean',
             'is_locked_until_previous' => 'nullable|boolean',
         ]);
@@ -30,6 +36,9 @@ class SubjectModuleController extends Controller
         if ($request->hasFile('attachment')) {
             $filePath = $request->file('attachment')->store('modules/attachments', 'public');
         }
+
+        $recordedVideos = $this->processRecordedVideos($request);
+        $firstVideo = $recordedVideos[0] ?? null;
 
         SubjectModule::create([
             'subject_id'               => $subject->id,
@@ -40,14 +49,15 @@ class SubjectModuleController extends Controller
             'description'              => $validated['description'] ?? null,
             'file_path'                => $filePath,
             'drive_link'               => $validated['drive_link'] ?? null,
-            'recorded_url'             => $validated['recorded_url'] ?? null,
-            'embed_code'               => $validated['embed_code'] ?? null,
+            'recorded_url'             => $firstVideo['url'] ?? ($validated['recorded_url'] ?? null),
+            'embed_code'               => $firstVideo['embed_code'] ?? ($validated['embed_code'] ?? null),
+            'recorded_videos'          => !empty($recordedVideos) ? $recordedVideos : null,
             'is_hidden'                => $request->boolean('is_hidden', false),
             'is_locked_until_previous' => $request->boolean('is_locked_until_previous', false),
             'is_active'                => true,
         ]);
 
-        return back()->with('success', 'মডিউল সফলভাবে যুক্ত করা হয়েছে।');
+        return back()->with('success', 'মডিউল ও রেকর্ডেড ক্লাস সফলভাবে যুক্ত করা হয়েছে।');
     }
 
     public function update(Request $request, SubjectModule $module)
@@ -62,6 +72,12 @@ class SubjectModuleController extends Controller
             'drive_link'               => 'nullable|url|max:500',
             'recorded_url'             => 'nullable|string|max:500',
             'embed_code'               => 'nullable|string',
+            'videos'                   => 'nullable|array',
+            'videos.*.title'           => 'nullable|string|max:250',
+            'videos.*.url'             => 'nullable|string|max:1000',
+            'videos.*.embed_code'      => 'nullable|string',
+            'videos.*.file'            => 'nullable|file|mimes:mp4,webm,ogg,mov,avi,mkv|max:512000',
+            'videos.*.existing_file'   => 'nullable|string|max:500',
             'is_hidden'                => 'nullable|boolean',
             'is_locked_until_previous' => 'nullable|boolean',
         ]);
@@ -74,6 +90,9 @@ class SubjectModuleController extends Controller
             $filePath = $request->file('attachment')->store('modules/attachments', 'public');
         }
 
+        $recordedVideos = $this->processRecordedVideos($request, $module);
+        $firstVideo = $recordedVideos[0] ?? null;
+
         $module->update([
             'category'                 => $validated['category'] ?? null,
             'folder_name'              => $validated['folder_name'] ?? 'General',
@@ -82,13 +101,85 @@ class SubjectModuleController extends Controller
             'description'              => $validated['description'] ?? null,
             'file_path'                => $filePath,
             'drive_link'               => $validated['drive_link'] ?? null,
-            'recorded_url'             => $validated['recorded_url'] ?? null,
-            'embed_code'               => $validated['embed_code'] ?? null,
+            'recorded_url'             => $firstVideo['url'] ?? ($validated['recorded_url'] ?? null),
+            'embed_code'               => $firstVideo['embed_code'] ?? ($validated['embed_code'] ?? null),
+            'recorded_videos'          => !empty($recordedVideos) ? $recordedVideos : null,
             'is_hidden'                => $request->boolean('is_hidden', false),
             'is_locked_until_previous' => $request->boolean('is_locked_until_previous', false),
         ]);
 
-        return back()->with('success', 'মডিউল সফলভাবে আপডেট করা হয়েছে।');
+        return back()->with('success', 'মডিউল ও রেকর্ডেড ক্লাস সফলভাবে আপডেট করা হয়েছে।');
+    }
+
+    /**
+     * Process multiple recorded videos from form request
+     */
+    protected function processRecordedVideos(Request $request, ?SubjectModule $existingModule = null): array
+    {
+        $recordedVideos = [];
+        $existingVideos = $existingModule ? ($existingModule->videos ?? []) : [];
+        $existingFilesKept = [];
+
+        if ($request->has('videos') && is_array($request->input('videos'))) {
+            foreach ($request->input('videos') as $index => $vidData) {
+                $title = trim($vidData['title'] ?? '');
+                $url = trim($vidData['url'] ?? '');
+                $embedCode = trim($vidData['embed_code'] ?? '');
+                $existingFile = $vidData['existing_file'] ?? null;
+                $filePath = $existingFile;
+
+                // Check for new video file upload
+                if ($request->hasFile("videos.{$index}.file")) {
+                    $file = $request->file("videos.{$index}.file");
+                    if ($file && $file->isValid()) {
+                        // Delete old file if replacing
+                        if ($existingFile && Storage::disk('public')->exists($existingFile)) {
+                            Storage::disk('public')->delete($existingFile);
+                        }
+                        $filePath = $file->store('modules/videos', 'public');
+                    }
+                }
+
+                if ($filePath) {
+                    $existingFilesKept[] = $filePath;
+                }
+
+                // If any content is provided
+                if (!empty($title) || !empty($url) || !empty($embedCode) || !empty($filePath)) {
+                    $recordedVideos[] = [
+                        'id'         => $vidData['id'] ?? ('vid_' . uniqid()),
+                        'title'      => !empty($title) ? $title : ('ক্লাস রেকর্ড ' . (count($recordedVideos) + 1)),
+                        'url'        => !empty($url) ? $url : null,
+                        'embed_code' => !empty($embedCode) ? $embedCode : null,
+                        'file_path'  => $filePath,
+                    ];
+                }
+            }
+        }
+
+        // Clean up orphaned video files from removed videos
+        if ($existingModule && !empty($existingVideos)) {
+            foreach ($existingVideos as $oldVid) {
+                if (!empty($oldVid['file_path']) && !in_array($oldVid['file_path'], $existingFilesKept)) {
+                    if (Storage::disk('public')->exists($oldVid['file_path'])) {
+                        Storage::disk('public')->delete($oldVid['file_path']);
+                    }
+                }
+            }
+        }
+
+        // Fallback for single legacy fields if videos array was empty
+        if (empty($recordedVideos) && ($request->filled('recorded_url') || $request->filled('embed_code'))) {
+            $recordedVideos[] = [
+                'id'         => 'vid_' . uniqid(),
+                'title'      => ($request->input('title') ?: 'ক্লাস লেকচার') . ' (রেকর্ডেড ক্লাস)',
+                'url'        => $request->input('recorded_url'),
+                'embed_code' => $request->input('embed_code'),
+                'file_path'  => null,
+            ];
+        }
+
+        return $recordedVideos;
     }
 
     public function toggleHidden(SubjectModule $module)
@@ -109,6 +200,14 @@ class SubjectModuleController extends Controller
     {
         if ($module->file_path && Storage::disk('public')->exists($module->file_path)) {
             Storage::disk('public')->delete($module->file_path);
+        }
+
+        if (!empty($module->videos)) {
+            foreach ($module->videos as $v) {
+                if (!empty($v['file_path']) && Storage::disk('public')->exists($v['file_path'])) {
+                    Storage::disk('public')->delete($v['file_path']);
+                }
+            }
         }
 
         $module->delete();

@@ -57,6 +57,25 @@ class RoutineController extends Controller
             ->get()
             ->keyBy('routine_entry_id');
 
-        return view('student.routine.index', compact('slots', 'days', 'entries', 'weekends', 'todaySessions'));
+        // Upcoming Extra Classes outside routine
+        $upcomingExtraClasses = ClassSession::with(['subject', 'batch', 'teacher'])
+            ->whereIn('batch_id', $batchIds)
+            ->where(function ($q) use ($studentGender, $enrollmentGroups) {
+                $q->whereNull('group_tag')
+                  ->orWhere('group_tag', 'ALL');
+                if ($studentGender) {
+                    $q->orWhere('group_tag', $studentGender);
+                }
+                if (!empty($enrollmentGroups)) {
+                    $q->orWhereIn('group_tag', $enrollmentGroups);
+                }
+            })
+            ->extra()
+            ->whereDate('session_date', '>=', today())
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->get();
+
+        return view('student.routine.index', compact('slots', 'days', 'entries', 'weekends', 'todaySessions', 'upcomingExtraClasses'));
     }
 }

@@ -232,6 +232,49 @@ class AccountingService
     }
 
     /**
+     * Auto-generate Re-Exam Appeal Fee Invoice.
+     */
+    public static function createReExamAppealInvoice(Student $student, \App\Models\ExamAppeal $appeal, float $feeRate = 0.00): Invoice
+    {
+        $invNo = 'INV-APL-' . date('Ymd') . '-' . rand(1000, 9999);
+        $exam = $appeal->exam;
+        $subjectName = $exam?->subject?->name ?? 'Exam';
+        $examTitle = $exam?->title ?? 'Re-Exam';
+        $isFree = ($feeRate <= 0);
+
+        // Find student enrollment for this course
+        $enrollmentId = $student->enrollments()
+            ->when($exam && $exam->course_id, fn($q) => $q->where('course_id', $exam->course_id))
+            ->value('id') ?? $student->enrollments()->value('id');
+
+        $invoice = Invoice::create([
+            'invoice_no'     => $invNo,
+            'student_id'     => $student->id,
+            'enrollment_id'  => $enrollmentId,
+            'category'       => 'RE_EXAM',
+            'title'          => "পুনরায় পরীক্ষা আপিল ফি (Re-Exam Appeal Fee) — {$examTitle} ({$subjectName})",
+            'amount'         => $feeRate,
+            'discount'       => 0.00,
+            'payable_amount' => $feeRate,
+            'paid_amount'    => $isFree ? 0.00 : 0.00,
+            'due_amount'     => $isFree ? 0.00 : $feeRate,
+            'status'         => $isFree ? 'PAID' : 'UNPAID',
+            'due_date'       => $isFree ? null : Carbon::now()->addDays(5),
+            'source_type'    => \App\Models\ExamAppeal::class,
+            'source_id'      => $appeal->id,
+            'created_by'     => auth()->id(),
+        ]);
+
+        $appeal->update([
+            'invoice_id'     => $invoice->id,
+            'fee_amount'     => $feeRate,
+            'payment_status' => $isFree ? 'PAID' : 'UNPAID',
+        ]);
+
+        return $invoice;
+    }
+
+    /**
      * Auto-generate Semester Fee Invoice.
      * If the student has an approved waiver with a package, uses the package total.
      */
@@ -421,6 +464,14 @@ class AccountingService
                 }
             }
 
+            // Trigger Exam Appeal payment status update if re-exam invoice is paid
+            if ($status === 'PAID' && (in_array($invoice->category, ['RE_EXAM', 'EXAM']) || $invoice->source_type === \App\Models\ExamAppeal::class)) {
+                $appeal = \App\Models\ExamAppeal::where('invoice_id', $invoice->id)->first();
+                if ($appeal) {
+                    $appeal->update(['payment_status' => 'PAID']);
+                }
+            }
+
             $payment->update([
                 'status'      => 'APPROVED',
                 'approved_at' => now(),
@@ -488,6 +539,14 @@ class AccountingService
                 $transfer = \App\Models\CourseTransfer::where('invoice_id', $invoice->id)->first();
                 if ($transfer && in_array($transfer->status, ['APPROVED_PENDING_PAYMENT', 'PENDING'])) {
                     \App\Services\CourseTransferService::executeTransfer($transfer);
+                }
+            }
+
+            // Trigger Exam Appeal payment status update if re-exam invoice is paid
+            if ($status === 'PAID' && (in_array($invoice->category, ['RE_EXAM', 'EXAM']) || $invoice->source_type === \App\Models\ExamAppeal::class)) {
+                $appeal = \App\Models\ExamAppeal::where('invoice_id', $invoice->id)->first();
+                if ($appeal) {
+                    $appeal->update(['payment_status' => 'PAID']);
                 }
             }
 

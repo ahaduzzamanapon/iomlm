@@ -27,7 +27,17 @@
                     @php $isToday = $c->session_date?->isToday(); @endphp
                     <tr style="{{ $isToday ? 'background:#eff6ff;' : '' }}">
                         <td class="td-primary">
-                            <strong>{{ $c->subject?->name ?? '—' }}</strong>
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                <strong>{{ $c->subject?->name ?? '—' }}</strong>
+                                @if($c->is_extra)
+                                    <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;font-family:'Kalpurush',sans-serif">
+                                        <i class="fa-solid fa-star text-amber-500"></i> এক্সট্রা ক্লাস
+                                    </span>
+                                @endif
+                            </div>
+                            @if($c->is_extra && $c->title)
+                                <div style="font-size:11.5px;color:#d97706;font-weight:600;margin-top:2px;">{{ $c->title }}</div>
+                            @endif
                             @if($c->moduleCovered)
                                 <br><span class="td-muted">{{ $c->moduleCovered->title }}</span>
                             @endif
@@ -44,7 +54,16 @@
                                 <span class="badge badge-secondary no-dot">Date TBA</span>
                             @endif
                         </td>
-                        <td class="td-muted" style="font-size:11px">{{ $c->routineEntry?->slot?->name ?? '—' }}</td>
+                        <td class="td-muted" style="font-size:11px">
+                            @if($c->is_extra)
+                                <span style="color:#d97706;font-weight:600;font-family:'Kalpurush',sans-serif">রুটিন বহির্ভূত</span>
+                                @if($c->end_time)
+                                    <br><span style="font-size:10.5px;color:#6b7280">{{ \Carbon\Carbon::parse($c->start_time)->format('h:i A') }} - {{ \Carbon\Carbon::parse($c->end_time)->format('h:i A') }}</span>
+                                @endif
+                            @else
+                                {{ $c->routineEntry?->slot?->name ?? '—' }}
+                            @endif
+                        </td>
                         <td class="td-muted">{{ $c->teacher?->name ?? '—' }}</td>
                         <td>
                             @php $badge = match($c->status) { 'COMPLETED'=>'badge-success','SCHEDULED'=>'badge-info','CANCELLED'=>'badge-danger',default=>'badge-warning' }; @endphp

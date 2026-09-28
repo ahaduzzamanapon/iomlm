@@ -23,6 +23,8 @@ Route::middleware(['auth', 'role:teacher,admin,super_admin'])->prefix('teacher')
     Route::post('classes/{class}/sync-zoom-attendance', [\App\Http\Controllers\Teacher\ClassController::class, 'syncZoomAttendance'])->name('classes.syncZoomAttendance');
     Route::post('classes/{class}/complete',       [\App\Http\Controllers\Teacher\ClassController::class, 'markComplete'])->name('classes.complete');
     Route::post('classes/{class}/cancel',         [\App\Http\Controllers\Teacher\ClassController::class, 'markCancelled'])->name('classes.cancel');
+    Route::post('classes/extra',                  [\App\Http\Controllers\Teacher\ClassController::class, 'storeExtra'])->name('classes.extra.store');
+    Route::post('classes/{class}/recording',      [\App\Http\Controllers\Teacher\ClassController::class, 'updateRecording'])->name('classes.recording');
     Route::get('calendar',                        [\App\Http\Controllers\Teacher\ClassController::class, 'calendar'])->name('calendar');
     Route::get('schedule',                        [\App\Http\Controllers\Teacher\ClassController::class, 'schedule'])->name('schedule');
 

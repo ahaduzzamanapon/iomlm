@@ -16,4 +16,9 @@ class AcademicYear extends Model
     {
         return $this->hasMany(AcademicSession::class, 'academic_year_id');
     }
+
+    public function batches()
+    {
+        return $this->hasMany(Batch::class, 'academic_year_id');
+    }
 }

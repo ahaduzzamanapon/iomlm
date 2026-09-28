@@ -67,8 +67,14 @@ class ExamController extends Controller
             ->latest()
             ->first();
 
-        // Check exam schedule window (bypassed if student has an approved re-exam appeal)
-        if (!$approvedAppeal) {
+        // If approved appeal has unpaid fee, block until fee is paid
+        if ($approvedAppeal && $approvedAppeal->requiresPayment()) {
+            return redirect()->route('student.exams.index')
+                ->with('error', "পুনরায় পরীক্ষা শুরু করার পূর্বে নির্ধারিত আপিল ফি (৳" . number_format($approvedAppeal->fee_amount, 2) . ") পরিশোধ করা আবশ্যক। অনুগ্রহ করে ফি পরিশোধ করুন।");
+        }
+
+        // Check exam schedule window (bypassed if student has an approved and paid re-exam appeal)
+        if (!$approvedAppeal || $approvedAppeal->requiresPayment()) {
             if ($exam->isUpcoming()) {
                 $startFormatted = $exam->getEffectiveStartDatetime()->format('d M Y, h:i A');
                 return redirect()->route('student.exams.index')
@@ -166,6 +172,55 @@ class ExamController extends Controller
             $exam->setRelation('examQuestions', $assignedExamQuestions);
         }
 
+        // Initialize and persist shuffled options per question for this student submission
+        $shuffledOptions = $submission->shuffled_options ?? [];
+        $hasNewShuffle   = false;
+        $letters         = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+        foreach ($exam->examQuestions as $eq) {
+            $q = $eq->question;
+            if (!$q || $q->question_type !== 'MCQ') {
+                continue;
+            }
+
+            if (!isset($shuffledOptions[$q->id])) {
+                $rawOptions = is_array($q->options) ? $q->options : [];
+                if (count($rawOptions) > 1) {
+                    $shuffledRaw             = collect($rawOptions)->shuffle()->values()->all();
+                    $shuffledList            = [];
+                    $shuffledCorrectOptionId = null;
+                    $origCorrect             = strtolower(trim($q->correct_option_id ?? ''));
+
+                    foreach ($shuffledRaw as $idx => $opt) {
+                        $newLetter  = $letters[$idx] ?? chr(97 + $idx);
+                        $origLetter = strtolower(trim($opt['id'] ?? ''));
+
+                        if ($origLetter === $origCorrect) {
+                            $shuffledCorrectOptionId = $newLetter;
+                        }
+
+                        $shuffledList[] = [
+                            'id'          => $newLetter,
+                            'text'        => $opt['text'] ?? '',
+                            'original_id' => $origLetter,
+                        ];
+                    }
+
+                    $shuffledOptions[$q->id] = [
+                        'options'           => $shuffledList,
+                        'correct_option_id' => $shuffledCorrectOptionId,
+                        'original_correct'  => $origCorrect,
+                    ];
+                    $hasNewShuffle = true;
+                }
+            }
+        }
+
+        if ($hasNewShuffle) {
+            $submission->shuffled_options = $shuffledOptions;
+            $submission->save();
+        }
+
         // Load any already-saved answers
         $savedAnswers = ExamAnswer::where('submission_id', $submission->id)
             ->get()
@@ -231,16 +286,21 @@ class ExamController extends Controller
                 );
 
             } else {
-                // MCQ — auto-grade
-                $selectedOpt = strtolower($answersInput[$q->id] ?? '');
-                $isCorrect   = false;
+                // MCQ — auto-grade using student's persistent shuffled options
+                $selectedOpt  = strtolower(trim($answersInput[$q->id] ?? ''));
+                $isCorrect    = false;
                 $marksAwarded = 0.00;
 
+                $shuffledData = $submission->shuffled_options[$q->id] ?? null;
+                $correctOpt   = $shuffledData && !empty($shuffledData['correct_option_id'])
+                    ? strtolower(trim($shuffledData['correct_option_id']))
+                    : strtolower(trim($q->correct_option_id ?? ''));
+
                 if ($selectedOpt !== '') {
-                    if ($selectedOpt === strtolower($q->correct_option_id)) {
+                    if ($selectedOpt === $correctOpt) {
                         $isCorrect    = true;
                         $correctCount++;
-                        $marksAwarded = $eq->marks;
+                        $marksAwarded = (float) $eq->marks;
                     } else {
                         $wrongCount++;
                     }

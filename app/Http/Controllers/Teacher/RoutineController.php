@@ -30,6 +30,15 @@ class RoutineController extends Controller
             ->get()
             ->keyBy('routine_entry_id');
 
-        return view('teacher.routine.index', compact('slots', 'days', 'entries', 'weekends', 'teacher', 'todaySessions'));
+        // Upcoming Extra Classes outside routine
+        $upcomingExtraClasses = ClassSession::with(['subject', 'batch'])
+            ->where('teacher_id', $teacher?->id)
+            ->extra()
+            ->whereDate('session_date', '>=', today())
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->get();
+
+        return view('teacher.routine.index', compact('slots', 'days', 'entries', 'weekends', 'teacher', 'todaySessions', 'upcomingExtraClasses'));
     }
 }

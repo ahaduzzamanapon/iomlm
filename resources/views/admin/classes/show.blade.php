@@ -264,6 +264,49 @@
                     </a>
                 </div>
             </div>
+
+            {{-- Class Recording Card --}}
+            <div class="card" style="border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-top:16px;font-family:'Kalpurush',sans-serif">
+                <div class="card-header" style="background:#f8fafc;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+                    <span class="card-title" style="display:flex;align-items:center;gap:8px;font-size:14px;color:#0f172a;margin:0;font-weight:800">
+                        <i class="fa-solid fa-circle-play" style="color:#2563eb;font-size:15px"></i>
+                        ক্লাস রেকর্ড (Recording)
+                    </span>
+                    @if($class->has_recorded_videos)
+                        <span class="badge badge-success no-dot" style="font-size:11px;font-weight:700">
+                            {{ $class->video_count }} টি ভিডিও
+                        </span>
+                    @else
+                        <span class="badge badge-secondary no-dot" style="font-size:11px">রেকর্ড নেই</span>
+                    @endif
+                </div>
+                <div style="padding:14px">
+                    @if($class->has_recorded_videos)
+                        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+                            @foreach($class->videos as $vIdx => $vid)
+                                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:#f8fafc;padding:8px 12px;border-radius:8px;border:1px solid #e2e8f0">
+                                    <div style="font-size:12.5px;font-weight:600;color:#1e293b;display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                                        <i class="fa-solid fa-video" style="color:#3b82f6;font-size:12px"></i>
+                                        <span>{{ $vid['title'] }}</span>
+                                    </div>
+                                    <span class="badge" style="background:#eff6ff;color:#1d4ed8;font-size:10px;text-transform:uppercase;font-weight:700">
+                                        {{ $vid['type'] }}
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p style="font-size:12px;color:var(--text-muted);margin:0 0 12px 0">
+                            এই ক্লাসের কোনো ভিডিও রেকর্ড এখনও আপলোড বা সেট করা হয়নি।
+                        </p>
+                    @endif
+
+                    <button type="button" class="btn btn-primary btn-sm" style="width:100%;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openModal('recordingModal')">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        {{ $class->has_recorded_videos ? 'রেকর্ড পরিবর্তন / ম্যানেজ করুন' : 'ক্লাস রেকর্ড আপলোড করুন' }}
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -358,6 +401,105 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('completeModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Mark as Completed</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Class Recording Upload & Manage Modal --}}
+    <div class="modal-overlay" id="recordingModal">
+        <div class="modal" style="max-width:680px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header" style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:14px 20px">
+                <span class="modal-title" style="display:flex;align-items:center;gap:8px;font-size:16px;color:#0f172a;font-weight:800">
+                    <i class="fa-solid fa-circle-play" style="color:#2563eb"></i>
+                    ক্লাস রেকর্ড ও ভিডিও আপলোড / পরিবর্তন
+                </span>
+                <button class="modal-close" onclick="closeModal('recordingModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.classes.recording', $class) }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:72vh;overflow-y:auto">
+                    <div style="background:#eff6ff;padding:12px 14px;border-radius:8px;border:1px solid #bfdbfe;font-size:12.5px;color:#1e40af">
+                        <i class="fa-solid fa-circle-info"></i>
+                        এই ক্লাসের রেকর্ডিং হিসেবে YouTube লিংক, Google Drive লিংক, Vimeo, সরাসরি ভিডিও ফাইল (MP4/WebM) অথবা iframe Embed কোড যোগ করতে পারবেন। প্রয়োজনে একাধিক পার্ট যোগ করা যাবে।
+                    </div>
+
+                    <div id="recordingRowsContainer" style="display:flex;flex-direction:column;gap:14px">
+                        @php $currentVideos = $class->videos; @endphp
+                        @if(!empty($currentVideos))
+                            @foreach($currentVideos as $vIndex => $vid)
+                            <div class="recording-row card" style="padding:14px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;position:relative">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                                    <strong style="font-size:13px;color:#334155"><i class="fa-solid fa-video" style="color:#2563eb"></i> ভিডিও পার্ট #<span class="row-num">{{ $vIndex + 1 }}</span></strong>
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="removeRecordingRow(this)" style="color:#ef4444;font-size:11.5px;padding:2px 8px">
+                                        <i class="fa-solid fa-trash-can"></i> রিমুভ
+                                    </button>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                                    <div class="form-group" style="grid-column:span 2">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও শিরোনাম / বিষয়বস্তু</label>
+                                        <input type="text" name="videos[{{ $vIndex }}][title]" class="form-control" value="{{ $vid['title'] }}" placeholder="যেমন: লেকচার ০১ - ক্লাস আলোচনা">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও URL (YouTube / Drive / Vimeo)</label>
+                                        <input type="text" name="videos[{{ $vIndex }}][url]" class="form-control" value="{{ $vid['url'] }}" placeholder="https://www.youtube.com/watch?v=... বা Drive Link">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও ফাইল আপলোড (MP4)</label>
+                                        <input type="file" name="videos[{{ $vIndex }}][file]" class="form-control" accept="video/*">
+                                        @if(!empty($vid['file']))
+                                            <input type="hidden" name="videos[{{ $vIndex }}][existing_file]" value="{{ $vid['file'] }}">
+                                            <div style="font-size:11px;color:#047857;margin-top:3px">
+                                                <i class="fa-solid fa-check-circle"></i> ফাইল ইতিমধ্যে আপলোড করা আছে ({{ basename($vid['file']) }})
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="form-group" style="grid-column:span 2">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">অথবা Embed Code (iFrame - ঐচ্ছিক)</label>
+                                        <textarea name="videos[{{ $vIndex }}][embed_code]" class="form-control" rows="2" placeholder="<iframe src='...'></iframe>">{{ $vid['embed_code'] ?? '' }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        @else
+                            <div class="recording-row card" style="padding:14px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;position:relative">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                                    <strong style="font-size:13px;color:#334155"><i class="fa-solid fa-video" style="color:#2563eb"></i> ভিডিও পার্ট #<span class="row-num">1</span></strong>
+                                    <button type="button" class="btn btn-sm btn-ghost" onclick="removeRecordingRow(this)" style="color:#ef4444;font-size:11.5px;padding:2px 8px">
+                                        <i class="fa-solid fa-trash-can"></i> রিমুভ
+                                    </button>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                                    <div class="form-group" style="grid-column:span 2">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও শিরোনাম / বিষয়বস্তু</label>
+                                        <input type="text" name="videos[0][title]" class="form-control" value="লেকচার রেকর্ড - ০১" placeholder="যেমন: লেকচার ০১ - ক্লাস আলোচনা">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও URL (YouTube / Drive / Vimeo)</label>
+                                        <input type="text" name="videos[0][url]" class="form-control" placeholder="https://www.youtube.com/watch?v=... বা Drive Link">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও ফাইল আপলোড (MP4)</label>
+                                        <input type="file" name="videos[0][file]" class="form-control" accept="video/*">
+                                    </div>
+                                    <div class="form-group" style="grid-column:span 2">
+                                        <label class="form-label" style="font-size:12px;font-weight:700">অথবা Embed Code (iFrame - ঐচ্ছিক)</label>
+                                        <textarea name="videos[0][embed_code]" class="form-control" rows="2" placeholder="<iframe src='...'></iframe>"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    <button type="button" class="btn btn-outline btn-sm" onclick="addRecordingRow()" style="align-self:flex-start;font-weight:700;display:flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-plus"></i> আরো একটি ভিডিও পার্ট যোগ করুন
+                    </button>
+                </div>
+                <div class="modal-footer" style="padding:14px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('recordingModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="padding:8px 22px;font-weight:800">
+                        <i class="fa-solid fa-floppy-disk"></i> রেকর্ড সেভ করুন
+                    </button>
                 </div>
             </form>
         </div>
@@ -560,6 +702,58 @@
             text.textContent = msg;
             notice.style.display = 'inline-flex';
             setTimeout(() => { notice.style.display = 'none'; }, 3000);
+        }
+    }
+
+    function addRecordingRow() {
+        const container = document.getElementById('recordingRowsContainer');
+        if (!container) return;
+        const currentCount = container.querySelectorAll('.recording-row').length;
+        const nextIdx = currentCount;
+        const nextNum = currentCount + 1;
+
+        const rowHtml = `
+            <div class="recording-row card" style="padding:14px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;position:relative">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                    <strong style="font-size:13px;color:#334155"><i class="fa-solid fa-video" style="color:#2563eb"></i> ভিডিও পার্ট #<span class="row-num">${nextNum}</span></strong>
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="removeRecordingRow(this)" style="color:#ef4444;font-size:11.5px;padding:2px 8px">
+                        <i class="fa-solid fa-trash-can"></i> রিমুভ
+                    </button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                    <div class="form-group" style="grid-column:span 2">
+                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও শিরোনাম / বিষয়বস্তু</label>
+                        <input type="text" name="videos[${nextIdx}][title]" class="form-control" value="লেকচার রেকর্ড - ০${nextNum}" placeholder="যেমন: লেকচার ০${nextNum} - প্রশ্নোত্তর পর্ব">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও URL (YouTube / Drive / Vimeo)</label>
+                        <input type="text" name="videos[${nextIdx}][url]" class="form-control" placeholder="https://www.youtube.com/watch?v=... বা Drive Link">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="font-size:12px;font-weight:700">ভিডিও ফাইল আপলোড (MP4)</label>
+                        <input type="file" name="videos[${nextIdx}][file]" class="form-control" accept="video/*">
+                    </div>
+                    <div class="form-group" style="grid-column:span 2">
+                        <label class="form-label" style="font-size:12px;font-weight:700">অথবা Embed Code (iFrame - ঐচ্ছিক)</label>
+                        <textarea name="videos[${nextIdx}][embed_code]" class="form-control" rows="2" placeholder="<iframe src='...'></iframe>"></textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', rowHtml);
+    }
+
+    function removeRecordingRow(btn) {
+        const row = btn.closest('.recording-row');
+        const container = document.getElementById('recordingRowsContainer');
+        if (container && container.querySelectorAll('.recording-row').length > 1) {
+            row.remove();
+            container.querySelectorAll('.recording-row').forEach((r, i) => {
+                const num = r.querySelector('.row-num');
+                if (num) num.textContent = i + 1;
+            });
+        } else {
+            alert('কমপক্ষে একটি ভিডিও রো থাকতে হবে।');
         }
     }
     </script>

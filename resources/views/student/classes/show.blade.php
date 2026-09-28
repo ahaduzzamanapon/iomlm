@@ -38,6 +38,22 @@
                     </a>
                 </div>
                 @endif
+
+                @if($class->has_recorded_videos)
+                <div style="margin-top:20px;background:#eff6ff;padding:14px 16px;border-radius:10px;border:1px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:'Kalpurush',sans-serif">
+                    <div>
+                        <div style="font-weight:700;color:#1e40af;font-size:14px;display:flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-circle-play" style="color:#2563eb"></i> এই ক্লাসের রেকর্ডিং ভিডিও উপলব্ধ আছে
+                        </div>
+                        <div style="font-size:12px;color:#3b82f6;margin-top:2px">
+                            মোট {{ $class->video_count }} টি ভিডিও পার্ট সংযুক্ত রয়েছে।
+                        </div>
+                    </div>
+                    <a href="{{ route('student.recordings.show', $class) }}" class="btn btn-primary btn-sm" style="font-weight:800;padding:8px 18px;display:inline-flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-play"></i> রেকর্ড ভিডিও দেখুন →
+                    </a>
+                </div>
+                @endif
             </div>
         </div>
 

@@ -17,10 +17,51 @@
 
     <div class="page-header">
         <div class="page-header-left">
-            <h1>My Weekly Routine</h1>
-            <p>Your personal class schedule for the week</p>
+            <h1 style="font-family:'Kalpurush',sans-serif">আমার সাপ্তাহিক রুটিন (My Weekly Routine)</h1>
+            <p style="font-family:'Kalpurush',sans-serif">ব্যক্তিগত সাপ্তাহিক পাঠদান রুটিন ও রুটিনের বাইরের অতিরিক্ত ক্লাস</p>
+        </div>
+        <div class="page-header-actions">
+            <a href="{{ route('teacher.classes.index') }}" class="btn btn-primary btn-sm" style="background:#be123c;border-color:#be123c;font-family:'Kalpurush',sans-serif;font-weight:700">
+                <i class="fa-solid fa-calendar-plus"></i> + এক্সট্রা ক্লাস শিডিউল করুন
+            </a>
         </div>
     </div>
+
+    {{-- Upcoming Extra Classes for Teacher --}}
+    @if(isset($upcomingExtraClasses) && $upcomingExtraClasses->isNotEmpty())
+        <div class="card" style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:16px;margin-bottom:20px;font-family:'Kalpurush',sans-serif">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                <div style="font-weight:700;font-size:14px;color:#9f1239;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-star" style="color:#e11d48"></i> আপনার নির্ধারিত এক্সট্রা ক্লাসসমূহ (Upcoming Extra Classes)
+                </div>
+                <span class="badge" style="background:#ffe4e6;color:#9f1239;font-size:11px">
+                    {{ $upcomingExtraClasses->count() }}টি এক্সট্রা ক্লাস
+                </span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:10px">
+                @foreach($upcomingExtraClasses as $ec)
+                <div style="background:#ffffff;border:1px solid #fbcfe8;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
+                    <div>
+                        <div style="font-weight:700;font-size:13.5px;color:#1e293b">{{ $ec->subject?->name ?? '—' }}</div>
+                        <div style="font-size:12px;color:#be123c;font-weight:600;margin-top:2px">
+                            <i class="fa-regular fa-calendar-check"></i> {{ $ec->session_date ? $ec->session_date->format('d M Y (D)') : '' }}
+                            &middot; {{ $ec->start_time ? \Carbon\Carbon::parse($ec->start_time)->format('h:i A') : '' }}
+                        </div>
+                        <div style="font-size:11.5px;color:#64748b;margin-top:2px">{{ $ec->batch?->name }} ({{ $ec->group_label }})</div>
+                        @if($ec->title)
+                            <div style="font-size:11px;color:#9d174d;font-weight:600">{{ $ec->title }}</div>
+                        @endif
+                    </div>
+                    <div>
+                        <a href="{{ route('teacher.classes.conduct', $ec) }}" class="btn btn-sm btn-primary" style="background:#be123c;border-color:#be123c;font-size:11.5px;padding:5px 12px;white-space:nowrap">
+                            ক্লাস পরিচালনা →
+                        </a>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 
     @if($slots->isEmpty())
         <div class="card" style="padding:40px;text-align:center;color:var(--text-muted)">

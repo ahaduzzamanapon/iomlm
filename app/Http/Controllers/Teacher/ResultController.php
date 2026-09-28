@@ -21,12 +21,13 @@ class ResultController extends Controller
         $exam->load(['subject', 'attendees.student', 'results', 'submissions.student']);
         
         // If attendees exist, prioritize them, otherwise get students belonging to the batch/course or active
+        $examBatchId = $exam->attendees->first()?->batch_id;
         if ($exam->attendees->isNotEmpty()) {
             $studentIds = $exam->attendees->pluck('student_id');
             $students = Student::whereIn('id', $studentIds)->where('status', 'ACTIVE')->get();
-        } elseif ($exam->batch_id) {
-            $students = Student::whereHas('enrollments', function ($q) use ($exam) {
-                $q->where('batch_id', $exam->batch_id)->whereIn('status', ['ACTIVE', 'active', 'ENROLLED', 'enrolled']);
+        } elseif ($examBatchId) {
+            $students = Student::whereHas('enrollments', function ($q) use ($examBatchId) {
+                $q->where('batch_id', $examBatchId)->whereIn('status', ['ACTIVE', 'active', 'ENROLLED', 'enrolled']);
             })->where('status', 'ACTIVE')->get();
             if ($students->isEmpty()) {
                 $students = Student::where('status', 'ACTIVE')->get();

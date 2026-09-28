@@ -12,7 +12,61 @@ class SubjectModule extends Model
         'is_hidden'                => 'boolean',
         'is_active'                => 'boolean',
         'is_locked_until_previous' => 'boolean',
+        'recorded_videos'          => 'array',
     ];
+
+    protected $appends = [
+        'videos',
+        'has_recorded_videos',
+        'video_count',
+    ];
+
+    /**
+     * Get array of all recorded class videos with backward compatibility
+     *
+     * @return array
+     */
+    public function getVideosAttribute(): array
+    {
+        $videos = $this->recorded_videos;
+        if (is_string($videos)) {
+            $videos = json_decode($videos, true) ?: [];
+        }
+        if (is_array($videos) && !empty($videos)) {
+            return $videos;
+        }
+
+        // Backward compatibility for legacy single recorded_url & embed_code
+        if (!empty($this->recorded_url) || !empty($this->embed_code)) {
+            return [
+                [
+                    'id'         => 'legacy_' . $this->id,
+                    'title'      => $this->title . ' (ক্লাস রেকর্ড)',
+                    'url'        => $this->recorded_url,
+                    'embed_code' => $this->embed_code,
+                    'file_path'  => null,
+                ]
+            ];
+        }
+
+        return [];
+    }
+
+    /**
+     * Check if module has any recorded class videos
+     */
+    public function getHasRecordedVideosAttribute(): bool
+    {
+        return count($this->videos) > 0;
+    }
+
+    /**
+     * Get count of recorded class videos
+     */
+    public function getVideoCountAttribute(): int
+    {
+        return count($this->videos);
+    }
 
     public function subject()
     {
