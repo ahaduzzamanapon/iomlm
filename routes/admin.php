@@ -55,11 +55,6 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::patch('admissions/{admission}/reject', [\App\Http\Controllers\Admin\AdmissionController::class, 'reject'])->name('admissions.reject');
         Route::post('admissions/{admission}/send-repayment-email', [\App\Http\Controllers\Admin\AdmissionController::class, 'sendRepaymentEmail'])->name('admissions.send-repayment-email');
 
-        // Admission Circulars (ভর্তি সার্কুলার)
-        Route::post('admission-circulars/{admissionCircular}/clone', [\App\Http\Controllers\Admin\AdmissionCircularController::class, 'clone'])->name('admission-circulars.clone');
-        Route::patch('admission-circulars/{admissionCircular}/toggle', [\App\Http\Controllers\Admin\AdmissionCircularController::class, 'toggle'])->name('admission-circulars.toggle');
-        Route::resource('admission-circulars', \App\Http\Controllers\Admin\AdmissionCircularController::class);
-
         // Poor Fund & Waiver Applications
         Route::get('waiver-applications', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'index'])->name('waiver-applications.index');
         Route::get('waiver-applications/{waiverApplication}', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'show'])->name('waiver-applications.show');

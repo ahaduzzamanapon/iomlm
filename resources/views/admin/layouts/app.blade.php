@@ -365,10 +365,6 @@
                         Admissions
                         @if($pendingCount > 0)<span class="nav-badge">{{ $pendingCount }}</span>@endif
                     </a>
-                    <a href="{{ route('admin.admission-circulars.index') }}" class="nav-item {{ request()->routeIs('admin.admission-circulars*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-bullhorn"></i>
-                        Admission Circulars (ভর্তি সার্কুলার)
-                    </a>
                     <a href="{{ route('admin.course-transfers.index') }}" class="nav-item {{ request()->routeIs('admin.course-transfers*') ? 'active' : '' }}">
                         <i class="fa-solid fa-arrow-right-arrow-left"></i>
                         Course Transfers (কোর্স পরিবর্তন)

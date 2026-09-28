@@ -40,6 +40,8 @@ class ResultBookController extends Controller
         $batchMeritList = collect();
         $isSemesterBased = false;
         $isBatchPublished = false;
+        $exams = collect();
+        $examLookup = [];
 
         // Auto-select requested batch or default to the latest batch
         $batchId = $request->filled('batch_id') ? $request->batch_id : ($batches->first()?->id ?? null);
@@ -85,6 +87,31 @@ class ResultBookController extends Controller
                         $subIds = FinalMark::where('batch_id', $selectedBatch->id)->pluck('subject_id')->unique();
                     }
                     $subjects = Subject::whereIn('id', $subIds)->orderBy('code')->get();
+                }
+
+                // Optional Subject Filter in Tabulation / Single Subject view
+                if ($request->filled('subject_id')) {
+                    $selectedSubject = $subjects->firstWhere('id', $request->subject_id);
+                }
+
+                // Retrieve all exams for this batch & semester for direct linking to Merit List & Marksheets
+                $examsQuery = \App\Models\Exam::with(['subject', 'semester'])
+                    ->where('batch_id', $selectedBatch->id);
+                if ($isSemesterBased && $selectedSemester) {
+                    $examsQuery->where(function($q) use ($selectedSemester) {
+                        $q->where('semester_id', $selectedSemester->id)
+                          ->orWhereNull('semester_id');
+                    });
+                }
+                $exams = $examsQuery->latest('id')->get();
+
+                $examLookup = [];
+                foreach ($exams as $ex) {
+                    $examLookup[$ex->subject_id . '_' . $ex->type] = $ex;
+                    if ($ex->semester_id) {
+                        $examLookup[$ex->subject_id . '_' . $ex->semester_id . '_' . $ex->type] = $ex;
+                    }
+                    $examLookup[$ex->id] = $ex;
                 }
 
                 // Check if current batch + semester has published results
@@ -225,12 +252,28 @@ class ResultBookController extends Controller
                         $overallStatus = ($overallGrade !== 'F' && !$hasFail) ? 'PASS' : 'FAIL';
                         $qawmi = FinalMark::calculateQawmiGrade(0, $sgpa);
 
+                        // If a specific subject is selected, extract detailed raw breakdown and criteria conversion
+                        $selectedSubMark = $selectedSubject ? ($subjectMarks[$selectedSubject->id] ?? null) : null;
+                        $rawCt = $selectedSubMark['raw_ct'] ?? null;
+                        $rawMid = $selectedSubMark['raw_mid'] ?? null;
+                        $rawFinal = $selectedSubMark['raw_final'] ?? null;
+                        $rawAtt = $selectedSubMark['att_conv'] ?? null;
+                        $rawTotal = round(($rawCt ?? 0) + ($rawMid ?? 0) + ($rawFinal ?? 0) + ($rawAtt ?? 0), 2);
+                        $criteriaTotal = $selectedSubMark ? (float) ($selectedSubMark['converted'] ?? 0) : $totalObtained;
+
                         $studentsData[] = [
                             'student_id'     => $student->id,
                             'student_name'   => $student->name ?? '—',
                             'student_roll'   => $student->student_code ?? $student->student_id ?? '—',
-                            'first_mark_id'  => $firstFinalMarkId,
+                            'first_mark_id'  => $selectedSubMark ? ($selectedSubMark['final_mark_id'] ?? $firstFinalMarkId) : $firstFinalMarkId,
                             'subject_marks'  => $subjectMarks,
+                            'raw_ct'         => $rawCt,
+                            'raw_mid'        => $rawMid,
+                            'raw_final'      => $rawFinal,
+                            'raw_att'        => $rawAtt,
+                            'raw_total'      => $rawTotal,
+                            'criteria_total' => $criteriaTotal,
+                            'selected_mark'  => $selectedSubMark,
                             'total_obtained' => $totalObtained,
                             'total_full'     => $totalFull,
                             'percentage'     => $overallPercent,
@@ -241,8 +284,13 @@ class ResultBookController extends Controller
                         ];
                     }
 
-                    // Sort descending: SGPA first, then total obtained marks
-                    usort($studentsData, function ($a, $b) {
+                    // Sort descending: If subject selected, by subject criteria total; else by SGPA, then total obtained marks
+                    usort($studentsData, function ($a, $b) use ($selectedSubject) {
+                        if ($selectedSubject) {
+                            if ((float) ($b['criteria_total'] ?? 0) != (float) ($a['criteria_total'] ?? 0)) {
+                                return (float) ($b['criteria_total'] ?? 0) <=> (float) ($a['criteria_total'] ?? 0);
+                            }
+                        }
                         if ((float) $b['sgpa'] != (float) $a['sgpa']) {
                             return (float) $b['sgpa'] <=> (float) $a['sgpa'];
                         }
@@ -404,7 +452,7 @@ class ResultBookController extends Controller
             'tab', 'batches', 'selectedBatch', 'semesters', 'selectedSemester',
             'selectedSubject', 'examType', 'search', 'subjects', 'rankedStudents',
             'manualMarkingList', 'batchMeritList', 'isSemesterBased',
-            'isBatchPublished', 'summary'
+            'isBatchPublished', 'summary', 'exams', 'examLookup'
         ));
     }
 

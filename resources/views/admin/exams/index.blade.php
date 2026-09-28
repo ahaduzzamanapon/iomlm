@@ -271,16 +271,19 @@
                         </td>
                         <td><span class="badge badge-{{ strtolower($exam->status) }}">{{ ucfirst(strtolower($exam->status)) }}</span></td>
                         <td style="text-align:right; white-space:nowrap">
+                            <a href="{{ route('admin.exams.show', $exam) }}" class="btn btn-sm btn-primary" style="background:#059669; border-color:#059669; font-weight:800; font-family:'Kalpurush',sans-serif; padding:5px 12px; margin-right:6px; display:inline-flex; align-items:center; gap:5px; border-radius:7px" title="এই পরীক্ষার সকল শিক্ষার্থীর মেধা তালিকা ও নম্বরপত্র দেখুন">
+                                <i class="fa-solid fa-trophy" style="color:#fef08a"></i> মেধা তালিকা ও মার্কশীট
+                            </a>
                             <div class="dropdown" style="display:inline-block;position:relative">
                                 <button type="button" class="btn btn-outline btn-sm" onclick="toggleDropdown('eact-{{ $exam->id }}')" style="gap:6px;display:inline-flex;align-items:center;font-family:'Kalpurush',sans-serif;font-weight:700;padding:5px 12px">
                                     <i class="fa-solid fa-ellipsis-vertical" style="font-size:12px"></i>
                                     অ্যাকশন
                                     <i class="fa-solid fa-chevron-down" style="font-size:9px"></i>
                                 </button>
-                                <div class="dropdown-menu" id="eact-{{ $exam->id }}" style="right:0;min-width:210px">
-                                    <a href="{{ route('admin.exams.show', $exam) }}" class="dropdown-item">
-                                        <i class="fa-solid fa-eye" style="color:#2563eb;width:16px"></i>
-                                        ফলাফল ও বিবরণ (Inspect Exam)
+                                <div class="dropdown-menu" id="eact-{{ $exam->id }}" style="right:0;min-width:230px">
+                                    <a href="{{ route('admin.exams.show', $exam) }}" class="dropdown-item" style="font-weight:700">
+                                        <i class="fa-solid fa-trophy" style="color:#059669;width:16px"></i>
+                                        মেধা তালিকা ও মার্কশীট (Merit & Marksheet)
                                     </a>
                                     <a href="{{ route('admin.exams.builder', $exam) }}" class="dropdown-item">
                                         <i class="fa-solid fa-puzzle-piece" style="color:#4f46e5;width:16px"></i>

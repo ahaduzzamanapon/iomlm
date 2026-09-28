@@ -270,15 +270,7 @@
     <div class="form-card">
         <div class="form-card-header">
             <span class="form-card-title"><i class="fa-solid fa-file-pen" style="color:var(--iom-green)"></i> ভর্তির প্রাথমিক আবেদন ফর্ম</span>
-            <span style="font-size:12px;color:var(--iom-green);font-weight:600">
-                @if(isset($activeCircular) && $activeCircular)
-                    <span style="background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;">
-                        <i class="fa-solid fa-calendar-check"></i> {{ $activeCircular->short_name ?: $activeCircular->name }}
-                    </span>
-                @else
-                    আইওএম শিক্ষা বিভাগ
-                @endif
-            </span>
+            <span style="font-size:12px;color:var(--iom-green);font-weight:600">আইওএম শিক্ষা বিভাগ</span>
         </div>
 
         <div class="form-card-body">
@@ -302,7 +294,7 @@
                 <i class="fa-solid fa-clock" style="font-size:36px;color:#d97706;margin-bottom:12px;"></i>
                 <h3 style="font-size:17px;font-weight:700;margin-bottom:8px;">অনলাইন ভর্তি বর্তমানে বন্ধ রয়েছে</h3>
                 <p style="font-size:13.5px;line-height:1.6;color:#78350f;margin-bottom:0;">
-                    এই মুহূর্তে কোনো কোর্সে নতুন ভর্তি আবেদন গ্রহণ করা হচ্ছে না। নতুন সেশন বা সার্কুলার প্রকাশিত হলে পুনরায় আবেদন করা যাবে। যেকোনো জিজ্ঞাসায় আমাদের হেল্পলাইনে যোগাযোগ করুন।
+                    এই মুহূর্তে কোনো কোর্সে নতুন ভর্তি আবেদন গ্রহণ করা হচ্ছে না। ভর্তি উন্মুক্ত হলে পুনরায় আবেদন করা যাবে। যেকোনো জিজ্ঞাসায় আমাদের হেল্পলাইনে যোগাযোগ করুন।
                 </p>
             </div>
             @else
