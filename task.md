@@ -16,6 +16,17 @@
 | 40 | Fix StudentController::create() Undefined Method & Admission Link | Students / Admissions | COMPLETED | `scratch/verify_student_create_route.php` |
 | 41 | Extra Class System Outside Routine (Schedule, Filter, Badges & Portals) | Routine / Classes | COMPLETED | `scratch/verify_extra_class_system.php` |
 | 42 | Student Class Records Section, "আমার বিষয়" Removal & Admin/Teacher Session Upload | Classroom / Recordings | COMPLETED | `scratch/verify_class_recording_system.php` |
+| 48 | Exam-wise Tamrin Marks & Semester-wise Attendance Across Result System | Exams / Results | COMPLETED | `scratch/verify_exam_wise_tamrin_system.php` |
+| 49 | Universal Modal Scrolling & Backdrop/Escape Dismiss Across All Portals | UI / Modals | COMPLETED | `scratch/verify_result_book_and_modals_e2e.php` |
+| 50 | Email Template Selector, Quick Dropdown, Library Modal & Auto-Insertion in Message Body | Communications / Notifications | COMPLETED | `scratch/verify_email_template_system.php` |
+| 51 | Fix Table Horizontal Scroll & Card Overflow Clipping on Batches, Teachers, and Tickets | UI / Tables | COMPLETED | `scratch/verify_table_scroll_fix.php` |
+| 52 | Promotion Menu Fatal Crash Fix (`admin.final-marks.batch-subjects`) | Results / Promotions | COMPLETED | `scratch/test_promotion_all.php` |
+| 53 | Result Mark Edit / Override Crash Fix (`ResultBookController@overrideSave`) | Results / Mark Entry | COMPLETED | `scratch/test_result_override.php` |
+| 54 | Assignment Publish Constraint & Status Fix (Nullable Teacher, Status Enum) | Assignments | COMPLETED | `scratch/test_assignment_store.php` |
+| 55 | New Admission Store Error & Profile Deduplication / FK Sanitization | Admissions | COMPLETED | `scratch/test_admission_full.php` |
+| 56 | Question Bank Random Subset Selection & Sequence Shuffling Per Student | Exams / Question Bank | COMPLETED | `scratch/test_exam_shuffling.php` |
+| 57 | Teacher Panel Menu Cleanup (Remove Exams/Appeals, Show Assigned Subjects & Routine) | Teacher Portal | COMPLETED | `scratch/test_teacher_panel.php` |
+| 58 | Course Duration & Tuition Fee Cycle Definition for Courses and Batches | Courses / Batches | COMPLETED | `scratch/test_course_batch_cycles.php` |
 
 ---
 
@@ -196,10 +207,167 @@
   - Automated verification test script `scratch/verify_batch_filtering.php` executes and exits with code 0.
 - **Status**: COMPLETED (Exit Code 0, all assertions passed)
 
+### Task 46: Add Fee Option in Student Fees Module for Admin
+- **Objective**: Implement an "Add Fee" (+ নতুন ফি যোগ করুন) option on the student fees view (`student/fees`) for administrators, allowing admins to add custom fee particulars (e.g. Late Fee, Retake Fee, Certificate Fee, ID Card Fee, Fine, Custom Fee) with amount and remarks, persisting to the invoice and rendering dynamically in Step 1 particulars table with 'Kalpurush' font.
+- **Definition of Done (DoD)**:
+  - Add "➕ নতুন ফি যোগ করুন (Add Fee)" buttons in the Admin banner and alongside the status filters in `resources/views/student/fees/index.blade.php`.
+  - Create the `adminAddFeeModal` with presets and custom particular input, amount input, and remarks input using 'Kalpurush' font.
+  - Implement `FeeController::storeParticular` and `FeeController::deleteParticular` routes and controller methods with admin authorization, invoice updating, and AuditLog recording.
+  - Update `FeeController::index` to display custom added fee particulars in `$step1Particulars` table with custom badges, inline edit buttons, and pay checkboxes.
+  - Verification Method: Automated test script `scratch/verify_add_fee_option.php` verifying authorization, fee addition, amount persistence, deletion, and blade view rendering. Exit code 0 required.
+- **Status**: COMPLETED (Exit Code 0, all assertions passed)
+
+---
+
+### Task 47: Fix Modal Scrolling and Click-Outside to Close in Student Fees Page
+- **Objective**: Fix scrolling issues in the payment modal (`payInvoiceModal`) and admin fee modals (`adminParticularEditModal`, `adminAddFeeModal`) on `student/fees` so the full content and submit button are accessible on all viewport heights, and enable clicking outside the modal dialog (on the backdrop) and pressing ESC to close the modal.
+- **Definition of Done (DoD)**:
+  - Add `overflow-y: auto` and proper max-height / flex scrolling to `payInvoiceModal`, `adminParticularEditModal`, and `adminAddFeeModal` containers and dialog cards so content never gets cut off.
+  - Implement click-outside backdrop event handlers on all three modals to close them when clicked outside.
+  - Implement `Escape` key listener to close active modals.
+  - Verification Method: Automated verification test script `scratch/verify_modal_scroll_and_backdrop_close.php` checking CSS scrolling rules, backdrop click handlers, and escape key listener. Exit code 0 required.
+- **Status**: COMPLETED (Exit Code 0, all assertions passed)
+
+---
+
+### Task 48: Make Tamrin Marks Exam-wise and Keep Attendance Mark Semester-wise Across Entire Result System
+- **Objective**: Refactor the Tamrin and Attendance marking architecture so that Tamrin (তামরিন) marks are strictly exam-wise (linked to Class Test, Midterm, Final exams or specific exams in `results` and `final_marks`), while Attendance (উপস্থিতি) marks remain strictly semester-wise (10 marks per semester), propagating through all result views (Manual Marking Tab 2, Tabulation Tab 1, Edit Modal, Student Portal, Teacher Portal, and FinalMark calculations).
+- **Definition of Done (DoD)**:
+  - Add migration for `ct_tamrin`, `midterm_tamrin`, `final_tamrin` in `final_marks` table.
+  - Update `FinalMark` model to cast and calculate `total_mark = round(class_test_converted + midterm_converted + final_converted + attendance_converted, 2)` (out of 100), where Tamrin marks are components of the respective exams, and attendance is purely semester-level.
+  - In `ResultBookController` Tab 2 (`manual_marking`):
+    - Enhance filter to include Exam selector (`-- সকল পরীক্ষা (পরীক্ষাভিত্তিক তামরিন ও সেমিস্টার উপস্থিতি) --` or specific exam).
+    - In All-Exams view: render exam-wise Tamrin columns (সিটি তামরিন, মিডটার্ম তামরিন, ফাইনাল তামরিন) alongside single semester attendance column (`উপস্থিতি নম্বর (/১০)`) and semester total (`/১০০`).
+    - In Specific Exam view: render exam evaluation sheet (MCQ, Written, Tamrin, Viva, Total).
+    - In `saveManualMarksBulk`: save exam-wise Tamrin into `results` table (`tamrin_marks`), sync exam totals into `FinalMark` (`class_test_obtained`, `midterm_obtained`, `final_obtained`), save semester `attendance_converted`, and recalculate final marks and merit ranks.
+  - Update `Teacher\ResultController@store` to sync exam results (including Tamrin) into `FinalMark`.
+  - Update `openEditMarkModal` and student result views to reflect exam-wise Tamrin and semester-wise attendance.
+  - Verification Method: Automated verification test script `scratch/verify_exam_wise_tamrin_system.php` verifying schema, exam-wise Tamrin persistence, semester-wise attendance, total calculation, Tab 2 submission, and blade rendering. Exit code 0 required.
+- **Status**: COMPLETED (Exit Code 0, all tests passed)
+
+---
+
+### Task 49: Universal Modal Scrolling and Backdrop/Escape Click-Outside Dismiss Across All System Portals
+- **Objective**: Safeguard all modals across Admin, Teacher, Student, and Support portals against unscrollable viewports (flexbox clipping) and ensure clicking outside on the backdrop or pressing the Escape key reliably closes the modal.
+- **Definition of Done (DoD)**:
+  - Universal CSS in `app.css`, `admin/layouts/app.blade.php`, `student/layouts/app.blade.php`, `teacher/layouts/app.blade.php`, and `support/layouts/app.blade.php` applying:
+    - Overlay/Backdrop: `position: fixed !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; align-items: flex-start !important; justify-content: center !important; padding: 30px 15px !important; z-index: 99999 !important;`.
+    - Inner Modal Box: `margin: auto !important; max-height: calc(100vh - 60px) !important; overflow-y: auto !important;`.
+  - Universal `openModal` and `closeModal` functions handling classes (`open`, `active`, `show`) and inline `display` (`flex` / `none`) simultaneously so modals never get stuck.
+  - Universal Backdrop Click Listener intercepting all backdrop clicks (`modal-overlay`, `modal-backdrop`, `modal-wrapper`, `admin-modal-overlay`, or fixed modal elements) and closing them.
+  - Universal `Escape` key listener closing all open modals and restoring body overflow.
+  - Verification Method: Automated verification test scripts `scratch/verify_exam_wise_tamrin_system.php` and `scratch/verify_result_book_and_modals_e2e.php` returning Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0, all tests passed)
+
+### Task 50: Email Template Selector, Quick Dropdown, Library Modal & Auto-Insertion in Message Body
+- **Objective**: Add an email template selector and management system to Broadcast Notification composer (`admin/notifications/create`), enabling admins to quickly select from predefined standard academic templates or custom templates, auto-populating into `Message Body / Content *` (and optionally title/subject), with live preview updates, variable tag insertion (`{name}`, `{roll}`, `{course}`, `{batch}`, `{date}`), and a save-as-template feature.
+- **Definition of Done (DoD)**:
+  - Migration created `2026_09_28_181000_create_email_templates_table.php` and migrated.
+  - `EmailTemplate` model created with Bengali category labels and default Islamic education seeds (Exam, Fees, Class/Routine, Holiday, Admission, Assignments, Results, General).
+  - Routes `admin.email-templates.store`, `admin.email-templates.destroy`, `admin.email-templates.list-json` registered in `routes/admin.php`.
+  - `EmailTemplateController` handles AJAX storing, deleting with system protection, and listing.
+  - `BroadcastNotificationController@create` passes templates to view; `send()` handles recipient personalization for `{name}`, `{roll}`, `{course}`, `{batch}`, `{date}`.
+  - `resources/views/admin/notifications/create.blade.php` features:
+    - Quick select dropdown above `Message Body / Content *` with immediate auto-fill.
+    - "ইমেইল টেমপ্লেট লাইব্রেরি" button opening full template gallery modal with category filters and search.
+    - "টেমপ্লেট সেভ" button to save current message as a reusable template.
+    - Variable tag helper badges for one-click insertion.
+  - Automated verification test script `scratch/verify_email_template_system.php` passes with Exit Code 0.
+### Task 51: Fix Table Horizontal Scroll & Card Overflow Clipping on Batches, Teachers, and Tickets
+- **Objective**: Fix table overflow and missing horizontal scroll on `admin/batches` (and related admin tables `admin/teachers`, `admin/support/tickets`) where hardcoded inline `style="overflow:visible"` prevented horizontal scrolling, causing the rightmost columns (Actions) to be clipped outside the viewport on laptop and zoom displays.
+- **Definition of Done (DoD)**:
+  - Remove all hardcoded `style="overflow:visible"` on cards and `.table-wrapper` across `batches/index.blade.php`, `teachers/index.blade.php`, and `support/tickets.blade.php`.
+  - Ensure `.table-wrapper` has `overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; width: 100% !important;` with sleek custom scrollbar styling.
+  - Set explicit `min-width: 1120px` and column width distributions on `admin/batches/index.blade.php` so content never crumples or bleeds.
+  - Add auto-flip positioning for dropdown menus on the last table rows so dropdowns never get clipped vertically.
+  - Add universal `.table-wrapper` horizontal scroll rule to `public/css/app.css` and `resources/views/admin/layouts/app.blade.php`.
+  - Verification Method: Automated verification test script `scratch/verify_table_scroll_fix.php` passes with Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0, all 15 assertions passed)
+
+---
+
+### Task 52: Promotion Menu Fatal Crash Fix (`admin.final-marks.batch-subjects`)
+- **Objective**: Fix the fatal route missing error `Route [admin.final-marks.batch-subjects] not defined` when clicking the Promotion menu or accessing `/admin/promotions`.
+- **Definition of Done (DoD)**:
+  - Register route `admin.final-marks.batch-subjects` pointing to `ResultBookController@getBatchSubjects`.
+  - Implement `getBatchSubjects` returning JSON list of subjects assigned to a batch.
+  - Verification: Automated script `scratch/test_promotion_all.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 53: Result Management Mark Edit / Override Crash Fix (`ResultBookController@overrideSave`)
+- **Objective**: Fix 404/500 crash when clicking "মার্ক এডিট" from Result Book Tabulation view to override student final marks.
+- **Definition of Done (DoD)**:
+  - Register route `admin.result-book.override-save` in `routes/admin.php`.
+  - Implement `overrideSave()` in `ResultBookController` handling upsert on `FinalMark` table (updating marks, total, grade, remarks).
+  - Update `editMarkForm` in `resources/views/admin/result-book/index.blade.php` to pass `student_id`, `batch_id`, `subject_id`, and existing `final_mark_id`.
+  - Verification: Script `scratch/test_result_override.php` executes upsert without error (Exit Code 0).
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 54: Assignment Publish Constraint & Status Fix (Nullable Teacher, Status Enum)
+- **Objective**: Fix SQL error when publishing assignments without a teacher assigned or with an empty batch, and fix status enum mismatch.
+- **Definition of Done (DoD)**:
+  - Migration making `teacher_id` nullable in `assignments` table.
+  - Migration updating `status` column from enum `['ACTIVE', 'CLOSED']` to varchar default `'PUBLISHED'`.
+  - Update `AssignmentController` (admin & teacher) to sanitize empty string `batch_id` to `null`.
+  - Update `Student/SubjectController` to query assignments with status `PUBLISHED` or `ACTIVE`.
+  - Verification: Script `scratch/test_assignment_store.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 55: New Admission Store Error & Profile Deduplication / FK Sanitization
+- **Objective**: Fix errors when creating new admissions from admin panel: avoid duplicate email crashes on `students` table, sanitize empty string dropdown values for foreign keys (`batch_id`, `academic_session_id`, `blood_group_id`, etc.), and allow approving admissions without duplicating existing users.
+- **Definition of Done (DoD)**:
+  - `AdmissionController@store` finds or creates student profile, updating existing record rather than crashing on duplicate key.
+  - Empty string values on foreign key IDs are cast to `null`.
+  - `AdmissionController@approve` safely checks for existing user account before creating.
+  - `admin/admissions/create.blade.php` safely checks `isset($errors) && $errors->any()`.
+  - Verification: Script `scratch/test_admission_full.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 56: Question Bank Random Subset Selection & Sequence Shuffling Per Student
+- **Objective**: When a question pool contains more questions than target marks, automatically pick a randomized subset matching the required marks (for MCQ and Written separately), and shuffle question order for each student.
+- **Definition of Done (DoD)**:
+  - In `Student/ExamController@take`:
+    - If `has_mcq && mcq_marks > 0`: randomly pick MCQ questions totaling `mcq_marks`.
+    - If `has_written && written_marks > 0`: randomly pick Written questions totaling `written_marks`.
+    - Shuffle the combined question set and save to `ExamSubmission::assigned_question_ids`.
+  - Verification: Script `scratch/test_exam_shuffling.php` verifies two students get randomized subsets and different question order (Exit Code 0).
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 57: Teacher Panel Menu Cleanup (Remove Exams/Appeals, Show Assigned Subjects & Routine)
+- **Objective**: Remove Exam Management, Appeals, and Result Submission links from the Teacher Portal sidebar and dashboard; display weekly routine slots and assigned subjects instead.
+- **Definition of Done (DoD)**:
+  - In `resources/views/teacher/layouts/app.blade.php`, remove Exams, Appeals, and Submit Results links.
+  - In `Teacher/DashboardController.php`, remove `pending_results` stat and provide `routine_slots` and `assignedSubjects`.
+  - In `resources/views/teacher/dashboard.blade.php`, replace exam cards with "My Assigned Subjects" and "Weekly Routine Slots".
+  - Verification: Script `scratch/test_teacher_panel.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 58: Course Duration & Tuition Fee Cycle Definition for Courses and Batches
+- **Objective**: Allow configuring Course Duration cycle (start month and end month) and Tuition Fee cycle (fee start month and fee end month) on Courses and Batches, with Bengali labels and auto-formatted cycle texts.
+- **Definition of Done (DoD)**:
+  - Migration adding `start_month`, `end_month`, `fee_start_month`, `fee_end_month` to `courses` and `batches` tables.
+  - Models `Course` and `Batch` provide `monthsList()`, `duration_cycle_text`, and `fee_cycle_text` accessors.
+  - Controllers `CourseController` and `BatchController` validate and store cycle months.
+  - Views `admin/courses/index.blade.php` and `admin/batches/index.blade.php` include month selectors in Create/Edit modals and display cycle badges in table.
+  - Verification: Script `scratch/test_course_batch_cycles.php` and `scratch/run_all_feedback_tests.php` return Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
 ---
 
 ## Pending Tasks
-- No pending tasks. All requested modules and features are implemented and verified.
+*All feedback tasks (Tasks 32 through 58) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain (Universal Coupon Code excluded per instruction).*
 
 
 

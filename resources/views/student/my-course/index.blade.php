@@ -444,8 +444,8 @@
     @endforeach
 
     {{-- ── APPLY FOR NEW COURSE MODAL ── --}}
-    <div id="applyCourseModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:9999; justify-content:center; align-items:center; padding:20px; box-sizing:border-box">
-        <div style="background:#fff; border-radius:18px; max-width:540px; width:100%; overflow:hidden; box-shadow:0 20px 40px rgba(0,0,0,0.25); animation:modalSlideUp .3s ease">
+    <div id="applyCourseModal" class="modal-overlay" onclick="if(event.target===this) document.getElementById('applyCourseModal').style.display='none'" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:9999; justify-content:center; align-items:flex-start; padding:30px 15px; overflow-y:auto; box-sizing:border-box">
+        <div style="background:#fff; border-radius:18px; max-width:540px; width:100%; margin:0 auto; max-height:calc(100vh - 60px); overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.25); animation:modalSlideUp .3s ease">
             <div style="background:linear-gradient(135deg,#1e293b,#0f172a); color:#fff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center">
                 <div style="font-weight:800; font-size:16px; display:flex; align-items:center; gap:8px">
                     <i class="fa-solid fa-graduation-cap"></i> Apply for New Course Admission

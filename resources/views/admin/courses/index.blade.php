@@ -72,7 +72,15 @@
                                 @endif
                             </div>
                         </td>
-                        <td>{{ $course->duration_value }} {{ ucfirst(strtolower($course->duration_unit)) }}s</td>
+                        <td>
+                            <div><strong>{{ $course->duration_value }} {{ ucfirst(strtolower($course->duration_unit)) }}s</strong></div>
+                            <div style="font-size:11.5px;color:#047857;margin-top:2px" title="কোর্সের সময়কাল">
+                                <i class="fa-solid fa-calendar-days"></i> {{ $course->duration_cycle_text }}
+                            </div>
+                            <div style="font-size:11px;color:#b45309;margin-top:2px" title="বেতন সাইকেল">
+                                <i class="fa-solid fa-coins"></i> ফি: {{ $course->fee_cycle_text }}
+                            </div>
+                        </td>
                         <td>
                             @if($course->type === 'SEMESTER_BASED')
                                 <span class="badge badge-secondary no-dot">{{ $course->semesters->count() }} Semesters</span>
@@ -198,6 +206,52 @@
                         </div>
                     </div>
 
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:16px; font-family:'Kalpurush',sans-serif">
+                        <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
+                            <i class="fa-solid fa-calendar-days" style="color:#047857"></i> কোর্সের সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
+                        </div>
+                        <div class="form-row" style="margin-bottom:8px">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">কোর্স শুরুর মাস</label>
+                                <select name="start_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">কোর্স সমাপ্তির মাস</label>
+                                <select name="end_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি শুরুর মাস</label>
+                                <select name="fee_start_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি সমাপ্তির মাস</label>
+                                <select name="fee_end_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group" id="semestersCountGroup">
                         <label>Auto-create Semesters</label>
                         <input type="number" name="total_semesters" class="form-control" value="8" min="1" max="12" placeholder="e.g. 8">
@@ -289,6 +343,52 @@
                         </div>
                     </div>
 
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:16px; font-family:'Kalpurush',sans-serif">
+                        <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
+                            <i class="fa-solid fa-calendar-days" style="color:#047857"></i> কোর্সের সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
+                        </div>
+                        <div class="form-row" style="margin-bottom:8px">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">কোর্স শুরুর মাস</label>
+                                <select name="start_month" id="edit_course_start_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">কোর্স সমাপ্তির মাস</label>
+                                <select name="end_month" id="edit_course_end_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি শুরুর মাস</label>
+                                <select name="fee_start_month" id="edit_course_fee_start_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি সমাপ্তির মাস</label>
+                                <select name="fee_end_month" id="edit_course_fee_end_month" class="form-control">
+                                    <option value="">-- অনির্ধারিত --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Admission Fee (৳)</label>
@@ -341,6 +441,10 @@
         document.getElementById('edit_course_type').value = course.type;
         document.getElementById('edit_course_duration_value').value = course.duration_value;
         document.getElementById('edit_course_duration_unit').value = course.duration_unit;
+        document.getElementById('edit_course_start_month').value = course.start_month || '';
+        document.getElementById('edit_course_end_month').value = course.end_month || '';
+        document.getElementById('edit_course_fee_start_month').value = course.fee_start_month || '';
+        document.getElementById('edit_course_fee_end_month').value = course.fee_end_month || '';
         document.getElementById('edit_course_admission_fee').value = course.admission_fee || 0;
         document.getElementById('edit_course_readmission_fee').value = course.readmission_fee || 0;
         document.getElementById('edit_course_is_poor_fund_applicable').checked = (course.is_poor_fund_applicable !== false && course.is_poor_fund_applicable !== 0);

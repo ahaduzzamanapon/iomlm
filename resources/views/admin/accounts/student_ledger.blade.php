@@ -18,14 +18,16 @@
         .modal-overlay {
             position: fixed !important;
             top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-            width: 100vw !important; height: 100vh !important;
+            width: 100% !important; height: 100% !important;
             background: rgba(15, 23, 42, 0.65) !important;
             backdrop-filter: blur(4px) !important;
             z-index: 99999 !important;
             display: none !important;
-            align-items: center !important;
+            align-items: flex-start !important;
             justify-content: center !important;
-            padding: 16px !important;
+            padding: 30px 15px !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
             box-sizing: border-box !important;
         }
         .modal-overlay.open,
@@ -35,13 +37,16 @@
         }
         .modal-dialog {
             width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
+            margin: 0 auto !important;
+            max-height: calc(100vh - 60px) !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            box-sizing: border-box !important;
         }
         .modal-content {
             background: #fff;
             border-radius: 12px;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             border: 1px solid #cbd5e1;
         }

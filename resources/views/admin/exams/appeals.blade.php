@@ -160,8 +160,8 @@
     </div>
 
     {{-- Approve Modal with Fee Setting --}}
-    <div id="approveModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);font-family:'Kalpurush',sans-serif">
-        <div style="background:#fff;border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);overflow:hidden">
+    <div id="approveModal" class="modal-overlay" onclick="if(event.target===this) closeApproveModal()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;font-family:'Kalpurush',sans-serif">
+        <div class="modal" style="background:#fff;border-radius:14px;max-width:520px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);overflow:hidden">
             <div style="background:linear-gradient(135deg, #064e3b 0%, #047857 100%);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
                 <div style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px">
                     <i class="fa-solid fa-clipboard-check"></i> পুনরায় পরীক্ষার আপিল অনুমোদন

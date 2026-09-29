@@ -151,22 +151,46 @@ class AdmissionController extends Controller
                 $bloodGroupName = \App\Models\BloodGroup::find($validated['blood_group_id'])?->name;
             }
 
-            // Create Student as LEAD/PENDING
-            $student = Student::create([
-                'name'             => $validated['applicant_name'],
-                'email'            => $validated['email'] ?? null,
-                'phone'            => $validated['phone'],
-                'date_of_birth'    => $validated['date_of_birth'] ?? null,
-                'gender'           => $validated['gender'] ?? null,
-                'blood_group'      => $bloodGroupName,
-                'national_id'      => $validated['national_id'] ?? null,
-                'address'          => $validated['present_house'] ?? null,
-                'guardian_name'    => $validated['guardian_name'] ?? null,
-                'guardian_phone'   => $validated['guardian_phone'] ?? null,
-                'ssc_gpa'          => $validated['ssc_gpa'] ?? null,
-                'hsc_gpa'          => $validated['hsc_gpa'] ?? null,
-                'status'           => 'PENDING',
-            ]);
+            // Find existing student or create new
+            $student = null;
+            if (!empty($validated['email'])) {
+                $student = Student::where('email', $validated['email'])->first();
+            }
+            if (!$student && !empty($validated['phone'])) {
+                $student = Student::where('phone', $validated['phone'])->first();
+            }
+
+            if ($student) {
+                $student->update(array_filter([
+                    'name'             => $validated['applicant_name'] ?? $student->name,
+                    'phone'            => $validated['phone'] ?? $student->phone,
+                    'date_of_birth'    => $validated['date_of_birth'] ?? $student->date_of_birth,
+                    'gender'           => $validated['gender'] ?? $student->gender,
+                    'blood_group'      => $bloodGroupName ?? $student->blood_group,
+                    'national_id'      => $validated['national_id'] ?? $student->national_id,
+                    'address'          => $validated['present_house'] ?? $student->address,
+                    'guardian_name'    => $validated['guardian_name'] ?? $student->guardian_name,
+                    'guardian_phone'   => $validated['guardian_phone'] ?? $student->guardian_phone,
+                    'ssc_gpa'          => $validated['ssc_gpa'] ?? $student->ssc_gpa,
+                    'hsc_gpa'          => $validated['hsc_gpa'] ?? $student->hsc_gpa,
+                ]));
+            } else {
+                $student = Student::create([
+                    'name'             => $validated['applicant_name'],
+                    'email'            => !empty($validated['email']) ? $validated['email'] : null,
+                    'phone'            => $validated['phone'],
+                    'date_of_birth'    => $validated['date_of_birth'] ?? null,
+                    'gender'           => $validated['gender'] ?? null,
+                    'blood_group'      => $bloodGroupName,
+                    'national_id'      => $validated['national_id'] ?? null,
+                    'address'          => $validated['present_house'] ?? null,
+                    'guardian_name'    => $validated['guardian_name'] ?? null,
+                    'guardian_phone'   => $validated['guardian_phone'] ?? null,
+                    'ssc_gpa'          => $validated['ssc_gpa'] ?? null,
+                    'hsc_gpa'          => $validated['hsc_gpa'] ?? null,
+                    'status'           => 'PENDING',
+                ]);
+            }
 
             $student->calculateProfileCompletion();
 
@@ -175,9 +199,9 @@ class AdmissionController extends Controller
                 'source'                  => 'ADMIN',
                 'application_no'          => AdmissionForm::generateApplicationNo(),
                 'student_id'              => $student->id,
-                'interested_course_id'    => $validated['interested_course_id'],
-                'batch_id'                => $validated['batch_id'] ?? null,
-                'academic_session_id'     => $validated['academic_session_id'] ?? null,
+                'interested_course_id'    => (int) $validated['interested_course_id'],
+                'batch_id'                => !empty($validated['batch_id']) ? (int) $validated['batch_id'] : null,
+                'academic_session_id'     => !empty($validated['academic_session_id']) ? (int) $validated['academic_session_id'] : null,
                 'attempt_no'              => 1,
                 'lead_source'             => $validated['lead_source'] ?? 'Direct',
                 'discount_percent'        => $validated['discount_percent'] ?? 0,
@@ -199,26 +223,30 @@ class AdmissionController extends Controller
                 'device_type'             => $validated['device_type'] ?? null,
 
                 // Personal Info
-                'blood_group_id'          => $validated['blood_group_id'] ?? null,
+                'blood_group_id'          => !empty($validated['blood_group_id']) ? (int) $validated['blood_group_id'] : null,
                 'passport_no'             => $validated['passport_no'] ?? null,
                 'birth_certificate_no'    => $validated['birth_certificate_no'] ?? null,
                 'nationality'             => $validated['nationality'] ?? 'Bangladeshi',
-                'religion_id'             => $validated['religion_id'] ?? null,
+                'religion_id'             => !empty($validated['religion_id']) ? (int) $validated['religion_id'] : null,
 
                 // Present Address
                 'present_house'           => $validated['present_house'] ?? null,
                 'present_post_office'     => $validated['present_post_office'] ?? null,
                 'present_police_station'  => $validated['present_police_station'] ?? null,
-                'present_district_id'     => $validated['present_district_id'] ?? null,
-                'present_division_id'     => $validated['present_division_id'] ?? null,
+                'present_district_id'     => !empty($validated['present_district_id']) ? (int) $validated['present_district_id'] : null,
+                'present_division_id'     => !empty($validated['present_division_id']) ? (int) $validated['present_division_id'] : null,
 
                 // Permanent Address
                 'same_as_present'         => $sameAsPresent,
                 'permanent_house'         => $sameAsPresent ? ($validated['present_house'] ?? null)          : ($validated['permanent_house'] ?? null),
                 'permanent_post_office'   => $sameAsPresent ? ($validated['present_post_office'] ?? null)    : ($validated['permanent_post_office'] ?? null),
                 'permanent_police_station'=> $sameAsPresent ? ($validated['present_police_station'] ?? null) : ($validated['permanent_police_station'] ?? null),
-                'permanent_district_id'   => $sameAsPresent ? ($validated['present_district_id'] ?? null)    : ($validated['permanent_district_id'] ?? null),
-                'permanent_division_id'   => $sameAsPresent ? ($validated['present_division_id'] ?? null)    : ($validated['permanent_division_id'] ?? null),
+                'permanent_district_id'   => $sameAsPresent
+                    ? (!empty($validated['present_district_id']) ? (int) $validated['present_district_id'] : null)
+                    : (!empty($validated['permanent_district_id']) ? (int) $validated['permanent_district_id'] : null),
+                'permanent_division_id'   => $sameAsPresent
+                    ? (!empty($validated['present_division_id']) ? (int) $validated['present_division_id'] : null)
+                    : (!empty($validated['permanent_division_id']) ? (int) $validated['permanent_division_id'] : null),
             ]);
 
             // Mark waiver application as USED if applicable
@@ -343,16 +371,20 @@ class AdmissionController extends Controller
             $rawPassword = $request->input('custom_password') ?: ($student->phone ?: 'iom@1234');
             if (empty($student->user_id)) {
                 $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
-                if (User::where('email', $loginEmail)->exists()) {
+                $user = User::where('email', $loginEmail)->first();
+                if (!$user && User::where('email', $loginEmail)->exists()) {
                     $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code)) . '@iom.student';
+                    $user = User::where('email', $loginEmail)->first();
                 }
 
-                $user = User::create([
-                    'name'     => $student->name,
-                    'email'    => $loginEmail,
-                    'password' => Hash::make($rawPassword),
-                    'role'     => 'student',
-                ]);
+                if (!$user) {
+                    $user = User::create([
+                        'name'     => $student->name,
+                        'email'    => $loginEmail,
+                        'password' => Hash::make($rawPassword),
+                        'role'     => 'student',
+                    ]);
+                }
 
                 $student->user_id = $user->id;
                 $student->save();

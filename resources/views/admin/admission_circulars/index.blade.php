@@ -88,24 +88,31 @@
     .modal-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(2px);
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
         display: none;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        z-index: 9999;
-        padding: 20px;
+        z-index: 99999;
+        padding: 30px 15px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
     }
-    .modal-overlay.active { display: flex; }
+    .modal-overlay.active,
+    .modal-overlay.open { display: flex; }
     .circular-modal-box {
         background: #fff;
-        border-radius: 8px;
+        border-radius: 12px;
         width: 100%;
         max-width: 900px;
-        max-height: 90vh;
+        margin: 0 auto;
+        max-height: calc(100vh - 60px);
         overflow-y: auto;
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        -webkit-overflow-scrolling: touch;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
         border: 1px solid #cbd5e1;
+        box-sizing: border-box;
     }
     .modal-tab-nav {
         display: flex;
@@ -393,7 +400,7 @@
 </div>
 
 {{-- MODAL: Add / Edit Admission Circular (General Settings & Batch Settings Tabs) --}}
-<div id="circularModal" class="modal-overlay">
+<div id="circularModal" class="modal-overlay" onclick="if(event.target===this) closeCircularModal()">
     <div class="circular-modal-box">
         <form id="circularForm" method="POST" action="{{ route('admin.admission-circulars.store') }}">
             @csrf
@@ -610,7 +617,7 @@
         // Switch to first tab
         switchModalTab('generalTab', document.querySelectorAll('.modal-tab-btn')[0]);
 
-        document.getElementById('circularModal').classList.add('active');
+        openModal('circularModal');
     }
 
     function openEditCircularModal(id) {
@@ -656,7 +663,7 @@
                 }
 
                 switchModalTab('generalTab', document.querySelectorAll('.modal-tab-btn')[0]);
-                document.getElementById('circularModal').classList.add('active');
+                openModal('circularModal');
             })
             .catch(err => {
                 alert('ডেটা লোড করতে সমস্যা হয়েছে: ' + err);
@@ -664,7 +671,7 @@
     }
 
     function closeCircularModal() {
-        document.getElementById('circularModal').classList.remove('active');
+        closeModal('circularModal');
     }
 
     function toggleCircularStatus(id, btn) {

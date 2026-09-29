@@ -86,9 +86,24 @@
                             <td style="padding:14px 10px">
                                 {{ $fm->semester->name ?? 'রানিং সেমিস্টার' }}
                             </td>
-                            <td style="padding:14px 8px; text-align:center">{{ $fm->class_test_converted ?? '—' }}</td>
-                            <td style="padding:14px 8px; text-align:center">{{ $fm->midterm_converted ?? '—' }}</td>
-                            <td style="padding:14px 8px; text-align:center">{{ $fm->final_converted ?? '—' }}</td>
+                            <td style="padding:14px 8px; text-align:center">
+                                {{ $fm->class_test_converted ?? '—' }}
+                                @if($fm->ct_tamrin !== null)
+                                    <br><small style="color:#059669; font-size:10.5px">তামরিন: {{ $fm->ct_tamrin }}</small>
+                                @endif
+                            </td>
+                            <td style="padding:14px 8px; text-align:center">
+                                {{ $fm->midterm_converted ?? '—' }}
+                                @if($fm->midterm_tamrin !== null)
+                                    <br><small style="color:#059669; font-size:10.5px">তামরিন: {{ $fm->midterm_tamrin }}</small>
+                                @endif
+                            </td>
+                            <td style="padding:14px 8px; text-align:center">
+                                {{ $fm->final_converted ?? '—' }}
+                                @if($fm->final_tamrin !== null)
+                                    <br><small style="color:#059669; font-size:10.5px">তামরিন: {{ $fm->final_tamrin }}</small>
+                                @endif
+                            </td>
                             <td style="padding:14px 8px; text-align:center">{{ $fm->attendance_converted ?? '—' }}</td>
                             <td style="padding:14px 10px; text-align:center; background:#ecfdf5">
                                 <strong style="font-size:16px; color:{{ $fm->total_mark >= 40 ? '#059669' : '#dc2626' }}">
@@ -154,6 +169,9 @@
                             </td>
                             <td style="padding:14px 10px; text-align:center">
                                 <strong style="color:#059669; font-size:14px">{{ $res->marks }}</strong> / {{ $res->exam->full_marks ?? 100 }}
+                                @if($res->tamrin_marks !== null)
+                                    <br><small style="color:#047857; font-weight:700">তামরিন: {{ $res->tamrin_marks }}</small>
+                                @endif
                             </td>
                             <td style="padding:14px 10px; text-align:center">
                                 <span class="badge badge-active no-dot" style="font-size:12px">{{ $res->grade ?? 'A' }}</span>

@@ -273,8 +273,8 @@
     </div>
 
     {{-- Appeal for Re-Exam Modal --}}
-    <div id="appealModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)">
-        <div style="background:#fff;border-radius:12px;max-width:540px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);overflow:hidden;animation:fadeIn 0.2s ease-out">
+    <div id="appealModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;backdrop-filter:blur(2px)">
+        <div class="modal" style="background:#fff;border-radius:12px;max-width:540px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);overflow:hidden;animation:fadeIn 0.2s ease-out">
             <div style="padding:16px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
                 <h3 style="margin:0;font-size:16px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px">
                     <i class="fa-solid fa-file-signature" style="color:#6366f1"></i> পুনরায় পরীক্ষার আবেদন (Appeal for Re-Exam)

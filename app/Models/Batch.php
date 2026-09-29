@@ -80,4 +80,40 @@ class Batch extends Model
 
         return "আইওএম ভর্তি কনফার্ম! নাম: {name}, কোর্স: {course}, রোল: {roll}, পাসওয়ার্ড: {password}, লগইন: {login_url}";
     }
+
+    public function getDurationCycleTextAttribute(): string
+    {
+        $months = Course::monthsList();
+        $start = $this->start_month ? ($months[$this->start_month] ?? $this->start_month) : null;
+        $end   = $this->end_month ? ($months[$this->end_month] ?? $this->end_month) : null;
+
+        if ($start && $end) {
+            return "{$start} হতে {$end}";
+        }
+        if ($start) {
+            return "{$start} থেকে শুরু";
+        }
+        if ($this->course) {
+            return $this->course->duration_cycle_text;
+        }
+        return "—";
+    }
+
+    public function getFeeCycleTextAttribute(): string
+    {
+        $months = Course::monthsList();
+        $start = $this->fee_start_month ? ($months[$this->fee_start_month] ?? $this->fee_start_month) : null;
+        $end   = $this->fee_end_month ? ($months[$this->fee_end_month] ?? $this->fee_end_month) : null;
+
+        if ($start && $end) {
+            return "{$start} হতে {$end}";
+        }
+        if ($start) {
+            return "{$start} হতে চলমান";
+        }
+        if ($this->course) {
+            return $this->course->fee_cycle_text;
+        }
+        return "প্রতি মাস";
+    }
 }

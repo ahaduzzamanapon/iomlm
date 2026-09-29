@@ -23,6 +23,9 @@ class FinalMark extends Model
         'attendance_converted' => 'float',
         'attendance_percent'   => 'float',
         'tamrin_mark'          => 'float',
+        'ct_tamrin'            => 'float',
+        'midterm_tamrin'       => 'float',
+        'final_tamrin'         => 'float',
         'tajweed_mark'         => 'float',
         'dns_mark'             => 'float',
         'merit_position'       => 'integer',
@@ -244,14 +247,46 @@ class FinalMark extends Model
             $this->{$key} = ($val !== null && $val !== '') ? (float) $val : null;
         }
 
-        $total = round(
+        // Auto-calculate converted score if obtained is provided and converted is not explicitly overridden
+        if (isset($updates['class_test_obtained']) && !isset($updates['class_test_converted']) && $this->class_test_obtained !== null) {
+            $this->class_test_converted = round(($this->class_test_obtained / $criteria['class_test_full']) * $criteria['class_test_convert'], 2);
+        }
+        if (isset($updates['midterm_obtained']) && !isset($updates['midterm_converted']) && $this->midterm_obtained !== null) {
+            $this->midterm_converted = round(($this->midterm_obtained / $criteria['midterm_full']) * $criteria['midterm_convert'], 2);
+        }
+        if (isset($updates['final_obtained']) && !isset($updates['final_converted']) && $this->final_obtained !== null) {
+            $this->final_converted = round(($this->final_obtained / $criteria['final_full']) * $criteria['final_convert'], 2);
+        }
+
+        // Sum of exam-wise Tamrin marks
+        if ($this->ct_tamrin !== null || $this->midterm_tamrin !== null || $this->final_tamrin !== null) {
+            $this->tamrin_mark = round(
+                ($this->ct_tamrin ?? 0) +
+                ($this->midterm_tamrin ?? 0) +
+                ($this->final_tamrin ?? 0),
+                2
+            );
+        }
+
+        // Semester Total Mark out of 100:
+        // CT converted (20) + Midterm converted (30) + Final converted (40) + Semester Attendance (10)
+        // Tamrin marks are exam-wise components of CT, Midterm, and Final exams.
+        // Attendance mark is strictly semester-wise.
+        $examConvertedSum = round(
             ($this->class_test_converted ?? 0) +
             ($this->midterm_converted    ?? 0) +
             ($this->final_converted      ?? 0) +
-            ($this->attendance_converted ?? 0) +
-            ($this->tamrin_mark          ?? 0),
+            ($this->attendance_converted ?? 0),
             2
         );
+
+        // Fallback for legacy records that had standalone non-exam marks
+        $hasExams = ($this->class_test_converted !== null || $this->midterm_converted !== null || $this->final_converted !== null);
+        if ($hasExams || $this->attendance_converted !== null) {
+            $total = $examConvertedSum;
+        } else {
+            $total = round(($this->tamrin_mark ?? 0) + ($this->attendance_converted ?? 0), 2);
+        }
 
         $gradeInfo = self::calculateGrade($total);
         $status    = $total >= ($criteria['pass_mark'] ?? 40) ? 'PASS' : 'FAIL';

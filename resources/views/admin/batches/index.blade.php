@@ -64,7 +64,37 @@
         @endif
     </form>
 
-    <div class="card" style="overflow:visible;font-family:'Kalpurush',sans-serif">
+    <style>
+        .table-wrapper {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            width: 100% !important;
+        }
+        .table-wrapper::-webkit-scrollbar {
+            height: 7px;
+        }
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        tbody tr:last-child .dropdown-menu,
+        tbody tr:nth-last-child(2) .dropdown-menu {
+            top: auto !important;
+            bottom: calc(100% + 4px) !important;
+        }
+        .dropdown-menu.open {
+            display: block !important;
+        }
+    </style>
+
+    <div class="card" style="font-family:'Kalpurush',sans-serif">
         <div style="padding:12px 18px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center">
             <span style="font-weight:700;color:#334155;font-size:14px">
                 <i class="fa-solid fa-layer-group" style="color:#6366f1;margin-right:6px"></i> ব্যাচ তালিকা
@@ -73,19 +103,19 @@
                 মোট {{ $batches->count() }}টি ব্যাচ পাওয়া গেছে
             </span>
         </div>
-        <div class="table-wrapper" style="overflow:visible">
-            <table>
+        <div class="table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;min-height:280px">
+            <table style="min-width:1120px;width:100%;border-collapse:collapse">
                 <thead>
                     <tr>
-                        <th>Batch Code</th>
-                        <th>Batch Name</th>
-                        <th>Course (কোর্স)</th>
-                        <th>Session (সেশন)</th>
-                        <th>Start Date</th>
-                        <th>Class Sessions</th>
-                        <th>Status</th>
-                        <th>Admission Status</th>
-                        <th style="text-align:right">Actions</th>
+                        <th style="white-space:nowrap;min-width:110px">Batch Code</th>
+                        <th style="white-space:nowrap;min-width:120px">Batch Name</th>
+                        <th style="min-width:180px">Course (কোর্স)</th>
+                        <th style="white-space:nowrap;min-width:160px">Session (সেশন)</th>
+                        <th style="white-space:nowrap;min-width:110px">Start Date</th>
+                        <th style="white-space:nowrap;min-width:120px">Class Sessions</th>
+                        <th style="white-space:nowrap;min-width:90px">Status</th>
+                        <th style="white-space:nowrap;min-width:140px">Admission Status</th>
+                        <th style="text-align:right;white-space:nowrap;min-width:100px">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -103,7 +133,15 @@
                                 <span class="td-muted">—</span>
                             @endif
                         </td>
-                        <td class="td-muted">{{ \Carbon\Carbon::parse($batch->start_date)->format('d M Y') }}</td>
+                        <td>
+                            <div class="td-muted">{{ \Carbon\Carbon::parse($batch->start_date)->format('d M Y') }}</div>
+                            <div style="font-size:11.5px;color:#047857;margin-top:2px" title="মেয়াদ সাইকেল">
+                                <i class="fa-solid fa-calendar-days"></i> {{ $batch->duration_cycle_text }}
+                            </div>
+                            <div style="font-size:11px;color:#b45309;margin-top:2px" title="টিউশন ফি সাইকেল">
+                                <i class="fa-solid fa-coins"></i> ফি: {{ $batch->fee_cycle_text }}
+                            </div>
+                        </td>
                         <td>
                             <span class="badge badge-scheduled no-dot">{{ $batch->class_sessions_count ?? 0 }} Sessions</span>
                         </td>
@@ -198,6 +236,52 @@
                         </div>
                     </div>
 
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px; font-family:'Kalpurush',sans-serif">
+                        <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
+                            <i class="fa-solid fa-calendar-days" style="color:#6366f1"></i> ব্যাচ সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
+                        </div>
+                        <div class="form-row" style="margin-bottom:8px">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">ব্যাচ শুরুর মাস</label>
+                                <select name="start_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">ব্যাচ সমাপ্তির মাস</label>
+                                <select name="end_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি শুরুর মাস</label>
+                                <select name="fee_start_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি সমাপ্তির মাস</label>
+                                <select name="fee_end_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group" style="margin-top:10px">
                         <label class="form-check" style="cursor:pointer;font-weight:600">
                             <input type="checkbox" name="is_admission_open" value="1" checked> Open for Admission
@@ -258,6 +342,52 @@
                         </div>
                     </div>
 
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px; font-family:'Kalpurush',sans-serif">
+                        <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
+                            <i class="fa-solid fa-calendar-days" style="color:#6366f1"></i> ব্যাচ সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
+                        </div>
+                        <div class="form-row" style="margin-bottom:8px">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">ব্যাচ শুরুর মাস</label>
+                                <select name="start_month" id="eb_start_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">ব্যাচ সমাপ্তির মাস</label>
+                                <select name="end_month" id="eb_end_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি শুরুর মাস</label>
+                                <select name="fee_start_month" id="eb_fee_start_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0">
+                                <label style="font-size:12px">টিউশন ফি সমাপ্তির মাস</label>
+                                <select name="fee_end_month" id="eb_fee_end_month" class="form-control">
+                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
+                                    @foreach($months as $mKey => $mLabel)
+                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label>Batch Status <span class="required">*</span></label>
                         <select name="status" id="eb_status" class="form-control" required>
@@ -290,6 +420,10 @@
             course_id: {{ $b->course_id }},
             academic_year_id: @json($b->academic_year_id),
             start_date: @json(\Carbon\Carbon::parse($b->start_date)->format('Y-m-d')),
+            start_month: @json($b->start_month),
+            end_month: @json($b->end_month),
+            fee_start_month: @json($b->fee_start_month),
+            fee_end_month: @json($b->fee_end_month),
             status: @json($b->status),
             is_admission_open: {{ $b->is_admission_open ? 'true' : 'false' }}
         },
@@ -305,6 +439,10 @@
         document.getElementById('eb_course_id').value = b.course_id;
         document.getElementById('eb_academic_year_id').value = b.academic_year_id || '';
         document.getElementById('eb_start_date').value = b.start_date;
+        document.getElementById('eb_start_month').value = b.start_month || '';
+        document.getElementById('eb_end_month').value = b.end_month || '';
+        document.getElementById('eb_fee_start_month').value = b.fee_start_month || '';
+        document.getElementById('eb_fee_end_month').value = b.fee_end_month || '';
         document.getElementById('eb_status').value = b.status;
         document.getElementById('eb_is_admission_open').checked = b.is_admission_open;
         openModal('editBatchModal');

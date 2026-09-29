@@ -757,8 +757,8 @@
     </div>
 
     {{-- Create Promotion Modal --}}
-    <div class="modal-overlay" id="addPromotionModal" style="display:none; align-items:center; justify-content:center; z-index:99999; font-family:'Kalpurush', sans-serif">
-        <div class="modal" style="max-width:540px; width:100%; border-radius:14px; background:#fff; overflow:hidden; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)">
+    <div class="modal-overlay" id="addPromotionModal" onclick="if(event.target===this) closeModal('addPromotionModal')" style="display:none; align-items:flex-start; justify-content:center; z-index:99999; font-family:'Kalpurush', sans-serif; padding:30px 15px; overflow-y:auto">
+        <div class="modal" style="max-width:540px; width:100%; border-radius:14px; background:#fff; margin:0 auto; max-height:calc(100vh - 60px); overflow-y:auto; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25)">
             <div class="modal-header" style="padding:16px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center">
                 <span class="modal-title" style="font-weight:800; font-size:16px; color:#0f172a">
                     <i class="fa-solid fa-graduation-cap" style="color:#059669"></i>

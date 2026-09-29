@@ -35,7 +35,20 @@
         </div>
     </div>
 
-    <div class="card" style="overflow:visible">
+    <style>
+        .table-wrapper {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            width: 100% !important;
+        }
+        tbody tr:last-child .dropdown-menu,
+        tbody tr:nth-last-child(2) .dropdown-menu {
+            top: auto !important;
+            bottom: calc(100% + 4px) !important;
+        }
+    </style>
+
+    <div class="card">
         {{-- Search Toolbar --}}
         <div style="padding:14px 20px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <div class="search-box" style="flex:1;min-width:220px">
@@ -53,8 +66,8 @@
         </div>
 
         {{-- Table --}}
-        <div class="table-wrapper" style="overflow:visible">
-            <table id="teacherTable">
+        <div class="table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;min-height:260px">
+            <table id="teacherTable" style="min-width:1050px;width:100%;border-collapse:collapse">
                 <thead>
                     <tr>
                         <th>Employee ID</th>

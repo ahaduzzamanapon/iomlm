@@ -11,7 +11,7 @@
         </div>
     </div>
 
-    @if($errors->any())
+    @if(isset($errors) && $errors->any())
     <div class="alert alert-danger" style="margin-bottom:20px">
         <strong>ত্রুটিসমূহ সংশোধন করুন:</strong>
         <ul style="margin-top:4px;margin-left:16px">

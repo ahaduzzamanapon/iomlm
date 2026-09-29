@@ -32,10 +32,9 @@
             </div>
         </div>
         <div class="stat-card">
-            
             <div class="stat-info">
-                <div class="stat-value">{{ $stats['pending_results'] }}</div>
-                <div class="stat-label">Results Pending</div>
+                <div class="stat-value">{{ $stats['routine_slots'] ?? 0 }}</div>
+                <div class="stat-label">Weekly Routine Slots</div>
             </div>
         </div>
     </div>
@@ -142,25 +141,39 @@
             </div>
         </div>
 
-        <!-- Upcoming Exams -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Upcoming Exams</span>
-                <a href="{{ route('teacher.exams.index') }}" class="btn btn-ghost btn-sm">View All</a>
+        <!-- My Assigned Subjects -->
+        <div class="card" style="font-family:'Kalpurush',sans-serif">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                <span class="card-title" style="font-weight:700;color:#1e293b">
+                    <i class="fa-solid fa-book-bookmark" style="color:#047857"></i> আমার নির্ধারিত বিষয়সমূহ (My Assigned Subjects)
+                </span>
+                <a href="{{ route('teacher.subjects.index') }}" class="btn btn-ghost btn-sm">সকল বিষয় →</a>
             </div>
             <div class="table-wrapper">
                 <table>
-                    <thead><tr><th>Subject</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
-                    <tbody>
-                        @forelse($upcomingExams as $exam)
+                    <thead>
                         <tr>
-                            <td class="td-primary">{{ $exam->subject->name ?? '—' }}</td>
-                            <td><span class="badge badge-secondary no-dot">{{ ucfirst(strtolower($exam->type)) }}</span></td>
-                            <td class="td-muted">{{ \Carbon\Carbon::parse($exam->exam_date)->format('d M') }}</td>
-                            <td><span class="badge badge-scheduled">Scheduled</span></td>
+                            <th>বিষয় ও কোড</th>
+                            <th>কোর্স / ব্যাচ</th>
+                            <th>অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($assignedSubjects ?? [] as $as)
+                        <tr>
+                            <td class="td-primary">
+                                <strong>{{ $as->subject?->name ?? '—' }}</strong>
+                                <div style="font-size:11px;color:var(--text-muted)">{{ $as->subject?->code ?? '' }}</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-secondary no-dot">{{ $as->batch?->name ?? ($as->subject?->course?->name ?? '—') }}</span>
+                            </td>
+                            <td>
+                                <a href="{{ route('teacher.subjects.show', $as->subject_id) }}" class="btn btn-outline btn-sm" style="font-size:11px">সিলেবাস ও ক্লাস →</a>
+                            </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">No upcoming exams</td></tr>
+                        <tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">কোনো বিষয় নির্ধারিত করা হয়নি</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -187,27 +200,6 @@
                 </div>
                 @empty
                 <div class="empty-state"><p>All attendance marked <i class="fa-solid fa-circle-check" style="color:#10b981"></i></p></div>
-                @endforelse
-            </div>
-        </div>
-
-        <!-- Results to Submit -->
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">Results to Submit</span>
-                <a href="{{ route('teacher.results.index') }}" class="btn btn-ghost btn-sm">View All</a>
-            </div>
-            <div style="padding:0">
-                @forelse($pendingResults as $exam)
-                <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--card-border)">
-                    <div style="flex:1">
-                        <div style="font-size:13px;font-weight:600">{{ $exam->subject->name ?? '—' }} — {{ $exam->title }}</div>
-                        <div style="font-size:11px;color:var(--text-muted)">{{ \Carbon\Carbon::parse($exam->exam_date)->format('d M Y') }}</div>
-                    </div>
-                    <a href="{{ route('teacher.results.enter', $exam) }}" class="btn btn-primary btn-sm">Enter Marks</a>
-                </div>
-                @empty
-                <div class="empty-state"><p>No pending results</p></div>
                 @endforelse
             </div>
         </div>

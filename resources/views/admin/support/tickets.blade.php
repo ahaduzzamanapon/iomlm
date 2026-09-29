@@ -90,10 +90,23 @@
         </form>
     </div>
 
+    <style>
+        .table-wrapper {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            width: 100% !important;
+        }
+        tbody tr:last-child .dropdown-menu,
+        tbody tr:nth-last-child(2) .dropdown-menu {
+            top: auto !important;
+            bottom: calc(100% + 4px) !important;
+        }
+    </style>
+
     {{-- Table --}}
-    <div class="card" style="overflow:visible">
-        <div class="table-wrapper" style="overflow:visible">
-            <table>
+    <div class="card">
+        <div class="table-wrapper" style="overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;min-height:260px">
+            <table style="min-width:1000px;width:100%;border-collapse:collapse">
                 <thead>
                     <tr>
                         <th>Ticket No</th>

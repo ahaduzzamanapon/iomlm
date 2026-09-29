@@ -25,11 +25,13 @@ class BroadcastNotificationController extends Controller
 
     public function create()
     {
-        $students = Student::with('user')->orderBy('name')->get();
-        $batches  = Batch::orderBy('name')->get();
-        $courses  = Course::with('semesters')->orderBy('name')->get();
+        \App\Models\EmailTemplate::seedDefaultTemplates();
+        $emailTemplates = \App\Models\EmailTemplate::orderBy('is_system', 'desc')->orderBy('name')->get();
+        $students       = Student::with('user')->orderBy('name')->get();
+        $batches        = Batch::orderBy('name')->get();
+        $courses        = Course::with('semesters')->orderBy('name')->get();
 
-        return view('admin.notifications.create', compact('students', 'batches', 'courses'));
+        return view('admin.notifications.create', compact('students', 'batches', 'courses', 'emailTemplates'));
     }
 
     public function send(Request $request, DynamicMailService $mailService, FirebaseNotificationService $fcmService)
@@ -61,16 +63,16 @@ class BroadcastNotificationController extends Controller
 
         switch ($validated['recipient_type']) {
             case 'ALL_STUDENTS':
-                $targetUsers = User::where('role', 'student')->get();
+                $targetUsers = User::with('student.batch.course')->where('role', 'student')->get();
                 break;
 
             case 'ALL_TEACHERS':
-                $targetUsers = User::where('role', 'teacher')->get();
+                $targetUsers = User::with('teacher')->where('role', 'teacher')->get();
                 break;
 
             case 'SPECIFIC_STUDENT':
                 $filterId = $validated['specific_student_id'];
-                $targetUsers = User::where('id', $filterId)->get();
+                $targetUsers = User::with('student.batch.course')->where('id', $filterId)->get();
                 break;
 
             case 'BATCH_WISE':
@@ -80,14 +82,14 @@ class BroadcastNotificationController extends Controller
                     $studentIds = Student::where('batch_id', $filterId)->pluck('id');
                 }
                 $userIds = Student::whereIn('id', $studentIds)->pluck('user_id');
-                $targetUsers = User::whereIn('id', $userIds)->get();
+                $targetUsers = User::with('student.batch.course')->whereIn('id', $userIds)->get();
                 break;
 
             case 'SEMESTER_WISE':
                 $filterId = $validated['semester_id'];
                 $studentIds = Enrollment::where('semester_id', $filterId)->pluck('student_id')->unique();
                 $userIds = Student::whereIn('id', $studentIds)->pluck('user_id');
-                $targetUsers = User::whereIn('id', $userIds)->get();
+                $targetUsers = User::with('student.batch.course')->whereIn('id', $userIds)->get();
                 break;
         }
 
@@ -120,15 +122,28 @@ class BroadcastNotificationController extends Controller
 
         $emailCount = 0;
         $pushCount  = 0;
+        $todayStr   = now()->format('d/m/Y');
 
         // 2. Dispatch Email Notifications
         if (in_array($validated['channel'], ['EMAIL', 'BOTH'])) {
             foreach ($targetUsers as $user) {
                 if (!empty($user->email)) {
+                    $uName   = $user->name ?? 'সম্মানিত শিক্ষার্থী';
+                    $uRoll   = $user->student->roll_no ?? '';
+                    $uCourse = $user->student->batch->course->name ?? '';
+                    $uBatch  = $user->student->batch->name ?? '';
+
+                    $pTitle = str_replace(['{name}', '{roll}'], [$uName, $uRoll], $validated['title']);
+                    $pMsg   = str_replace(
+                        ['{name}', '{roll}', '{course}', '{batch}', '{date}'],
+                        [$uName, $uRoll, $uCourse, $uBatch, $todayStr],
+                        $validated['message']
+                    );
+
                     $sent = $mailService->sendHtmlNotification(
                         $user->email,
-                        $validated['title'],
-                        $validated['message'],
+                        $pTitle,
+                        $pMsg,
                         $imageUrl,
                         $validated['action_url'] ?? null
                     );

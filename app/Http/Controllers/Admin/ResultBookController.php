@@ -42,6 +42,9 @@ class ResultBookController extends Controller
         $isBatchPublished = false;
         $exams = collect();
         $examLookup = [];
+        $subjectExams = collect();
+        $selectedExam = null;
+        $allExamResults = collect();
 
         // Auto-select requested batch or default to the latest batch
         $batchId = $request->filled('batch_id') ? $request->batch_id : ($batches->first()?->id ?? null);
@@ -222,6 +225,9 @@ class ResultBookController extends Controller
                                     'raw_final'     => $fm->raw_final,
                                     'att_conv'      => $fm->attendance_converted,
                                     'tamrin'        => $fm->tamrin_mark,
+                                    'ct_tamrin'     => $fm->ct_tamrin,
+                                    'mid_tamrin'    => $fm->midterm_tamrin,
+                                    'fin_tamrin'    => $fm->final_tamrin,
                                 ];
                             } else {
                                 $hasFail = true;
@@ -245,6 +251,9 @@ class ResultBookController extends Controller
                                     'raw_final'     => null,
                                     'att_conv'      => null,
                                     'tamrin'        => null,
+                                    'ct_tamrin'     => null,
+                                    'mid_tamrin'    => null,
+                                    'fin_tamrin'    => null,
                                 ];
                             }
                         }
@@ -327,7 +336,7 @@ class ResultBookController extends Controller
                     $rankedStudents = collect($studentsData);
                 }
 
-                // ─── TAB 2: MANUAL MARKING (তামরিন, তাজবীদ, DNS, এটেন্ডেন্স) ─
+                // ─── TAB 2: MANUAL MARKING (পরীক্ষাভিত্তিক তামরিন ও সেমিস্টার উপস্থিতি) ─
                 elseif ($tab === 'manual_marking') {
                     if ($request->filled('subject_id')) {
                         $selectedSubject = $subjects->firstWhere('id', $request->subject_id);
@@ -344,6 +353,20 @@ class ResultBookController extends Controller
                                 $q->where('semester_id', $selectedSemester->id);
                             })
                             ->get();
+
+                        // Get all exams for this subject in the selected batch/semester
+                        $subjectExams = $exams->where('subject_id', $selectedSubject->id)->values();
+
+                        if ($request->filled('exam_id')) {
+                            $selectedExam = $subjectExams->firstWhere('id', $request->exam_id);
+                        }
+
+                        // Preload results for these exams keyed by exam_id -> student_id
+                        $examIds = $subjectExams->pluck('id');
+                        $allExamResults = \App\Models\Result::whereIn('exam_id', $examIds)
+                            ->get()
+                            ->groupBy('exam_id')
+                            ->map(fn($group) => $group->keyBy('student_id'));
                     }
                 }
 
@@ -464,7 +487,8 @@ class ResultBookController extends Controller
             'tab', 'batches', 'selectedBatch', 'semesters', 'selectedSemester',
             'selectedSubject', 'examType', 'search', 'subjects', 'rankedStudents',
             'manualMarkingList', 'batchMeritList', 'isSemesterBased',
-            'isBatchPublished', 'summary', 'exams', 'examLookup'
+            'isBatchPublished', 'summary', 'exams', 'examLookup',
+            'subjectExams', 'selectedExam', 'allExamResults'
         ));
     }
 
@@ -478,6 +502,9 @@ class ResultBookController extends Controller
             'midterm_obtained'     => 'nullable|numeric|min:0|max:100',
             'final_obtained'       => 'nullable|numeric|min:0|max:100',
             'attendance_converted' => 'nullable|numeric|min:0|max:100',
+            'ct_tamrin'            => 'nullable|numeric|min:0|max:100',
+            'midterm_tamrin'       => 'nullable|numeric|min:0|max:100',
+            'final_tamrin'         => 'nullable|numeric|min:0|max:100',
             'tamrin_mark'          => 'nullable|numeric|min:0|max:100',
             'remarks'              => 'nullable|string|max:500',
         ]);
@@ -495,6 +522,9 @@ class ResultBookController extends Controller
             'final_obtained'       => $finOb,
             'final_converted'      => $finOb !== null ? round(($finOb / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2) : null,
             'attendance_converted' => $attConv,
+            'ct_tamrin'            => $request->filled('ct_tamrin') ? (float) $request->ct_tamrin : null,
+            'midterm_tamrin'       => $request->filled('midterm_tamrin') ? (float) $request->midterm_tamrin : null,
+            'final_tamrin'         => $request->filled('final_tamrin') ? (float) $request->final_tamrin : null,
             'tamrin_mark'          => $request->filled('tamrin_mark') ? (float) $request->tamrin_mark : null,
         ];
 
@@ -509,7 +539,58 @@ class ResultBookController extends Controller
     }
 
     /**
-     * Save Bulk Manual Marks (তামরিন, তাজবীদ, DNS, এটেন্ডেন্স)
+     * Unified Override Save (Creates FinalMark if absent, then applies override)
+     */
+    public function overrideSave(Request $request)
+    {
+        $validated = $request->validate([
+            'final_mark_id'        => 'nullable|integer',
+            'student_id'           => 'required_without:final_mark_id|integer',
+            'batch_id'             => 'required|integer',
+            'subject_id'           => 'required|integer',
+            'semester_id'          => 'nullable|integer',
+            'class_test_obtained'  => 'nullable|numeric|min:0|max:100',
+            'midterm_obtained'     => 'nullable|numeric|min:0|max:100',
+            'final_obtained'       => 'nullable|numeric|min:0|max:100',
+            'attendance_converted' => 'nullable|numeric|min:0|max:100',
+            'ct_tamrin'            => 'nullable|numeric|min:0|max:100',
+            'midterm_tamrin'       => 'nullable|numeric|min:0|max:100',
+            'final_tamrin'         => 'nullable|numeric|min:0|max:100',
+            'tamrin_mark'          => 'nullable|numeric|min:0|max:100',
+            'remarks'              => 'nullable|string|max:500',
+        ]);
+
+        $finalMark = null;
+        if (!empty($validated['final_mark_id'])) {
+            $finalMark = FinalMark::find($validated['final_mark_id']);
+        }
+
+        if (!$finalMark) {
+            $semesterId = $validated['semester_id'] ?? null;
+            if (!$semesterId && !empty($validated['batch_id'])) {
+                $batch = Batch::find($validated['batch_id']);
+                $semesterId = $batch?->current_semester_id;
+            }
+            $finalMark = FinalMark::firstOrCreate(
+                [
+                    'batch_id'    => $validated['batch_id'],
+                    'student_id'  => $validated['student_id'],
+                    'subject_id'  => $validated['subject_id'],
+                    'semester_id' => $semesterId,
+                ],
+                [
+                    'total_full'   => 100,
+                    'credit'       => 3,
+                    'generated_at' => now(),
+                ]
+            );
+        }
+
+        return $this->override($request, $finalMark);
+    }
+
+    /**
+     * Save Bulk Manual Marks (পরীক্ষাভিত্তিক তামরিন ও সেমিস্টার উপস্থিতি)
      */
     public function saveManualMarksBulk(Request $request)
     {
@@ -519,33 +600,171 @@ class ResultBookController extends Controller
             'marks'      => 'required|array',
         ]);
 
-        $batchId   = $request->batch_id;
-        $subjectId = $request->subject_id;
+        $batchId    = $request->batch_id;
+        $subjectId  = $request->subject_id;
         $semesterId = $request->input('semester_id');
+        $examId     = $request->input('exam_id');
+        $exam       = $examId ? \App\Models\Exam::find($examId) : null;
         $updatedCount = 0;
 
         foreach ($request->marks as $finalMarkId => $data) {
             $finalMark = FinalMark::find($finalMarkId);
             if (!$finalMark) continue;
+            $studentId = $finalMark->student_id;
 
-            $updates = [];
-            if (isset($data['tamrin_mark'])) {
-                $updates['tamrin_mark'] = is_numeric($data['tamrin_mark']) ? (float) $data['tamrin_mark'] : null;
-            }
-            if (isset($data['attendance_converted'])) {
-                $updates['attendance_converted'] = is_numeric($data['attendance_converted']) ? (float) $data['attendance_converted'] : null;
-            }
-            if (isset($data['remarks'])) {
-                $finalMark->remarks = $data['remarks'];
-            }
+            if ($exam) {
+                // Single Exam Mode: Tamrin and assessment marks belong to this exam
+                $tamrinVal  = (isset($data['tamrin_mark']) && $data['tamrin_mark'] !== '') ? (float) $data['tamrin_mark'] : null;
+                $mcqVal     = (isset($data['mcq_marks']) && $data['mcq_marks'] !== '') ? (float) $data['mcq_marks'] : null;
+                $writtenVal = (isset($data['written_marks']) && $data['written_marks'] !== '') ? (float) $data['written_marks'] : null;
+                $vivaVal    = (isset($data['viva_marks']) && $data['viva_marks'] !== '') ? (float) $data['viva_marks'] : null;
 
-            $finalMark->recalculate($updates);
+                $prevResult = \App\Models\Result::where('student_id', $studentId)
+                    ->where('subject_id', $exam->subject_id)
+                    ->latest('attempt_no')
+                    ->first();
+                $attemptNo = $prevResult ? $prevResult->attempt_no + 1 : 1;
+
+                $res = \App\Models\Result::firstOrNew([
+                    'exam_id'    => $exam->id,
+                    'student_id' => $studentId,
+                ]);
+                if (!$res->exists) {
+                    $res->attempt_no = $attemptNo;
+                }
+
+                $resMcq = $mcqVal ?? $res->mcq_marks;
+                $resWritten = $writtenVal ?? $res->written_marks;
+                $resViva = $vivaVal ?? $res->viva_marks;
+                $totalExamMark = ($resMcq ?? 0) + ($resWritten ?? 0) + ($tamrinVal ?? 0) + ($resViva ?? 0);
+
+                $res->tamrin_marks  = $tamrinVal;
+                $res->mcq_marks     = $resMcq;
+                $res->written_marks = $resWritten;
+                $res->viva_marks    = $resViva;
+                $res->marks         = $totalExamMark;
+                $res->status        = $totalExamMark >= $exam->pass_marks ? 'PASS' : 'FAIL';
+                $pct = $exam->full_marks > 0 ? (($totalExamMark / $exam->full_marks) * 100) : 0;
+                $gInfo = FinalMark::calculateGrade($pct);
+                $res->grade = $gInfo['grade'];
+                $res->save();
+
+                // Sync ExamSubmission if exists
+                $sub = \App\Models\ExamSubmission::where('exam_id', $exam->id)->where('student_id', $studentId)->first();
+                if ($sub) {
+                    $sub->update([
+                        'tamrin_score'  => $tamrinVal ?? $sub->tamrin_score,
+                        'total_score'   => $totalExamMark,
+                    ]);
+                }
+
+                // Sync to FinalMark
+                $updates = [];
+                if ($exam->type === 'QUIZ') {
+                    $updates['ct_tamrin'] = $tamrinVal;
+                    $updates['class_test_obtained'] = $totalExamMark;
+                    $updates['class_test_converted'] = round(($totalExamMark / FinalMark::CLASS_TEST_FULL) * FinalMark::CLASS_TEST_CONVERT, 2);
+                } elseif ($exam->type === 'MIDTERM') {
+                    $updates['midterm_tamrin'] = $tamrinVal;
+                    $updates['midterm_obtained'] = $totalExamMark;
+                    $updates['midterm_converted'] = round(($totalExamMark / FinalMark::MIDTERM_FULL) * FinalMark::MIDTERM_CONVERT, 2);
+                } elseif ($exam->type === 'FINAL') {
+                    $updates['final_tamrin'] = $tamrinVal;
+                    $updates['final_obtained'] = $totalExamMark;
+                    $updates['final_converted'] = round(($totalExamMark / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2);
+                }
+
+                if (isset($data['remarks'])) {
+                    $finalMark->remarks = $data['remarks'];
+                }
+                $finalMark->recalculate($updates);
+            } else {
+                // All-Exams / Semester Mode
+                $updates = [];
+                // Attendance is strictly semester-level
+                if (isset($data['attendance_converted'])) {
+                    $updates['attendance_converted'] = is_numeric($data['attendance_converted']) ? (float) $data['attendance_converted'] : null;
+                }
+
+                // Exam-wise Tamrins
+                if (isset($data['ct_tamrin'])) {
+                    $ctT = is_numeric($data['ct_tamrin']) ? (float) $data['ct_tamrin'] : null;
+                    $updates['ct_tamrin'] = $ctT;
+                    if ($finalMark->class_test_obtained !== null && $ctT !== null) {
+                        $diff = $ctT - ($finalMark->ct_tamrin ?? 0);
+                        $newCtOb = max(0, min(FinalMark::CLASS_TEST_FULL, $finalMark->class_test_obtained + $diff));
+                        $updates['class_test_obtained'] = $newCtOb;
+                        $updates['class_test_converted'] = round(($newCtOb / FinalMark::CLASS_TEST_FULL) * FinalMark::CLASS_TEST_CONVERT, 2);
+                    }
+                }
+                if (isset($data['midterm_tamrin'])) {
+                    $midT = is_numeric($data['midterm_tamrin']) ? (float) $data['midterm_tamrin'] : null;
+                    $updates['midterm_tamrin'] = $midT;
+                    if ($finalMark->midterm_obtained !== null && $midT !== null) {
+                        $diff = $midT - ($finalMark->midterm_tamrin ?? 0);
+                        $newMidOb = max(0, min(FinalMark::MIDTERM_FULL, $finalMark->midterm_obtained + $diff));
+                        $updates['midterm_obtained'] = $newMidOb;
+                        $updates['midterm_converted'] = round(($newMidOb / FinalMark::MIDTERM_FULL) * FinalMark::MIDTERM_CONVERT, 2);
+                    }
+                }
+                if (isset($data['final_tamrin'])) {
+                    $finT = is_numeric($data['final_tamrin']) ? (float) $data['final_tamrin'] : null;
+                    $updates['final_tamrin'] = $finT;
+                    if ($finalMark->final_obtained !== null && $finT !== null) {
+                        $diff = $finT - ($finalMark->final_tamrin ?? 0);
+                        $newFinOb = max(0, min(FinalMark::FINAL_FULL, $finalMark->final_obtained + $diff));
+                        $updates['final_obtained'] = $newFinOb;
+                        $updates['final_converted'] = round(($newFinOb / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2);
+                    }
+                }
+
+                // If individual exams' tamrin passed in exam_tamrins
+                if (isset($data['exam_tamrins']) && is_array($data['exam_tamrins'])) {
+                    foreach ($data['exam_tamrins'] as $eId => $tScore) {
+                        $targetExam = \App\Models\Exam::find($eId);
+                        if (!$targetExam) continue;
+                        $tVal = is_numeric($tScore) ? (float) $tScore : null;
+
+                        $res = \App\Models\Result::firstOrNew([
+                            'exam_id'    => $targetExam->id,
+                            'student_id' => $studentId,
+                        ]);
+                        $res->tamrin_marks = $tVal;
+                        $res->marks = ($res->mcq_marks ?? 0) + ($res->written_marks ?? 0) + ($tVal ?? 0) + ($res->viva_marks ?? 0);
+                        $res->status = $res->marks >= $targetExam->pass_marks ? 'PASS' : 'FAIL';
+                        $res->save();
+
+                        if ($targetExam->type === 'QUIZ') {
+                            $updates['ct_tamrin'] = $tVal;
+                            $updates['class_test_obtained'] = $res->marks;
+                            $updates['class_test_converted'] = round(($res->marks / FinalMark::CLASS_TEST_FULL) * FinalMark::CLASS_TEST_CONVERT, 2);
+                        } elseif ($targetExam->type === 'MIDTERM') {
+                            $updates['midterm_tamrin'] = $tVal;
+                            $updates['midterm_obtained'] = $res->marks;
+                            $updates['midterm_converted'] = round(($res->marks / FinalMark::MIDTERM_FULL) * FinalMark::MIDTERM_CONVERT, 2);
+                        } elseif ($targetExam->type === 'FINAL') {
+                            $updates['final_tamrin'] = $tVal;
+                            $updates['final_obtained'] = $res->marks;
+                            $updates['final_converted'] = round(($res->marks / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2);
+                        }
+                    }
+                }
+
+                if (isset($data['remarks'])) {
+                    $finalMark->remarks = $data['remarks'];
+                }
+                $finalMark->recalculate($updates);
+            }
             $updatedCount++;
         }
 
         FinalMark::recalculateMeritRanks($batchId, $subjectId, $semesterId);
 
-        return back()->with('success', "✅ মোট {$updatedCount} জন শিক্ষার্থীর ম্যানুয়াল মার্ক (তামরিন/এসাইনমেন্ট ও এটেন্ডেন্স) সফলভাবে সংরক্ষিত হয়েছে।");
+        $msg = $exam 
+            ? "✅ মোট {$updatedCount} জন শিক্ষার্থীর '{$exam->title}' পরীক্ষার মূল্যায়ন ও তামরিন নম্বর সফলভাবে সংরক্ষিত হয়েছে।"
+            : "✅ মোট {$updatedCount} জন শিক্ষার্থীর পরীক্ষাভিত্তিক তামরিন ও সেমিস্টার উপস্থিতি নম্বর সফলভাবে সংরক্ষিত হয়েছে।";
+
+        return back()->with('success', $msg);
     }
 
     /**
@@ -713,5 +932,40 @@ class ResultBookController extends Controller
             'semestersData', 'totalCreditsAttempted', 'totalCreditsEarned',
             'cgpa', 'overallQawmiGrade', 'overallStatus'
         ));
+    }
+
+    /**
+     * AJAX endpoint: Get course semesters for a batch (Used in Promotion & ResultBook)
+     */
+    public function getBatchSubjects(Request $request)
+    {
+        $batchId = $request->input('batch_id');
+        $batch = Batch::with(['course.semesters' => function ($q) {
+            $q->orderBy('sequence_no');
+        }, 'semesterPosition'])->find($batchId);
+
+        if (!$batch || !$batch->course) {
+            return response()->json([
+                'has_semesters' => false,
+                'semesters'     => [],
+            ]);
+        }
+
+        $course = $batch->course;
+        $hasSemesters = ($course->type === 'SEMESTER_BASED' && $course->semesters->isNotEmpty());
+        $runningSemesterId = $batch->semesterPosition?->current_semester_id
+            ?? $batch->enrollments()->whereNotNull('semester_id')->latest()->value('semester_id')
+            ?? $course->semesters->first()?->id;
+
+        return response()->json([
+            'has_semesters' => $hasSemesters,
+            'semesters'     => $course->semesters->map(fn($s) => [
+                'id'          => $s->id,
+                'name'        => $s->name,
+                'sequence_no' => $s->sequence_no,
+                'is_running'  => ($s->id == $runningSemesterId),
+            ])->values(),
+            'running_semester_id' => $runningSemesterId,
+        ]);
     }
 }

@@ -671,7 +671,9 @@ class FeeController extends Controller
         // Apply custom_particulars overrides from $selectedSemesterInvoice
         $customOverrides = $selectedSemesterInvoice?->custom_particulars ?? [];
         if (!empty($customOverrides)) {
+            $existingNames = [];
             foreach ($step1Particulars as &$item) {
+                $existingNames[] = $item['name'];
                 if (isset($customOverrides[$item['name']])) {
                     $cDue = (float) $customOverrides[$item['name']]['due'];
                     $item['due'] = $cDue;
@@ -681,12 +683,32 @@ class FeeController extends Controller
                         $item['is_paid'] = false;
                     }
                     $item['is_custom'] = true;
+                    $item['is_added']  = !empty($customOverrides[$item['name']]['is_added']);
                     if (isset($customOverrides[$item['name']]['remarks'])) {
                         $item['custom_remarks'] = $customOverrides[$item['name']]['remarks'];
                     }
                 }
             }
             unset($item);
+
+            // Also include any newly added custom particulars that weren't in default step1Particulars
+            foreach ($customOverrides as $cName => $cData) {
+                if (!in_array($cName, $existingNames, true)) {
+                    $cDue = (float) ($cData['due'] ?? 0);
+                    $cAmt = (float) ($cData['amount'] ?? $cDue);
+                    $step1Particulars[] = [
+                        'sl'             => $sl++,
+                        'name'           => $cName,
+                        'amount'         => $cAmt,
+                        'paid_amt'       => max(0, $cAmt - $cDue),
+                        'due'            => $cDue,
+                        'is_paid'        => $cDue <= 0,
+                        'is_custom'      => true,
+                        'is_added'       => true,
+                        'custom_remarks' => $cData['remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি',
+                    ];
+                }
+            }
         }
 
         $sslActive   = \App\Services\PaymentGatewayService::isSslcommerzActive();
@@ -884,4 +906,204 @@ class FeeController extends Controller
             'invoice_id'    => $invoice->id,
         ]);
     }
+
+    /**
+     * Admin adds a new fee particular to an invoice.
+     */
+    public function storeParticular(Request $request)
+    {
+        $isAdmin = session()->has('admin_impersonator_id') 
+            || (auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'ADMIN'));
+
+        if (!$isAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'অননুমোদিত অনুরোধ। শুধুমাত্র অ্যাডমিন নতুন ফি যোগ করতে পারবেন।'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'invoice_id'      => 'nullable|exists:invoices,id',
+            'student_id'      => 'nullable|exists:students,id',
+            'semester_id'     => 'nullable|integer',
+            'particular_name' => 'required|string|max:150',
+            'amount'          => 'required|numeric|min:1',
+            'remarks'         => 'nullable|string|max:255',
+        ]);
+
+        $pName   = trim($validated['particular_name']);
+        $amount  = round((float)$validated['amount'], 2);
+        $remarks = $validated['remarks'] ?? 'অ্যাডমিন কর্তৃক নতুন ফি যুক্ত';
+
+        $invoice = null;
+        if (!empty($validated['invoice_id'])) {
+            $invoice = Invoice::find($validated['invoice_id']);
+        }
+
+        if (!$invoice) {
+            $studentId = $validated['student_id'] ?? Student::where('user_id', auth()->id())->value('id');
+            $student = Student::findOrFail($studentId);
+            $enrollment = $student->enrollments()->where('status', 'ACTIVE')->first() ?? $student->enrollments()->first();
+
+            $invNo = 'INV-MAN-' . date('Ymd') . '-' . rand(1000, 9999);
+            $invoice = Invoice::create([
+                'invoice_no'         => $invNo,
+                'student_id'         => $student->id,
+                'enrollment_id'      => $enrollment?->id,
+                'category'           => !empty($validated['semester_id']) ? 'SEMESTER' : 'MANUAL',
+                'title'              => $pName,
+                'amount'             => 0,
+                'discount'           => 0,
+                'payable_amount'     => 0,
+                'paid_amount'        => 0,
+                'due_amount'         => 0,
+                'status'             => 'UNPAID',
+                'due_date'           => now()->addDays(15),
+                'source_type'        => !empty($validated['semester_id']) ? \App\Models\Semester::class : null,
+                'source_id'          => $validated['semester_id'] ?? null,
+                'created_by'         => session('admin_impersonator_id') ?? auth()->id(),
+                'custom_particulars' => [],
+            ]);
+        }
+
+        $custom = $invoice->custom_particulars ?? [];
+        if (isset($custom[$pName])) {
+            $oldDue = (float)($custom[$pName]['due'] ?? 0);
+            $oldAmt = (float)($custom[$pName]['amount'] ?? $oldDue);
+            $newDue = $oldDue + $amount;
+            $newAmt = $oldAmt + $amount;
+        } else {
+            $newDue = $amount;
+            $newAmt = $amount;
+        }
+
+        $custom[$pName] = [
+            'name'        => $pName,
+            'amount'      => $newAmt,
+            'due'         => $newDue,
+            'created_at'  => now()->toDateTimeString(),
+            'created_by'  => session('admin_impersonator_id') ?? auth()->id(),
+            'remarks'     => $remarks,
+            'is_added'    => true,
+        ];
+
+        $newPayable  = max(0, $invoice->payable_amount + $amount);
+        $newDueAmt   = max(0, $invoice->due_amount + $amount);
+        $newTotalAmt = max(0, $invoice->amount + $amount);
+
+        $status = 'UNPAID';
+        if ($newDueAmt <= 0 && $invoice->paid_amount > 0) {
+            $status = 'PAID';
+        } elseif ($invoice->paid_amount > 0) {
+            $status = 'PARTIAL';
+        }
+
+        $invoice->update([
+            'custom_particulars' => $custom,
+            'amount'             => $newTotalAmt,
+            'payable_amount'     => $newPayable,
+            'due_amount'         => $newDueAmt,
+            'status'             => $status,
+        ]);
+
+        try {
+            \App\Models\AuditLog::log(
+                'fee_particular_added',
+                $invoice,
+                [],
+                ['particular' => $pName, 'amount' => $amount, 'remarks' => $remarks],
+                "অ্যাডমিন নতুন ফি '{$pName}' (৳{$amount}) ইনভয়েসে যুক্ত করেছেন।"
+            );
+        } catch (\Throwable $e) {}
+
+        return response()->json([
+            'success'       => true,
+            'message'       => "✓ নতুন ফি '{$pName}' (৳" . number_format($amount, 0) . ") সফলভাবে যুক্ত করা হয়েছে।",
+            'particular'    => [
+                'name'      => $pName,
+                'amount'    => $newAmt,
+                'due'       => $newDue,
+                'remarks'   => $remarks,
+                'is_paid'   => false,
+                'is_custom' => true,
+                'is_added'  => true,
+            ],
+            'invoice_id'    => $invoice->id,
+            'invoice_due'   => $newDueAmt,
+        ]);
+    }
+
+    /**
+     * Admin deletes a custom fee particular from an invoice.
+     */
+    public function deleteParticular(Request $request)
+    {
+        $isAdmin = session()->has('admin_impersonator_id') 
+            || (auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'ADMIN'));
+
+        if (!$isAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'অননুমোদিত অনুরোধ। শুধুমাত্র অ্যাডমিন ফি ডিলিট করতে পারবেন।'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'invoice_id'      => 'required|exists:invoices,id',
+            'particular_name' => 'required|string',
+        ]);
+
+        $invoice = Invoice::findOrFail($validated['invoice_id']);
+        $pName   = trim($validated['particular_name']);
+
+        $custom = $invoice->custom_particulars ?? [];
+        if (!isset($custom[$pName])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'এই ফি আইটেমটি পাওয়া যায়নি।'
+            ], 404);
+        }
+
+        $dueToDeduct = (float)($custom[$pName]['due'] ?? 0);
+        $amtToDeduct = (float)($custom[$pName]['amount'] ?? $dueToDeduct);
+
+        unset($custom[$pName]);
+
+        $newPayable  = max(0, $invoice->payable_amount - $amtToDeduct);
+        $newDueAmt   = max(0, $invoice->due_amount - $dueToDeduct);
+        $newTotalAmt = max(0, $invoice->amount - $amtToDeduct);
+
+        $status = 'UNPAID';
+        if ($newDueAmt <= 0 && $invoice->paid_amount > 0) {
+            $status = 'PAID';
+        } elseif ($invoice->paid_amount > 0) {
+            $status = 'PARTIAL';
+        }
+
+        $invoice->update([
+            'custom_particulars' => $custom,
+            'amount'             => $newTotalAmt,
+            'payable_amount'     => $newPayable,
+            'due_amount'         => $newDueAmt,
+            'status'             => $status,
+        ]);
+
+        try {
+            \App\Models\AuditLog::log(
+                'fee_particular_deleted',
+                $invoice,
+                [],
+                ['particular' => $pName],
+                "অ্যাডমিন '{$pName}' ফি বাতিল/মুছে ফেলেছেন।"
+            );
+        } catch (\Throwable $e) {}
+
+        return response()->json([
+            'success'     => true,
+            'message'     => "✓ '{$pName}' ফি সফলভাবে মুছে ফেলা হয়েছে।",
+            'invoice_id'  => $invoice->id,
+            'invoice_due' => $newDueAmt,
+        ]);
+    }
 }
+

@@ -47,9 +47,10 @@ class BatchController extends Controller
         $batches       = $query->get();
         $courses       = Course::where('is_active', true)->orderBy('name')->get();
         $academicYears = AcademicYear::where('is_active', true)->orderBy('name')->get();
+        $months        = Course::monthsList();
 
         return view('admin.batches.index', compact(
-            'batches', 'courses', 'academicYears', 'courseId', 'academicYearId', 'status', 'search'
+            'batches', 'courses', 'academicYears', 'courseId', 'academicYearId', 'status', 'search', 'months'
         ));
     }
 
@@ -60,6 +61,10 @@ class BatchController extends Controller
             'course_id'        => 'required|exists:courses,id',
             'academic_year_id' => 'nullable|exists:academic_years,id',
             'start_date'       => 'required|date',
+            'start_month'      => 'nullable|string|max:20',
+            'end_month'        => 'nullable|string|max:20',
+            'fee_start_month'  => 'nullable|string|max:20',
+            'fee_end_month'    => 'nullable|string|max:20',
             'admission_fee'    => 'nullable|numeric|min:0',
             'monthly_fee'      => 'nullable|numeric|min:0',
         ]);
@@ -73,6 +78,10 @@ class BatchController extends Controller
             'course_id'                => $validated['course_id'],
             'academic_year_id'         => $validated['academic_year_id'] ?? null,
             'start_date'               => $validated['start_date'],
+            'start_month'              => $validated['start_month'] ?? null,
+            'end_month'                => $validated['end_month'] ?? null,
+            'fee_start_month'          => $validated['fee_start_month'] ?? null,
+            'fee_end_month'            => $validated['fee_end_month'] ?? null,
             'admission_fee'            => $validated['admission_fee'] ?? 0.00,
             'monthly_fee'              => $validated['monthly_fee'] ?? 0.00,
             'status'                   => 'ACTIVE',
@@ -93,12 +102,20 @@ class BatchController extends Controller
             'course_id'         => 'required|exists:courses,id',
             'academic_year_id'  => 'nullable|exists:academic_years,id',
             'start_date'        => 'required|date',
+            'start_month'       => 'nullable|string|max:20',
+            'end_month'         => 'nullable|string|max:20',
+            'fee_start_month'   => 'nullable|string|max:20',
+            'fee_end_month'     => 'nullable|string|max:20',
             'admission_fee'     => 'nullable|numeric|min:0',
             'monthly_fee'       => 'nullable|numeric|min:0',
             'status'            => 'required|in:PLANNED,ACTIVE,COMPLETED,CANCELLED,SUSPENDED',
         ]);
 
         $batch->update(array_merge($validated, [
+            'start_month'       => $validated['start_month'] ?? null,
+            'end_month'         => $validated['end_month'] ?? null,
+            'fee_start_month'   => $validated['fee_start_month'] ?? null,
+            'fee_end_month'     => $validated['fee_end_month'] ?? null,
             'admission_fee'     => $validated['admission_fee'] ?? 0.00,
             'monthly_fee'       => $validated['monthly_fee'] ?? 0.00,
             'is_admission_open' => $request->boolean('is_admission_open'),

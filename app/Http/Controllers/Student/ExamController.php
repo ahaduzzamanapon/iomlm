@@ -116,45 +116,103 @@ class ExamController extends Controller
             ['status' => 'IN_PROGRESS', 'started_at' => now()]
         );
 
-        // Generate per-student shuffled questions pool up to full marks if not already assigned
+        // Generate per-student shuffled questions pool up to target marks if not already assigned
         if (empty($submission->assigned_question_ids)) {
-            $pool = $exam->examQuestions->shuffle();
-            $targetMarks = (float) $exam->full_marks;
-            $poolTotalMarks = (float) $pool->sum('marks');
+            $hasMcqSplit = $exam->has_mcq && (float) $exam->mcq_marks > 0;
+            $hasWrittenSplit = $exam->has_written && (float) $exam->written_marks > 0;
 
-            if ($targetMarks <= 0 || $poolTotalMarks <= $targetMarks) {
-                // Pool total marks is <= target marks, assign all questions in shuffled order
-                $assignedIds = $pool->pluck('question_id')->values()->all();
-            } else {
+            if ($hasMcqSplit || $hasWrittenSplit) {
                 $selectedIds = [];
-                $currentMarks = 0.0;
 
-                // Pass 1: Greedily pick shuffled questions that fit into targetMarks
-                foreach ($pool as $eq) {
-                    $qMarks = (float) ($eq->marks > 0 ? $eq->marks : 1.0);
-                    if (($currentMarks + $qMarks) <= ($targetMarks + 0.0001)) {
-                        $selectedIds[] = $eq->question_id;
-                        $currentMarks += $qMarks;
-                        if (abs($currentMarks - $targetMarks) < 0.0001) {
-                            break;
+                // 1. Handle MCQ pool (e.g. 50 questions in pool, target is 20 MCQ marks)
+                if ($hasMcqSplit) {
+                    $targetMcq = (float) $exam->mcq_marks;
+                    $mcqPool = $exam->examQuestions->filter(function ($eq) {
+                        return $eq->question && $eq->question->question_type === 'MCQ';
+                    })->shuffle();
+
+                    $currMcq = 0.0;
+                    $mcqIds = [];
+                    foreach ($mcqPool as $eq) {
+                        $qMarks = (float) ($eq->marks > 0 ? $eq->marks : 1.0);
+                        if (($currMcq + $qMarks) <= ($targetMcq + 0.0001)) {
+                            $mcqIds[] = $eq->question_id;
+                            $currMcq += $qMarks;
+                            if (abs($currMcq - $targetMcq) < 0.0001) break;
                         }
                     }
-                }
-
-                // Pass 2: If targetMarks not reached, pick next available questions until full marks
-                if ($currentMarks < $targetMarks && count($selectedIds) < $pool->count()) {
-                    foreach ($pool as $eq) {
-                        if (!in_array($eq->question_id, $selectedIds)) {
-                            $selectedIds[] = $eq->question_id;
-                            $currentMarks += (float) ($eq->marks > 0 ? $eq->marks : 1.0);
-                            if ($currentMarks >= $targetMarks) {
-                                break;
+                    if ($currMcq < $targetMcq && count($mcqIds) < $mcqPool->count()) {
+                        foreach ($mcqPool as $eq) {
+                            if (!in_array($eq->question_id, $mcqIds)) {
+                                $mcqIds[] = $eq->question_id;
+                                $currMcq += (float) ($eq->marks > 0 ? $eq->marks : 1.0);
+                                if ($currMcq >= $targetMcq) break;
                             }
                         }
                     }
+                    $selectedIds = array_merge($selectedIds, !empty($mcqIds) ? $mcqIds : $mcqPool->pluck('question_id')->all());
                 }
 
-                $assignedIds = !empty($selectedIds) ? $selectedIds : $pool->pluck('question_id')->values()->all();
+                // 2. Handle Written pool
+                if ($hasWrittenSplit) {
+                    $targetWritten = (float) $exam->written_marks;
+                    $writtenPool = $exam->examQuestions->filter(function ($eq) {
+                        return $eq->question && $eq->question->question_type !== 'MCQ';
+                    })->shuffle();
+
+                    $currWritten = 0.0;
+                    $writtenIds = [];
+                    foreach ($writtenPool as $eq) {
+                        $qMarks = (float) ($eq->marks > 0 ? $eq->marks : 5.0);
+                        if (($currWritten + $qMarks) <= ($targetWritten + 0.0001)) {
+                            $writtenIds[] = $eq->question_id;
+                            $currWritten += $qMarks;
+                            if (abs($currWritten - $targetWritten) < 0.0001) break;
+                        }
+                    }
+                    if ($currWritten < $targetWritten && count($writtenIds) < $writtenPool->count()) {
+                        foreach ($writtenPool as $eq) {
+                            if (!in_array($eq->question_id, $writtenIds)) {
+                                $writtenIds[] = $eq->question_id;
+                                $currWritten += (float) ($eq->marks > 0 ? $eq->marks : 5.0);
+                                if ($currWritten >= $targetWritten) break;
+                            }
+                        }
+                    }
+                    $selectedIds = array_merge($selectedIds, !empty($writtenIds) ? $writtenIds : $writtenPool->pluck('question_id')->all());
+                }
+
+                // Shuffled question sequence for each student
+                $assignedIds = collect($selectedIds)->shuffle()->values()->all();
+            } else {
+                $pool = $exam->examQuestions->shuffle();
+                $targetMarks = (float) ($exam->full_marks > 0 ? $exam->full_marks : $pool->sum('marks'));
+                $poolTotalMarks = (float) $pool->sum('marks');
+
+                if ($targetMarks <= 0 || $poolTotalMarks <= $targetMarks) {
+                    $assignedIds = $pool->pluck('question_id')->values()->all();
+                } else {
+                    $selectedIds = [];
+                    $currentMarks = 0.0;
+                    foreach ($pool as $eq) {
+                        $qMarks = (float) ($eq->marks > 0 ? $eq->marks : 1.0);
+                        if (($currentMarks + $qMarks) <= ($targetMarks + 0.0001)) {
+                            $selectedIds[] = $eq->question_id;
+                            $currentMarks += $qMarks;
+                            if (abs($currentMarks - $targetMarks) < 0.0001) break;
+                        }
+                    }
+                    if ($currentMarks < $targetMarks && count($selectedIds) < $pool->count()) {
+                        foreach ($pool as $eq) {
+                            if (!in_array($eq->question_id, $selectedIds)) {
+                                $selectedIds[] = $eq->question_id;
+                                $currentMarks += (float) ($eq->marks > 0 ? $eq->marks : 1.0);
+                                if ($currentMarks >= $targetMarks) break;
+                            }
+                        }
+                    }
+                    $assignedIds = collect(!empty($selectedIds) ? $selectedIds : $pool->pluck('question_id')->all())->shuffle()->values()->all();
+                }
             }
 
             $submission->assigned_question_ids = $assignedIds;

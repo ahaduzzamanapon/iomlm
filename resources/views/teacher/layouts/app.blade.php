@@ -120,6 +120,88 @@
     }
     .loader-ring {
         border-top-color: #047857 !important;
+    /* ════ UNIVERSAL FOOLPROOF MODAL SCROLLING & POSITIONING ════ */
+    .modal-overlay,
+    .modal-backdrop,
+    .modal-wrapper,
+    [class*="modal-overlay"],
+    [class*="modal-backdrop"],
+    [class*="modal-wrapper"],
+    div[id*="Modal"][style*="fixed"],
+    div[id*="modal"][style*="fixed"],
+    div[id*="Modal"][style*="position: fixed"],
+    div[id*="modal"][style*="position: fixed"],
+    div[id*="Modal"][style*="position:fixed"],
+    div[id*="modal"][style*="position:fixed"] {
+        position: fixed !important;
+        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+        width: 100% !important; height: 100% !important;
+        background: rgba(15, 23, 42, 0.65) !important;
+        backdrop-filter: blur(4px) !important;
+        z-index: 99999 !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        padding: 30px 15px !important;
+        box-sizing: border-box !important;
+    }
+    .modal-overlay:not(.open):not(.active):not(.show),
+    .modal-backdrop:not(.open):not(.active):not(.show),
+    .modal-wrapper:not(.open):not(.active):not(.show) {
+        display: none;
+    }
+    .modal-overlay.open,
+    .modal-overlay.active,
+    .modal-overlay.show,
+    .modal-backdrop.open,
+    .modal-backdrop.active,
+    .modal-backdrop.show,
+    .modal-overlay[style*="display: flex"],
+    .modal-overlay[style*="display:flex"],
+    .modal-backdrop[style*="display: flex"],
+    .modal-backdrop[style*="display:flex"],
+    div[id*="Modal"][style*="display: flex"],
+    div[id*="Modal"][style*="display:flex"],
+    div[id*="modal"][style*="display: flex"],
+    div[id*="modal"][style*="display:flex"] {
+        display: flex !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+    .modal-content-box,
+    .modal-dialog,
+    .modal,
+    [class*="modal-content"],
+    [class*="modal-box"],
+    .modal-overlay > div:not(.modal-backdrop),
+    .modal-backdrop > div {
+        margin: 0 auto !important;
+        max-height: calc(100vh - 60px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        box-sizing: border-box !important;
+    }
+    .modal-overlay::-webkit-scrollbar,
+    .modal-backdrop::-webkit-scrollbar,
+    .modal-content-box::-webkit-scrollbar,
+    .modal::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
+    }
+    .modal-overlay::-webkit-scrollbar-thumb,
+    .modal-backdrop::-webkit-scrollbar-thumb,
+    .modal-content-box::-webkit-scrollbar-thumb,
+    .modal::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.6);
+        border-radius: 4px;
+    }
+    .modal-overlay::-webkit-scrollbar-thumb:hover,
+    .modal-backdrop::-webkit-scrollbar-thumb:hover,
+    .modal-content-box::-webkit-scrollbar-thumb:hover,
+    .modal::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 116, 139, 0.9);
     }
     </style>
     @stack('styles')
@@ -200,23 +282,9 @@
                 My Students
             </a>
 
-            <!-- Assessments -->
-            <div class="nav-group-label">Assessments</div>
-            <a href="{{ route('teacher.exams.index') }}" class="nav-item {{ request()->routeIs('teacher.exams.index', 'teacher.exams.show') ? 'active' : '' }}">
-                <i class="fa-solid fa-file-pen"></i>
-                Exams
-            </a>
-            <a href="{{ route('teacher.exams.appeals.index') }}" class="nav-item {{ request()->routeIs('teacher.exams.appeals*') ? 'active' : '' }}">
-                <i class="fa-solid fa-file-circle-question"></i>
-                Re-Exam Appeals (আপিল)
-            </a>
             <a href="{{ route('teacher.assignments.index') }}" class="nav-item {{ request()->routeIs('teacher.assignments*') ? 'active' : '' }}">
                 <i class="fa-solid fa-file-signature"></i>
                 অ্যাসাইনমেন্ট (Assignments)
-            </a>
-            <a href="{{ route('teacher.results.index') }}" class="nav-item {{ request()->routeIs('teacher.results*') ? 'active' : '' }}">
-                <i class="fa-solid fa-square-poll-horizontal"></i>
-                Submit Results
             </a>
             <a href="{{ route('teacher.resources.index') }}" class="nav-item {{ request()->routeIs('teacher.resources*') ? 'active' : '' }}">
                 <i class="fa-solid fa-paperclip"></i>
@@ -314,10 +382,72 @@ function toggleSidebar(){
     }
 }
 function toggleDropdown(id){ const m=document.getElementById(id),o=m.classList.contains('open'); document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open')); if(!o){ m.classList.add('open'); const r=m.getBoundingClientRect(),wh=window.innerHeight||document.documentElement.clientHeight; if(r.bottom>wh-10&&r.top>r.height){ m.style.top='auto'; m.style.bottom='calc(100% + 6px)'; }else{ m.style.top='calc(100% + 6px)'; m.style.bottom='auto'; } } }
-document.addEventListener('click',function(e){ if(!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open')); });
-function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
-document.addEventListener('click',function(e){ if(e.target.classList.contains('modal-overlay')){ e.target.classList.remove('open'); document.body.style.overflow=''; } });
+window.openModal = function(id) {
+    const m = typeof id === 'string' ? document.getElementById(id) : id;
+    if (!m) return;
+    m.classList.add('open', 'active', 'show');
+    m.style.display = 'flex';
+    m.style.pointerEvents = 'auto';
+    m.style.opacity = '1';
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeModal = function(id) {
+    const m = typeof id === 'string' ? document.getElementById(id) : id;
+    if (!m) return;
+    m.classList.remove('open', 'active', 'show');
+    m.style.display = 'none';
+    m.style.pointerEvents = '';
+    m.style.opacity = '';
+    const anyStillOpen = document.querySelectorAll(
+        '.modal-overlay.open, .modal-overlay.active, .modal-backdrop.open, .modal-backdrop.active, ' +
+        '.modal-overlay[style*="display: flex"], .modal-backdrop[style*="display: flex"], ' +
+        '[id*="Modal"][style*="display: flex"], [id*="modal"][style*="display: flex"]'
+    );
+    if (!anyStillOpen || anyStillOpen.length === 0) {
+        document.body.style.overflow = '';
+    }
+};
+
+document.addEventListener('click', function(e) {
+    const target = e.target;
+    if (!target) return;
+
+    // Never close if clicking inside modal content
+    if (target.closest('.modal, .modal-dialog, .modal-content, .modal-content-box, [class*="modal-box"], [class*="modal-content"], [class*="modal-dialog"], form')) {
+        return;
+    }
+
+    const isBackdrop = target.classList.contains('modal-backdrop') ||
+                       target.classList.contains('modal-overlay') ||
+                       target.classList.contains('modal-wrapper') ||
+                       (target.id && (target.id.toLowerCase().includes('modal') || target.id.toLowerCase().includes('dialog')) && 
+                        (target.style.position === 'fixed' || window.getComputedStyle(target).position === 'fixed'));
+    if (isBackdrop) {
+        closeModal(target);
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+        const candidates = document.querySelectorAll(
+            '.modal-backdrop, .modal-overlay, .modal-wrapper, [id*="Modal"], [id*="modal"]'
+        );
+        candidates.forEach(function(m) {
+            const isFixed = m.style.position === 'fixed' || window.getComputedStyle(m).position === 'fixed' ||
+                            m.classList.contains('modal-backdrop') || m.classList.contains('modal-overlay');
+            if (isFixed) {
+                const isVisible = m.classList.contains('open') || m.classList.contains('active') || m.classList.contains('show') ||
+                                  (m.style.display && m.style.display !== 'none') ||
+                                  (window.getComputedStyle(m).display !== 'none');
+                if (isVisible) {
+                    closeModal(m);
+                }
+            }
+        });
+        document.body.style.overflow = '';
+    }
+});
 const lf=document.getElementById('lp-flash');
 if(lf) setTimeout(()=>{ lf.style.opacity='0'; lf.style.transition='opacity .4s'; setTimeout(()=>lf.remove(),400); },4000);
 

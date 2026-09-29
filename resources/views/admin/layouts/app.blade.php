@@ -250,24 +250,78 @@
         background: #f0fdf4 !important;
     }
 
-    /* Modal Overlay System */
-    .modal-overlay {
+    /* ════ UNIVERSAL FOOLPROOF MODAL SCROLLING & POSITIONING ════ */
+    .modal-overlay,
+    .modal-backdrop,
+    .modal-wrapper,
+    .admin-modal-overlay,
+    [class*="modal-overlay"],
+    [class*="modal-backdrop"],
+    [class*="modal-wrapper"],
+    div[id*="Modal"][style*="fixed"],
+    div[id*="modal"][style*="fixed"],
+    div[id*="Modal"][style*="position: fixed"],
+    div[id*="modal"][style*="position: fixed"],
+    div[id*="Modal"][style*="position:fixed"],
+    div[id*="modal"][style*="position:fixed"] {
         position: fixed !important;
         top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-        width: 100vw !important; height: 100vh !important;
+        width: 100% !important; height: 100% !important;
         background: rgba(15, 23, 42, 0.65) !important;
         backdrop-filter: blur(4px) !important;
         z-index: 99999 !important;
-        display: none !important;
-        align-items: center !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        align-items: flex-start !important;
         justify-content: center !important;
-        padding: 16px !important;
+        padding: 30px 15px !important;
         box-sizing: border-box !important;
+    }
+    .modal-overlay:not(.open):not(.active):not(.show),
+    .modal-backdrop:not(.open):not(.active):not(.show),
+    .admin-modal-overlay:not(.open):not(.active):not(.show),
+    .modal-wrapper:not(.open):not(.active):not(.show) {
+        display: none;
     }
     .modal-overlay.open,
     .modal-overlay.active,
-    .modal-overlay.show {
+    .modal-overlay.show,
+    .modal-backdrop.open,
+    .modal-backdrop.active,
+    .modal-backdrop.show,
+    .admin-modal-overlay.active,
+    .admin-modal-overlay.open,
+    .modal-overlay[style*="display: flex"],
+    .modal-overlay[style*="display:flex"],
+    .modal-backdrop[style*="display: flex"],
+    .modal-backdrop[style*="display:flex"],
+    .admin-modal-overlay[style*="display: flex"],
+    .admin-modal-overlay[style*="display:flex"],
+    div[id*="Modal"][style*="display: flex"],
+    div[id*="Modal"][style*="display:flex"],
+    div[id*="modal"][style*="display: flex"],
+    div[id*="modal"][style*="display:flex"] {
         display: flex !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+    .modal-content-box,
+    .modal-dialog,
+    .modal,
+    .admin-modal-box,
+    .circular-modal-box,
+    .modal-card-premium,
+    [class*="modal-content"],
+    [class*="modal-box"],
+    .modal-overlay > div:not(.modal-backdrop),
+    .modal-backdrop > div,
+    .admin-modal-overlay > div {
+        margin: 0 auto !important;
+        max-height: calc(100vh - 60px) !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        box-sizing: border-box !important;
     }
     </style>
     @stack('styles')
@@ -888,10 +942,32 @@ function treeToggle(header){
     }
 }
 
-function openModal(id){ document.getElementById(id).classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal(id){ document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
-document.addEventListener('click',function(e){ if(e.target.classList.contains('modal-overlay')){ e.target.classList.remove('open'); document.body.style.overflow=''; } });
-document.addEventListener('keydown',function(e){ if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>{ m.classList.remove('open'); document.body.style.overflow=''; }); });
+window.openModal = function(id) {
+    const m = typeof id === 'string' ? document.getElementById(id) : id;
+    if (!m) return;
+    m.classList.add('open', 'active', 'show');
+    m.style.display = 'flex';
+    m.style.pointerEvents = 'auto';
+    m.style.opacity = '1';
+    document.body.style.overflow = 'hidden';
+};
+
+window.closeModal = function(id) {
+    const m = typeof id === 'string' ? document.getElementById(id) : id;
+    if (!m) return;
+    m.classList.remove('open', 'active', 'show');
+    m.style.display = 'none';
+    m.style.pointerEvents = '';
+    m.style.opacity = '';
+    const anyStillOpen = document.querySelectorAll(
+        '.modal-overlay.open, .modal-overlay.active, .modal-backdrop.open, .modal-backdrop.active, .admin-modal-overlay.active, .admin-modal-overlay.open, ' +
+        '.modal-overlay[style*="display: flex"], .modal-backdrop[style*="display: flex"], ' +
+        '[id*="Modal"][style*="display: flex"], [id*="modal"][style*="display: flex"]'
+    );
+    if (!anyStillOpen || anyStillOpen.length === 0) {
+        document.body.style.overflow = '';
+    }
+};
 const lf=document.getElementById('lp-flash');
 if(lf) setTimeout(()=>{ lf.style.opacity='0'; lf.style.transition='opacity .4s'; setTimeout(()=>lf.remove(),400); },4000);
 
@@ -1012,7 +1088,119 @@ function togglePasswordVisibility(inputId, btn) {
         if (eyeHide) eyeHide.style.display = 'none';
     }
 }
+
+/* ════ Universal Modal Backdrop Click to Close & Escape Key Listener ════ */
+document.addEventListener('click', function(e) {
+    const target = e.target;
+    if (!target) return;
+
+    // Never close if clicking inside modal content
+    if (target.closest('.modal, .modal-dialog, .modal-content, .modal-content-box, .circular-modal-box, .admin-modal-box, .modal-card, .modal-card-premium, form, [class*="modal-box"], [class*="modal-content"], [class*="modal-dialog"]')) {
+        return;
+    }
+
+    const isBackdrop = target.classList.contains('modal-backdrop') ||
+                       target.classList.contains('modal-overlay') ||
+                       target.classList.contains('modal-wrapper') ||
+                       target.classList.contains('admin-modal-overlay') ||
+                       (target.id && (target.id.toLowerCase().includes('modal') || target.id.toLowerCase().includes('dialog')) && 
+                        (target.style.position === 'fixed' || window.getComputedStyle(target).position === 'fixed'));
+    if (isBackdrop) {
+        if (typeof closeCircularModal === 'function' && target.id === 'circularModal') {
+            closeCircularModal();
+        } else if (typeof closeStudentMarksheet === 'function' && target.id === 'marksheetModal') {
+            closeStudentMarksheet();
+        } else if (typeof closeEditMarkModal === 'function' && target.id === 'editMarkModal') {
+            closeEditMarkModal();
+        } else if (typeof closeApproveModal === 'function' && target.id === 'approveModal') {
+            closeApproveModal();
+        } else if (typeof closeShareLinksModal === 'function' && target.id === 'shareLinksModal') {
+            closeShareLinksModal();
+        } else if (typeof closeSingleMarksheetModal === 'function' && target.id === 'singleMarksheetModal') {
+            closeSingleMarksheetModal();
+        } else {
+            closeModal(target);
+        }
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' || e.keyCode === 27) {
+        const candidates = document.querySelectorAll(
+            '.modal-backdrop, .modal-overlay, .modal-wrapper, .admin-modal-overlay, [id*="Modal"], [id*="modal"]'
+        );
+        candidates.forEach(function(m) {
+            const isFixed = m.style.position === 'fixed' || window.getComputedStyle(m).position === 'fixed' ||
+                            m.classList.contains('modal-backdrop') || m.classList.contains('modal-overlay') ||
+                            m.classList.contains('admin-modal-overlay');
+            if (isFixed) {
+                const isVisible = m.classList.contains('open') || m.classList.contains('active') || m.classList.contains('show') ||
+                                  (m.style.display && m.style.display !== 'none') ||
+                                  (window.getComputedStyle(m).display !== 'none');
+                if (isVisible) {
+                    if (typeof closeCircularModal === 'function' && m.id === 'circularModal') closeCircularModal();
+                    else if (typeof closeStudentMarksheet === 'function' && m.id === 'marksheetModal') closeStudentMarksheet();
+                    else if (typeof closeEditMarkModal === 'function' && m.id === 'editMarkModal') closeEditMarkModal();
+                    else if (typeof closeApproveModal === 'function' && m.id === 'approveModal') closeApproveModal();
+                    else if (typeof closeShareLinksModal === 'function' && m.id === 'shareLinksModal') closeShareLinksModal();
+                    else if (typeof closeSingleMarksheetModal === 'function' && m.id === 'singleMarksheetModal') closeSingleMarksheetModal();
+                    else closeModal(m);
+                }
+            }
+        });
+        document.body.style.overflow = '';
+    }
+});
 </script>
+<style>
+/* Custom smooth scrollbar for all modals */
+.modal-overlay::-webkit-scrollbar,
+.modal-backdrop::-webkit-scrollbar,
+.admin-modal-overlay::-webkit-scrollbar,
+.modal-content-box::-webkit-scrollbar,
+.modal::-webkit-scrollbar,
+.admin-modal-box::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+.modal-overlay::-webkit-scrollbar-thumb,
+.modal-backdrop::-webkit-scrollbar-thumb,
+.admin-modal-overlay::-webkit-scrollbar-thumb,
+.modal-content-box::-webkit-scrollbar-thumb,
+.modal::-webkit-scrollbar-thumb,
+.admin-modal-box::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.6);
+    border-radius: 4px;
+}
+.modal-overlay::-webkit-scrollbar-thumb:hover,
+.modal-backdrop::-webkit-scrollbar-thumb:hover,
+.modal-content-box::-webkit-scrollbar-thumb:hover,
+.modal::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.9);
+}
+
+/* Universal Table Wrapper Horizontal Scrolling */
+.table-wrapper {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+    position: relative;
+}
+.table-wrapper::-webkit-scrollbar {
+    height: 7px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+</style>
 <x-fcm-initializer />
 @stack('scripts')
 </body>

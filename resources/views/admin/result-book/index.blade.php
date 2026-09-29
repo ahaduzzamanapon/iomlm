@@ -156,22 +156,27 @@
             background: rgba(15, 23, 42, 0.65);
             backdrop-filter: blur(4px);
             z-index: 99999;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: 20px;
+            padding: 30px 15px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
         }
         .modal-content-box {
             background: #fff;
             border-radius: 20px;
             width: 100%;
             max-width: 820px;
-            max-height: 92vh;
+            margin: 0 auto;
+            max-height: calc(100vh - 60px);
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             border: 1px solid #e2e8f0;
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
         }
 
         /* Marksheet Letterhead */
@@ -679,6 +684,21 @@
                         </select>
                     </div>
 
+                    {{-- Exam Selector --}}
+                    <div style="flex:1; min-width:240px">
+                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">পরীক্ষা (Exam Filter)</label>
+                        <select name="exam_id" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
+                            <option value="">-- সমন্বিত সেমিস্টার ও সকল পরীক্ষার তামরিন --</option>
+                            @if(isset($subjectExams))
+                                @foreach($subjectExams as $ex)
+                                    <option value="{{ $ex->id }}" {{ ($selectedExam && $selectedExam->id == $ex->id) ? 'selected' : '' }}>
+                                        {{ $ex->title }} ({{ $ex->type ?? 'Exam' }})
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
                     <div>
                         <button type="submit" class="btn btn-primary" style="height:42px; padding:0 18px; font-weight:800; border-radius:10px; background:#047857; border-color:#047857">
                             <i class="fa-solid fa-filter"></i> লোড করুন
@@ -749,16 +769,34 @@
                 @if($isSemesterBased && $selectedSemester)
                     <input type="hidden" name="semester_id" value="{{ $selectedSemester->id }}">
                 @endif
+                @if($selectedExam)
+                    <input type="hidden" name="exam_id" value="{{ $selectedExam->id }}">
+                @endif
 
                 <div class="tabulation-card">
-                    <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center">
-                        <h3 style="margin:0; font-size:15px; font-weight:800; color:#0f172a">
-                            <i class="fa-solid fa-pen-to-square" style="color:#047857"></i>
-                            ম্যানুয়াল মার্কিং স্প্রেডশীট: {{ $selectedSubject->name }} ({{ $selectedBatch->name }})
-                        </h3>
-                        <span style="font-size:12px; color:#64748b">
-                            তামরিন / এসাইনমেন্ট ও উপস্থিতি নম্বর ইনপুট দিয়ে নিচে সংরক্ষণ করুন
-                        </span>
+                    <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px">
+                        <div>
+                            <h3 style="margin:0; font-size:15px; font-weight:800; color:#0f172a">
+                                <i class="fa-solid fa-pen-to-square" style="color:#047857"></i>
+                                @if($selectedExam)
+                                    পরীক্ষা মূল্যায়ন ও তামরিন শীট: {{ $selectedExam->title }} ({{ $selectedExam->type ?? 'Exam' }})
+                                @else
+                                    সমন্বিত সেমিস্টার তামরিন ও উপস্থিতি স্প্রেডশীট: {{ $selectedSubject->name }} ({{ $selectedBatch->name }})
+                                @endif
+                            </h3>
+                            <span style="font-size:12px; color:#64748b">
+                                @if($selectedExam)
+                                    এই পরীক্ষার নির্দিষ্ট তামরিন নম্বর ও মূল্যায়ন এন্ট্রি করে সংরক্ষণ করুন। উপস্থিতি নম্বর সেমিস্টার ভিত্তিক সংরক্ষিত হবে।
+                                @else
+                                    পরীক্ষাভিত্তিক তামরিন (সিটি, মিডটার্ম, ফাইনাল) এবং সেমিস্টার উপস্থিতি (/১০) ইনপুট দিন। মোট নম্বর ১০০-তে স্বয়ংক্রিয় সমন্বিত হবে।
+                                @endif
+                            </span>
+                        </div>
+                        @if($selectedExam)
+                            <span class="badge" style="background:#047857; color:#fff; font-size:12px; padding:6px 12px; border-radius:8px">
+                                পরীক্ষা পূর্ণমান: {{ $selectedExam->full_marks }}
+                            </span>
+                        @endif
                     </div>
 
                     @if($manualMarkingList->isEmpty())
@@ -769,39 +807,98 @@
                         <div style="overflow-x:auto">
                             <table class="tabulation-table">
                                 <thead>
-                                    <tr>
-                                        <th style="width:60px">#</th>
-                                        <th style="text-align:left; min-width:160px">রোল ও শিক্ষার্থী</th>
-                                        <th style="min-width:140px">তামরিন / এসাইনমেন্ট নম্বর</th>
-                                        <th style="min-width:110px">উপস্থিতি নম্বর (/১০)</th>
-                                        <th style="min-width:110px">বর্তমান মোট নম্বর</th>
-                                        <th style="min-width:140px">মন্তব্য</th>
-                                    </tr>
+                                    @if($selectedExam)
+                                        <tr>
+                                            <th style="width:50px">#</th>
+                                            <th style="text-align:left; min-width:160px">রোল ও শিক্ষার্থী</th>
+                                            <th style="min-width:90px">MCQ নম্বর</th>
+                                            <th style="min-width:90px">লিখিত নম্বর</th>
+                                            <th style="min-width:110px; background:#ecfdf5; color:#064e3b">তামরিন নম্বর</th>
+                                            <th style="min-width:90px">ভাইভা নম্বর</th>
+                                            <th style="min-width:100px">পরীক্ষার মোট প্রাপ্ত</th>
+                                            <th style="min-width:110px">সেমিস্টার উপস্থিতি (/১০)</th>
+                                            <th style="min-width:140px">মন্তব্য</th>
+                                        </tr>
+                                    @else
+                                        <tr>
+                                            <th style="width:50px">#</th>
+                                            <th style="text-align:left; min-width:160px">রোল ও শিক্ষার্থী</th>
+                                            <th style="min-width:110px; background:#f0fdf4; color:#065f46">সিটি তামরিন</th>
+                                            <th style="min-width:110px; background:#f0fdf4; color:#065f46">মিডটার্ম তামরিন</th>
+                                            <th style="min-width:110px; background:#f0fdf4; color:#065f46">ফাইনাল তামরিন</th>
+                                            <th style="min-width:110px">সেমিস্টার উপস্থিতি (/১০)</th>
+                                            <th style="min-width:110px">মোট প্রাপ্ত (/১০০)</th>
+                                            <th style="min-width:140px">মন্তব্য</th>
+                                        </tr>
+                                    @endif
                                 </thead>
                                 <tbody>
                                     @foreach($manualMarkingList as $idx => $fm)
+                                    @php
+                                        $studentRes = ($selectedExam && isset($allExamResults[$selectedExam->id])) 
+                                            ? ($allExamResults[$selectedExam->id][$fm->student_id] ?? null) 
+                                            : null;
+                                    @endphp
                                     <tr>
                                         <td>{{ $idx + 1 }}</td>
                                         <td style="text-align:left">
                                             <strong style="color:#0f172a; font-size:13px">{{ $fm->student->name ?? '—' }}</strong><br>
                                             <small style="color:#64748b; font-family:monospace">রোল: {{ $fm->student->student_code ?? $fm->student->student_id ?? '—' }}</small>
                                         </td>
-                                        <td>
-                                            <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][tamrin_mark]" 
-                                                   value="{{ $fm->tamrin_mark }}" class="form-control" placeholder="—" style="width:110px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
-                                        </td>
-                                        <td>
-                                            <input type="number" step="0.1" min="0" max="10" name="marks[{{ $fm->id }}][attendance_converted]" 
-                                                   value="{{ $fm->attendance_converted }}" class="form-control" placeholder="০-১০" style="width:90px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
-                                        </td>
-                                        <td>
-                                            <strong style="font-size:14px; color:#047857">{{ $fm->total_mark }}</strong>
-                                            <small style="color:#64748b">({{ $fm->grade }})</small>
-                                        </td>
-                                        <td>
-                                            <input type="text" name="marks[{{ $fm->id }}][remarks]" value="{{ $fm->remarks }}" 
-                                                   class="form-control" placeholder="মন্তব্য..." style="height:36px; border-radius:8px; font-size:12px">
-                                        </td>
+                                        @if($selectedExam)
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][mcq_marks]" 
+                                                       value="{{ $studentRes->mcq_marks ?? '' }}" class="form-control" placeholder="—" style="width:75px; margin:0 auto; text-align:center; font-weight:700; height:36px; border-radius:8px">
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][written_marks]" 
+                                                       value="{{ $studentRes->written_marks ?? '' }}" class="form-control" placeholder="—" style="width:75px; margin:0 auto; text-align:center; font-weight:700; height:36px; border-radius:8px">
+                                            </td>
+                                            <td style="background:#f0fdf4">
+                                                <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][tamrin_mark]" 
+                                                       value="{{ $studentRes->tamrin_marks ?? '' }}" class="form-control" placeholder="—" style="width:85px; margin:0 auto; text-align:center; font-weight:900; color:#047857; height:36px; border-radius:8px; border-color:#86efac">
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][viva_marks]" 
+                                                       value="{{ $studentRes->viva_marks ?? '' }}" class="form-control" placeholder="—" style="width:75px; margin:0 auto; text-align:center; font-weight:700; height:36px; border-radius:8px">
+                                            </td>
+                                            <td>
+                                                <strong style="font-size:13.5px; color:#047857">{{ $studentRes->marks ?? '—' }}</strong>
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="10" name="marks[{{ $fm->id }}][attendance_converted]" 
+                                                       value="{{ $fm->attendance_converted }}" class="form-control" placeholder="০-১০" style="width:75px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                            </td>
+                                            <td>
+                                                <input type="text" name="marks[{{ $fm->id }}][remarks]" value="{{ $fm->remarks }}" 
+                                                       class="form-control" placeholder="মন্তব্য..." style="height:36px; border-radius:8px; font-size:12px">
+                                            </td>
+                                        @else
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="30" name="marks[{{ $fm->id }}][ct_tamrin]" 
+                                                       value="{{ $fm->ct_tamrin }}" class="form-control" placeholder="—" style="width:85px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="50" name="marks[{{ $fm->id }}][midterm_tamrin]" 
+                                                       value="{{ $fm->midterm_tamrin }}" class="form-control" placeholder="—" style="width:85px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="100" name="marks[{{ $fm->id }}][final_tamrin]" 
+                                                       value="{{ $fm->final_tamrin }}" class="form-control" placeholder="—" style="width:85px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                            </td>
+                                            <td>
+                                                <input type="number" step="0.1" min="0" max="10" name="marks[{{ $fm->id }}][attendance_converted]" 
+                                                       value="{{ $fm->attendance_converted }}" class="form-control" placeholder="০-১০" style="width:80px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                            </td>
+                                            <td>
+                                                <strong style="font-size:14px; color:#047857">{{ $fm->total_mark }}</strong>
+                                                <small style="color:#64748b">({{ $fm->grade }})</small>
+                                            </td>
+                                            <td>
+                                                <input type="text" name="marks[{{ $fm->id }}][remarks]" value="{{ $fm->remarks }}" 
+                                                       class="form-control" placeholder="মন্তব্য..." style="height:36px; border-radius:8px; font-size:12px">
+                                            </td>
+                                        @endif
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -980,7 +1077,7 @@
     {{-- ═════════════════════════════════════════════════════════════════ --}}
     {{-- MODAL 1: OFFICIAL INSTITUTIONAL MARKSHEET MODAL                   --}}
     {{-- ═════════════════════════════════════════════════════════════════ --}}
-    <div class="modal-backdrop" id="marksheetModal">
+    <div class="modal-backdrop" id="marksheetModal" onclick="if(event.target===this) closeStudentMarksheet()">
         <div class="modal-content-box">
             {{-- Modal Top Action Bar (hidden on print) --}}
             <div class="no-print" style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center">
@@ -1103,7 +1200,7 @@
     {{-- ═════════════════════════════════════════════════════════════════ --}}
     {{-- MODAL 2: EDIT STUDENT MARKS MODAL                                --}}
     {{-- ═════════════════════════════════════════════════════════════════ --}}
-    <div class="modal-backdrop" id="editMarkModal">
+    <div class="modal-backdrop" id="editMarkModal" onclick="if(event.target===this) closeEditMarkModal()">
         <div class="modal-content-box" style="max-width:560px">
             <div style="padding:14px 20px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center">
                 <span style="font-size:14px; font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px">
@@ -1114,8 +1211,13 @@
                 </button>
             </div>
 
-            <form id="editMarkForm" method="POST" action="">
+            <form id="editMarkForm" method="POST" action="{{ route('admin.result-book.override-save') }}">
                 @csrf
+                <input type="hidden" name="final_mark_id" id="editModalFinalMarkId" value="">
+                <input type="hidden" name="student_id" id="editModalStudentId" value="">
+                <input type="hidden" name="batch_id" id="editModalBatchId" value="{{ $batch->id ?? '' }}">
+                <input type="hidden" name="semester_id" id="editModalSemesterId" value="{{ $semester?->id ?? '' }}">
+                <input type="hidden" name="subject_id" id="editModalSubjectId" value="">
                 <div style="padding:20px; font-size:13px">
                     <div style="background:#f1f5f9; padding:10px 14px; border-radius:10px; margin-bottom:16px">
                         <strong id="editModalStudentName" style="font-size:14px; color:#0f172a"></strong><br>
@@ -1146,14 +1248,24 @@
                             <input type="number" step="0.1" min="0" max="100" name="final_obtained" id="editFinObtained" class="form-control" style="border-radius:8px">
                         </div>
                         <div>
-                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">এটেন্ডেন্স নম্বর (/১০)</label>
+                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">সেমিস্টার উপস্থিতি নম্বর (/১০)</label>
                             <input type="number" step="0.1" min="0" max="10" name="attendance_converted" id="editAttConverted" class="form-control" style="border-radius:8px">
                         </div>
                     </div>
 
-                    <div style="margin-bottom:14px">
-                        <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">তামরিন / এসাইনমেন্ট নম্বর</label>
-                        <input type="number" step="0.1" min="0" max="100" name="tamrin_mark" id="editTamrinMark" class="form-control" style="border-radius:8px">
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px">
+                        <div>
+                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">সিটি তামরিন</label>
+                            <input type="number" step="0.1" min="0" max="30" name="ct_tamrin" id="editCtTamrin" class="form-control" style="border-radius:8px">
+                        </div>
+                        <div>
+                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">মিডটার্ম তামরিন</label>
+                            <input type="number" step="0.1" min="0" max="50" name="midterm_tamrin" id="editMidTamrin" class="form-control" style="border-radius:8px">
+                        </div>
+                        <div>
+                            <label style="font-weight:700; color:#1e293b; font-size:12px; margin-bottom:4px; display:block">ফাইনাল তামরিন</label>
+                            <input type="number" step="0.1" min="0" max="100" name="final_tamrin" id="editFinTamrin" class="form-control" style="border-radius:8px">
+                        </div>
                     </div>
 
                     <div style="margin-bottom:14px">
@@ -1260,6 +1372,7 @@
 
         window.openEditMarkModal = function(studentData, subjects) {
             currentEditingStudent = studentData;
+            document.getElementById('editModalStudentId').value = studentData.student_id;
             document.getElementById('editModalStudentName').textContent = studentData.student_name;
             document.getElementById('editModalStudentRoll').textContent = 'রোল: ' + studentData.student_roll;
 
@@ -1289,15 +1402,18 @@
             const sm = currentEditingStudent.subject_marks[subId];
             if (!sm) return;
 
+            document.getElementById('editModalSubjectId').value = subId;
+            document.getElementById('editModalFinalMarkId').value = sm.final_mark_id || '';
+
             document.getElementById('editCtObtained').value = sm.raw_ct ?? '';
             document.getElementById('editMidObtained').value = sm.raw_mid ?? '';
             document.getElementById('editFinObtained').value = sm.raw_final ?? '';
             document.getElementById('editAttConverted').value = sm.att_conv ?? '';
-            document.getElementById('editTamrinMark').value = sm.tamrin ?? '';
+            document.getElementById('editCtTamrin').value = sm.ct_tamrin ?? '';
+            document.getElementById('editMidTamrin').value = sm.mid_tamrin ?? '';
+            document.getElementById('editFinTamrin').value = sm.fin_tamrin ?? '';
 
-            if (sm.final_mark_id) {
-                document.getElementById('editMarkForm').action = '/admin/result-book/' + sm.final_mark_id + '/override';
-            }
+            document.getElementById('editMarkForm').action = '{{ route('admin.result-book.override-save') }}';
         };
 
         window.closeEditMarkModal = function() {

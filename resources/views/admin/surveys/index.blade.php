@@ -81,7 +81,11 @@
             border-radius: 20px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
             border: 1px solid rgba(226, 232, 240, 0.8);
-            overflow: hidden;
+            margin: 0 auto;
+            max-height: calc(100vh - 60px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
         }
         .modal-header-premium {
             background: linear-gradient(135deg, #1e293b, #0f172a);
@@ -234,7 +238,7 @@
     </div>
 
     {{-- Premium Glassmorphism Modal --}}
-    <div class="modal-overlay" id="createSurveyModal">
+    <div class="modal-overlay" id="createSurveyModal" onclick="if(event.target===this) closeModal('createSurveyModal')">
         <div class="modal-card modal-card-premium" style="max-width:560px; margin:auto">
             <div class="modal-header-premium">
                 <h3>Create New Survey Form</h3>

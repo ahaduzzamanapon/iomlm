@@ -89,4 +89,52 @@ class Course extends Model
             'Dawrah Hadith',
         ];
     }
+
+    public static function monthsList(): array
+    {
+        return [
+            'January'   => 'জানুয়ারি (January)',
+            'February'  => 'ফেব্রুয়ারি (February)',
+            'March'     => 'মার্চ (March)',
+            'April'     => 'এপ্রিল (April)',
+            'May'       => 'মে (May)',
+            'June'      => 'জুন (June)',
+            'July'      => 'জুলাই (July)',
+            'August'    => 'আগস্ট (August)',
+            'September' => 'সেপ্টেম্বর (September)',
+            'October'   => 'অক্টোবর (October)',
+            'November'  => 'নভেম্বর (November)',
+            'December'  => 'ডিসেম্বর (December)',
+        ];
+    }
+
+    public function getDurationCycleTextAttribute(): string
+    {
+        $months = self::monthsList();
+        $start = $this->start_month ? ($months[$this->start_month] ?? $this->start_month) : null;
+        $end   = $this->end_month ? ($months[$this->end_month] ?? $this->end_month) : null;
+
+        if ($start && $end) {
+            return "{$start} হতে {$end}";
+        }
+        if ($start) {
+            return "{$start} থেকে শুরু";
+        }
+        return "{$this->duration_value} " . ($this->duration_unit === 'YEAR' ? 'বছর' : 'মাস');
+    }
+
+    public function getFeeCycleTextAttribute(): string
+    {
+        $months = self::monthsList();
+        $start = $this->fee_start_month ? ($months[$this->fee_start_month] ?? $this->fee_start_month) : null;
+        $end   = $this->fee_end_month ? ($months[$this->fee_end_month] ?? $this->fee_end_month) : null;
+
+        if ($start && $end) {
+            return "{$start} হতে {$end}";
+        }
+        if ($start) {
+            return "{$start} হতে চলমান";
+        }
+        return "প্রতি মাস";
+    }
 }

@@ -113,6 +113,39 @@ class ResultController extends Controller
                     'total_score'   => $totalMark,
                 ]);
             }
+
+            // Sync to FinalMark (exam-wise contribution)
+            $student = \App\Models\Student::find($studentId);
+            $batchId = $exam->attendees()->where('student_id', $studentId)->value('batch_id')
+                ?? $student?->enrollments()->latest('id')->value('batch_id');
+
+            if ($batchId) {
+                $finalMark = \App\Models\FinalMark::firstOrNew([
+                    'student_id' => $studentId,
+                    'subject_id' => $exam->subject_id,
+                    'batch_id'   => $batchId,
+                ]);
+                if (!$finalMark->exists && $exam->semester_id) {
+                    $finalMark->semester_id = $exam->semester_id;
+                }
+
+                if ($exam->type === 'QUIZ') {
+                    $finalMark->ct_tamrin = $tamrinVal;
+                    $finalMark->class_test_obtained = $totalMark;
+                    $finalMark->class_test_converted = round(($totalMark / \App\Models\FinalMark::CLASS_TEST_FULL) * \App\Models\FinalMark::CLASS_TEST_CONVERT, 2);
+                } elseif ($exam->type === 'MIDTERM') {
+                    $finalMark->midterm_tamrin = $tamrinVal;
+                    $finalMark->midterm_obtained = $totalMark;
+                    $finalMark->midterm_converted = round(($totalMark / \App\Models\FinalMark::MIDTERM_FULL) * \App\Models\FinalMark::MIDTERM_CONVERT, 2);
+                } elseif ($exam->type === 'FINAL') {
+                    $finalMark->final_tamrin = $tamrinVal;
+                    $finalMark->final_obtained = $totalMark;
+                    $finalMark->final_converted = round(($totalMark / \App\Models\FinalMark::FINAL_FULL) * \App\Models\FinalMark::FINAL_CONVERT, 2);
+                }
+
+                $finalMark->recalculate();
+                \App\Models\FinalMark::recalculateMeritRanks($batchId, $exam->subject_id, $exam->semester_id);
+            }
         }
 
         $exam->update(['status' => 'COMPLETED']);

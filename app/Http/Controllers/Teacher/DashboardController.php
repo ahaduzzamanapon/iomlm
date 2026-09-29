@@ -94,22 +94,26 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Teacher's weekly routine entries
+        $weeklyRoutineEntries = RoutineEntry::with(['slot', 'batch.course', 'subject'])
+            ->where('teacher_id', $teacherId)
+            ->get();
+        $weeklyRoutine = $weeklyRoutineEntries->groupBy('day_of_week');
+
+        $assignedSubjects = SubjectTeacherAssignment::with(['subject.course', 'batch'])
+            ->where('teacher_id', $teacherId)
+            ->get();
+
         $stats = [
             'today_classes'   => $todayClasses->count(),
             'total_subjects'  => $subjectIds->count(),
-            'pending_results' => $pendingResults->count(),
+            'routine_slots'   => $weeklyRoutineEntries->count(),
             'attendance_todo' => $attendancePending->count(),
         ];
 
-        // Teacher's weekly routine entries
-        $weeklyRoutine = RoutineEntry::with(['slot', 'batch.course', 'subject'])
-            ->where('teacher_id', $teacherId)
-            ->get()
-            ->groupBy('day_of_week');
-
         return view('teacher.dashboard', compact(
             'stats', 'todayClasses', 'upcomingSessions',
-            'upcomingExams', 'attendancePending', 'pendingResults', 'today',
+            'attendancePending', 'assignedSubjects', 'today',
             'weeklyRoutine', 'daysOfWeek'
         ));
     }

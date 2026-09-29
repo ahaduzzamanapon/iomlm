@@ -1,5 +1,5 @@
 {{-- Reusable Support Student Profile Modal --}}
-<div class="modal-overlay" id="supportStudentProfileModal" style="display:none;align-items:center;justify-content:center;z-index:99999">
+<div class="modal-overlay" id="supportStudentProfileModal" onclick="if(event.target===this) closeStudentProfileModal()" style="display:none;z-index:99999">
     <div class="modal" style="max-width:820px;width:95%;max-height:92vh;display:flex;flex-direction:column;padding:0;border-radius:12px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);font-family:'Kalpurush',sans-serif">
         
         {{-- Modal Header --}}

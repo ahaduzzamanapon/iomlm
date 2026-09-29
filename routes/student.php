@@ -70,6 +70,8 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::get('fees/payments/{payment}/receipt', [\App\Http\Controllers\Student\FeeController::class, 'printReceipt'])->name('fees.receipt');
         Route::post('fees/invoices/{invoice}/pay', [\App\Http\Controllers\Student\FeeController::class, 'payInvoice'])->name('fees.pay');
         Route::post('fees/particulars/update', [\App\Http\Controllers\Student\FeeController::class, 'updateParticular'])->name('fees.particular.update');
+        Route::post('fees/particulars/store', [\App\Http\Controllers\Student\FeeController::class, 'storeParticular'])->name('fees.particular.store');
+        Route::post('fees/particulars/delete', [\App\Http\Controllers\Student\FeeController::class, 'deleteParticular'])->name('fees.particular.delete');
 
         // Exams
         Route::get('exams',                       [\App\Http\Controllers\Student\ExamController::class, 'index'])->name('exams.index');

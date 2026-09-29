@@ -127,8 +127,8 @@
     </div>
 
     {{-- Direct Links Modal for Admin --}}
-    <div id="shareLinksModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;justify-content:center;align-items:center;padding:20px;box-sizing:border-box">
-        <div style="background:#fff;border-radius:16px;max-width:560px;width:100%;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);animation:modalSlideUp .25s ease">
+    <div id="shareLinksModal" class="modal-overlay" onclick="if(event.target===this) closeShareLinksModal()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;box-sizing:border-box">
+        <div class="modal" style="background:#fff;border-radius:16px;max-width:560px;width:100%;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);animation:modalSlideUp .25s ease">
             <div style="background:linear-gradient(135deg,#047857,#065f46);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
                 <div>
                     <div style="font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px">

@@ -1,0 +1,176 @@
+Found 118 modal containers in 56 files.
+
+=== admin\academic_years\index.blade.php (3 modals) ===
+  <div class="modal-overlay" id="addYearModal">
+  <div class="modal-overlay" id="editYearModal">
+  <div class="modal-overlay" id="addSessionModal">
+=== admin\accounts\dashboard.blade.php (1 modals) ===
+  <div class="modal-overlay" id="collectModal">
+=== admin\accounts\fee_structures.blade.php (1 modals) ===
+  <div class="modal-overlay" id="createRateModal">
+=== admin\accounts\invoices.blade.php (1 modals) ===
+  <div class="modal-overlay" id="collectModal">
+=== admin\accounts\student_ledger.blade.php (4 modals) ===
+  <div class="modal-overlay" id="addCustomFeeModal">
+  <div class="modal-overlay" id="addExtraFeeModal">
+  <div class="modal-overlay" id="statusModal">
+  <div class="modal-overlay" id="collectModal">
+=== admin\admissions\show.blade.php (2 modals) ===
+  <div class="modal-overlay" id="approveModal">
+  <div class="modal-overlay" id="rejectModal">
+=== admin\admission_circulars\index.blade.php (1 modals) ===
+  <div id="circularModal" class="modal-overlay">
+=== admin\assignments\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="createAssignmentModal">
+=== admin\assignments\show.blade.php (2 modals) ===
+  <div class="modal-overlay" id="gradeModal">
+  <div class="modal-overlay" id="overrideModal">
+=== admin\batches\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addBatchModal">
+  <div class="modal-overlay" id="editBatchModal">
+=== admin\classes\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="addExtraClassModal">
+=== admin\classes\show.blade.php (3 modals) ===
+  <div class="modal-overlay" id="scheduleModal">
+  <div class="modal-overlay" id="completeModal">
+  <div class="modal-overlay" id="recordingModal">
+=== admin\course-transfers\index.blade.php (5 modals) ===
+  <div class="modal-overlay" id="approveModal">
+  <div style="font-size:14px;font-weight:700;color:#0f172a" id="modalStudentName">
+  <div class="form-group" id="modalSemesterGroup">
+  <div class="modal-overlay" id="rejectModal">
+  <div class="modal-overlay" id="manualTransferModal">
+=== admin\courses\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addCourseModal">
+  <div class="modal-overlay" id="editCourseModal">
+=== admin\courses\show.blade.php (8 modals) ===
+  <div class="modal-overlay" id="mapSubjectModal">
+  <div class="modal-overlay" id="addSingleSubjectModal">
+  <div class="modal-overlay" id="addSemesterModal">
+  <div class="modal-overlay" id="addPackageModal">
+  <div class="modal-overlay" id="templateModal">
+  <div class="modal-overlay" id="addItemModal">
+  <div class="modal-overlay" id="editPackageModal">
+  <div class="modal-overlay" id="editItemModal">
+=== admin\exams\appeals.blade.php (2 modals) ===
+  <div id="approveModal" class="modal-overlay" onclick="if(event.target===this) closeApproveModal()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;font-family:'Kalpurush',sans-serif">
+  <div id="modalExpiredAlert" style="display:none;background:#fffbeb;border:1px solid #fde68a;padding:10px 14px;border-radius:8px;font-size:12.5px;color:#92400e;margin-bottom:14px;line-height:1.5">
+=== admin\exams\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addExamModal">
+  <div class="modal-overlay" id="editExamModal">
+=== admin\exams\show.blade.php (1 modals) ===
+  <div id="singleMarksheetModal" class="modal-overlay" onclick="if(event.target===this) closeSingleMarksheetModal()">
+=== admin\holiday_calendar\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="addHolidayModal">
+=== admin\notices\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="createNoticeModal">
+  <div class="modal-overlay" id="editNoticeModal">
+=== admin\notifications\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="viewNotificationModal">
+=== admin\program-activities\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="editProgramActivityModal_{{ $act->id }}">
+  <div class="modal-overlay" id="addProgramActivityModal">
+=== admin\promotions\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="addPromotionModal" style="display:none; align-items:center; justify-content:center; z-index:99999; font-family:'Kalpurush', sans-serif">
+=== admin\questions\index.blade.php (5 modals) ===
+  <div class="modal-overlay" id="createMcqModal">
+  <div class="modal-overlay" id="createWrittenModal">
+  <div class="modal-overlay" id="bulkUploadModal">
+  <div class="modal-overlay" id="aikenUploadModal">
+  <div class="modal-overlay" id="editQuestionModal">
+=== admin\readmissions\index.blade.php (3 modals) ===
+  <div class="modal-overlay" id="addReadmissionModal">
+  <div class="modal-overlay" id="approveReadmissionModal">
+  <div class="modal-overlay" id="continueRetakeModal">
+=== admin\result-book\index.blade.php (2 modals) ===
+  <div class="modal-backdrop" id="marksheetModal" onclick="if(event.target===this) closeStudentMarksheet()">
+  <div class="modal-backdrop" id="editMarkModal" onclick="if(event.target===this) closeEditMarkModal()">
+=== admin\retakes\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addRetakeModal">
+  <div class="modal-overlay" id="approveRetakeModal">
+=== admin\routine\index.blade.php (6 modals) ===
+  <div class="modal-overlay" id="addEntryModal">
+  <div class="modal-overlay" id="editEntryModal">
+  <div class="modal-overlay" id="copyEntryModal">
+  <div class="modal-overlay" id="addSlotModal">
+  <div class="modal-overlay" id="editSlotModal">
+  <div class="modal-overlay" id="addExtraClassModal">
+=== admin\semesters\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="editSemesterModal_{{ $sem->id }}">
+  <div class="modal-overlay" id="addSemesterModal">
+=== admin\settings\fee_heads.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addFeeHeadModal">
+  <div class="modal-overlay" id="editFeeHeadModal">
+=== admin\settings\notifications.blade.php (1 modals) ===
+  <div class="modal-overlay" id="testMailModal">
+=== admin\students\show.blade.php (4 modals) ===
+  <div id="editProfileModal" class="admin-modal-overlay">
+  <div id="passwordResetModal" class="admin-modal-overlay">
+  <div id="cancelAdmissionModal" class="admin-modal-overlay">
+  <div id="adjustFeeModal" class="admin-modal-overlay">
+=== admin\subjects\index.blade.php (3 modals) ===
+  <div class="modal-overlay" id="addSubjectModal">
+  <div class="modal-overlay" id="editSubjectModal">
+  <div class="modal-overlay" id="cloneSubjectModal">
+=== admin\subjects\show.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addModuleModal">
+  <div class="modal-overlay" id="editModuleModal">
+=== admin\subject_categories\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addCategoryModal">
+  <div class="modal-overlay" id="editCategoryModal">
+=== admin\support\index.blade.php (4 modals) ===
+  <div class="modal-overlay" id="addDeptModal">
+  <div class="modal-overlay" id="editDeptModal">
+  <div class="modal-overlay" id="addAgentModal">
+  <div class="modal-overlay" id="editAgentModal">
+=== admin\support\tickets.blade.php (1 modals) ===
+  <div class="modal-overlay" id="reassignModal">
+=== admin\surveys\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="createSurveyModal">
+=== admin\teachers\index.blade.php (3 modals) ===
+  <div class="modal-overlay" id="addTeacherModal">
+  <div class="modal-overlay" id="assignSubjectModal">
+  <div class="modal-overlay" id="editTeacherModal">
+=== admin\waiver_applications\index.blade.php (1 modals) ===
+  <div id="shareLinksModal" class="modal-overlay" onclick="if(event.target===this) closeShareLinksModal()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;box-sizing:border-box">
+=== admin\waiver_applications\show.blade.php (2 modals) ===
+  <div class="modal-overlay" id="approveWaiverModal">
+  <div class="modal-overlay" id="rejectWaiverModal">
+=== student\calendar\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="eventDetailModal">
+=== student\exams\index.blade.php (1 modals) ===
+  <div id="indexAppealModal" class="modal-overlay" onclick="if(event.target===this) closeIndexAppealModal()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;backdrop-filter:blur(3px);font-family:'Kalpurush',sans-serif">
+=== student\exams\result.blade.php (1 modals) ===
+  <div id="appealModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;backdrop-filter:blur(2px)">
+=== student\fees\index.blade.php (4 modals) ===
+  <div id="modalInstallmentOptions" style="margin-bottom:16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; font-family:'Kalpurush',sans-serif">
+  <div style="display:flex; flex-wrap:wrap; gap:8px" id="modalPresetChips">
+  <div id="adminParticularEditModal" onclick="if(event.target===this) closeAdminParticularEditModal()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:999999;align-items:flex-start;justify-content:center;font-family:'Kalpurush',sans-serif;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:25px 15px;box-sizing:border-box">
+  <div id="adminAddFeeModal" onclick="if(event.target===this) closeAdminAddFeeModal()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:999999;align-items:flex-start;justify-content:center;font-family:'Kalpurush',sans-serif;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:25px 15px;box-sizing:border-box">
+=== student\layouts\app.blade.php (1 modals) ===
+  <div id="profileCompletionModal" style="position:fixed;inset:0;background:rgba(2,44,34,0.88);backdrop-filter:blur(8px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Kalpurush',sans-serif;">
+=== student\my-course\index.blade.php (1 modals) ===
+  <div id="applyCourseModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:9999; justify-content:center; align-items:center; padding:20px; box-sizing:border-box">
+=== support\canned_messages.blade.php (2 modals) ===
+  <div class="modal-overlay" id="addCannedModal">
+  <div class="modal-overlay" id="editCannedModal">
+=== support\chat.blade.php (2 modals) ===
+  <div class="modal-overlay" id="transferDeptModal">
+  <div class="modal-overlay" id="cannedModal">
+=== support\partials\student_profile_modal.blade.php (1 modals) ===
+  <div class="modal-overlay" id="supportStudentProfileModal" onclick="if(event.target===this) closeStudentProfileModal()" style="display:none;z-index:99999">
+=== teacher\assignments\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="createAssignmentModal">
+=== teacher\assignments\show.blade.php (2 modals) ===
+  <div class="modal-overlay" id="gradeModal">
+  <div class="modal-overlay" id="overrideModal">
+=== teacher\calendar\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="eventDetailModal">
+=== teacher\classes\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="teacherExtraClassModal">
+  <div class="modal-overlay" id="teacherRecordingModal">
+=== teacher\exams\index.blade.php (2 modals) ===
+  <div class="modal-overlay" id="createExamModal">
+  <div class="modal-overlay" id="editExamModal">
+=== teacher\resources\index.blade.php (1 modals) ===
+  <div class="modal-overlay" id="addResourceModal">

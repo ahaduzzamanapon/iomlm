@@ -226,16 +226,20 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             background: rgba(15, 23, 42, 0.65);
             backdrop-filter: blur(4px);
             z-index: 99999;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            padding: 20px;
+            padding: 30px 15px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            box-sizing: border-box;
         }
-        .admin-modal-overlay.active {
+        .admin-modal-overlay.active,
+        .admin-modal-overlay.open {
             display: flex;
         }
         .admin-modal-box {
@@ -243,10 +247,13 @@
             border-radius: 16px;
             width: 100%;
             max-width: 650px;
-            max-height: 90vh;
+            margin: 0 auto;
+            max-height: calc(100vh - 60px);
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3);
             border: 1px solid #e2e8f0;
+            box-sizing: border-box;
         }
         .admin-modal-header {
             padding: 18px 24px;
@@ -939,7 +946,7 @@
     {{-- ══════════════════════════════════════════════════════════════════ --}}
 
     {{-- 1. Edit Profile Modal --}}
-    <div id="editProfileModal" class="admin-modal-overlay">
+    <div id="editProfileModal" class="admin-modal-overlay" onclick="if(event.target===this) closeModal('editProfileModal')">
         <div class="admin-modal-box">
             <form method="POST" action="{{ route('admin.students.update', $student) }}">
                 @csrf @method('PUT')
@@ -1056,7 +1063,7 @@
     </div>
 
     {{-- 2. Password View & Reset Modal --}}
-    <div id="passwordResetModal" class="admin-modal-overlay">
+    <div id="passwordResetModal" class="admin-modal-overlay" onclick="if(event.target===this) closeModal('passwordResetModal')">
         <div class="admin-modal-box" style="max-width:480px">
             <form method="POST" action="{{ route('admin.students.reset-password', $student) }}">
                 @csrf
@@ -1093,7 +1100,7 @@
     </div>
 
     {{-- 3. Cancel Admission Modal --}}
-    <div id="cancelAdmissionModal" class="admin-modal-overlay">
+    <div id="cancelAdmissionModal" class="admin-modal-overlay" onclick="if(event.target===this) closeModal('cancelAdmissionModal')">
         <div class="admin-modal-box" style="max-width:500px">
             <form method="POST" action="{{ route('admin.students.cancel-admission', $student) }}">
                 @csrf
@@ -1127,7 +1134,7 @@
     </div>
 
     {{-- 4. Adjust Fee Structure / Poor Fund Modal --}}
-    <div id="adjustFeeModal" class="admin-modal-overlay">
+    <div id="adjustFeeModal" class="admin-modal-overlay" onclick="if(event.target===this) closeModal('adjustFeeModal')">
         <div class="admin-modal-box">
             <form method="POST" action="{{ route('admin.students.adjust-fee-structure', $student) }}">
                 @csrf
@@ -1195,23 +1202,33 @@
         }
 
         function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.add('active');
+            if (window.openModal) {
+                window.openModal(modalId);
+            } else {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('active', 'open');
+                    modal.style.display = 'flex';
+                }
             }
         }
 
         function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.remove('active');
+            if (window.closeModal) {
+                window.closeModal(modalId);
+            } else {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.remove('active', 'open');
+                    modal.style.display = 'none';
+                }
             }
         }
 
         // Close modal on click outside box
         window.addEventListener('click', function(e) {
             if (e.target.classList.contains('admin-modal-overlay')) {
-                e.target.classList.remove('active');
+                closeModal(e.target);
             }
         });
     </script>

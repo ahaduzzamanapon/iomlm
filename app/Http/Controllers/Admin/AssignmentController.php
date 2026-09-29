@@ -54,7 +54,7 @@ class AssignmentController extends Controller
 
         Assignment::create([
             'subject_id'     => $validated['subject_id'],
-            'batch_id'       => $validated['batch_id'] ?? null,
+            'batch_id'       => !empty($validated['batch_id']) ? $validated['batch_id'] : null,
             'teacher_id'     => null, // Created by admin
             'title'          => $validated['title'],
             'instructions'   => $validated['instructions'] ?? null,
@@ -97,7 +97,7 @@ class AssignmentController extends Controller
 
         $assignment->update([
             'subject_id'     => $validated['subject_id'],
-            'batch_id'       => $validated['batch_id'] ?? null,
+            'batch_id'       => !empty($validated['batch_id']) ? $validated['batch_id'] : null,
             'title'          => $validated['title'],
             'instructions'   => $validated['instructions'] ?? null,
             'file_path'      => $filePath,

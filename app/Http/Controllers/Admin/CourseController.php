@@ -17,18 +17,23 @@ class CourseController extends Controller
         $courses = Course::with(['semesters', 'courseSubjectMaps.subject'])->latest()->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
         $departments = Course::defaultDepartments();
-        return view('admin.courses.index', compact('courses', 'subjects', 'departments'));
+        $months = Course::monthsList();
+        return view('admin.courses.index', compact('courses', 'subjects', 'departments', 'months'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'           => 'required|string|max:200',
-            'code'           => 'nullable|string|max:10',
-            'department'     => 'nullable|string|max:100',
-            'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
-            'duration_value' => 'required|numeric|min:0.5',
-            'duration_unit'  => 'required|in:MONTH,YEAR',
+            'name'            => 'required|string|max:200',
+            'code'            => 'nullable|string|max:10',
+            'department'      => 'nullable|string|max:100',
+            'type'            => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
+            'duration_value'  => 'required|numeric|min:0.5',
+            'duration_unit'   => 'required|in:MONTH,YEAR',
+            'start_month'     => 'nullable|string|max:20',
+            'end_month'       => 'nullable|string|max:20',
+            'fee_start_month' => 'nullable|string|max:20',
+            'fee_end_month'   => 'nullable|string|max:20',
             'admission_fee'   => 'nullable|numeric|min:0',
             'readmission_fee' => 'nullable|numeric|min:0',
         ]);
@@ -43,6 +48,10 @@ class CourseController extends Controller
             'type'                    => $validated['type'],
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],
+            'start_month'             => $validated['start_month'] ?? null,
+            'end_month'               => $validated['end_month'] ?? null,
+            'fee_start_month'         => $validated['fee_start_month'] ?? null,
+            'fee_end_month'           => $validated['fee_end_month'] ?? null,
             'admission_fee'           => $validated['admission_fee'] ?? 0.00,
             'readmission_fee'         => $validated['readmission_fee'] ?? 0.00,
             'is_poor_fund_applicable' => $request->boolean('is_poor_fund_applicable'),
@@ -105,12 +114,16 @@ class CourseController extends Controller
     public function update(Request $request, Course $course)
     {
         $validated = $request->validate([
-            'name'           => 'required|string|max:200',
-            'code'           => 'nullable|string|max:10',
-            'department'     => 'nullable|string|max:100',
-            'type'           => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
-            'duration_value' => 'required|numeric|min:0.5',
-            'duration_unit'  => 'required|in:MONTH,YEAR',
+            'name'            => 'required|string|max:200',
+            'code'            => 'nullable|string|max:10',
+            'department'      => 'nullable|string|max:100',
+            'type'            => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
+            'duration_value'  => 'required|numeric|min:0.5',
+            'duration_unit'   => 'required|in:MONTH,YEAR',
+            'start_month'     => 'nullable|string|max:20',
+            'end_month'       => 'nullable|string|max:20',
+            'fee_start_month' => 'nullable|string|max:20',
+            'fee_end_month'   => 'nullable|string|max:20',
             'admission_fee'   => 'nullable|numeric|min:0',
             'readmission_fee' => 'nullable|numeric|min:0',
         ]);
@@ -125,6 +138,10 @@ class CourseController extends Controller
             'type'                    => $validated['type'],
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],
+            'start_month'             => $validated['start_month'] ?? null,
+            'end_month'               => $validated['end_month'] ?? null,
+            'fee_start_month'         => $validated['fee_start_month'] ?? null,
+            'fee_end_month'           => $validated['fee_end_month'] ?? null,
             'admission_fee'           => $validated['admission_fee'] ?? $course->admission_fee,
             'readmission_fee'         => $validated['readmission_fee'] ?? $course->readmission_fee,
             'is_poor_fund_applicable' => $request->boolean('is_poor_fund_applicable'),

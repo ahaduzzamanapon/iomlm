@@ -593,7 +593,26 @@ input, select, textarea { font-family: var(--font); }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
 /* ─── Data Table ─────────────────────────────────────────── */
-.table-wrapper { overflow-x: auto; }
+.table-wrapper {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  width: 100% !important;
+  position: relative;
+}
+.table-wrapper::-webkit-scrollbar {
+  height: 7px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -928,22 +947,35 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 /* ─── Modal ─────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0;
-  background: rgba(15,23,42,.5);
-  backdrop-filter: blur(2px);
-  z-index: 200;
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
+  background: rgba(15,23,42,.65);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 30px 15px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
   opacity: 0; pointer-events: none;
   transition: opacity var(--transition);
 }
-.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-overlay.open,
+.modal-overlay.active,
+.modal-overlay.show,
+.modal-overlay[style*="display: flex"],
+.modal-overlay[style*="display:flex"],
+.modal-overlay[style*="display: block"],
+.modal-overlay[style*="display:block"] { opacity: 1; pointer-events: all; display: flex; }
 
 .modal {
   background: var(--card-bg);
   border-radius: var(--radius-lg);
   box-shadow: 0 20px 60px rgba(0,0,0,.2);
   width: 100%; max-width: 520px;
-  max-height: 90vh; overflow-y: auto;
+  margin: 0 auto;
+  max-height: calc(100vh - 60px); overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
   transform: scale(.96) translateY(8px);
   transition: transform .2s ease;
 }

@@ -16,7 +16,7 @@ class SubjectController extends Controller
         $enrollments = Enrollment::with([
             'course.subjects.category',
             'course.subjects.modules' => fn($q) => $q->where('is_hidden', false)->orderBy('sequence_no'),
-            'course.subjects.assignments' => fn($q) => $q->where('status', 'PUBLISHED')->latest(),
+            'course.subjects.assignments' => fn($q) => $q->whereIn('status', ['PUBLISHED', 'ACTIVE'])->latest(),
         ])
             ->where('student_id', $student?->id)
             ->where('status', 'ACTIVE')
@@ -31,7 +31,7 @@ class SubjectController extends Controller
         $subject->load([
             'category',
             'modules' => fn($q) => $q->where('is_hidden', false)->orderBy('sequence_no'),
-            'assignments' => fn($q) => $q->where('status', 'PUBLISHED')->with(['submissions' => fn($sq) => $sq->where('student_id', $student?->id)]),
+            'assignments' => fn($q) => $q->whereIn('status', ['PUBLISHED', 'ACTIVE'])->with(['submissions' => fn($sq) => $sq->where('student_id', $student?->id)]),
         ]);
 
         return view('student.subjects.show', compact('subject', 'student'));

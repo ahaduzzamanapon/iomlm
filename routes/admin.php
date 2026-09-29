@@ -151,6 +151,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('result-book', [\App\Http\Controllers\Admin\ResultBookController::class, 'index'])->name('result-book.index');
         Route::get('result-book/batch-merit', fn() => redirect()->route('admin.result-book.index', ['tab' => 'batch_merit']))->name('result-book.batch-merit');
         Route::get('final-marks', fn() => redirect()->route('admin.result-book.index'))->name('final-marks.index');
+        Route::get('final-marks/batch-subjects', [\App\Http\Controllers\Admin\ResultBookController::class, 'getBatchSubjects'])->name('final-marks.batch-subjects');
+        Route::post('result-book/override-save', [\App\Http\Controllers\Admin\ResultBookController::class, 'overrideSave'])->name('result-book.override-save');
         Route::post('result-book/{finalMark}/override', [\App\Http\Controllers\Admin\ResultBookController::class, 'override'])->name('result-book.override');
         Route::post('result-book/publish-toggle', [\App\Http\Controllers\Admin\ResultBookController::class, 'publishToggle'])->name('result-book.publish-toggle');
         Route::post('result-book/manual-marks-bulk', [\App\Http\Controllers\Admin\ResultBookController::class, 'saveManualMarksBulk'])->name('result-book.manual-marks-bulk');
@@ -183,6 +185,9 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('notifications/create', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'create'])->name('notifications.create');
         Route::get('notifications/{notification}/json', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'showJson'])->name('notifications.show-json');
         Route::post('notifications', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'send'])->name('notifications.send');
+        Route::post('email-templates', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'store'])->name('email-templates.store');
+        Route::delete('email-templates/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'destroy'])->name('email-templates.destroy');
+        Route::get('email-templates/list-json', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'listJson'])->name('email-templates.list-json');
 
         // Surveys & Dynamic Forms
         Route::get('surveys', [\App\Http\Controllers\Admin\SurveyController::class, 'index'])->name('surveys.index');
