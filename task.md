@@ -364,10 +364,35 @@
   - Verification: Script `scratch/test_course_batch_cycles.php` and `scratch/run_all_feedback_tests.php` return Exit Code 0.
 - **Status**: COMPLETED (Exit Code 0)
 
+### Task 59: Remove "Other Subjects" Section & Prevent Duplicate Course Subject Mappings
+- **Objective**: Remove the unintended "Other Subjects" group from Student Portal My Course page (`/student/my-course`), clean up unassigned duplicate subject mappings for `Alim Preparatory Course`, prevent future duplicates by matching on `[course_id, subject_id]` in `CourseController@assignSubject`, and require `semester_id` for semester-based courses.
+- **Definition of Done (DoD)**:
+  - Remove duplicate unassigned mappings (`semester_id IS NULL`) for Alim Preparatory Course (IDs 83, 84, 85, 86) leaving accurate 28 subjects across 6 semesters.
+  - In `app/Http/Controllers/Admin/CourseController.php`: require `semester_id` when course is `SEMESTER_BASED`, and make `updateOrCreate` match on `[course_id, subject_id]` so assigning existing subjects updates their semester instead of creating duplicates.
+  - In `resources/views/student/my-course/index.blade.php`: only query `whereNotNull('semester_id')` for `SEMESTER_BASED` courses and remove `'Other Subjects'` fallback text.
+  - In `app/Http/Controllers/Student/MyCourseController.php`: calculate `totalSubjects` accurately based on valid semester subjects for semester-based courses.
+  - Verification: Automated script `scratch/verify_no_other_subjects.php` verifies 28 subjects, 0 nulls, and clean render without "Other Subjects" (Exit Code 0).
+- **Status**: COMPLETED (Exit Code 0)
+
+### Task 60: Batch Unique Code Collision Fix & Same Date/Month Duplicate Validation
+- **Objective**: Fix the SQL 1062 duplicate key crash on `batches.batches_batch_code_unique` (e.g. `Duplicate entry 'ALI-2026-11'`) by making batch code generation collision-free, and implement form validation preventing multiple batches for the same course on the same date or in the same month.
+- **Definition of Done (DoD)**:
+  - In `app/Http/Controllers/Admin/BatchController.php`:
+    - Add collision-free `batch_code` generator checking maximum sequence and verifying against existing codes with fallback while-loop.
+    - Add validation in `store()` and `update()` ensuring a course cannot have two batches on the exact same date or in the same month/year.
+    - Throw `ValidationException::withMessages(['start_date' => ...])` on duplicate date/month conflict.
+  - In `resources/views/admin/batches/index.blade.php`:
+    - Add error alert banners in main view and inside `addBatchModal`.
+    - Retain `old(...)` form inputs on validation failure.
+    - Auto-reopen `addBatchModal` on validation error via DOM script.
+  - Verification: Automated test script `scratch/test_batch_validation.php` verifies unique code generation without collision, rejects same date and same month, allows different month and different course, and tests blade rendering (Exit Code 0).
+- **Status**: COMPLETED (Exit Code 0)
+
 ---
 
 ## Pending Tasks
-*All feedback tasks (Tasks 32 through 58) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain (Universal Coupon Code excluded per instruction).*
+*All feedback tasks (Tasks 32 through 60) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain.*
+
 
 
 

@@ -163,8 +163,10 @@ class CourseController extends Controller
             'subject_ids'   => 'required_without:subject_id|array',
             'subject_ids.*' => 'exists:subjects,id',
             'subject_id'    => 'nullable|exists:subjects,id',
-            'semester_id'   => 'nullable|exists:semesters,id',
+            'semester_id'   => $course->type === 'SEMESTER_BASED' ? 'required|exists:semesters,id' : 'nullable|exists:semesters,id',
             'group_mode'    => 'nullable|in:INHERIT,NONE,GENDER,SPLIT',
+        ], [
+            'semester_id.required' => 'সেমিস্টার ভিত্তিক কোর্সের ক্ষেত্রে সেমিস্টার নির্বাচন করা আবশ্যক।',
         ]);
 
         $subjectIds = $request->input('subject_ids');
@@ -182,11 +184,11 @@ class CourseController extends Controller
         foreach ($subjectIds as $subId) {
             CourseSubjectMap::updateOrCreate(
                 [
-                    'course_id'   => $course->id,
-                    'subject_id'  => $subId,
-                    'semester_id' => $course->type === 'SEMESTER_BASED' ? $request->input('semester_id') : null,
+                    'course_id'  => $course->id,
+                    'subject_id' => $subId,
                 ],
                 [
+                    'semester_id' => $course->type === 'SEMESTER_BASED' ? $request->input('semester_id') : null,
                     'group_mode'  => $groupMode,
                 ]
             );

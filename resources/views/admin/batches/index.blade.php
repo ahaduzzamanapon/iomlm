@@ -13,6 +13,17 @@
         </div>
     </div>
 
+    @if(isset($errors) && $errors->any())
+        <div class="alert alert-danger" style="margin-bottom:18px;font-family:'Kalpurush',sans-serif;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 18px;border-radius:10px">
+            <div style="font-weight:700;margin-bottom:6px;font-size:14px"><i class="fa-solid fa-triangle-exclamation"></i> ত্রুটি: ব্যাচ সংরক্ষণ করা যায়নি</div>
+            <ul style="margin:0;padding-left:20px;font-size:13.5px">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- Filter Bar: Course-wise and Session-wise Filtering --}}
     <form method="GET" action="{{ route('admin.batches.index') }}" class="card" style="padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:'Kalpurush',sans-serif">
         <div style="flex:1;min-width:200px;position:relative">
@@ -205,9 +216,20 @@
             <form method="POST" action="{{ route('admin.batches.store') }}">
                 @csrf
                 <div class="modal-body">
+                    @if(isset($errors) && $errors->any() && !old('_method'))
+                        <div class="alert alert-danger" style="margin-bottom:14px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;font-family:'Kalpurush',sans-serif">
+                            <div style="font-weight:700;margin-bottom:4px"><i class="fa-solid fa-triangle-exclamation"></i> ব্যাচ তৈরি করা সম্ভব হয়নি:</div>
+                            <ul style="margin:0;padding-left:18px">
+                                @foreach($errors->all() as $err)
+                                    <li>{{ $err }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div class="form-group">
                         <label>Batch Name <span class="required">*</span></label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Batch 01 - Morning Shift" required>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Batch 01 - Morning Shift" value="{{ old('name') }}" required>
                     </div>
 
                     <div class="form-group">
@@ -215,7 +237,7 @@
                         <select name="course_id" class="form-control" required>
                             <option value="">-- Choose Course --</option>
                             @foreach($courses as $c)
-                                <option value="{{ $c->id }}">{{ $c->name }} ({{ str_replace('_',' ',$c->type) }})</option>
+                                <option value="{{ $c->id }}" {{ old('course_id') == $c->id ? 'selected' : '' }}>{{ $c->name }} ({{ str_replace('_',' ',$c->type) }})</option>
                             @endforeach
                         </select>
                     </div>
@@ -226,13 +248,13 @@
                             <select name="academic_year_id" class="form-control">
                                 <option value="">-- Select Year --</option>
                                 @foreach($academicYears as $y)
-                                    <option value="{{ $y->id }}">{{ $y->name }}</option>
+                                    <option value="{{ $y->id }}" {{ old('academic_year_id') == $y->id ? 'selected' : '' }}>{{ $y->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Batch Start Date <span class="required">*</span></label>
-                            <input type="date" name="start_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                            <input type="date" name="start_date" class="form-control" value="{{ old('start_date', date('Y-m-d')) }}" required>
                         </div>
                     </div>
 
@@ -246,7 +268,7 @@
                                 <select name="start_month" class="form-control">
                                     <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
                                     @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                        <option value="{{ $mKey }}" {{ old('start_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -255,7 +277,7 @@
                                 <select name="end_month" class="form-control">
                                     <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
                                     @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                        <option value="{{ $mKey }}" {{ old('end_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -266,7 +288,7 @@
                                 <select name="fee_start_month" class="form-control">
                                     <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
                                     @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                        <option value="{{ $mKey }}" {{ old('fee_start_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -275,7 +297,7 @@
                                 <select name="fee_end_month" class="form-control">
                                     <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
                                     @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
+                                        <option value="{{ $mKey }}" {{ old('fee_end_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -447,6 +469,16 @@
         document.getElementById('eb_is_admission_open').checked = b.is_admission_open;
         openModal('editBatchModal');
     }
+
+    @if(isset($errors) && $errors->any())
+    document.addEventListener('DOMContentLoaded', function() {
+        @if(old('_method') === 'PUT')
+            // Editing was in progress
+        @else
+            openModal('addBatchModal');
+        @endif
+    });
+    @endif
     </script>
     @endpush
 </x-admin-layout>

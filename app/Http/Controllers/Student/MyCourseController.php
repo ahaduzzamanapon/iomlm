@@ -35,7 +35,9 @@ class MyCourseController extends Controller
             $courseId  = $enrollment->course_id;
 
             // Total subjects for this course
-            $totalSubjects = $enrollment->course?->courseSubjectMaps()->count() ?? 0;
+            $totalSubjects = $enrollment->course?->type === 'SEMESTER_BASED'
+                ? ($enrollment->course?->courseSubjectMaps()->whereNotNull('semester_id')->count() ?? 0)
+                : ($enrollment->course?->courseSubjectMaps()->count() ?? 0);
 
             // Current semester name from batch position
             $currentSemester = $enrollment->batch?->semesterPosition?->currentSemester ?? $enrollment->semester;

@@ -70,7 +70,68 @@ class BatchController extends Controller
         ]);
 
         $course = Course::findOrFail($validated['course_id']);
-        $nextCode = strtoupper(substr($course->name, 0, 3)) . '-' . date('Y') . '-' . str_pad(Batch::count() + 1, 2, '0', STR_PAD_LEFT);
+        $startDate = $validated['start_date'];
+        $startYear = date('Y', strtotime($startDate));
+        $startMonth = (int) date('m', strtotime($startDate));
+        $monthName = date('F', strtotime($startDate));
+        $inputStartMonth = $validated['start_month'] ?? null;
+
+        // Validation: একই কোর্সে একই তারিখে বা একই মাসে একাধিক ব্যাচ তৈরি করা যাবে না
+        $existingBatch = Batch::where('course_id', $course->id)
+            ->where(function ($q) use ($startDate, $startYear, $startMonth, $monthName, $inputStartMonth) {
+                $q->whereDate('start_date', $startDate)
+                  ->orWhere(function ($mQ) use ($startYear, $startMonth, $monthName, $inputStartMonth) {
+                      $mQ->whereYear('start_date', $startYear)
+                         ->where(function ($subQ) use ($startMonth, $monthName, $inputStartMonth) {
+                             $subQ->whereMonth('start_date', $startMonth);
+                             if (!empty($inputStartMonth)) {
+                                 $subQ->orWhere('start_month', $inputStartMonth);
+                             }
+                             if (!empty($monthName)) {
+                                 $subQ->orWhere('start_month', $monthName);
+                             }
+                         });
+                  });
+            })
+            ->first();
+
+        if ($existingBatch) {
+            $existingMonth = date('F Y', strtotime($existingBatch->start_date));
+            $existingDate = date('d-m-Y', strtotime($existingBatch->start_date));
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'start_date' => ["'{$course->name}' কোর্সে ইতিমধ্যে একই তারিখে ({$existingDate}) বা একই মাসে ({$existingMonth}) একটি ব্যাচ ('{$existingBatch->name}') বিদ্যমান। একই কোর্সে একই মাসে একাধিক ব্যাচ তৈরি করা যাবে না।"],
+            ]);
+        }
+
+        // Bulletproof unique batch_code generation
+        $rawPrefix = preg_replace('/[^A-Za-z0-9]/', '', $course->code ?: $course->name);
+        $prefix = strtoupper(substr($rawPrefix, 0, 3));
+        if (strlen($prefix) < 2) {
+            $prefix = 'BAT';
+        }
+
+        $year = date('Y', strtotime($startDate));
+        $baseCode = $prefix . '-' . $year . '-';
+
+        $existingCodes = Batch::where('batch_code', 'like', $baseCode . '%')->pluck('batch_code');
+        $maxSeq = 0;
+        foreach ($existingCodes as $c) {
+            $parts = explode('-', $c);
+            $lastPart = end($parts);
+            if (is_numeric($lastPart)) {
+                $num = (int) $lastPart;
+                if ($num > $maxSeq) {
+                    $maxSeq = $num;
+                }
+            }
+        }
+
+        $seq = $maxSeq + 1;
+        $nextCode = $baseCode . str_pad($seq, 2, '0', STR_PAD_LEFT);
+        while (Batch::where('batch_code', $nextCode)->exists()) {
+            $seq++;
+            $nextCode = $baseCode . str_pad($seq, 2, '0', STR_PAD_LEFT);
+        }
 
         $batch = Batch::create([
             'name'                     => $validated['name'],
@@ -110,6 +171,41 @@ class BatchController extends Controller
             'monthly_fee'       => 'nullable|numeric|min:0',
             'status'            => 'required|in:PLANNED,ACTIVE,COMPLETED,CANCELLED,SUSPENDED',
         ]);
+
+        $course = Course::findOrFail($validated['course_id']);
+        $startDate = $validated['start_date'];
+        $startYear = date('Y', strtotime($startDate));
+        $startMonth = (int) date('m', strtotime($startDate));
+        $monthName = date('F', strtotime($startDate));
+        $inputStartMonth = $validated['start_month'] ?? null;
+
+        // Validation: একই কোর্সে একই তারিখে বা একই মাসে একাধিক ব্যাচ থাকতে পারবে না
+        $existingBatch = Batch::where('course_id', $course->id)
+            ->where('id', '!=', $batch->id)
+            ->where(function ($q) use ($startDate, $startYear, $startMonth, $monthName, $inputStartMonth) {
+                $q->whereDate('start_date', $startDate)
+                  ->orWhere(function ($mQ) use ($startYear, $startMonth, $monthName, $inputStartMonth) {
+                      $mQ->whereYear('start_date', $startYear)
+                         ->where(function ($subQ) use ($startMonth, $monthName, $inputStartMonth) {
+                             $subQ->whereMonth('start_date', $startMonth);
+                             if (!empty($inputStartMonth)) {
+                                 $subQ->orWhere('start_month', $inputStartMonth);
+                             }
+                             if (!empty($monthName)) {
+                                 $subQ->orWhere('start_month', $monthName);
+                             }
+                         });
+                  });
+            })
+            ->first();
+
+        if ($existingBatch) {
+            $existingMonth = date('F Y', strtotime($existingBatch->start_date));
+            $existingDate = date('d-m-Y', strtotime($existingBatch->start_date));
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'start_date' => ["'{$course->name}' কোর্সে ইতিমধ্যে একই তারিখে ({$existingDate}) বা একই মাসে ({$existingMonth}) একটি ব্যাচ ('{$existingBatch->name}') বিদ্যমান। একই কোর্সে একই মাসে একাধিক ব্যাচ তৈরি করা যাবে না।"],
+            ]);
+        }
 
         $batch->update(array_merge($validated, [
             'start_month'       => $validated['start_month'] ?? null,

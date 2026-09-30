@@ -271,7 +271,19 @@
         {{-- Semester-wise Subject Cards --}}
         @if($course && $course->courseSubjectMaps->count() > 0)
         @php
-            $allMaps = $course->courseSubjectMaps()->with(['subject', 'semester'])->orderBy('semester_id')->orderBy('sort_order')->get();
+            if ($course->type === 'SEMESTER_BASED') {
+                $allMaps = $course->courseSubjectMaps()
+                    ->whereNotNull('semester_id')
+                    ->with(['subject', 'semester'])
+                    ->orderBy('semester_id')
+                    ->orderBy('sort_order')
+                    ->get();
+            } else {
+                $allMaps = $course->courseSubjectMaps()
+                    ->with(['subject', 'semester'])
+                    ->orderBy('sort_order')
+                    ->get();
+            }
             // Group by semester (semester_id → collection)
             $semesterGroups = $allMaps->groupBy(fn($m) => $m->semester_id ?? 0);
             // Color palette for semesters
@@ -290,7 +302,7 @@
 
             @foreach($semesterGroups as $semesterId => $maps)
             @php
-                $semName  = $maps->first()->semester?->name ?? ($course->type === 'SUBJECT_BASED' ? 'All Course Subjects' : 'Other Subjects');
+                $semName  = $maps->first()->semester?->name ?? 'All Course Subjects';
                 $semSeq   = $maps->first()->semester?->sequence_no ?? 0;
                 $color    = $semColors[$semIdx % count($semColors)];
                 $isActive = $currentSem && $semesterId == $currentSem->id;
