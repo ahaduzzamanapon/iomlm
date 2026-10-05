@@ -38,11 +38,11 @@ class AccountingService
         $batchFee  = $batch  ? (float)$batch->admission_fee  : null;
         $courseFee = $course ? (float)$course->admission_fee : null;
 
-        if ($batchFee !== null && $batchFee >= 0) {
-            // Batch admission_fee is explicitly configured — use it (even if 0)
+        if ($batchFee !== null && $batchFee > 0) {
+            // Batch admission_fee is explicitly configured — use it
             $feeRate = $batchFee;
-        } elseif ($courseFee !== null && $courseFee >= 0) {
-            // Course admission_fee is explicitly configured — use it (even if 0)
+        } elseif ($courseFee !== null && $courseFee > 0) {
+            // Course admission_fee is explicitly configured — use it
             $feeRate = $courseFee;
         } else {
             // No batch/course fee configured — fall back to FeeStructure
