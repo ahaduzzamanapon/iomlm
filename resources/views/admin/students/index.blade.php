@@ -622,14 +622,26 @@
                             <!-- Active Course, Batch & Semester -->
                             <td style="padding:14px 16px">
                                 @php
-                                    $activeEnr = $st->enrollments->firstWhere('status', 'ACTIVE') ?? $st->enrollments->first();
+                                    $activeEnr = null;
+                                    if (request('batch_id')) {
+                                        $activeEnr = $st->enrollments->firstWhere('batch_id', request('batch_id'));
+                                    }
+                                    if (!$activeEnr && request('course_id')) {
+                                        $activeEnr = $st->enrollments->first(function($e) {
+                                            return $e->course_id == request('course_id') || $e->batch?->course_id == request('course_id');
+                                        });
+                                    }
+                                    if (!$activeEnr) {
+                                        $activeEnr = $st->enrollments->firstWhere('status', 'ACTIVE') ?? $st->enrollments->first();
+                                    }
+                                    $displaySem = $activeEnr?->semester ?? $activeEnr?->batch?->semesterPosition?->currentSemester;
                                 @endphp
                                 @if($activeEnr)
                                     <div class="course-info-box">
                                         <strong>{{ $activeEnr->batch->name ?? '—' }}</strong>
-                                        @if($activeEnr->semester)
+                                        @if($displaySem)
                                             <span style="font-size:11px;background:#f1f5f9;color:#475569;padding:1px 6px;border-radius:4px;margin-left:4px">
-                                                {{ $activeEnr->semester->name }}
+                                                {{ $displaySem->name }}
                                             </span>
                                         @endif
                                         <div class="course-info-sub">

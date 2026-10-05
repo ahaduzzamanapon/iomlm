@@ -161,7 +161,7 @@ class StudentController extends Controller
 
         $filename = 'students_export_' . now()->format('Y_m_d_His') . '.csv';
 
-        $callback = function () use ($students) {
+        $callback = function () use ($students, $request) {
             $handle = fopen('php://output', 'w');
             // Write UTF-8 BOM for Excel Bengali font support
             fputs($handle, "\xEF\xBB\xBF");
