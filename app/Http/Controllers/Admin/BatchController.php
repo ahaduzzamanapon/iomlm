@@ -57,16 +57,23 @@ class BatchController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'             => 'required|string|max:150',
+            'name'             => [
+                'required', 'string', 'max:150',
+                \Illuminate\Validation\Rule::unique('batches', 'name')->where('course_id', $request->input('course_id'))
+            ],
             'course_id'        => 'required|exists:courses,id',
             'academic_year_id' => 'nullable|exists:academic_years,id',
             'start_date'       => 'required|date',
+            'expected_end_date'=> 'nullable|date|after_or_equal:start_date',
             'start_month'      => 'nullable|string|max:20',
             'end_month'        => 'nullable|string|max:20',
             'fee_start_month'  => 'nullable|string|max:20',
             'fee_end_month'    => 'nullable|string|max:20',
             'admission_fee'    => 'nullable|numeric|min:0',
             'monthly_fee'      => 'nullable|numeric|min:0',
+        ], [
+            'name.unique' => 'একই কোর্সের অধীনে ব্যাচের নাম ইউনিক হতে হবে। এই কোর্সে এই নামের একটি ব্যাচ ইতিমধ্যে বিদ্যমান।',
+            'expected_end_date.after_or_equal' => 'ব্যাচ সমাপ্তির তারিখ অবশ্যই শুরু হওয়ার তারিখের সমান বা পরবর্তী হতে হবে।',
         ]);
 
         $course = Course::findOrFail($validated['course_id']);
@@ -139,6 +146,7 @@ class BatchController extends Controller
             'course_id'                => $validated['course_id'],
             'academic_year_id'         => $validated['academic_year_id'] ?? null,
             'start_date'               => $validated['start_date'],
+            'expected_end_date'        => $validated['expected_end_date'] ?? null,
             'start_month'              => $validated['start_month'] ?? null,
             'end_month'                => $validated['end_month'] ?? null,
             'fee_start_month'          => $validated['fee_start_month'] ?? null,
@@ -159,10 +167,16 @@ class BatchController extends Controller
     public function update(Request $request, Batch $batch)
     {
         $validated = $request->validate([
-            'name'              => 'required|string|max:150',
+            'name'              => [
+                'required', 'string', 'max:150',
+                \Illuminate\Validation\Rule::unique('batches', 'name')
+                    ->where('course_id', $request->input('course_id') ?: $batch->course_id)
+                    ->ignore($batch->id)
+            ],
             'course_id'         => 'required|exists:courses,id',
             'academic_year_id'  => 'nullable|exists:academic_years,id',
             'start_date'        => 'required|date',
+            'expected_end_date' => 'nullable|date|after_or_equal:start_date',
             'start_month'       => 'nullable|string|max:20',
             'end_month'         => 'nullable|string|max:20',
             'fee_start_month'   => 'nullable|string|max:20',
@@ -170,6 +184,9 @@ class BatchController extends Controller
             'admission_fee'     => 'nullable|numeric|min:0',
             'monthly_fee'       => 'nullable|numeric|min:0',
             'status'            => 'required|in:PLANNED,ACTIVE,COMPLETED,CANCELLED,SUSPENDED',
+        ], [
+            'name.unique' => 'একই কোর্সের অধীনে ব্যাচের নাম ইউনিক হতে হবে। এই কোর্সে এই নামের একটি ব্যাচ ইতিমধ্যে বিদ্যমান।',
+            'expected_end_date.after_or_equal' => 'ব্যাচ সমাপ্তির তারিখ অবশ্যই শুরু হওয়ার তারিখের সমান বা পরবর্তী হতে হবে।',
         ]);
 
         $course = Course::findOrFail($validated['course_id']);
@@ -208,6 +225,7 @@ class BatchController extends Controller
         }
 
         $batch->update(array_merge($validated, [
+            'expected_end_date' => $validated['expected_end_date'] ?? null,
             'start_month'       => $validated['start_month'] ?? null,
             'end_month'         => $validated['end_month'] ?? null,
             'fee_start_month'   => $validated['fee_start_month'] ?? null,

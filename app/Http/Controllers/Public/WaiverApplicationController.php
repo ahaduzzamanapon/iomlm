@@ -155,12 +155,50 @@ class WaiverApplicationController extends Controller
             ], 422);
         }
 
+        $targetCourseId = $request->query('course_id');
         $app = WaiverApplication::where('application_no', $code)->first();
 
         if (!$app) {
+            // Check if code matches a Course-wise Manual Coupon Code
+            $couponQuery = \App\Models\CourseCoupon::with('course')->where('code', $code);
+            if ($targetCourseId) {
+                $coupon = (clone $couponQuery)->where('course_id', $targetCourseId)->first()
+                    ?? $couponQuery->first();
+            } else {
+                $coupon = $couponQuery->first();
+            }
+
+            if ($coupon) {
+                $validation = $coupon->validateForCourse($targetCourseId ? (int) $targetCourseId : null);
+                if (!$validation['valid']) {
+                    return response()->json([
+                        'valid'   => false,
+                        'type'    => 'COUPON',
+                        'message' => $validation['message'],
+                    ], 422);
+                }
+
+                $discText = ($coupon->discount_type === 'PERCENT')
+                    ? "{$coupon->discount_amount}% ছাড়"
+                    : "৳" . number_format($coupon->discount_amount, 0) . " টাকা ছাড়";
+
+                return response()->json([
+                    'valid'                     => true,
+                    'type'                      => 'COUPON',
+                    'status'                    => 'ACTIVE',
+                    'code'                      => $coupon->code,
+                    'course_id'                 => $coupon->course_id,
+                    'discount_type'             => $coupon->discount_type,
+                    'discount_amount'           => (float) $coupon->discount_amount,
+                    'discount_percent'          => $coupon->discount_type === 'PERCENT' ? (float) $coupon->discount_amount : 0,
+                    'approved_admission_fee'    => null,
+                    'message'                   => "✓ কুপন কোড '{$coupon->code}' সফলভাবে সক্রিয় হয়েছে! ({$discText})",
+                ]);
+            }
+
             return response()->json([
                 'valid'   => false,
-                'message' => '✕ এই পুওর ফান্ড কোডটি ('.$code.') সঠিক নয়। (Code Not Found)'
+                'message' => '✕ এই কুপন বা ছাড় কোডটি ('.$code.') সঠিক নয়। (Code Not Found)'
             ], 404);
         }
 
@@ -227,6 +265,7 @@ class WaiverApplicationController extends Controller
         // APPROVED & NOT USED!
         return response()->json([
             'valid'                     => true,
+            'type'                      => 'POOR_FUND',
             'status'                    => 'APPROVED',
             'apply_for'                 => $applyFor,
             'application_no'            => $app->application_no,

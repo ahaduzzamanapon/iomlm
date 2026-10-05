@@ -160,8 +160,8 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Course Code (২ ডিজিট কোড) <span class="required">*</span></label>
-                            <input type="text" name="code" class="form-control" placeholder="e.g. 01, 02, 15" maxlength="4" style="font-family:monospace;font-weight:700">
-                            <small style="color:var(--text-muted);font-size:12px">এই কোডটি শিক্ষার্থীর আইডির ৫ম ও ৬ষ্ঠ ডিজিটে যুক্ত হবে।</small>
+                            <input type="text" name="code" class="form-control" placeholder="e.g. 01, 02, 15" maxlength="4" style="font-family:monospace;font-weight:700" required>
+                            <small style="color:var(--text-muted);font-size:12px">এই কোডটি শিক্ষার্থীর আইডির ৫ম ও ৬ষ্ঠ ডিজিটে যুক্ত হবে। প্রতিটি কোর্সের কোড ইউনিক হতে হবে।</small>
                         </div>
                         <div class="form-group">
                             <label>Department (বিভাগ) <span class="required">*</span></label>
@@ -208,27 +208,7 @@
 
                     <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:16px; font-family:'Kalpurush',sans-serif">
                         <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
-                            <i class="fa-solid fa-calendar-days" style="color:#047857"></i> কোর্সের সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
-                        </div>
-                        <div class="form-row" style="margin-bottom:8px">
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">কোর্স শুরুর মাস</label>
-                                <select name="start_month" class="form-control">
-                                    <option value="">-- অনির্ধারিত --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">কোর্স সমাপ্তির মাস</label>
-                                <select name="end_month" class="form-control">
-                                    <option value="">-- অনির্ধারিত --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            <i class="fa-solid fa-calendar-days" style="color:#047857"></i> বেতন সাইকেল মাস নির্ধারণ
                         </div>
                         <div class="form-row">
                             <div class="form-group" style="margin-bottom:0">
@@ -308,8 +288,8 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Course Code (২ ডিজিট কোড) <span class="required">*</span></label>
-                            <input type="text" name="code" id="edit_course_code" class="form-control" placeholder="e.g. 01, 02, 15" maxlength="4" style="font-family:monospace;font-weight:700">
-                            <small style="color:var(--text-muted);font-size:12px">শিক্ষার্থীর আইডির ৫ম ও ৬ষ্ঠ ডিজিট।</small>
+                            <input type="text" name="code" id="edit_course_code" class="form-control" placeholder="e.g. 01, 02, 15" maxlength="4" style="font-family:monospace;font-weight:700" required>
+                            <small style="color:var(--text-muted);font-size:12px">শিক্ষার্থীর আইডির ৫ম ও ৬ষ্ঠ ডিজিট। প্রতিটি কোর্সের কোড ইউনিক হতে হবে।</small>
                         </div>
                         <div class="form-group">
                             <label>Department (বিভাগ) <span class="required">*</span></label>
@@ -345,27 +325,7 @@
 
                     <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:16px; font-family:'Kalpurush',sans-serif">
                         <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
-                            <i class="fa-solid fa-calendar-days" style="color:#047857"></i> কোর্সের সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
-                        </div>
-                        <div class="form-row" style="margin-bottom:8px">
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">কোর্স শুরুর মাস</label>
-                                <select name="start_month" id="edit_course_start_month" class="form-control">
-                                    <option value="">-- অনির্ধারিত --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">কোর্স সমাপ্তির মাস</label>
-                                <select name="end_month" id="edit_course_end_month" class="form-control">
-                                    <option value="">-- অনির্ধারিত --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            <i class="fa-solid fa-calendar-days" style="color:#047857"></i> বেতন সাইকেল মাস নির্ধারণ
                         </div>
                         <div class="form-row">
                             <div class="form-group" style="margin-bottom:0">
@@ -441,8 +401,6 @@
         document.getElementById('edit_course_type').value = course.type;
         document.getElementById('edit_course_duration_value').value = course.duration_value;
         document.getElementById('edit_course_duration_unit').value = course.duration_unit;
-        document.getElementById('edit_course_start_month').value = course.start_month || '';
-        document.getElementById('edit_course_end_month').value = course.end_month || '';
         document.getElementById('edit_course_fee_start_month').value = course.fee_start_month || '';
         document.getElementById('edit_course_fee_end_month').value = course.fee_end_month || '';
         document.getElementById('edit_course_admission_fee').value = course.admission_fee || 0;

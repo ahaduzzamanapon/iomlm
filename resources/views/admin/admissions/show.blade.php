@@ -139,6 +139,28 @@
                     </tr>
                 </table>
 
+                @if($admission->manual_trx_id)
+                <div style="background:#ecfdf5;border:1.5px solid #10b981;border-radius:10px;padding:14px;margin-bottom:16px;font-family:'Kalpurush',sans-serif">
+                    <div style="font-weight:700;color:#065f46;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+                        <span><i class="fa-solid fa-money-bill-transfer"></i> মার্চেন্ট নাম্বারে পূর্বেই পরিশোধিত পেমেন্ট তথ্য (Manual Merchant Payment)</span>
+                        <span class="badge" style="background:#047857;color:#fff">যাচাই আবশ্যক</span>
+                    </div>
+                    <table class="table" style="font-size:13px;margin:0;background:transparent">
+                        <tr><th style="width:170px;color:#065f46">পেমেন্ট মাধ্যম:</th><td><strong>{{ $admission->manual_payment_method }}</strong></td></tr>
+                        <tr><th style="color:#065f46">ট্রাঞ্জেকশন আইডি (TrxID):</th><td><strong style="font-family:monospace;font-size:15px;color:#047857;letter-spacing:1px">{{ $admission->manual_trx_id }}</strong></td></tr>
+                        @if($admission->manual_sender_phone)
+                        <tr><th style="color:#065f46">প্রেরকের মোবাইল নম্বর:</th><td><strong>{{ $admission->manual_sender_phone }}</strong></td></tr>
+                        @endif
+                        @if($admission->manual_payment_date)
+                        <tr><th style="color:#065f46">পেমেন্টের সময়:</th><td>{{ \Carbon\Carbon::parse($admission->manual_payment_date)->format('d M Y, h:i A') }}</td></tr>
+                        @endif
+                        @if($admission->manual_payment_notes)
+                        <tr><th style="color:#065f46">মন্তব্য / বিবরণ:</th><td>{{ $admission->manual_payment_notes }}</td></tr>
+                        @endif
+                    </table>
+                </div>
+                @endif
+
                 @php
                     $gwTrx = \App\Models\GatewayTransaction::where('admission_form_id', $admission->id)->latest()->first();
                 @endphp
@@ -271,20 +293,23 @@
 
     <!-- Approve Modal (Course Change, Fee Structure Setup & Batch Template Dispatch) -->
     <div class="modal-overlay" id="approveModal">
-        <div class="modal" style="max-width:650px;">
-            <div class="modal-header">
-                <span class="modal-title"><i class="fa-solid fa-user-check" style="color:#047857"></i> ভর্তি অনুমোদন ও ব্যাচ নির্ধারণ (Approve Admission)</span>
+        <div class="modal" style="max-width:750px;max-height:92vh;display:flex;flex-direction:column;font-family:'Kalpurush',sans-serif;padding:0;overflow:hidden;border-radius:12px;">
+            <div class="modal-header" style="padding:16px 22px;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
+                <span class="modal-title" style="display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:#0f172a;">
+                    <i class="fa-solid fa-user-check" style="color:#047857;font-size:18px;"></i>
+                    <span>ভর্তি অনুমোদন ও ব্যাচ নির্ধারণ (Approve Admission)</span>
+                </span>
                 <button class="modal-close" onclick="closeModal('approveModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.admissions.approve', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি অনুমোদন করতে চান?')">
+            <form method="POST" action="{{ route('admin.admissions.approve', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি অনুমোদন করতে চান?')" style="display:flex;flex-direction:column;flex:1;overflow:hidden;margin-bottom:0;">
                 @csrf @method('PATCH')
-                <div class="modal-body">
+                <div class="modal-body" style="padding:18px 24px;overflow-y:auto;flex:1;">
                     {{-- 1. Course Change Option --}}
                     <div class="form-group" style="margin-bottom:14px;">
-                        <label style="font-weight:700;color:#1e293b;">
+                        <label style="font-weight:700;color:#1e293b;font-size:13px;">
                             কোর্স নির্বাচন / পরিবর্তন (Change Course if Applied by Mistake)
                         </label>
-                        <select name="course_id" id="approve_course_id" class="form-control" onchange="onApproveCourseChange(this)" style="height:38px;border-radius:6px;">
+                        <select name="course_id" id="approve_course_id" class="form-control" onchange="onApproveCourseChange(this)" style="height:38px;border-radius:6px;font-family:'Kalpurush',sans-serif;">
                             @foreach($allCourses ?? [] as $c)
                                 <option value="{{ $c->id }}" {{ $c->id == $admission->interested_course_id ? 'selected' : '' }}>
                                     [{{ $c->formatted_code }}] {{ $c->name }} ({{ $c->department }})
@@ -296,10 +321,10 @@
 
                     {{-- 2. Batch Selection --}}
                     <div class="form-group" style="margin-bottom:14px;">
-                        <label style="font-weight:700;color:#1e293b;">
+                        <label style="font-weight:700;color:#1e293b;font-size:13px;">
                             নির্ধারিত ব্যাচ নির্বাচন (Assign Active Batch) <span class="required">*</span>
                         </label>
-                        <select name="batch_id" id="approve_batch_id" class="form-control" required style="height:38px;border-radius:6px;">
+                        <select name="batch_id" id="approve_batch_id" class="form-control" required onchange="onApproveBatchChange()" style="height:38px;border-radius:6px;font-family:'Kalpurush',sans-serif;">
                             <option value="">-- ব্যাচ নির্বাচন করুন --</option>
                             @foreach($allCourses ?? [] as $c)
                                 @foreach($c->batches as $b)
@@ -311,23 +336,135 @@
                         </select>
                     </div>
 
-
-                    {{-- 4. Custom Initial Password --}}
-                    <div class="form-group" style="margin-bottom:14px;">
-                        <label style="font-weight:700;color:#1e293b;">
-                            লগইন পাসওয়ার্ড নির্ধারণ (Optional Custom Password)
-                        </label>
-                        <input type="text" name="custom_password" class="form-control" placeholder="খালি রাখলে শিক্ষার্থীর মোবাইল নম্বর পাসওয়ার্ড হিসেবে সেট হবে" style="height:36px;font-size:13px;">
-                        <small style="color:#64748b;font-size:11px;">ডিফল্ট পাসওয়ার্ড শিক্ষার্থীর ফোন নম্বর। পরিবর্তন করতে চাইলে এখানে লিখুন।</small>
+                    {{-- 3. Custom Initial Password --}}
+                    <div class="form-group" style="margin-bottom:16px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                            <label style="font-weight:700;color:#1e293b;margin-bottom:0;font-size:13px;">
+                                লগইন পাসওয়ার্ড নির্ধারণ (Portal Login Password)
+                            </label>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="generateApprovePassword()" style="font-size:11.5px;padding:2px 8px;border-color:#047857;color:#047857;font-weight:700;">
+                                <i class="fa-solid fa-dice"></i> র্যান্ডম জেনারেট
+                            </button>
+                        </div>
+                        <input type="text" id="approve_custom_password" name="custom_password" class="form-control" placeholder="খালি রাখলে স্বয়ংক্রিয়ভাবে ৮ অক্ষরের র্যান্ডম পাসওয়ার্ড তৈরি হবে" oninput="onCustomPasswordInput()" style="height:36px;font-size:13px;font-family:monospace;">
+                        <small style="color:#64748b;font-size:11px;">খালি রাখলে সিস্টেম স্বয়ংক্রিয়ভাবে শক্তিশালী র্যান্ডম পাসওয়ার্ড জেনারেট করবে। নিজস্ব পাসওয়ার্ড দিলে তা নোটিফিকেশনে বসানো হবে।</small>
                     </div>
 
-                    {{-- 5. Template Notification Note --}}
-                    <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;padding:10px 12px;font-size:12px;color:#065f46;">
-                        <i class="fa-solid fa-paper-plane"></i> <strong>অটোমেটিক নোটিফিকেশন:</strong>
-                        অনুমোদন নিশ্চিত করার সাথে সাথে নির্বাচিত ব্যাচের জন্য কনফিগার করা ইমেইল ও এসএমএস টেমপ্লেট অনুযায়ী শিক্ষার্থীর রোল এবং পোর্টাল পাসওয়ার্ড সংবলিত বার্তা প্রেরিত হবে।
+                    {{-- 4. Notification Section (Email & SMS) --}}
+                    <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:16px;margin-top:6px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                            <div>
+                                <h4 style="margin:0;font-size:13.5px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:6px;">
+                                    <i class="fa-solid fa-paper-plane" style="color:#047857;"></i>
+                                    <span>শিক্ষার্থীকে প্রেরিতব্য নোটিফিকেশন (Email &amp; SMS)</span>
+                                </h4>
+                                <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                                    অনুমোদনের সাথে সাথে এই বার্তাগুলো পাঠানো হবে। আপনার প্রয়োজনমত এডিট করতে পারেন।
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm" onclick="populateTemplateForSelectedBatch(true)" style="background:#fff;border:1px solid #cbd5e1;color:#475569;font-size:11px;padding:3px 10px;border-radius:5px;cursor:pointer;" title="নির্বাচিত ব্যাচের ডিফল্ট টেমপ্লেটে রিসেট করুন">
+                                <i class="fa-solid fa-rotate-left"></i> টেমপ্লেট রিসেট
+                            </button>
+                        </div>
+
+                        {{-- Nav Tabs --}}
+                        <div style="display:flex;gap:8px;border-bottom:2px solid #e2e8f0;margin-bottom:14px;">
+                            <button type="button" id="tabBtnEmail" onclick="switchNotificationTab('email')" style="padding:7px 16px;border:none;border-bottom:2px solid #047857;background:transparent;color:#047857;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:-2px;">
+                                <i class="fa-solid fa-envelope"></i> ইমেইল বার্তা (Email)
+                                @if(!empty($admission->email || $admission->student?->email))
+                                    <span style="font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:10px;font-weight:600;">ইমেইল প্রাপক প্রস্তুত</span>
+                                @else
+                                    <span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:1px 6px;border-radius:10px;font-weight:600;">ইমেইল নেই</span>
+                                @endif
+                            </button>
+                            <button type="button" id="tabBtnSms" onclick="switchNotificationTab('sms')" style="padding:7px 16px;border:none;border-bottom:2px solid transparent;background:transparent;color:#64748b;font-weight:600;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:-2px;">
+                                <i class="fa-solid fa-comment-sms"></i> এসএমএস বার্তা (SMS)
+                                @if(!empty($admission->phone || $admission->student?->phone))
+                                    <span style="font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:10px;font-weight:600;">ফোন প্রস্তুত</span>
+                                @else
+                                    <span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:1px 6px;border-radius:10px;font-weight:600;">ফোন নেই</span>
+                                @endif
+                            </button>
+                        </div>
+
+                        {{-- Email Tab Content --}}
+                        <div id="tabContentEmail">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <label class="form-check" style="cursor:pointer;margin-bottom:0;display:inline-flex;align-items:center;gap:6px;">
+                                    <input type="checkbox" name="send_email" id="approve_send_email" value="1" {{ !empty($admission->email || $admission->student?->email) ? 'checked' : '' }} style="width:16px;height:16px;accent-color:#047857;">
+                                    <span style="font-size:12px;font-weight:600;color:#0f172a;">অনুমোদনের সাথে সাথে ইমেইল পাঠান</span>
+                                </label>
+                                <span style="font-size:11px;color:#64748b;">প্রাপক: <strong>{{ $admission->email ?: ($admission->student?->email ?: 'নেই') }}</strong></span>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:10px;">
+                                <label style="font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;display:block;">ইমেইল বিষয় (Subject)</label>
+                                <input type="text" name="email_subject" id="approve_email_subject" class="form-control" oninput="this.dataset.edited='1'" style="height:34px;font-size:12.5px;font-family:'Kalpurush',sans-serif;">
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:8px;">
+                                <label style="font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;display:block;">ইমেইল বিস্তারিত বার্তা (Email Body)</label>
+                                <textarea name="email_body" id="approve_email_body" class="form-control" rows="8" oninput="this.dataset.edited='1'" style="font-size:12px;line-height:1.5;font-family:'Kalpurush',monospace;"></textarea>
+                            </div>
+
+                            {{-- Variable Insertion Badges --}}
+                            <div style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                <span>ট্যাগ যুক্ত করুন:</span>
+                                <span class="badge" onclick="insertTagIntoActive('email', '{name}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{name}</span>
+                                <span class="badge" onclick="insertTagIntoActive('email', '{course}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{course}</span>
+                                <span class="badge" onclick="insertTagIntoActive('email', '{batch}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{batch}</span>
+                                <span class="badge" onclick="insertTagIntoActive('email', '{roll}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{roll}</span>
+                                <span class="badge" onclick="insertTagIntoActive('email', '{password}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{password}</span>
+                                <span class="badge" onclick="insertTagIntoActive('email', '{login_url}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{login_url}</span>
+                            </div>
+                        </div>
+
+                        {{-- SMS Tab Content --}}
+                        <div id="tabContentSms" style="display:none;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                                <label class="form-check" style="cursor:pointer;margin-bottom:0;display:inline-flex;align-items:center;gap:6px;">
+                                    <input type="checkbox" name="send_sms" id="approve_send_sms" value="1" {{ !empty($admission->phone || $admission->student?->phone) ? 'checked' : '' }} style="width:16px;height:16px;accent-color:#047857;">
+                                    <span style="font-size:12px;font-weight:600;color:#0f172a;">অনুমোদনের সাথে সাথে এসএমএস পাঠান</span>
+                                </label>
+                                <span style="font-size:11px;color:#64748b;">প্রাপক: <strong>{{ $admission->phone ?: ($admission->student?->phone ?: 'নেই') }}</strong></span>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:8px;">
+                                <label style="font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;display:block;">এসএমএস বার্তা (SMS Body)</label>
+                                <textarea name="sms_body" id="approve_sms_body" class="form-control" rows="4" oninput="this.dataset.edited='1';updateSmsCharCounter()" style="font-size:12px;line-height:1.5;font-family:'Kalpurush',monospace;"></textarea>
+                            </div>
+
+                            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                                <div style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                    <span>ট্যাগ যুক্ত করুন:</span>
+                                    <span class="badge" onclick="insertTagIntoActive('sms', '{name}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{name}</span>
+                                    <span class="badge" onclick="insertTagIntoActive('sms', '{course}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{course}</span>
+                                    <span class="badge" onclick="insertTagIntoActive('sms', '{batch}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{batch}</span>
+                                    <span class="badge" onclick="insertTagIntoActive('sms', '{roll}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{roll}</span>
+                                    <span class="badge" onclick="insertTagIntoActive('sms', '{password}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{password}</span>
+                                    <span class="badge" onclick="insertTagIntoActive('sms', '{login_url}')" style="cursor:pointer;background:#e2e8f0;color:#0f172a;font-family:monospace;padding:2px 6px;">+{login_url}</span>
+                                </div>
+                                <div id="smsCharCounter" style="font-size:11.5px;color:#047857;font-weight:600;">
+                                    ০ অক্ষর | ১ SMS
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Save As Template Checkbox --}}
+                        <div style="margin-top:14px;padding:10px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;">
+                            <label class="form-check" style="cursor:pointer;display:flex;align-items:flex-start;gap:8px;margin-bottom:0;">
+                                <input type="checkbox" name="save_template" id="approve_save_template" value="1" checked style="width:16px;height:16px;accent-color:#047857;margin-top:2px;">
+                                <div>
+                                    <strong style="color:#065f46;font-size:12.5px;">পরবর্তী ব্যবহারের জন্য এই টেমপ্লেটটি ব্যাচে সংরক্ষণ করুন (Save Template for Future Use)</strong>
+                                    <div style="font-size:11px;color:#047857;margin-top:1px;">
+                                        সক্রিয় রাখলে পরবর্তীতে এই ব্যাচের সকল নতুন শিক্ষার্থী ভর্তির ক্ষেত্রে আপনার বর্তমান এডিট করা নোটিফিকেশনটি স্বয়ংক্রিয়ভাবে ডিফল্ট টেমপ্লেট হিসেবে সংরক্ষিত থাকবে।
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="padding:14px 22px;border-top:1px solid #e2e8f0;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px;">
                     <button type="button" class="btn btn-outline" onclick="closeModal('approveModal')">বাতিল (Cancel)</button>
                     <button type="submit" class="btn btn-success" style="background:#047857;border-color:#047857;">
                         <i class="fa-solid fa-check"></i> অনুমোদন ও সক্রিয় করুন (Confirm &amp; Approve)
@@ -338,6 +475,153 @@
     </div>
 
     <script>
+    const BATCH_TEMPLATES = @json($batchTemplates ?? []);
+    const STUDENT_NAME = @json($admission->student?->name ?? $admission->applicant_name ?? 'সম্মানিত শিক্ষার্থী');
+    const STUDENT_PHONE = @json($admission->phone ?? $admission->student?->phone ?? '');
+    const STUDENT_EMAIL = @json($admission->email ?? $admission->student?->email ?? '');
+    const LOGIN_URL = @json(url('/login'));
+
+    let currentNotificationTab = 'email';
+
+    function switchNotificationTab(tab) {
+        currentNotificationTab = tab;
+        const tabBtnEmail = document.getElementById('tabBtnEmail');
+        const tabBtnSms = document.getElementById('tabBtnSms');
+        const tabContentEmail = document.getElementById('tabContentEmail');
+        const tabContentSms = document.getElementById('tabContentSms');
+
+        if (tab === 'email') {
+            if (tabContentEmail) tabContentEmail.style.display = 'block';
+            if (tabContentSms) tabContentSms.style.display = 'none';
+            if (tabBtnEmail) {
+                tabBtnEmail.style.borderColor = '#047857';
+                tabBtnEmail.style.color = '#047857';
+                tabBtnEmail.style.fontWeight = '700';
+            }
+            if (tabBtnSms) {
+                tabBtnSms.style.borderColor = 'transparent';
+                tabBtnSms.style.color = '#64748b';
+                tabBtnSms.style.fontWeight = '600';
+            }
+        } else {
+            if (tabContentEmail) tabContentEmail.style.display = 'none';
+            if (tabContentSms) tabContentSms.style.display = 'block';
+            if (tabBtnSms) {
+                tabBtnSms.style.borderColor = '#047857';
+                tabBtnSms.style.color = '#047857';
+                tabBtnSms.style.fontWeight = '700';
+            }
+            if (tabBtnEmail) {
+                tabBtnEmail.style.borderColor = 'transparent';
+                tabBtnEmail.style.color = '#64748b';
+                tabBtnEmail.style.fontWeight = '600';
+            }
+            updateSmsCharCounter();
+        }
+    }
+
+    function insertTagIntoActive(target, tag) {
+        const textarea = target === 'email'
+            ? document.getElementById('approve_email_body')
+            : document.getElementById('approve_sms_body');
+        if (!textarea) return;
+
+        textarea.dataset.edited = '1';
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        textarea.value = text.substring(0, start) + tag + text.substring(end);
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+        if (target === 'sms') {
+            updateSmsCharCounter();
+        }
+    }
+
+    function updateSmsCharCounter() {
+        const textarea = document.getElementById('approve_sms_body');
+        const counter = document.getElementById('smsCharCounter');
+        if (!textarea || !counter) return;
+
+        const val = textarea.value;
+        const len = val.length;
+        const isNonAscii = /[^\u0000-\u007F]/.test(val);
+        const limitPerSms = isNonAscii ? 70 : 160;
+        const parts = len > 0 ? Math.ceil(len / (isNonAscii && len > 70 ? 67 : limitPerSms)) : 1;
+
+        counter.innerHTML = `${len} অক্ষর | <strong>${parts} SMS</strong> (${isNonAscii ? 'বাংলা / ইউনিকোড' : 'ইংরেজি'})`;
+    }
+
+    function populateTemplateForSelectedBatch(forceReset = false) {
+        const batchSelect = document.getElementById('approve_batch_id');
+        const batchId = batchSelect ? batchSelect.value : null;
+        if (!batchId || !BATCH_TEMPLATES[batchId]) return;
+
+        const b = BATCH_TEMPLATES[batchId];
+        const customPassword = document.getElementById('approve_custom_password')?.value.trim();
+
+        let emailTpl = b.email_template || '';
+        let smsTpl = b.sms_template || '';
+
+        // Replace placeholders with real student & course data
+        const replaceMap = {
+            '{name}': STUDENT_NAME,
+            '{course}': b.course_name,
+            '{batch}': b.name,
+            '{login_url}': LOGIN_URL,
+        };
+
+        for (const [key, val] of Object.entries(replaceMap)) {
+            emailTpl = emailTpl.split(key).join(val);
+            smsTpl = smsTpl.split(key).join(val);
+        }
+
+        if (customPassword) {
+            emailTpl = emailTpl.split('{password}').join(customPassword);
+            smsTpl = smsTpl.split('{password}').join(customPassword);
+        }
+
+        const emailSubjectInput = document.getElementById('approve_email_subject');
+        const emailBodyInput = document.getElementById('approve_email_body');
+        const smsBodyInput = document.getElementById('approve_sms_body');
+
+        if (emailSubjectInput && (forceReset || !emailSubjectInput.dataset.edited)) {
+            emailSubjectInput.value = `🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — ${STUDENT_NAME} (${b.course_name})`;
+            if (forceReset) delete emailSubjectInput.dataset.edited;
+        }
+        if (emailBodyInput && (forceReset || !emailBodyInput.dataset.edited)) {
+            emailBodyInput.value = emailTpl;
+            if (forceReset) delete emailBodyInput.dataset.edited;
+        }
+        if (smsBodyInput && (forceReset || !smsBodyInput.dataset.edited)) {
+            smsBodyInput.value = smsTpl;
+            if (forceReset) delete smsBodyInput.dataset.edited;
+            updateSmsCharCounter();
+        }
+    }
+
+    function onApproveBatchChange() {
+        populateTemplateForSelectedBatch(false);
+    }
+
+    function onCustomPasswordInput() {
+        // Dynamic template update if custom password changes and not manually overwritten
+    }
+
+    function generateApprovePassword() {
+        const chars = 'abcdefghjkmnpqrstuvwxyz23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let res = '';
+        for (let i = 0; i < 8; i++) {
+            res += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const input = document.getElementById('approve_custom_password');
+        if (input) {
+            input.value = res;
+            input.select();
+        }
+        populateTemplateForSelectedBatch(false);
+    }
+
     function onApproveCourseChange(courseSelect) {
         const courseId = courseSelect.value;
         const batchSelect = document.getElementById('approve_batch_id');
@@ -360,12 +644,16 @@
         } else {
             batchSelect.value = '';
         }
+        populateTemplateForSelectedBatch(false);
     }
+
     document.addEventListener('DOMContentLoaded', function() {
         const courseSelect = document.getElementById('approve_course_id');
         if (courseSelect) {
             onApproveCourseChange(courseSelect);
         }
+        populateTemplateForSelectedBatch(false);
+        updateSmsCharCounter();
     });
     </script>
 

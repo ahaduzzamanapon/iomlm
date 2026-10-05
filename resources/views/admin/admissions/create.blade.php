@@ -21,7 +21,7 @@
     @endif
 
     <div class="alert alert-info" style="margin-bottom:20px;font-family:'Kalpurush',sans-serif;line-height:1.7;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46">
-        <i class="fa-solid fa-circle-info"></i> <strong>প্রোফাইল নীতি:</strong> ভর্তির সময় শুধুমাত্র মৌলিক আবশ্যকীয় তথ্যগুলো পূরণ করুন। ভর্তি অনুমোদনের পর শিক্ষার্থী তার স্টুডেন্ট পোর্টালে লগইন করে বিস্তারিত ঠিকানা, অভিভাবক ও পূর্ববর্তী শিক্ষাগত তথ্য দিয়ে প্রোফাইল <strong>৯৫% সম্পন্ন</strong> করবেন।
+        <i class="fa-solid fa-circle-info"></i> <strong>ম্যানুয়াল ভর্তি ও আইডি জেনারেশন:</strong> ভর্তির সময় কোর্স ও ব্যাচ নির্বাচন করে সংরক্ষণ করলে শিক্ষার্থীর <strong>অফিসিয়াল স্টুডেন্ট আইডি (YYBBCCGRRRR)</strong> এবং স্টুডেন্ট পোর্টালের <strong>র‍্যান্ডম পাসওয়ার্ড</strong> তাৎক্ষণিকভাবে তৈরি হয়ে যাবে।
     </div>
 
     <form method="POST" action="{{ route('admin.admissions.store') }}">
@@ -47,15 +47,16 @@
                     </div>
 
                     <div class="form-group">
-                        <label>টার্গেট ব্যাচ</label>
+                        <label>টার্গেট ব্যাচ <span class="required">*</span></label>
                         <select name="batch_id" id="batch_id" class="form-control">
-                            <option value="">-- ব্যাচ নির্বাচন করুন (ঐচ্ছিক) --</option>
+                            <option value="">-- ব্যাচ নির্বাচন করুন --</option>
                             @foreach($activeBatches as $b)
                                 <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ old('batch_id') == $b->id ? 'selected' : '' }}>
                                     {{ $b->name }} ({{ $b->batch_code }})
                                 </option>
                             @endforeach
                         </select>
+                        <small style="color:#047857;font-size:11px">ব্যাচ নির্বাচন করলে তাৎক্ষণিক স্টুডেন্ট আইডি জেনারেট হবে</small>
                     </div>
 
                     <div class="form-group">

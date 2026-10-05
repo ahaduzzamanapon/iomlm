@@ -470,6 +470,26 @@
                             <span class="detail-value">{{ $student->email ?? ($student->user?->email ?? '—') }}</span>
                         </div>
                         <div class="detail-row">
+                            <span class="detail-label">লগইন পাসওয়ার্ড:</span>
+                            <span class="detail-value" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                                @if($student->temporary_password)
+                                    <span id="studentPassMasked" style="font-family:monospace;letter-spacing:2px;font-size:14px;color:#334155;font-weight:700">••••••••</span>
+                                    <span id="studentPassPlain" style="display:none;font-family:monospace;font-weight:700;color:#0f172a;background:#f1f5f9;padding:2px 8px;border-radius:4px;border:1px solid #cbd5e1;letter-spacing:1px">{{ $student->temporary_password }}</span>
+                                    <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:11px;color:#475569;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer" onclick="toggleDetailPasswordView()" title="পাসওয়ার্ড দেখুন/লুকান">
+                                        <i id="studentPassEyeIcon" class="fa-solid fa-eye"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:11px;color:#475569;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer" onclick="copyStudentPassword('{{ $student->temporary_password }}', this)" title="কপি করুন">
+                                        <i class="fa-solid fa-copy"></i>
+                                    </button>
+                                @else
+                                    <span style="color:#94a3b8;font-size:13px">এনক্রিপ্টেড</span>
+                                @endif
+                                <button type="button" class="btn btn-sm" style="padding:2px 8px;font-size:11px;background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:4px;cursor:pointer;margin-left:4px" onclick="openModal('passwordResetModal')" title="পাসওয়ার্ড রিসেট করুন">
+                                    <i class="fa-solid fa-key"></i> রিসেট
+                                </button>
+                            </span>
+                        </div>
+                        <div class="detail-row">
                             <span class="detail-label">জন্ম তারিখ:</span>
                             <span class="detail-value">{{ $student->date_of_birth ? \Carbon\Carbon::parse($student->date_of_birth)->format('d M Y') : '—' }}</span>
                         </div>
@@ -1064,35 +1084,55 @@
 
     {{-- 2. Password View & Reset Modal --}}
     <div id="passwordResetModal" class="admin-modal-overlay" onclick="if(event.target===this) closeModal('passwordResetModal')">
-        <div class="admin-modal-box" style="max-width:480px">
+        <div class="admin-modal-box" style="max-width:500px">
             <form method="POST" action="{{ route('admin.students.reset-password', $student) }}">
                 @csrf
                 <div class="admin-modal-header">
                     <h3 class="admin-modal-title">
-                        <i class="fa-solid fa-key" style="color:#d97706"></i> পাসওয়ার্ড রিসেট করুন
+                        <i class="fa-solid fa-key" style="color:#d97706"></i> পাসওয়ার্ড দেখুন ও রিসেট করুন
                     </h3>
                     <button type="button" class="btn btn-outline" style="border:none;font-size:18px;cursor:pointer" onclick="closeModal('passwordResetModal')">&times;</button>
                 </div>
                 <div class="admin-modal-body">
-                    <div style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:16px;font-size:13px">
-                        <div>স্টুডেন্ট আইডি: <strong>{{ str_replace('-', '', $student->student_code ?? '—') }}</strong></div>
-                        <div>লগইন ইউজারনেম/ইমেইল: <strong>{{ $student->email ?: ($student->student_code . '@iom.student') }}</strong></div>
+                    <div style="background:#f8fafc;padding:14px 16px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:16px;font-size:13px">
+                        <div style="margin-bottom:6px">স্টুডেন্ট আইডি: <strong style="color:#2563eb">{{ str_replace('-', '', $student->student_code ?? '—') }}</strong></div>
+                        <div style="margin-bottom:8px">লগইন ইউজারনেম/ইমেইল: <strong>{{ $student->email ?: ($student->student_code . '@iom.student') }}</strong></div>
+                        <div style="display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px dashed #cbd5e1;flex-wrap:wrap">
+                            <span style="color:#475569;font-weight:600">বর্তমান পাসওয়ার্ড:</span>
+                            @if($student->temporary_password)
+                                <span id="modalCurrentPassMasked" style="font-family:monospace;letter-spacing:2px;font-weight:700;color:#0f172a">••••••••</span>
+                                <span id="modalCurrentPassPlain" style="display:none;font-family:monospace;font-weight:700;color:#0f172a;background:#fff;padding:2px 8px;border-radius:4px;border:1px solid #cbd5e1;letter-spacing:1px">{{ $student->temporary_password }}</span>
+                                <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:11px;color:#475569;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer" onclick="toggleModalCurrentPasswordView()" title="দেখুন/লুকান">
+                                    <i id="modalCurrentPassEye" class="fa-solid fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:11px;color:#475569;border:1px solid #cbd5e1;background:#fff;border-radius:4px;cursor:pointer" onclick="copyStudentPassword('{{ $student->temporary_password }}', this)" title="কপি করুন">
+                                    <i class="fa-solid fa-copy"></i> কপি
+                                </button>
+                            @else
+                                <span style="color:#94a3b8;font-size:12px">এনক্রিপ্টেড (দেখা সম্ভব নয়)</span>
+                            @endif
+                        </div>
                     </div>
 
                     <div style="margin-bottom:16px">
-                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">
-                            নতুন পাসওয়ার্ড লিখুন (New Password):
-                        </label>
-                        <input type="text" name="new_password" class="form-control" placeholder="খালি রাখলে ফোন নম্বর পাসওয়ার্ড হবে" minlength="6">
-                        <div style="font-size:12px;color:#64748b;margin-top:4px">
-                            পাসওয়ার্ড ফাঁকা রেখে সংরক্ষণ করলে শিক্ষার্থীর মোবাইল নম্বর (অথবা ডিফল্ট 'iom@1234') পাসওয়ার্ড হিসেবে সেট হবে।
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                            <label style="font-weight:600;font-size:13px;margin-bottom:0">
+                                নতুন পাসওয়ার্ড লিখুন (New Password):
+                            </label>
+                            <button type="button" class="btn btn-sm" style="background:#e0f2fe;color:#0284c7;border:1px solid #bae6fd;padding:2px 8px;font-size:12px;font-weight:600;border-radius:4px;cursor:pointer" onclick="generateRandomResetPassword()">
+                                <i class="fa-solid fa-arrows-rotate"></i> র্যান্ডম জেনারেট
+                            </button>
+                        </div>
+                        <input type="text" id="new_reset_password" name="new_password" class="form-control" placeholder="খালি রাখলে স্বয়ংক্রিয় র্যান্ডম পাসওয়ার্ড তৈরি হবে" minlength="6" style="font-family:monospace;letter-spacing:1px;font-size:14px">
+                        <div style="font-size:12px;color:#64748b;margin-top:6px;line-height:1.4">
+                            <i class="fa-solid fa-circle-info" style="color:#0284c7"></i> ফাঁকা রেখে সাবমিট করলে কিংবা "র্যান্ডম জেনারেট" চাপলে ৮ অক্ষরের সুরক্ষিত র্যান্ডম পাসওয়ার্ড তৈরি হবে এবং এডমিন তা সরাসরি দেখতে ও প্রয়োজনে পুনরায় পরিবর্তন করতে পারবেন।
                         </div>
                     </div>
                 </div>
                 <div class="admin-modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('passwordResetModal')">বন্ধ করুন</button>
                     <button type="submit" class="btn btn-primary" style="background:#d97706;border-color:#b45309">
-                        <i class="fa-solid fa-check"></i> পাসওয়ার্ড পরিবর্তন করুন
+                        <i class="fa-solid fa-check"></i> পাসওয়ার্ড আপডেট করুন
                     </button>
                 </div>
             </form>
@@ -1223,6 +1263,88 @@
                     modal.style.display = 'none';
                 }
             }
+        }
+
+        function toggleDetailPasswordView() {
+            const masked = document.getElementById('studentPassMasked');
+            const plain = document.getElementById('studentPassPlain');
+            const icon = document.getElementById('studentPassEyeIcon');
+            if (masked && plain && icon) {
+                if (plain.style.display === 'none') {
+                    plain.style.display = 'inline-block';
+                    masked.style.display = 'none';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    plain.style.display = 'none';
+                    masked.style.display = 'inline-block';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+
+        function toggleModalCurrentPasswordView() {
+            const masked = document.getElementById('modalCurrentPassMasked');
+            const plain = document.getElementById('modalCurrentPassPlain');
+            const icon = document.getElementById('modalCurrentPassEye');
+            if (masked && plain && icon) {
+                if (plain.style.display === 'none') {
+                    plain.style.display = 'inline-block';
+                    masked.style.display = 'none';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    plain.style.display = 'none';
+                    masked.style.display = 'inline-block';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            }
+        }
+
+        function generateRandomResetPassword() {
+            const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+            let pass = '';
+            for (let i = 0; i < 8; i++) {
+                pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            const input = document.getElementById('new_reset_password');
+            if (input) {
+                input.value = pass;
+                input.focus();
+            }
+        }
+
+        function copyStudentPassword(text, btn) {
+            if (!text) return;
+            const originalHtml = btn.innerHTML;
+            const showSuccess = () => {
+                btn.innerHTML = '<i class="fa-solid fa-check" style="color:#16a34a"></i> কপিড!';
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            };
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(showSuccess).catch(() => {
+                    fallbackCopy(text, showSuccess);
+                });
+            } else {
+                fallbackCopy(text, showSuccess);
+            }
+        }
+
+        function fallbackCopy(text, cb) {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            temp.style.position = 'fixed';
+            temp.style.opacity = '0';
+            document.body.appendChild(temp);
+            temp.select();
+            try {
+                document.execCommand('copy');
+                if (cb) cb();
+            } catch (err) {}
+            document.body.removeChild(temp);
         }
 
         // Close modal on click outside box

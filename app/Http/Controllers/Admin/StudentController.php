@@ -363,7 +363,9 @@ class StudentController extends Controller
             'new_password' => 'nullable|string|min:6',
         ]);
 
-        $newPassword = $request->filled('new_password') ? trim($request->new_password) : ($student->phone ?: 'iom@1234');
+        $newPassword = $request->filled('new_password')
+            ? trim($request->new_password)
+            : strtolower(\Illuminate\Support\Str::random(8));
 
         $user = $student->user;
         if (!$user) {
@@ -377,11 +379,13 @@ class StudentController extends Controller
                 ]
             );
             $student->user_id = $user->id;
-            $student->save();
         } else {
             $user->password = Hash::make($newPassword);
             $user->save();
         }
+
+        $student->temporary_password = $newPassword;
+        $student->save();
 
         \App\Models\AuditLog::log(
             'password_reset',

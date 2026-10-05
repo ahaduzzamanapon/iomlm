@@ -538,7 +538,7 @@ class PaymentGatewayService
                 $student->user_id = $user->id;
                 $student->save();
             } else {
-                $tempPassword = $student->phone ?: 'iom@1234';
+                $tempPassword = strtolower(\Illuminate\Support\Str::random(8));
                 $rawPassword = $tempPassword;
 
                 if (User::where('email', $loginEmail)->exists()) {
@@ -553,6 +553,7 @@ class PaymentGatewayService
                 ]);
 
                 $student->user_id = $user->id;
+                $student->temporary_password = $tempPassword;
                 $student->save();
             }
         } else {

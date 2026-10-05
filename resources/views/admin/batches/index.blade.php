@@ -145,7 +145,12 @@
                             @endif
                         </td>
                         <td>
-                            <div class="td-muted">{{ \Carbon\Carbon::parse($batch->start_date)->format('d M Y') }}</div>
+                            <div class="td-muted">
+                                <strong>{{ \Carbon\Carbon::parse($batch->start_date)->format('d M Y') }}</strong>
+                                @if($batch->expected_end_date)
+                                    — {{ \Carbon\Carbon::parse($batch->expected_end_date)->format('d M Y') }}
+                                @endif
+                            </div>
                             <div style="font-size:11.5px;color:#047857;margin-top:2px" title="মেয়াদ সাইকেল">
                                 <i class="fa-solid fa-calendar-days"></i> {{ $batch->duration_cycle_text }}
                             </div>
@@ -253,8 +258,12 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Batch Start Date <span class="required">*</span></label>
+                            <label>Batch Start Date (শুরুর তারিখ) <span class="required">*</span></label>
                             <input type="date" name="start_date" class="form-control" value="{{ old('start_date', date('Y-m-d')) }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Batch End Date (সমাপ্তির তারিখ)</label>
+                            <input type="date" name="expected_end_date" class="form-control" value="{{ old('expected_end_date') }}">
                         </div>
                     </div>
 
@@ -359,8 +368,12 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Batch Start Date <span class="required">*</span></label>
+                            <label>Batch Start Date (শুরুর তারিখ) <span class="required">*</span></label>
                             <input type="date" name="start_date" id="eb_start_date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Batch End Date (সমাপ্তির তারিখ)</label>
+                            <input type="date" name="expected_end_date" id="eb_expected_end_date" class="form-control">
                         </div>
                     </div>
 
@@ -442,6 +455,7 @@
             course_id: {{ $b->course_id }},
             academic_year_id: @json($b->academic_year_id),
             start_date: @json(\Carbon\Carbon::parse($b->start_date)->format('Y-m-d')),
+            expected_end_date: @json($b->expected_end_date ? \Carbon\Carbon::parse($b->expected_end_date)->format('Y-m-d') : ''),
             start_month: @json($b->start_month),
             end_month: @json($b->end_month),
             fee_start_month: @json($b->fee_start_month),
@@ -461,6 +475,7 @@
         document.getElementById('eb_course_id').value = b.course_id;
         document.getElementById('eb_academic_year_id').value = b.academic_year_id || '';
         document.getElementById('eb_start_date').value = b.start_date;
+        document.getElementById('eb_expected_end_date').value = b.expected_end_date || '';
         document.getElementById('eb_start_month').value = b.start_month || '';
         document.getElementById('eb_end_month').value = b.end_month || '';
         document.getElementById('eb_fee_start_month').value = b.fee_start_month || '';

@@ -1,10 +1,33 @@
 <x-admin-layout>
     <x-slot name="title">শিক্ষার্থী তালিকা ও ডিরেক্টরি (Students Directory)</x-slot>
 
+    @push('styles')
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    @endpush
+
     <style>
         /* Bangladeshi Context & Kalpurush Font */
-        .student-roster, .student-roster * {
+        .student-roster {
             font-family: 'Kalpurush', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .student-roster input,
+        .student-roster select,
+        .student-roster textarea,
+        .student-roster button {
+            font-family: 'Kalpurush', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* Protect FontAwesome & Icon fonts from text font inheritance */
+        .student-roster i[class*="fa-"],
+        .student-roster .fa,
+        .student-roster .fas,
+        .student-roster .far,
+        .student-roster .fab,
+        .student-roster .fa-solid,
+        .student-roster .fa-regular,
+        .student-roster .fa-brands {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "FontAwesome" !important;
+            font-style: normal;
         }
 
         .student-header {

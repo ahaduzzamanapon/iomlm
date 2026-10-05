@@ -257,8 +257,84 @@ class AdmissionController extends Controller
                 ]);
             }
 
+            // ── Auto-Admit & Generate Student ID for Manual Admissions ──
+            $targetBatchId = !empty($validated['batch_id']) ? (int) $validated['batch_id'] : null;
+            if (!$targetBatchId) {
+                $targetBatchId = Batch::where('course_id', (int) $validated['interested_course_id'])
+                    ->where('status', 'ACTIVE')
+                    ->value('id');
+            }
+
+            if ($targetBatchId) {
+                $batch = Batch::findOrFail($targetBatchId);
+                $course = $batch->course ?: Course::find($validated['interested_course_id']);
+
+                // Generate Student ID (YY-BB-CC-G-RRRR)
+                if (empty($student->student_code)) {
+                    $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
+                }
+                $student->status = 'ACTIVE';
+
+                // Auto-create / Retrieve User login
+                $rawPassword = strtolower(\Illuminate\Support\Str::random(8));
+                $student->temporary_password = $rawPassword;
+
+                if (empty($student->user_id)) {
+                    $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
+                    $user = User::where('email', $loginEmail)->first();
+                    if (!$user) {
+                        $user = User::create([
+                            'name'     => $student->name,
+                            'email'    => $loginEmail,
+                            'password' => Hash::make($rawPassword),
+                            'role'     => 'student',
+                        ]);
+                    } else {
+                        $user->password = Hash::make($rawPassword);
+                        $user->save();
+                    }
+                    $student->user_id = $user->id;
+                } else {
+                    $user = $student->user;
+                    if ($user) {
+                        $user->password = Hash::make($rawPassword);
+                        $user->save();
+                    }
+                }
+                $student->save();
+
+                // Update form to APPROVED
+                $form->update([
+                    'status'      => 'APPROVED',
+                    'batch_id'    => $batch->id,
+                    'reviewed_by' => auth()->id(),
+                    'reviewed_at' => now(),
+                ]);
+
+                // Initial Semester & Enrollment
+                $initialSemester = $batch->semesterPosition?->currentSemester
+                    ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
+
+                $enrollment = Enrollment::create([
+                    'student_id'        => $student->id,
+                    'batch_id'          => $batch->id,
+                    'course_id'         => $batch->course_id,
+                    'semester_id'       => $batch->semesterPosition?->current_semester_id ?? $initialSemester?->id,
+                    'admission_form_id' => $form->id,
+                    'enrolled_at'       => now()->toDateString(),
+                    'status'            => 'ACTIVE',
+                ]);
+
+                // Auto-generate Invoices
+                \App\Services\AccountingService::createAdmissionInvoice($student, $form, $enrollment);
+                \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
+
+                return redirect()->route('admin.admissions.show', $form)
+                    ->with('success', "ম্যানুয়ালি শিক্ষার্থী সফলভাবে ভর্তি হয়েছে! স্টুডেন্ট আইডি: {$student->student_code}, পোর্টাল পাসওয়ার্ড: {$rawPassword}, ব্যাচ: {$batch->name}।");
+            }
+
             return redirect()->route('admin.admissions.show', $form)
-                ->with('success', 'Admission application created successfully (Source: Admin).');
+                ->with('success', 'ভর্তি আবেদন সফলভাবে সংরক্ষিত হয়েছে। ব্যাচ নির্ধারণ করে অনুমোদন সম্পন্ন করুন।');
         });
     }
 
@@ -270,16 +346,63 @@ class AdmissionController extends Controller
             ->get();
         $allCourses = Course::where('is_active', true)->with(['batches' => function($q) {
             $q->where('status', 'ACTIVE');
-        }])->orderBy('name')->get();
+        }])->orderByRaw('CAST(code AS UNSIGNED) ASC, code ASC')->get();
 
-        return view('admin.admissions.show', compact('admission', 'activeBatches', 'allCourses'));
+        $batchTemplates = [];
+        foreach ($allCourses as $c) {
+            foreach ($c->batches as $b) {
+                $batchTemplates[$b->id] = [
+                    'id'             => $b->id,
+                    'name'           => $b->name,
+                    'batch_code'     => $b->batch_code,
+                    'course_id'      => $c->id,
+                    'course_name'    => $c->name,
+                    'email_template' => $b->getEffectiveEmailTemplate(),
+                    'sms_template'   => $b->getEffectiveSmsTemplate(),
+                ];
+            }
+        }
+
+        foreach ($activeBatches as $b) {
+            if (!isset($batchTemplates[$b->id])) {
+                $batchTemplates[$b->id] = [
+                    'id'             => $b->id,
+                    'name'           => $b->name,
+                    'batch_code'     => $b->batch_code,
+                    'course_id'      => $b->course_id,
+                    'course_name'    => $b->course?->name ?? 'Course',
+                    'email_template' => $b->getEffectiveEmailTemplate(),
+                    'sms_template'   => $b->getEffectiveSmsTemplate(),
+                ];
+            }
+        }
+
+        if ($admission->batch && !isset($batchTemplates[$admission->batch->id])) {
+            $batchTemplates[$admission->batch->id] = [
+                'id'             => $admission->batch->id,
+                'name'           => $admission->batch->name,
+                'batch_code'     => $admission->batch->batch_code,
+                'course_id'      => $admission->batch->course_id,
+                'course_name'    => $admission->batch->course?->name ?? 'Course',
+                'email_template' => $admission->batch->getEffectiveEmailTemplate(),
+                'sms_template'   => $admission->batch->getEffectiveSmsTemplate(),
+            ];
+        }
+
+        return view('admin.admissions.show', compact('admission', 'activeBatches', 'allCourses', 'batchTemplates'));
     }
 
     public function approve(Request $request, AdmissionForm $admission)
     {
         $request->validate([
-            'batch_id'  => 'required|exists:batches,id',
-            'course_id' => 'nullable|exists:courses,id',
+            'batch_id'       => 'required|exists:batches,id',
+            'course_id'      => 'nullable|exists:courses,id',
+            'email_subject'  => 'nullable|string|max:255',
+            'email_body'     => 'nullable|string',
+            'sms_body'       => 'nullable|string|max:1000',
+            'send_email'     => 'nullable|boolean',
+            'send_sms'       => 'nullable|boolean',
+            'save_template'  => 'nullable|boolean',
         ]);
 
         return DB::transaction(function () use ($admission, $request) {
@@ -330,7 +453,12 @@ class AdmissionController extends Controller
             $student->calculateProfileCompletion();
 
             // ── AUTO-CREATE OR RETRIEVE USER ACCOUNT ──────────────────────
-            $rawPassword = $request->input('custom_password') ?: ($student->phone ?: 'iom@1234');
+            $rawPassword = $request->filled('custom_password')
+                ? trim($request->input('custom_password'))
+                : strtolower(\Illuminate\Support\Str::random(8));
+
+            $student->temporary_password = $rawPassword;
+
             if (empty($student->user_id)) {
                 $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
                 $user = User::where('email', $loginEmail)->first();
@@ -346,16 +474,20 @@ class AdmissionController extends Controller
                         'password' => Hash::make($rawPassword),
                         'role'     => 'student',
                     ]);
+                } else {
+                    $user->password = Hash::make($rawPassword);
+                    $user->save();
                 }
 
                 $student->user_id = $user->id;
                 $student->save();
             } else {
                 $user = $student->user;
-                if ($request->filled('custom_password')) {
+                if ($user) {
                     $user->password = Hash::make($rawPassword);
                     $user->save();
                 }
+                $student->save();
             }
 
             // Update Admission Form with Reviewer ID (Admin Audit)
@@ -385,10 +517,8 @@ class AdmissionController extends Controller
             \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
 
             // ── DISPATCH BATCH-SPECIFIC ADMISSION APPROVAL EMAIL & SMS ───
-            $emailTpl = $batch->getEffectiveEmailTemplate();
-            $smsTpl   = $batch->getEffectiveSmsTemplate();
-
-            $courseName = $admission->interestedCourse->name ?? 'Islamic Online Madrasah';
+            $course = $batch->course ?: Course::find($batch->course_id);
+            $courseName = $course->name ?? 'Islamic Online Madrasah';
             $loginUrl   = url('/login');
 
             $replaceVars = [
@@ -401,32 +531,76 @@ class AdmissionController extends Controller
                 '{login_url}'  => $loginUrl,
             ];
 
-            $compiledEmailBody = str_replace(array_keys($replaceVars), array_values($replaceVars), $emailTpl);
-            $compiledSmsBody   = str_replace(array_keys($replaceVars), array_values($replaceVars), $smsTpl);
+            // Use customized content from request or fallback to batch defaults
+            $rawEmailBody = $request->filled('email_body')
+                ? $request->input('email_body')
+                : $batch->getEffectiveEmailTemplate();
 
-            // Log SMS dispatch
-            \Illuminate\Support\Facades\Log::info("ADMISSION_CONFIRMATION_SMS to {$student->phone}: {$compiledSmsBody}");
+            $rawSmsBody = $request->filled('sms_body')
+                ? $request->input('sms_body')
+                : $batch->getEffectiveSmsTemplate();
 
-            $targetEmail = $student->email ?: ($user ? $user->email : null);
-            if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
-                try {
-                    $mailService = app(\App\Services\DynamicMailService::class);
-                    $subject = "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";
-                    $mailService->sendHtmlNotification(
-                        $targetEmail,
-                        $subject,
-                        $compiledEmailBody,
-                        null,
-                        $loginUrl
-                    );
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Admission Approval Email Exception: ' . $e->getMessage());
+            $defaultSubject = "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";
+            $rawSubject = $request->filled('email_subject')
+                ? $request->input('email_subject')
+                : $defaultSubject;
+
+            $compiledEmailBody = str_replace(array_keys($replaceVars), array_values($replaceVars), $rawEmailBody);
+            $compiledSmsBody   = str_replace(array_keys($replaceVars), array_values($replaceVars), $rawSmsBody);
+            $compiledSubject   = str_replace(array_keys($replaceVars), array_values($replaceVars), $rawSubject);
+
+            // Save template for future use in this batch if requested
+            if ($request->boolean('save_template', true) && $request->filled('email_body')) {
+                $generalizeVars = [
+                    $student->name             => '{name}',
+                    $admission->applicant_name => '{name}',
+                    $student->student_code     => '{roll}',
+                    $rawPassword               => '{password}',
+                    $courseName                => '{course}',
+                    $batch->name               => '{batch}',
+                    $loginUrl                  => '{login_url}',
+                ];
+
+                $generalizeVars = array_filter($generalizeVars, fn($k) => !empty($k), ARRAY_FILTER_USE_KEY);
+
+                $templateEmail = str_replace(array_keys($generalizeVars), array_values($generalizeVars), $request->input('email_body'));
+                $templateSms   = str_replace(array_keys($generalizeVars), array_values($generalizeVars), $request->input('sms_body'));
+
+                $batch->email_template = $templateEmail;
+                if ($request->filled('sms_body')) {
+                    $batch->sms_template = $templateSms;
+                }
+                $batch->save();
+            }
+
+            // Log / Send SMS dispatch
+            if ($request->boolean('send_sms', true)) {
+                \Illuminate\Support\Facades\Log::info("ADMISSION_CONFIRMATION_SMS to {$student->phone}: {$compiledSmsBody}");
+            }
+
+            // Dispatch Email
+            if ($request->boolean('send_email', true)) {
+                $targetEmail = $student->email ?: ($user ? $user->email : null);
+                if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+                    try {
+                        $mailService = app(\App\Services\DynamicMailService::class);
+                        $mailService->sendHtmlNotification(
+                            $targetEmail,
+                            $compiledSubject,
+                            $compiledEmailBody,
+                            null,
+                            $loginUrl
+                        );
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Admission Approval Email Exception: ' . $e->getMessage());
+                    }
                 }
             }
 
             $loginInfo = "Student ID: {$student->student_code} | Login Email: {$user->email} | Password: {$rawPassword}";
+            $templateSavedNotice = $request->boolean('save_template', true) ? ' 💾 পরবর্তী ব্যবহারের জন্য ব্যাচ টেমপ্লেট সংরক্ষিত হয়েছে।' : '';
 
-            return back()->with('success', "ভর্তি সফলভাবে অনুমোদিত হয়েছে! স্টুডেন্ট আইডি: {$student->student_code}, ব্যাচ: {$batch->name}। 🔑 {$loginInfo} 📧 ব্যাচ টেমপ্লেট অনুযায়ী কনফার্মেশন মেসেজ প্রেরিত হয়েছে।");
+            return back()->with('success', "ভর্তি সফলভাবে অনুমোদিত হয়েছে! স্টুডেন্ট আইডি: {$student->student_code}, ব্যাচ: {$batch->name}। 🔑 {$loginInfo} 📧 কনফার্মেশন নোটিফিকেশন প্রক্রিয়াকৃত হয়েছে।{$templateSavedNotice}");
         });
     }
 

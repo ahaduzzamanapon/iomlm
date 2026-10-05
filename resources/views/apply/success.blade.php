@@ -209,7 +209,30 @@
         </tr>
         @endif
         @endif
+
+        @if($form->manual_trx_id)
+        <tr>
+            <td>পেমেন্ট মাধ্যম (মার্চেন্ট):</td>
+            <td><strong>{{ $form->manual_payment_method ?? 'বিকাশ / নগদ / রকেট / ব্যাংক' }}</strong></td>
+        </tr>
+        <tr>
+            <td>ট্রাঞ্জেকশন আইডি (TrxID):</td>
+            <td><strong style="font-family:monospace;color:#047857;letter-spacing:1px;font-size:15px">{{ $form->manual_trx_id }}</strong></td>
+        </tr>
+        @if($form->manual_sender_phone)
+        <tr>
+            <td>প্রেরক নম্বর:</td>
+            <td>{{ $form->manual_sender_phone }}</td>
+        </tr>
+        @endif
+        @endif
     </table>
+
+    @if($form->manual_trx_id && $form->status !== 'APPROVED')
+    <div class="note" style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46">
+        <i class="fa-solid fa-circle-check"></i> <strong>মার্চেন্ট পেমেন্ট যাচাই প্রক্রিয়াধীন:</strong> আপনার প্রদত্ত ট্রাঞ্জেকশন আইডি (<strong>{{ $form->manual_trx_id }}</strong>) অফিস কর্তৃপক্ষ যাচাই করে দ্রুত ভর্তি নিশ্চিত করবে এবং আপনার মোবাইল ও ইমেইলে কনফার্মেশন পাঠানো হবে।
+    </div>
+    @endif
 
     {{-- Official Student Credentials Box (If Approved) --}}
     @if($form->status === 'APPROVED' && !empty($form->student->student_code))

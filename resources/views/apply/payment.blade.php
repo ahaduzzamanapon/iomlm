@@ -457,7 +457,7 @@
             </div>
 
             {{-- Payment Gateways --}}
-            @if($sslActive || $bkashActive)
+            {{-- Payment Gateways & Manual Payment Options --}}
             <div class="payment-gateways-wrap" id="payment-gateways-wrap" style="{{ $netPayable > 0 ? '' : 'display:none;' }}">
                 <label style="font-weight:700;font-size:14px;color:#0f172a;display:flex;align-items:center;gap:6px;margin-bottom:8px">
                     <i class="fa-solid fa-credit-card text-emerald-600"></i>
@@ -466,9 +466,9 @@
 
                 <div class="payment-grid">
                     @if($sslActive)
-                    <label class="payment-card {{ !$bkashActive || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
+                    <label class="payment-card {{ (!$bkashActive && old('payment_gateway') !== 'manual') || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
                         <input type="radio" name="payment_gateway" value="sslcommerz"
-                               {{ !$bkashActive || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'checked' : '' }}>
+                               {{ (!$bkashActive && old('payment_gateway') !== 'manual') || old('payment_gateway', 'sslcommerz') === 'sslcommerz' ? 'checked' : '' }}>
                         <div style="flex:1">
                             <div class="gateway-header">
                                 <img src="{{ asset('images/gateways/sslcommerz.png') }}" alt="SSLCommerz" class="gateway-img" style="height:26px;max-width:135px">
@@ -482,9 +482,9 @@
                     @endif
 
                     @if($bkashActive)
-                    <label class="payment-card {{ (!$sslActive || old('payment_gateway') === 'bkash') ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
+                    <label class="payment-card {{ ((!$sslActive && old('payment_gateway') !== 'manual') || old('payment_gateway') === 'bkash') ? 'selected' : '' }}" onclick="selectGatewayCard(this)">
                         <input type="radio" name="payment_gateway" value="bkash"
-                               {{ (!$sslActive || old('payment_gateway') === 'bkash') ? 'checked' : '' }}>
+                               {{ ((!$sslActive && old('payment_gateway') !== 'manual') || old('payment_gateway') === 'bkash') ? 'checked' : '' }}>
                         <div style="flex:1">
                             <div class="gateway-header">
                                 <img src="{{ asset('images/gateways/bkash.png') }}" alt="bKash" class="gateway-img" style="height:28px;max-width:100px">
@@ -496,16 +496,81 @@
                         </div>
                     </label>
                     @endif
+
+                    {{-- Prior Merchant Payment Option --}}
+                    <label class="payment-card {{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) ? 'selected' : '' }}" onclick="selectGatewayCard(this)" id="card-gateway-manual">
+                        <input type="radio" name="payment_gateway" value="manual" id="radio-gateway-manual"
+                               {{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) ? 'checked' : '' }}>
+                        <div style="flex:1">
+                            <div class="gateway-header">
+                                <span style="font-weight:700;color:#047857;display:flex;align-items:center;gap:6px;font-size:14px">
+                                    <i class="fa-solid fa-money-bill-transfer"></i> মার্চেন্ট নাম্বারে পূর্বেই পেমেন্ট করা থাকলে
+                                </span>
+                                <span class="gateway-tag" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0">ম্যানুয়াল TrxID</span>
+                            </div>
+                            <div class="gateway-desc">
+                                বিকাশ / নগদ / রকেট মার্চেন্ট বা ব্যাংকে আগে পেমেন্ট করা থাকলে ট্রাঞ্জেকশন আইডি (TrxID) দিয়ে সাবমিট করুন
+                            </div>
+                        </div>
+                    </label>
+                </div>
+
+                {{-- Manual Merchant Payment Fields --}}
+                <div id="manual-payment-details" style="{{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) ? 'display:block;' : 'display:none;' }}background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:16px;margin-top:14px;font-family:'Kalpurush',sans-serif">
+                    <div style="font-weight:700;color:#065f46;margin-bottom:6px;font-size:13.5px;display:flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-circle-info"></i> পূর্বে পরিশোধিত পেমেন্ট বিবরণী প্রদান করুন:
+                    </div>
+                    <div style="font-size:12px;color:#166534;margin-bottom:12px;line-height:1.6">
+                        আপনি যদি আমাদের অফিসিয়াল মার্চেন্ট নম্বর বা ব্যাংক অ্যাকাউন্টে ইতোমধ্যে ভর্তি ফি পাঠিয়ে থাকেন, তবে নিচের তথ্যগুলো প্রদান করুন। কর্তৃপক্ষ ট্রাঞ্জেকশন যাচাই করে আপনার ভর্তি নিশ্চিত করবে।
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:4px">
+                                পেমেন্ট মাধ্যম <span style="color:#ef4444">*</span>
+                            </label>
+                            <select name="manual_payment_method" id="manual_payment_method" class="form-control" style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                                <option value="bKash" {{ old('manual_payment_method') === 'bKash' ? 'selected' : '' }}>বিকাশ মার্চেন্ট (bKash)</option>
+                                <option value="Nagad" {{ old('manual_payment_method') === 'Nagad' ? 'selected' : '' }}>নগদ মার্চেন্ট (Nagad)</option>
+                                <option value="Rocket" {{ old('manual_payment_method') === 'Rocket' ? 'selected' : '' }}>রকেট (Rocket)</option>
+                                <option value="Bank Transfer" {{ old('manual_payment_method') === 'Bank Transfer' ? 'selected' : '' }}>ব্যাংক ডিপোজিট / ট্রান্সফার</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:4px">
+                                প্রেরক মোবাইল নম্বর <span style="color:#ef4444">*</span>
+                            </label>
+                            <input type="text" name="manual_sender_phone" id="manual_sender_phone" value="{{ old('manual_sender_phone', $form->student->phone ?? '') }}" placeholder="01XXXXXXXXX"
+                                   style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:12px">
+                        <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:4px">
+                            ট্রাঞ্জেকশন আইডি (TrxID) <span style="color:#ef4444">*</span>
+                        </label>
+                        <input type="text" name="manual_trx_id" id="manual_trx_id" value="{{ old('manual_trx_id') }}" placeholder="যেমন: 9A8B7C6D5E"
+                               style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;font-family:monospace;font-weight:700;background:#fff;text-transform:uppercase">
+                        <small style="color:#64748b;font-size:11px">পেমেন্ট নিশ্চিতকরণের এসএমএস থেকে প্রাপ্ত TrxID প্রদান করুন।</small>
+                    </div>
+
+                    <div class="form-group" style="margin:0">
+                        <label style="font-size:12px;font-weight:700;color:#0f172a;display:block;margin-bottom:4px">
+                            অতিরিক্ত বিবরণ বা রেফারেন্স (ঐচ্ছিক)
+                        </label>
+                        <input type="text" name="manual_payment_notes" id="manual_payment_notes" value="{{ old('manual_payment_notes') }}" placeholder="প্রয়োজনে কোনো নোট বা রেফারেন্স থাকলে লিখুন"
+                               style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                    </div>
                 </div>
             </div>
-            @endif
 
             {{-- Submit / Pay Button --}}
             <button type="submit" class="btn-pay" id="btn-pay-submit">
                 <i class="fa-solid fa-lock"></i>
                 <span id="btn-pay-text">
                     @if($netPayable > 0)
-                        ৳{{ number_format($netPayable, 0) }} পরিশোধ করে ভর্তি সম্পন্ন করুন
+                        {{ old('payment_gateway') === 'manual' ? 'পেমেন্ট তথ্য সাবমিট করে ভর্তি সম্পন্ন করুন' : '৳' . number_format($netPayable, 0) . ' পরিশোধ করে ভর্তি সম্পন্ন করুন' }}
                     @else
                         বিনামূল্যে ভর্তি সম্পন্ন করুন (১০০% স্কলারশিপ)
                     @endif
@@ -523,6 +588,7 @@
 let currentBaseFee = {{ (float)$baseFee }};
 let currentDiscountAmount = {{ (float)$discountAmount }};
 let waiverApprovedFee = null;
+let couponFixedDiscount = 0;
 let currentDiscountPercent = {{ (float)($form->discount_percent ?? 0) }};
 
 function selectGatewayCard(cardElement) {
@@ -530,6 +596,19 @@ function selectGatewayCard(cardElement) {
     cardElement.classList.add('selected');
     const radio = cardElement.querySelector('input[type="radio"]');
     if (radio) radio.checked = true;
+
+    const manualWrap = document.getElementById('manual-payment-details');
+    const payBtnText = document.getElementById('btn-pay-text');
+    if (radio && radio.value === 'manual') {
+        if (manualWrap) manualWrap.style.display = 'block';
+        if (payBtnText) payBtnText.innerText = 'পেমেন্ট তথ্য সাবমিট করে ভর্তি সম্পন্ন করুন';
+    } else {
+        if (manualWrap) manualWrap.style.display = 'none';
+        if (payBtnText) {
+            const net = Math.max(0, currentBaseFee - currentDiscountAmount);
+            payBtnText.innerText = '৳' + net.toFixed(0) + ' পরিশোধ করে ভর্তি সম্পন্ন করুন';
+        }
+    }
 }
 
 function applyWaiverCode() {
@@ -551,13 +630,25 @@ function applyWaiverCode() {
         .then(data => {
             if (data.valid) {
                 msg.style.color = '#047857';
-                let info = `✓ কুপন কোড সক্রিয় হয়েছে!`;
+                let info = data.message || `✓ কুপন কোড সক্রিয় হয়েছে!`;
 
-                if (data.approved_admission_fee !== null && (data.apply_for === 'ADMISSION_FEE' || data.apply_for === 'BOTH')) {
+                if (data.type === 'COUPON') {
+                    if (data.discount_type === 'PERCENT') {
+                        couponFixedDiscount = 0;
+                        waiverApprovedFee = null;
+                        currentDiscountPercent = parseFloat(data.discount_percent || data.discount_amount);
+                    } else {
+                        couponFixedDiscount = parseFloat(data.discount_amount);
+                        waiverApprovedFee = null;
+                        currentDiscountPercent = 0;
+                    }
+                } else if (data.approved_admission_fee !== null && (data.apply_for === 'ADMISSION_FEE' || data.apply_for === 'BOTH')) {
+                    couponFixedDiscount = 0;
                     waiverApprovedFee = parseFloat(data.approved_admission_fee);
                     currentDiscountPercent = 0;
                     info += ` (নির্ধারিত ভর্তি ফি: ৳${waiverApprovedFee})`;
                 } else if (data.discount_percent > 0) {
+                    couponFixedDiscount = 0;
                     waiverApprovedFee = null;
                     currentDiscountPercent = parseFloat(data.discount_percent);
                     info += ` (${currentDiscountPercent}% ছাড়)`;
@@ -569,6 +660,7 @@ function applyWaiverCode() {
                 msg.style.color = '#dc2626';
                 msg.innerText = data.message || 'কুপন কোডটি সঠিক নয় বা এই কোর্সে প্রযোজ্য নয়।';
                 waiverApprovedFee = null;
+                couponFixedDiscount = 0;
                 currentDiscountPercent = 0;
                 updateFees();
             }
@@ -581,7 +673,9 @@ function applyWaiverCode() {
 
 function updateFees() {
     let discount = 0.0;
-    if (waiverApprovedFee !== null) {
+    if (couponFixedDiscount > 0) {
+        discount = couponFixedDiscount;
+    } else if (waiverApprovedFee !== null) {
         const payable = Math.min(currentBaseFee, waiverApprovedFee);
         discount = Math.max(0, currentBaseFee - payable);
     } else if (currentDiscountPercent > 0) {
@@ -603,9 +697,14 @@ function updateFees() {
 
     const payBtnText = document.getElementById('btn-pay-text');
     const gatewayWrap = document.getElementById('payment-gateways-wrap');
+    const selectedRadio = document.querySelector('input[name="payment_gateway"]:checked');
 
     if (net > 0) {
-        payBtnText.innerText = '৳' + net.toFixed(0) + ' পরিশোধ করে ভর্তি সম্পন্ন করুন';
+        if (selectedRadio && selectedRadio.value === 'manual') {
+            payBtnText.innerText = 'পেমেন্ট তথ্য সাবমিট করে ভর্তি সম্পন্ন করুন';
+        } else {
+            payBtnText.innerText = '৳' + net.toFixed(0) + ' পরিশোধ করে ভর্তি সম্পন্ন করুন';
+        }
         if (gatewayWrap) gatewayWrap.style.display = 'block';
     } else {
         payBtnText.innerText = 'বিনামূল্যে ভর্তি সম্পন্ন করুন (১০০% স্কলারশিপ)';

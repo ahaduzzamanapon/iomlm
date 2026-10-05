@@ -14,7 +14,9 @@ class CourseController extends Controller
 {
     public function index()
     {
-        $courses = Course::with(['semesters', 'courseSubjectMaps.subject'])->latest()->get();
+        $courses = Course::with(['semesters', 'courseSubjectMaps.subject'])
+            ->orderByRaw('CAST(code AS UNSIGNED) ASC, code ASC')
+            ->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
         $departments = Course::defaultDepartments();
         $months = Course::monthsList();
@@ -25,20 +27,25 @@ class CourseController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:200',
-            'code'            => 'nullable|string|max:10',
+            'code'            => 'required|string|max:10|unique:courses,code',
             'department'      => 'nullable|string|max:100',
             'type'            => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
             'duration_value'  => 'required|numeric|min:0.5',
             'duration_unit'   => 'required|in:MONTH,YEAR',
-            'start_month'     => 'nullable|string|max:20',
-            'end_month'       => 'nullable|string|max:20',
             'fee_start_month' => 'nullable|string|max:20',
             'fee_end_month'   => 'nullable|string|max:20',
             'admission_fee'   => 'nullable|numeric|min:0',
             'readmission_fee' => 'nullable|numeric|min:0',
+        ], [
+            'code.required' => 'কোর্স কোড প্রদান করা আবশ্যক।',
+            'code.unique'   => 'এই কোর্স কোডটি ইতোমধ্যে ব্যবহৃত হয়েছে। প্রতিটি কোর্সের কোর্স কোড ইউনিক হতে হবে।',
         ]);
 
-        $code = $request->filled('code') ? str_pad(substr(preg_replace('/\D/', '', $request->input('code')), 0, 2), 2, '0', STR_PAD_LEFT) : null;
+        $code = str_pad(substr(preg_replace('/\D/', '', $validated['code']), 0, 2), 2, '0', STR_PAD_LEFT);
+        if (Course::where('code', $code)->exists()) {
+            return back()->withInput()->with('error', "কোর্স কোড '{$code}' ইতোমধ্যে অন্য একটি কোর্সে বিদ্যমান। ইউনিক কোড দিন।");
+        }
+
         $department = $request->input('department') ?: 'BA in Dawah and Islamic Studies';
 
         $course = Course::create([
@@ -48,8 +55,6 @@ class CourseController extends Controller
             'type'                    => $validated['type'],
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],
-            'start_month'             => $validated['start_month'] ?? null,
-            'end_month'               => $validated['end_month'] ?? null,
             'fee_start_month'         => $validated['fee_start_month'] ?? null,
             'fee_end_month'           => $validated['fee_end_month'] ?? null,
             'admission_fee'           => $validated['admission_fee'] ?? 0.00,
@@ -80,6 +85,7 @@ class CourseController extends Controller
             'courseSubjectMaps.subject',
             'courseSubjectMaps.semester',
             'feePackages.items.feeHead',
+            'coupons',
         ]);
         $availableSubjects = Subject::where('is_active', true)->orderBy('name')->get();
         $feeHeads = FeeHead::packageEligible()->orderBy('sort_order')->get();
@@ -115,20 +121,26 @@ class CourseController extends Controller
     {
         $validated = $request->validate([
             'name'            => 'required|string|max:200',
-            'code'            => 'nullable|string|max:10',
+            'code'            => ['required', 'string', 'max:10', \Illuminate\Validation\Rule::unique('courses', 'code')->ignore($course->id)],
             'department'      => 'nullable|string|max:100',
             'type'            => 'required|in:SUBJECT_BASED,SEMESTER_BASED',
             'duration_value'  => 'required|numeric|min:0.5',
             'duration_unit'   => 'required|in:MONTH,YEAR',
-            'start_month'     => 'nullable|string|max:20',
-            'end_month'       => 'nullable|string|max:20',
             'fee_start_month' => 'nullable|string|max:20',
             'fee_end_month'   => 'nullable|string|max:20',
             'admission_fee'   => 'nullable|numeric|min:0',
             'readmission_fee' => 'nullable|numeric|min:0',
+        ], [
+            'code.required' => 'কোর্স কোড প্রদান করা আবশ্যক।',
+            'code.unique'   => 'এই কোর্স কোডটি ইতোমধ্যে ব্যবহৃত হয়েছে। প্রতিটি কোর্সের কোর্স কোড ইউনিক হতে হবে।',
         ]);
 
-        $code = $request->filled('code') ? str_pad(substr(preg_replace('/\D/', '', $request->input('code')), 0, 2), 2, '0', STR_PAD_LEFT) : $course->code;
+        $code = str_pad(substr(preg_replace('/\D/', '', $validated['code']), 0, 2), 2, '0', STR_PAD_LEFT);
+        $duplicate = Course::where('code', $code)->where('id', '!=', $course->id)->exists();
+        if ($duplicate) {
+            return back()->withInput()->with('error', "কোর্স কোড '{$code}' ইতোমধ্যে অন্য একটি কোর্সে বিদ্যমান। ইউনিক কোড দিন।");
+        }
+
         $department = $request->filled('department') ? $request->input('department') : ($course->department ?: 'BA in Dawah and Islamic Studies');
 
         $course->update([
@@ -138,8 +150,6 @@ class CourseController extends Controller
             'type'                    => $validated['type'],
             'duration_value'          => $validated['duration_value'],
             'duration_unit'           => $validated['duration_unit'],
-            'start_month'             => $validated['start_month'] ?? null,
-            'end_month'               => $validated['end_month'] ?? null,
             'fee_start_month'         => $validated['fee_start_month'] ?? null,
             'fee_end_month'           => $validated['fee_end_month'] ?? null,
             'admission_fee'           => $validated['admission_fee'] ?? $course->admission_fee,

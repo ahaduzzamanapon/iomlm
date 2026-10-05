@@ -248,15 +248,12 @@ class AdmissionFormController extends Controller
         $waiverCode = null;
 
         if ($request->filled('waiver_code')) {
-            if (!$course->is_poor_fund_applicable) {
-                return back()->withInput()->with('error', 'দুঃখিত, "' . $course->name . '" কোর্সের জন্য পুওর ফান্ড বা স্কলারশিপ কোড প্রযোজ্য নয়।');
-            }
-
             $code = strtoupper(trim($request->input('waiver_code')));
             $altCode = str_starts_with($code, 'PF-')
                 ? str_replace('PF-', 'POOR-', $code)
                 : (str_starts_with($code, 'POOR-') ? str_replace('POOR-', 'PF-', $code) : $code);
 
+            // 1. Try matching an approved WaiverApplication (Poor Fund)
             $waiverApp = WaiverApplication::where(function ($q) use ($code, $altCode) {
                     $q->where('application_no', $code)->orWhere('application_no', $altCode);
                 })
@@ -267,6 +264,10 @@ class AdmissionFormController extends Controller
                 ->first();
 
             if ($waiverApp) {
+                if (!$course->is_poor_fund_applicable) {
+                    return back()->withInput()->with('error', 'দুঃখিত, "' . $course->name . '" কোর্সের জন্য পুওর ফান্ড বা স্কলারশিপ কোড প্রযোজ্য নয়।');
+                }
+
                 $waiverCode = $waiverApp->application_no;
                 if ($waiverApp->approved_admission_fee !== null && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
                     $approvedFee = (float) $waiverApp->approved_admission_fee;
@@ -282,7 +283,31 @@ class AdmissionFormController extends Controller
                     'admission_form_id' => $form->id,
                 ]);
             } else {
-                return back()->withInput()->with('error', 'প্রদত্ত কুপন বা ছাড় কোডটি সঠিক নয় অথবা ইতিমধ্যে ব্যবহৃত।');
+                // 2. Try matching a Course-wise Manual Coupon Code
+                $coupon = \App\Models\CourseCoupon::where('course_id', $course->id)
+                    ->where('code', $code)
+                    ->first();
+
+                if ($coupon) {
+                    $validation = $coupon->validateForCourse($course->id);
+                    if (!$validation['valid']) {
+                        return back()->withInput()->with('error', $validation['message']);
+                    }
+
+                    $waiverCode = $coupon->code;
+                    $discountAmount = $coupon->calculateDiscount($baseFee);
+
+                    if ($coupon->discount_type === 'PERCENT') {
+                        $discountPercent = (float) $coupon->discount_amount;
+                    } else {
+                        $discountPercent = $baseFee > 0 ? round(($discountAmount / $baseFee) * 100, 2) : 0;
+                    }
+
+                    // Increment coupon usage
+                    $coupon->increment('used_count');
+                } else {
+                    return back()->withInput()->with('error', 'প্রদত্ত কুপন বা ছাড় কোডটি সঠিক নয় অথবা মেয়াদোত্তীর্ণ/ব্যবহৃত।');
+                }
             }
         }
 
@@ -295,6 +320,33 @@ class AdmissionFormController extends Controller
         ]);
 
         $student = $form->student;
+
+        // Prior / Manual Merchant Payment Handling
+        if ($netPayable > 0 && $request->input('payment_gateway') === 'manual') {
+            $request->validate([
+                'manual_payment_method' => 'required|string|max:50',
+                'manual_trx_id'         => 'required|string|max:100',
+                'manual_sender_phone'   => 'required|string|max:30',
+                'manual_payment_notes'  => 'nullable|string|max:500',
+            ], [
+                'manual_payment_method.required' => 'পেমেন্ট মাধ্যম (বিকাশ/নগদ/রকেট/ব্যাংক) নির্বাচন করুন।',
+                'manual_trx_id.required'         => 'ট্রাঞ্জেকশন আইডি (TrxID) প্রদান করা আবশ্যক।',
+                'manual_sender_phone.required'   => 'যে নম্বর থেকে পেমেন্ট পাঠিয়েছেন সেই নম্বরটি লিখুন।',
+            ]);
+
+            $form->update([
+                'manual_payment_method' => $request->input('manual_payment_method'),
+                'manual_trx_id'         => strtoupper(trim($request->input('manual_trx_id'))),
+                'manual_sender_phone'   => trim($request->input('manual_sender_phone')),
+                'manual_payment_notes'  => $request->input('manual_payment_notes'),
+                'manual_payment_date'   => now(),
+                'status'                => 'PENDING',
+            ]);
+
+            return redirect()->route('apply.success', $form->application_no)
+                ->with('success', "আপনার পেমেন্ট তথ্য (TrxID: {$form->manual_trx_id}) সফলভাবে জমা নেওয়া হয়েছে! কর্তৃপক্ষ ট্রাঞ্জেকশন যাচাই করে আপনার ভর্তি অনুমোদন করবে।");
+        }
+
         $sslActive = PaymentGatewayService::isSslcommerzActive();
         $bkashActive = PaymentGatewayService::isBkashActive();
 

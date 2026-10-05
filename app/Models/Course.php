@@ -66,6 +66,11 @@ class Course extends Model
         return $this->hasOne(CourseFeePackage::class, 'course_id')->where('is_default', true);
     }
 
+    public function coupons()
+    {
+        return $this->hasMany(\App\Models\CourseCoupon::class, 'course_id')->latest();
+    }
+
     public function getFormattedCodeAttribute(): string
     {
         if (!empty($this->code)) {

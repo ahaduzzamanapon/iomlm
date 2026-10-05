@@ -20,6 +20,9 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::resource('academic-years', \App\Http\Controllers\Admin\AcademicYearController::class);
         Route::patch('academic-years/{academicYear}/toggle-status', [\App\Http\Controllers\Admin\AcademicYearController::class, 'toggleStatus'])->name('academic-years.toggle-status');
         Route::post('academic-years/{academicYear}/session', [\App\Http\Controllers\Admin\AcademicYearController::class, 'storeSession'])->name('academic-years.session.store');
+        Route::post('academic-years/sessions/direct', [\App\Http\Controllers\Admin\AcademicYearController::class, 'storeDirectSession'])->name('academic-years.session.store-direct');
+        Route::put('academic-years/sessions/{academicSession}', [\App\Http\Controllers\Admin\AcademicYearController::class, 'updateSession'])->name('academic-years.session.update');
+        Route::patch('academic-years/sessions/{academicSession}/toggle-status', [\App\Http\Controllers\Admin\AcademicYearController::class, 'toggleSessionStatus'])->name('academic-years.session.toggle-status');
         Route::delete('academic-years/sessions/{academicSession}', [\App\Http\Controllers\Admin\AcademicYearController::class, 'destroySession'])->name('academic-years.session.destroy');
         Route::resource('subject-categories', \App\Http\Controllers\Admin\SubjectCategoryController::class);
         Route::post('subjects/{subject}/clone', [\App\Http\Controllers\Admin\SubjectController::class, 'clone'])->name('subjects.clone');
@@ -248,6 +251,12 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::delete('courses/packages/items/{item}', [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'destroyItem'])->name('courses.packages.items.destroy');
         Route::post('courses/{course}/packages/from-template', [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'fromTemplate'])->name('courses.packages.from-template');
         Route::post('courses/{course}/packages/{package}/clone', [\App\Http\Controllers\Admin\CourseFeePackageController::class, 'clonePackage'])->name('courses.packages.clone');
+
+        // Course Coupons (Course-wise Manual Coupon Codes)
+        Route::post('courses/{course}/coupons', [\App\Http\Controllers\Admin\CourseCouponController::class, 'store'])->name('courses.coupons.store');
+        Route::put('courses/{course}/coupons/{coupon}', [\App\Http\Controllers\Admin\CourseCouponController::class, 'update'])->name('courses.coupons.update');
+        Route::patch('courses/{course}/coupons/{coupon}/toggle', [\App\Http\Controllers\Admin\CourseCouponController::class, 'toggleActive'])->name('courses.coupons.toggle');
+        Route::delete('courses/{course}/coupons/{coupon}', [\App\Http\Controllers\Admin\CourseCouponController::class, 'destroy'])->name('courses.coupons.destroy');
 
         // App Settings
         Route::get('app-settings', [\App\Http\Controllers\Admin\AppSettingController::class, 'index'])->name('app-settings.index');

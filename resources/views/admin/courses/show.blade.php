@@ -285,6 +285,127 @@
         </div>
     </div>
 
+    {{-- ════════════════════════════════════════════════════════
+         COURSE-WISE MANUAL COUPON CODE SECTION
+    ════════════════════════════════════════════════════════ --}}
+    <div class="card" style="margin-top:24px;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.04);font-family:'Kalpurush',sans-serif">
+        <div class="card-header" style="background:#fff;padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+                <span class="card-title" style="font-size:16px;font-weight:700;color:#0f172a;background:#fef08a;padding:3px 10px;border-radius:4px;display:inline-block">
+                    Course-wise Manual Coupon Code
+                </span>
+                <ul style="margin:10px 0 0 18px;font-size:13px;color:#334155;line-height:1.7">
+                    <li>প্রত্যেক Course-এর জন্য <strong>Manual Course Code/Coupon Code System</strong> থাকতে হবে।</li>
+                    <li>Admin নির্দিষ্ট Course-এর জন্য নিজে Coupon Code তৈরি করতে পারবেন।</li>
+                    <li>একটি Coupon Code শুধুমাত্র নির্ধারিত Course-এর জন্য প্রযোজ্য করা যাবে।</li>
+                    <li>Admin থেকে Discount Type/Amount/Percentage, Validity ও Usage Limit প্রয়োজন অনুযায়ী সেট করার ব্যবস্থা রাখা যেতে পারে।</li>
+                </ul>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="openModal('addCouponModal')" style="font-weight:600;font-size:13px;padding:8px 16px">
+                <i class="fa-solid fa-plus"></i> নতুন কুপন যোগ করুন
+            </button>
+        </div>
+
+        <div class="card-body" style="padding:20px;background:#fcfcfd">
+            @forelse($course->coupons as $coupon)
+            <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+                <form method="POST" action="{{ route('admin.courses.coupons.update', [$course, $coupon]) }}">
+                    @csrf
+                    @method('PUT')
+                    
+                    <div style="display:grid;grid-template-columns:minmax(140px, 1.5fr) minmax(130px, 1.2fr) minmax(100px, 1fr) minmax(140px, 1.2fr) minmax(140px, 1.2fr) auto auto;gap:12px;align-items:end">
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block">Code</label>
+                            <input type="text" name="code" value="{{ $coupon->code }}" required
+                                   style="font-family:monospace;font-weight:700;text-transform:uppercase;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;width:100%;font-size:13px">
+                        </div>
+
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block">Discount</label>
+                            <div style="display:flex;gap:4px">
+                                <input type="number" name="discount_amount" value="{{ (float)$coupon->discount_amount }}" min="0" step="0.01" required
+                                       style="padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;width:100%;font-size:13px;font-weight:600">
+                                <select name="discount_type" style="padding:8px 6px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;background:#f8fafc">
+                                    <option value="FIXED" {{ $coupon->discount_type === 'FIXED' ? 'selected' : '' }}>৳</option>
+                                    <option value="PERCENT" {{ $coupon->discount_type === 'PERCENT' ? 'selected' : '' }}>%</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block">Maximum Uses</label>
+                            <input type="number" name="max_uses" value="{{ $coupon->max_uses }}" min="1" placeholder="∞"
+                                   style="padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;width:100%;font-size:13px">
+                        </div>
+
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block">Starts At</label>
+                            <input type="date" name="starts_at" value="{{ $coupon->starts_at ? \Carbon\Carbon::parse($coupon->starts_at)->format('Y-m-d') : '' }}"
+                                   style="padding:7px 8px;border:1px solid #cbd5e1;border-radius:6px;width:100%;font-size:12px">
+                        </div>
+
+                        <div class="form-group" style="margin:0">
+                            <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block">Ends At</label>
+                            <input type="date" name="ends_at" value="{{ $coupon->ends_at ? \Carbon\Carbon::parse($coupon->ends_at)->format('Y-m-d') : '' }}"
+                                   style="padding:7px 8px;border:1px solid #cbd5e1;border-radius:6px;width:100%;font-size:12px">
+                        </div>
+
+                        <div style="display:flex;align-items:center;gap:6px;padding-bottom:10px">
+                            <input type="hidden" name="is_active" value="0">
+                            <input type="checkbox" name="is_active" id="active_{{ $coupon->id }}" value="1" {{ $coupon->is_active ? 'checked' : '' }} style="width:16px;height:16px;accent-color:#2563eb">
+                            <label for="active_{{ $coupon->id }}" style="font-size:13px;font-weight:600;color:#334155;cursor:pointer">Active</label>
+                        </div>
+
+                        <div style="padding-bottom:6px">
+                            <button type="submit" class="btn btn-primary btn-sm" style="background:#2563eb;border-color:#2563eb;color:#fff;padding:8px 18px;font-weight:700;border-radius:6px">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0">
+                        <div style="font-size:13px;font-weight:600;color:#475569">
+                            Used <span style="color:#047857;font-weight:700">{{ $coupon->used_count }}</span> of {{ $coupon->max_uses ?: 'Unlimited' }}
+                        </div>
+
+                        <div style="display:flex;gap:8px">
+                            <button type="button" class="btn btn-sm" onclick="document.getElementById('toggle-form-{{ $coupon->id }}').submit()"
+                                    style="padding:4px 14px;border:1px solid {{ $coupon->is_active ? '#ef4444' : '#10b981' }};color:{{ $coupon->is_active ? '#ef4444' : '#10b981' }};background:transparent;border-radius:6px;font-size:12px;font-weight:600">
+                                {{ $coupon->is_active ? 'Disable' : 'Enable' }}
+                            </button>
+
+                            <button type="button" class="btn btn-sm" onclick="if(confirm('Are you sure you want to delete this coupon?')) document.getElementById('delete-form-{{ $coupon->id }}').submit()"
+                                    style="padding:4px 10px;border:1px solid #cbd5e1;color:#64748b;background:transparent;border-radius:6px;font-size:12px" title="Delete Coupon">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <form id="toggle-form-{{ $coupon->id }}" method="POST" action="{{ route('admin.courses.coupons.toggle', [$course, $coupon]) }}" style="display:none">
+                    @csrf
+                    @method('PATCH')
+                </form>
+
+                <form id="delete-form-{{ $coupon->id }}" method="POST" action="{{ route('admin.courses.coupons.destroy', [$course, $coupon]) }}" style="display:none">
+                    @csrf
+                    @method('DELETE')
+                </form>
+            </div>
+            @empty
+            <div style="text-align:center;padding:30px;color:#64748b;font-size:13px">
+                <i class="fa-solid fa-ticket" style="font-size:28px;color:#cbd5e1;margin-bottom:8px;display:block"></i>
+                এই কোর্সের জন্য এখনও কোনো ম্যানুয়াল কুপন কোড তৈরি করা হয়নি।
+                <div style="margin-top:10px">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="openModal('addCouponModal')">
+                        + প্রথম কুপন কোড তৈরি করুন
+                    </button>
+                </div>
+            </div>
+            @endforelse
+        </div>
+    </div>
+
     <!-- Map Subject Modal -->
     <div class="modal-overlay" id="mapSubjectModal">
         <div class="modal" style="max-width:580px;font-family:'Kalpurush',sans-serif">
@@ -743,6 +864,76 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('editItemModal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Update Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Course Coupon Modal -->
+    <div class="modal-overlay" id="addCouponModal">
+        <div class="modal" style="max-width:520px;font-family:'Kalpurush',sans-serif">
+            <div class="modal-header">
+                <span class="modal-title" style="display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-ticket" style="color:var(--primary,#0d5c3a)"></i>
+                    <span>নতুন ম্যানুয়াল কুপন কোড তৈরি করুন</span>
+                </span>
+                <button class="modal-close" onclick="closeModal('addCouponModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.courses.coupons.store', $course) }}">
+                @csrf
+                <div class="modal-body" style="padding:16px 20px">
+                    <div class="form-group" style="margin-bottom:14px">
+                        <label style="font-weight:600;font-size:13px">কুপন কোড (Coupon Code) <span class="required">*</span></label>
+                        <input type="text" name="code" class="form-control" placeholder="যেমন: RQSVOL200, EID500, DISCOUNT10" required
+                               style="font-family:monospace;font-weight:700;text-transform:uppercase">
+                        <small style="color:var(--text-muted);font-size:11px">শিক্ষার্থী ভর্তির সময় এই কোডটি দিয়ে ছাড় উপভোগ করতে পারবে।</small>
+                    </div>
+
+                    <div class="form-row" style="margin-bottom:14px">
+                        <div class="form-group" style="flex:1;margin-bottom:0">
+                            <label style="font-weight:600;font-size:13px">ছাড়ের পরিমাণ (Discount) <span class="required">*</span></label>
+                            <input type="number" name="discount_amount" class="form-control" placeholder="200" min="0" step="0.01" required>
+                        </div>
+                        <div class="form-group" style="flex:1;margin-bottom:0">
+                            <label style="font-weight:600;font-size:13px">ছাড়ের ধরন (Type) <span class="required">*</span></label>
+                            <select name="discount_type" class="form-control" required>
+                                <option value="FIXED">নির্দিষ্ট টাকা (Fixed BDT ৳)</option>
+                                <option value="PERCENT">শতাংশ (Percentage %)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:14px">
+                        <label style="font-weight:600;font-size:13px">সর্বোচ্চ ব্যবহার সীমা (Maximum Uses)</label>
+                        <input type="number" name="max_uses" class="form-control" placeholder="খালি রাখলে আনলিমিটেড (Unlimited)" min="1">
+                    </div>
+
+                    <div class="form-row" style="margin-bottom:14px">
+                        <div class="form-group" style="flex:1;margin-bottom:0">
+                            <label style="font-weight:600;font-size:13px">শুরুর তারিখ (Starts At)</label>
+                            <input type="date" name="starts_at" class="form-control">
+                        </div>
+                        <div class="form-group" style="flex:1;margin-bottom:0">
+                            <label style="font-weight:600;font-size:13px">সমাপ্তির তারিখ (Ends At)</label>
+                            <input type="date" name="ends_at" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:14px">
+                        <label style="font-weight:600;font-size:13px">বিবরণ / নোট (ঐচ্ছিক)</label>
+                        <input type="text" name="description" class="form-control" placeholder="যেমন: বিশেষ অফার ২০২৬">
+                    </div>
+
+                    <label class="form-check" style="cursor:pointer;font-weight:600;margin-top:6px">
+                        <input type="checkbox" name="is_active" value="1" checked style="width:16px;height:16px;accent-color:#047857">
+                        সক্রিয় রাখুন (Active)
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('addCouponModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#047857;border-color:#047857">
+                        <i class="fa-solid fa-check"></i> কুপন তৈরি করুন
+                    </button>
                 </div>
             </form>
         </div>
