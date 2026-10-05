@@ -308,46 +308,8 @@ class AdmissionController extends Controller
 
             // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────
             if (empty($student->student_code)) {
-                // 1. Year Code (2 digits)
-                $yearCode = date('y');
-
-                // 2. Batch Code (2 digits)
-                $batchNum = 1;
-                if (!empty($batch->batch_code) && preg_match('/\d+/', $batch->batch_code, $m)) {
-                    $batchNum = (int) $m[0];
-                } elseif (!empty($batch->name) && preg_match('/\d+/', $batch->name, $m)) {
-                    $batchNum = (int) $m[0];
-                } else {
-                    $batchNum = $batch->id;
-                }
-                $batchCode = str_pad($batchNum % 100, 2, '0', STR_PAD_LEFT);
-
-                // 3. Course Code (2 digits - Digits 5 & 6)
                 $course = $batch->course ?: Course::find($batch->course_id);
-                if ($course && !empty($course->code)) {
-                    $digits = preg_replace('/\D/', '', $course->code);
-                    $courseCode = !empty($digits) ? str_pad(substr($digits, 0, 2), 2, '0', STR_PAD_LEFT) : str_pad(($course->id % 100), 2, '0', STR_PAD_LEFT);
-                } else {
-                    $courseCode = str_pad(($batch->course_id ?: 1) % 100, 2, '0', STR_PAD_LEFT);
-                }
-
-                // 4. Gender Code (1 digit: 1 = Male, 2 = Female)
-                $genderCode = '1';
-                if (!empty($student->gender)) {
-                    $g = strtolower(trim($student->gender));
-                    if (in_array($g, ['female', '2', 'f', 'নারি', 'মহিলা'])) {
-                        $genderCode = '2';
-                    }
-                }
-
-                // 5. Roll Sequence (4 digits)
-                $filterPrefix = "{$yearCode}{$batchCode}{$courseCode}";
-                $existingCount = Student::where('student_code', 'like', "{$filterPrefix}%")
-                    ->orWhere('student_code', 'like', "{$yearCode}-{$batchCode}-{$courseCode}-%")
-                    ->count();
-                $seqNo = str_pad($existingCount + 1, 4, '0', STR_PAD_LEFT);
-
-                $student->student_code = "{$yearCode}{$batchCode}{$courseCode}{$genderCode}{$seqNo}";
+                $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
             }
 
             // Sync all profile details from admission form into student

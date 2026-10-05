@@ -27,6 +27,9 @@
 | 56 | Question Bank Random Subset Selection & Sequence Shuffling Per Student | Exams / Question Bank | COMPLETED | `scratch/test_exam_shuffling.php` |
 | 57 | Teacher Panel Menu Cleanup (Remove Exams/Appeals, Show Assigned Subjects & Routine) | Teacher Portal | COMPLETED | `scratch/test_teacher_panel.php` |
 | 58 | Course Duration & Tuition Fee Cycle Definition for Courses and Batches | Courses / Batches | COMPLETED | `scratch/test_course_batch_cycles.php` |
+| 59 | Remove "Other Subjects" Section & Prevent Duplicate Course Subject Mappings | Courses / Subjects | COMPLETED | `scratch/verify_no_other_subjects.php` |
+| 60 | Batch Unique Code Collision Fix & Same Date/Month Duplicate Validation | Batches | COMPLETED | `scratch/test_batch_validation.php` |
+| 61 | Search Bar for Subject Mapping & Teacher Assignment Dropdowns | Subjects / Course Mapping | COMPLETED | `scratch/test_subject_mapping_search.php` |
 
 ---
 
@@ -390,9 +393,24 @@
 
 ---
 
+### Task 61: Search Bar for Subject Mapping & Teacher Assignment Dropdowns
+- **Objective**: Add instant search bars to all dropdowns and selection lists in Course Subject Mapping (`admin/courses/{course}`) and Teacher Subject Assignment (`admin/teachers`), replacing cumbersome multi-selects with searchable, filterable interfaces and "Select All / Deselect All" helpers.
+- **Definition of Done (DoD)**:
+  - In `resources/views/admin/courses/show.blade.php`:
+    - Add real-time live search filter `#map_semester_search_input` for Semester selection.
+    - Replace Ctrl+click native `<select multiple>` in `mapSubjectModal` with searchable checkbox list `#map_subject_search_input`, filterable by code or subject title.
+    - Include quick action buttons: "সব নির্বাচন (Select All Filtered)", "বাতিল (Deselect All)", and dynamic selected item & total credit counter badge.
+    - Form submit validation prevents submitting empty selections.
+    - Add real-time live search filter `#single_subject_search_input` for single subject dropdown in `addSingleSubjectModal`.
+  - In `resources/views/admin/teachers/index.blade.php`:
+    - Add real-time search filter `#teacher_subject_search_input` for Subject dropdown in `assignSubjectModal`.
+  - Design & Localization:
+    - Styled with Bengali cultural context and font `'Kalpurush'`.
+  - Verification:
+    - Test script `scratch/test_subject_mapping_search.php` verifies DOM presence of all search bars, options, buttons, and successful persistence in DB returning Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
 ## Pending Tasks
-*All feedback tasks (Tasks 32 through 60) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain.*
-
-
-
-
+*All tasks (Tasks 32 through 61) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain.*

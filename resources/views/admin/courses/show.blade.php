@@ -373,9 +373,9 @@
         </div>
     </div>
 
-    <!-- Add Single Subject to Semester Modal -->
+    <!-- Add Subjects to Semester Modal -->
     <div class="modal-overlay" id="addSingleSubjectModal">
-        <div class="modal" style="max-width:540px;font-family:'Kalpurush',sans-serif">
+        <div class="modal" style="max-width:560px;font-family:'Kalpurush',sans-serif">
             <div class="modal-header">
                 <span class="modal-title" id="singleSubModalTitle" style="display:flex;align-items:center;gap:8px">
                     <i class="fa-solid fa-plus-circle" style="color:var(--primary,#0d5c3a)"></i>
@@ -388,30 +388,59 @@
                 <input type="hidden" name="semester_id" id="single_sub_semester_id" value="">
                 <div class="modal-body" style="padding:16px 20px">
                     <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#1e40af;font-size:13px">
-                        নির্বাচিত সেমিস্টার: <strong id="single_sub_sem_name">সেমিস্টার</strong> (বিদ্যমান বিষয়গুলো মুছে যাবে না, এটি নতুন হিসেবে যুক্ত হবে)
+                        নির্বাচিত সেমিস্টার: <strong id="single_sub_sem_name">সেমিস্টার</strong> (বিদ্যমান বিষয়গুলো মুছে যাবে না, নতুন বিষয়গুলো যুক্ত হবে)
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" style="margin-bottom:10px">
                         <label style="font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                            <span>বিষয় নির্বাচন করুন <span class="required" style="color:#ef4444">*</span></span>
-                            <span id="single_subj_count_label" style="font-size:11px;font-weight:normal;color:#64748b">মোট {{ count($availableSubjects) }}টি বিষয়</span>
+                            <span>বিষয় নির্বাচন করুন (একাধিক নির্বাচনযোগ্য) <span class="required" style="color:#ef4444">*</span></span>
+                            <span id="single_subjects_selected_badge" class="badge" style="background:#e0e7ff;color:#3730a3;font-weight:700;font-size:11px;padding:3px 9px;border-radius:20px">
+                                ০টি বিষয় নির্বাচিত (০ ক্রেডিট)
+                            </span>
                         </label>
-                        {{-- Search bar for single subject --}}
-                        <div style="position:relative;margin-bottom:6px">
-                            <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:12px"></i>
-                            <input type="text" id="single_subject_search_input" class="form-control" placeholder="বিষয় বা কোড দিয়ে ফিল্টার করুন (যেমন: Arabic, ATI, 101)..." style="padding-left:34px;height:36px;font-size:12.5px;border-radius:8px" oninput="filterSingleSubjectOptions(this.value)">
+
+                        {{-- Subjects Live Search Bar & Action Buttons --}}
+                        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+                            <div style="position:relative;flex:1">
+                                <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:12px"></i>
+                                <input type="text" id="single_subject_search_input" class="form-control" placeholder="বিষয় বা কোড দিয়ে খুঁজুন (যেমন: ATI, FQH, Arabic)..." style="padding-left:34px;padding-right:28px;height:36px;font-size:12.5px;border-radius:8px" oninput="filterSingleSubjectList(this.value)">
+                                <button type="button" id="single_subject_search_clear" onclick="clearSingleSubjectSearch()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;cursor:pointer;font-size:15px;display:none;line-height:1">&times;</button>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="toggleSelectAllSingleSubjects(true)" style="height:36px;font-size:11.5px;white-space:nowrap;padding:0 10px;border-radius:8px" title="সার্চকৃত সবগুলো নির্বাচন করুন">
+                                <i class="fa-solid fa-check-double"></i> সব নির্বাচন
+                            </button>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="toggleSelectAllSingleSubjects(false)" style="height:36px;font-size:11.5px;white-space:nowrap;padding:0 10px;border-radius:8px;color:#ef4444;border-color:#fca5a5" title="সব নির্বাচন বাতিল করুন">
+                                <i class="fa-solid fa-xmark"></i> বাতিল
+                            </button>
                         </div>
-                        <select name="subject_ids[]" id="single_subject_select" class="form-control" style="font-size:13px;height:42px;border-radius:8px" required>
-                            <option value="">-- বিষয় সিলেক্ট করুন --</option>
+
+                        {{-- Subjects Scrollable Checkbox List --}}
+                        <div id="single_subject_list_container" style="max-height:220px;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;background:#f8fafc">
                             @foreach($availableSubjects as $subj)
-                                <option value="{{ $subj->id }}">{{ $subj->code }}: {{ $subj->name }} ({{ $subj->credit }} Credit)</option>
+                                <label class="single-subj-item" data-code="{{ strtolower($subj->code) }}" data-name="{{ strtolower($subj->name) }}" data-credit="{{ $subj->credit }}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;margin-bottom:3px;border-radius:6px;background:#ffffff;border:1px solid #f1f5f9;cursor:pointer;transition:all 0.15s ease">
+                                    <div style="display:flex;align-items:center;gap:10px;overflow:hidden">
+                                        <input type="checkbox" name="subject_ids[]" value="{{ $subj->id }}" class="single-subj-checkbox" style="width:16px;height:16px;cursor:pointer;accent-color:#0d5c3a" onchange="onSingleSubjectCheckChange(this)">
+                                        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                            <span style="display:inline-block;padding:1px 5px;border-radius:4px;background:#f1f5f9;color:#334155;font-weight:700;font-size:11px;margin-right:4px">{{ $subj->code }}</span>
+                                            <span style="font-weight:600;font-size:12.5px;color:#1e293b">{{ $subj->name }}</span>
+                                        </div>
+                                    </div>
+                                    <span style="font-size:10.5px;font-weight:600;color:#64748b;background:#f8fafc;padding:2px 7px;border-radius:10px;border:1px solid #e2e8f0;flex-shrink:0">{{ $subj->credit }} Cr</span>
+                                </label>
                             @endforeach
-                        </select>
+                            <div id="single_subj_no_results" style="display:none;padding:18px;text-align:center;color:#64748b;font-size:12.5px">
+                                <i class="fa-solid fa-circle-exclamation" style="margin-right:4px;color:#94a3b8"></i> কোনো বিষয় খুঁজে পাওয়া যায়নি
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:11px;color:var(--text-muted)">
+                            <span>মোট বিষয়: <strong>{{ count($availableSubjects) }}</strong> টি</span>
+                            <span id="single_subj_visible_counter">প্রদর্শিত: <strong>{{ count($availableSubjects) }}</strong> টি</span>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('addSingleSubjectModal')">বাতিল</button>
-                    <button type="submit" class="btn btn-primary" style="background:#0d5c3a;border-color:#0d5c3a"><i class="fa-solid fa-plus"></i> বিষয় যুক্ত করুন</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0d5c3a;border-color:#0d5c3a"><i class="fa-solid fa-plus"></i> বিষয় যুক্ত করুন</button>
                 </div>
             </form>
         </div>
@@ -763,7 +792,12 @@
     function openAddSingleSubjectModal(semesterId, semesterName) {
         document.getElementById('single_sub_semester_id').value = semesterId;
         document.getElementById('single_sub_sem_name').textContent = semesterName;
-        document.getElementById('singleSubModalTitle').textContent = '+ ' + semesterName + ' এ নতুন বিষয় যোগ করুন';
+        document.getElementById('singleSubModalTitle').innerHTML = '<i class="fa-solid fa-plus-circle" style="color:var(--primary,#0d5c3a)"></i> <span>+ ' + semesterName + ' এ নতুন বিষয় যোগ করুন</span>';
+        
+        // Reset search and checkboxes on open
+        clearSingleSubjectSearch();
+        toggleSelectAllSingleSubjects(false);
+
         openModal('addSingleSubjectModal');
     }
 
@@ -955,28 +989,111 @@
         }
     });
 
-    // 3. Filter Single Subject options in addSingleSubjectModal
-    function filterSingleSubjectOptions(query) {
-        const select = document.getElementById('single_subject_select');
-        if (!select) return;
-        const q = query.trim().toLowerCase();
-        let matchCount = 0;
-
-        for (let i = 0; i < select.options.length; i++) {
-            const opt = select.options[i];
-            if (!opt.value) {
-                opt.hidden = false;
-                continue;
-            }
-            const text = opt.textContent.toLowerCase();
-            const matches = !q || text.includes(q);
-            opt.hidden = !matches;
-            if (matches) matchCount++;
+    // 3. Form submit validation & interactive helpers for addSingleSubjectModal
+    document.addEventListener('DOMContentLoaded', function() {
+        const singleForm = document.getElementById('addSingleSubjectForm');
+        if (singleForm) {
+            singleForm.addEventListener('submit', function(e) {
+                const checked = document.querySelectorAll('.single-subj-checkbox:checked');
+                if (checked.length === 0) {
+                    e.preventDefault();
+                    alert('অনুগ্রহ করে তালিকা থেকে কমপক্ষে একটি বিষয় নির্বাচন করুন।');
+                    const searchInput = document.getElementById('single_subject_search_input');
+                    if (searchInput) searchInput.focus();
+                }
+            });
         }
+    });
 
-        const label = document.getElementById('single_subj_count_label');
-        if (label) {
-            label.textContent = q ? (matchCount + 'টি পাওয়া গেছে') : (select.options.length - 1) + 'টি বিষয়';
+    function filterSingleSubjectList(query) {
+        const q = query.trim().toLowerCase();
+        const clearBtn = document.getElementById('single_subject_search_clear');
+        if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+
+        const items = document.querySelectorAll('.single-subj-item');
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const code = item.getAttribute('data-code') || '';
+            const name = item.getAttribute('data-name') || '';
+            const matches = !q || code.includes(q) || name.includes(q);
+            item.style.display = matches ? 'flex' : 'none';
+            if (matches) visibleCount++;
+        });
+
+        const noRes = document.getElementById('single_subj_no_results');
+        if (noRes) noRes.style.display = visibleCount === 0 ? 'block' : 'none';
+
+        const counter = document.getElementById('single_subj_visible_counter');
+        if (counter) counter.innerHTML = 'প্রদর্শিত: <strong>' + visibleCount + '</strong> টি';
+    }
+
+    function clearSingleSubjectSearch() {
+        const input = document.getElementById('single_subject_search_input');
+        if (input) {
+            input.value = '';
+            filterSingleSubjectList('');
+            input.focus();
+        }
+    }
+
+    function onSingleSubjectCheckChange(checkbox) {
+        const row = checkbox.closest('.single-subj-item');
+        if (row) {
+            if (checkbox.checked) {
+                row.style.background = '#f0fdf4';
+                row.style.borderColor = '#86efac';
+            } else {
+                row.style.background = '#ffffff';
+                row.style.borderColor = '#f1f5f9';
+            }
+        }
+        updateSingleSubjectCounters();
+    }
+
+    function toggleSelectAllSingleSubjects(select) {
+        const items = document.querySelectorAll('.single-subj-item');
+        items.forEach(item => {
+            if (item.style.display !== 'none') {
+                const cb = item.querySelector('.single-subj-checkbox');
+                if (cb) {
+                    cb.checked = select;
+                    if (select) {
+                        item.style.background = '#f0fdf4';
+                        item.style.borderColor = '#86efac';
+                    } else {
+                        item.style.background = '#ffffff';
+                        item.style.borderColor = '#f1f5f9';
+                    }
+                }
+            }
+        });
+        updateSingleSubjectCounters();
+    }
+
+    function updateSingleSubjectCounters() {
+        const checkedBoxes = document.querySelectorAll('.single-subj-checkbox:checked');
+        const count = checkedBoxes.length;
+        let totalCredits = 0;
+
+        checkedBoxes.forEach(cb => {
+            const item = cb.closest('.single-subj-item');
+            if (item) {
+                const cr = parseFloat(item.getAttribute('data-credit')) || 0;
+                totalCredits += cr;
+            }
+        });
+
+        const badge = document.getElementById('single_subjects_selected_badge');
+        if (badge) {
+            badge.textContent = count + 'টি বিষয় নির্বাচিত (' + totalCredits + ' ক্রেডিট)';
+            if (count > 0) {
+                badge.style.background = '#dcfce7';
+                badge.style.color = '#15803d';
+            } else {
+                badge.style.background = '#e0e7ff';
+                badge.style.color = '#3730a3';
+            }
         }
     }
     </script>

@@ -516,43 +516,10 @@ class PaymentGatewayService
         $batch = $form->batch ?: Batch::where('course_id', $form->interested_course_id)->where('status', 'ACTIVE')->first();
 
         // 1. Generate Custom Student ID (YY-BB-CC-G-RRRR)
-        // Format: YYBBCCGRRRR (Digits 1-2: Year, 3-4: Batch, 5-6: Course Code, 7: Gender, 8-11: Serial)
+        // Format: YYBBCCGRRRR (Digits 1-2: Academic Year, 3-4: Batch, 5-6: Course Code, 7: Gender, 8-11: Serial)
         if (empty($student->student_code) && $batch) {
-            $yearCode = date('y');
-            $batchNum = 1;
-            if (!empty($batch->batch_code) && preg_match('/\d+/', $batch->batch_code, $m)) {
-                $batchNum = (int) $m[0];
-            } elseif (!empty($batch->name) && preg_match('/\d+/', $batch->name, $m)) {
-                $batchNum = (int) $m[0];
-            } else {
-                $batchNum = $batch->id;
-            }
-            $batchCode = str_pad($batchNum % 100, 2, '0', STR_PAD_LEFT);
-
-            // Course Code (Digits 5 & 6)
             $course = $batch->course ?: Course::find($batch->course_id);
-            if ($course && !empty($course->code)) {
-                $digits = preg_replace('/\D/', '', $course->code);
-                $courseCode = !empty($digits) ? str_pad(substr($digits, 0, 2), 2, '0', STR_PAD_LEFT) : str_pad(($course->id % 100), 2, '0', STR_PAD_LEFT);
-            } else {
-                $courseCode = str_pad(($batch->course_id ?: 1) % 100, 2, '0', STR_PAD_LEFT);
-            }
-
-            $genderCode = '1';
-            if (!empty($student->gender)) {
-                $g = strtolower(trim($student->gender));
-                if (in_array($g, ['female', '2', 'f', 'নারি', 'মহিলা'])) {
-                    $genderCode = '2';
-                }
-            }
-
-            $filterPrefix = "{$yearCode}{$batchCode}{$courseCode}";
-            $existingCount = Student::where('student_code', 'like', "{$filterPrefix}%")
-                ->orWhere('student_code', 'like', "{$yearCode}-{$batchCode}-{$courseCode}-%")
-                ->count();
-            $seqNo = str_pad($existingCount + 1, 4, '0', STR_PAD_LEFT);
-
-            $student->student_code = "{$yearCode}{$batchCode}{$courseCode}{$genderCode}{$seqNo}";
+            $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
         }
 
         // Sync details to Student
