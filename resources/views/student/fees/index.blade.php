@@ -14,6 +14,18 @@
                         ({{ $courseType === 'SUBJECT_BASED' ? 'Subject-Based Course' : 'Semester-Based Course' }})
                     </span>
                 @endif
+                @if(!empty($batch))
+                    <span class="badge no-dot"
+                        style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;font-family:'Kalpurush',sans-serif">
+                        <i class="fa-solid fa-users-rectangle"></i> ব্যাচ: {{ $batch->name }}
+                    </span>
+                @endif
+                @if(!empty($academicYear))
+                    <span class="badge no-dot"
+                        style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-family:'Kalpurush',sans-serif">
+                        <i class="fa-solid fa-calendar-days"></i> শিক্ষাবর্ষ: {{ $academicYear->name }}
+                    </span>
+                @endif
             </h1>
             <p>Track your running semester dues, overall course fees, and download official payment receipts</p>
         </div>
@@ -309,7 +321,10 @@
                                                 </span>
                                             @else
                                                 <input type="checkbox" class="step1-chk" data-name="{{ $p['name'] }}"
-                                                    data-amount="{{ $p['due'] }}" onchange="updateStep1Total()"
+                                                    data-amount="{{ $p['due'] }}"
+                                                    data-invoice-id="{{ $p['invoice_id'] ?? '' }}"
+                                                    data-invoice-no="{{ $p['invoice_no'] ?? '' }}"
+                                                    onchange="updateStep1Total()"
                                                     style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a">
                                             @endif
                                         @endif
@@ -1369,17 +1384,24 @@
 
                 let total = 0;
                 let names = [];
+                let targetInvoiceId = null;
+                let targetInvoiceNo = null;
+
                 chks.forEach(c => {
                     total += parseFloat(c.dataset.amount) || 0;
                     names.push(c.dataset.name);
+                    if (!targetInvoiceId && c.dataset.invoiceId) {
+                        targetInvoiceId = c.dataset.invoiceId;
+                        targetInvoiceNo = c.dataset.invoiceNo;
+                    }
                 });
 
-                const invoiceId = "{{ $selectedSemesterInvoice?->id ?? ($invoices->first()?->id ?? '') }}";
-                const invoiceNo = "{{ $selectedSemesterInvoice?->invoice_no ?? ($invoices->first()?->invoice_no ?? 'INV-001') }}";
+                const invoiceId = targetInvoiceId || "{{ $selectedSemesterInvoice?->id ?? ($invoices->first()?->id ?? '') }}";
+                const invoiceNo = targetInvoiceNo || "{{ $selectedSemesterInvoice?->invoice_no ?? ($invoices->first()?->invoice_no ?? 'INV-001') }}";
                 const title = "{{ $selectedSemester?->name ?? 'সেমিস্টার ফি' }} — " + names.join(', ');
                 const totalDue = parseFloat("{{ $totalDue }}") || total;
 
-                openPayModal(invoiceId, title, invoiceNo, totalDue, total, names.join(', '), {{ $monthlyTuition ?? 500 }});
+                openPayModal(invoiceId, title, invoiceNo, totalDue, total, names.join(', '), {{ $monthlyTuition ?? 100 }});
             }
 
             function closePayModal() {

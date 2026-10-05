@@ -568,6 +568,9 @@ class PaymentGatewayService
         // 4. Create Student Enrollment
         $enrollment = null;
         if ($batch) {
+            $initialSemester = $batch->semesterPosition?->currentSemester
+                ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
+
             $enrollment = Enrollment::firstOrCreate(
                 [
                     'student_id' => $student->id,
@@ -575,7 +578,7 @@ class PaymentGatewayService
                 ],
                 [
                     'course_id' => $batch->course_id,
-                    'semester_id' => $batch->semesterPosition?->current_semester_id,
+                    'semester_id' => $batch->semesterPosition?->current_semester_id ?? $initialSemester?->id,
                     'admission_form_id' => $form->id,
                     'enrolled_at' => now()->toDateString(),
                     'status' => 'ACTIVE',
@@ -584,8 +587,6 @@ class PaymentGatewayService
 
             // Generate invoices
             $admissionInv = AccountingService::createAdmissionInvoice($student, $form, $enrollment);
-            $initialSemester = $batch->semesterPosition?->currentSemester
-                ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
             if ($initialSemester) {
                 AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
             }

@@ -365,21 +365,22 @@ class AdmissionController extends Controller
                 'reviewed_at' => now(),
             ]);
 
+            // Auto-determine Initial Semester
+            $initialSemester = $batch->semesterPosition?->currentSemester
+                ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
+
             // Create Enrollment
             $enrollment = Enrollment::create([
                 'student_id'        => $student->id,
                 'batch_id'          => $batch->id,
                 'course_id'         => $batch->course_id,
-                'semester_id'       => $batch->semesterPosition?->current_semester_id,
+                'semester_id'       => $batch->semesterPosition?->current_semester_id ?? $initialSemester?->id,
                 'admission_form_id' => $admission->id,
                 'enrolled_at'       => now()->toDateString(),
                 'status'            => 'ACTIVE',
             ]);
 
             // Auto-generate Admission & Initial Semester Fee Invoices
-            $initialSemester = $batch->semesterPosition?->currentSemester
-                ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
-
             \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
             \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
 

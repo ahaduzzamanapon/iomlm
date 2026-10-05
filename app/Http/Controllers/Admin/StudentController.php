@@ -21,7 +21,9 @@ class StudentController extends Controller
      */
     protected function buildFilteredQuery(Request $request)
     {
-        $query = Student::with(['enrollments.batch.course', 'enrollments.semester']);
+        $query = Student::with(['enrollments' => function ($q) {
+            $q->latest('id')->with(['batch.course', 'semester']);
+        }]);
 
         // General search term across Name, Code, Phone, Email, NID
         if ($request->filled('search')) {
@@ -82,7 +84,21 @@ class StudentController extends Controller
                 }
 
                 if ($request->filled('semester_id')) {
-                    $q->where('semester_id', $request->semester_id);
+                    $semId = (int) $request->semester_id;
+                    $targetSem = Semester::find($semId);
+                    $q->where(function ($sub) use ($semId, $targetSem) {
+                        $sub->where('semester_id', $semId)
+                            ->orWhereHas('batch.semesterPosition', fn($sp) => $sp->where('current_semester_id', $semId));
+                        if ($targetSem && $targetSem->sequence_no == 1) {
+                            $sub->orWhere(function ($nullQ) use ($targetSem) {
+                                $nullQ->whereNull('semester_id')
+                                      ->where(function ($cq) use ($targetSem) {
+                                          $cq->where('course_id', $targetSem->course_id)
+                                             ->orWhereHas('batch', fn($bq) => $bq->where('course_id', $targetSem->course_id));
+                                      });
+                            });
+                        }
+                    });
                 }
             });
         }
@@ -168,7 +184,18 @@ class StudentController extends Controller
             ]);
 
             foreach ($students as $index => $st) {
-                $enr = $st->enrollments->firstWhere('status', 'ACTIVE') ?? $st->enrollments->first();
+                $enr = null;
+                if ($request->filled('batch_id')) {
+                    $enr = $st->enrollments->firstWhere('batch_id', $request->batch_id);
+                }
+                if (!$enr && $request->filled('course_id')) {
+                    $enr = $st->enrollments->first(function ($e) use ($request) {
+                        return $e->course_id == $request->course_id || $e->batch?->course_id == $request->course_id;
+                    });
+                }
+                if (!$enr) {
+                    $enr = $st->enrollments->firstWhere('status', 'ACTIVE') ?? $st->enrollments->first();
+                }
                 $courseName = $enr?->batch?->course?->title ?? $enr?->batch?->course?->name ?? $enr?->course?->name ?? '—';
                 $batchName  = $enr?->batch?->name ?? '—';
                 $semName    = $enr?->semester?->name ?? '—';

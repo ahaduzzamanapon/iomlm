@@ -234,6 +234,10 @@
                 <div class="info-value">{{ $batch?->name ?? '—' }}</div>
             </div>
             <div class="info-item">
+                <div class="info-label"><i class="fa-solid fa-graduation-cap"></i> Academic Year</div>
+                <div class="info-value">{{ $batch?->academicYear?->name ?? '—' }}</div>
+            </div>
+            <div class="info-item">
                 <div class="info-label"><i class="fa-solid fa-book"></i> Course Type</div>
                 <div class="info-value">{{ $course?->type === 'SEMESTER_BASED' ? 'Semester Based' : 'Subject Based' }}</div>
             </div>
