@@ -135,12 +135,18 @@ echo "\n--- 5. Testing Semester Subject Modal Overhaul in show.blade.php ---\n";
 $adminUser = User::where('role', 'admin')->orWhere('role', 'super_admin')->first();
 Auth::login($adminUser);
 
-$viewData = View::make('admin.courses.show', [
-    'course' => $c15->load(['semesters.subjects', 'batches', 'feePackages']),
-    'availableSubjects' => Subject::orderBy('name')->get(),
-    'allSubjects' => Subject::orderBy('name')->get(),
-    'paymentGateways' => \App\Models\PaymentGateway::where('is_active', true)->get(),
-])->render();
+$c15->load([
+    'semesters',
+    'batches',
+    'courseSubjectMaps.subject',
+    'courseSubjectMaps.semester',
+    'feePackages.items.feeHead',
+]);
+$availableSubjects = Subject::where('is_active', true)->orderBy('name')->get();
+$feeHeads = \App\Models\FeeHead::packageEligible()->orderBy('sort_order')->get();
+
+$course = $c15;
+$viewData = View::make('admin.courses.show', compact('course', 'availableSubjects', 'feeHeads'))->render();
 
 assertCondition(str_contains($viewData, 'id="addSingleSubjectModal"'), "Modal #addSingleSubjectModal present in DOM");
 assertCondition(str_contains($viewData, 'id="single_subject_search_input"'), "Search input #single_subject_search_input present in DOM");

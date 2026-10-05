@@ -30,6 +30,8 @@
 | 59 | Remove "Other Subjects" Section & Prevent Duplicate Course Subject Mappings | Courses / Subjects | COMPLETED | `scratch/verify_no_other_subjects.php` |
 | 60 | Batch Unique Code Collision Fix & Same Date/Month Duplicate Validation | Batches | COMPLETED | `scratch/test_batch_validation.php` |
 | 61 | Search Bar for Subject Mapping & Teacher Assignment Dropdowns | Subjects / Course Mapping | COMPLETED | `scratch/test_subject_mapping_search.php` |
+| 62 | Student ID Architecture Correction (YY-BB-CC-G-RRRR) & Semester Subject Modal Multi-Select | Students / Course Mapping | COMPLETED | `scratch/verify_student_id_and_semester_subject_modal.php` |
+| 63 | Poor Fund Application Success Screen Preservation Notice & Copy Button | Poor Fund / Admissions | COMPLETED | `scratch/verify_poor_fund_success_copy.php` |
 
 ---
 
@@ -412,5 +414,42 @@
 
 ---
 
+### Task 62: Student ID Architecture Correction (YY-BB-CC-G-RRRR) & Semester Subject Modal Multi-Select Overhaul
+- **Objective**: 
+  1. Fix Student ID generation formula:
+     - Digits 1-2: Academic Year (e.g., 27, 28) derived from batch academic year / start date.
+     - Digits 3-4: Batch Number (e.g., 01, 02) extracted from batch name/code, with Bengali numeral support.
+     - Digits 5-6: Course Code (e.g., 01, 04) from course formatted code.
+     - Digit 7: Gender code (1 = Male, 2 = Female).
+     - Digits 8-11: Sequential 4-digit unique roll number.
+  2. Correct all existing database students' IDs, updating linked user accounts and support tickets.
+  3. Overhaul `addSingleSubjectModal` ("+ Semester X এ নতুন বিষয় যোগ করুন") into the exact same rich checkbox multi-select UI as `mapSubjectModal` with live search, Select All / Deselect All, and credit counters.
+- **Definition of Done (DoD)**:
+  - `Student` model implements `resolveAcademicYearCode`, `resolveBatchNumberCode`, `resolveCourseCode`, `resolveGenderCode`, `generateStudentCode`, and updated `updateCodeForTransferOrReadmission`.
+  - `PaymentGatewayService` and `AdmissionController` use `Student::generateStudentCode(...)`.
+  - All 18 existing database student records corrected (including Mazharul Islam Hridoy `APP-2026-0026` updated to `27010110003`).
+  - `resources/views/admin/courses/show.blade.php` overhauls `addSingleSubjectModal` into a searchable checkbox multi-selector with action buttons and badge counters.
+  - Verification: `scratch/verify_student_id_and_semester_subject_modal.php` returns Exit Code 0 (71 assertions passed).
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 63: Poor Fund Application Success Screen Preservation Notice & Copy Button
+- **Objective**: 
+  1. Add an informative alert box instructing the applicant to carefully preserve the Application Reference Number (e.g., `PF-2026-0015`) for use during admission form waiver submission and status inquiries.
+  2. Add an interactive Copy Button (`#copyBtn`) next to the reference number with instant clipboard copying, fallback support, and animated feedback ("কপি হয়েছে!").
+- **Definition of Done (DoD)**:
+  - In `resources/views/public/poor_fund_success.blade.php`:
+    - Responsive reference number display with `.app-no` and `.btn-copy`.
+    - Alert notice box with Bengali text and icon advising user to save the reference number.
+    - JavaScript `copyRefNumber` supporting modern Clipboard API and fallback textarea copy with visual state transition.
+    - Adheres to `'Kalpurush'` font.
+  - Verification: `scratch/verify_poor_fund_success_copy.php` returns Exit Code 0 (10 assertions passed).
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
 ## Pending Tasks
-*All tasks (Tasks 32 through 61) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain.*
+*All tasks (Tasks 32 through 63) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain.*
+
+
