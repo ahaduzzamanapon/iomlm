@@ -369,8 +369,15 @@
                 @csrf
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Select Subject <span class="required">*</span></label>
-                        <select name="subject_id" class="form-control" required>
+                        <label style="font-weight:600;font-size:13px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                            <span>Select Subject <span class="required" style="color:#ef4444">*</span></span>
+                            <span id="teacher_subj_count_label" style="font-size:11px;font-weight:normal;color:#64748b">মোট {{ count($subjects) }}টি বিষয়</span>
+                        </label>
+                        <div style="position:relative;margin-bottom:6px">
+                            <i class="fa-solid fa-magnifying-glass" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:12px"></i>
+                            <input type="text" id="teacher_subject_search_input" class="form-control" placeholder="বিষয় বা কোড দিয়ে ফিল্টার করুন..." style="padding-left:34px;height:36px;font-size:12.5px;border-radius:8px" oninput="filterTeacherSubjectSelect(this.value)">
+                        </div>
+                        <select name="subject_id" id="teacher_subject_select" class="form-control" required style="font-size:13px;height:42px;border-radius:8px">
                             <option value="">-- Choose Subject --</option>
                             @foreach($subjects as $s)
                                 <option value="{{ $s->id }}">{{ $s->code }}: {{ $s->name }}</option>
@@ -585,7 +592,31 @@
     function openAssignModal(teacherId, teacherName) {
         document.getElementById('assignTitle').innerText = 'Assign Subject to ' + teacherName;
         document.getElementById('assignForm').action = '/admin/teachers/' + teacherId + '/subjects';
+        const inp = document.getElementById('teacher_subject_search_input');
+        if (inp) {
+            inp.value = '';
+            filterTeacherSubjectSelect('');
+        }
         openModal('assignSubjectModal');
+    }
+
+    function filterTeacherSubjectSelect(query) {
+        const select = document.getElementById('teacher_subject_select');
+        if (!select) return;
+        const q = query.trim().toLowerCase();
+        let matchCount = 0;
+        for (let i = 0; i < select.options.length; i++) {
+            const opt = select.options[i];
+            if (!opt.value) { opt.hidden = false; continue; }
+            const text = opt.textContent.toLowerCase();
+            const matches = !q || text.includes(q);
+            opt.hidden = !matches;
+            if (matches) matchCount++;
+        }
+        const label = document.getElementById('teacher_subj_count_label');
+        if (label) {
+            label.textContent = q ? (matchCount + 'টি পাওয়া গেছে') : (select.options.length - 1) + 'টি বিষয়';
+        }
     }
 
     function teacherLoadDistricts(type, divisionId) {
