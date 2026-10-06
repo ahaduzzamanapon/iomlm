@@ -905,7 +905,7 @@
         </div>
         @endif
 
-        <main class="page-content">{{ $slot }}</main>
+        <main class="page-content">{{ $slot ?? $__env->yieldContent('content') }}</main>
     </div>
 </div>
 
