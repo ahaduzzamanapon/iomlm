@@ -213,7 +213,7 @@
                             অনুমোদিত
                         </span>
                     </div>
-                @elseif($admission->status === 'REJECTED')
+                @elseif(in_array($admission->status, ['TRASH', 'REJECTED']))
                     <div class="status-header-rejected">
                         <span style="font-weight:700;font-size:16px;">
                             <i class="fa-solid fa-circle-xmark"></i> আবেদন প্রত্যাখ্যাত হয়েছে (Application Rejected)
@@ -302,7 +302,7 @@
                                 <i class="fa-solid fa-right-to-bracket"></i> স্টুডেন্ট পোর্টালে লগইন করুন
                             </a>
                         </div>
-                    @elseif($admission->status === 'REJECTED')
+                    @elseif(in_array($admission->status, ['TRASH', 'REJECTED']))
                         <div style="background:#fef2f2;border-left:4px solid #dc2626;padding:14px 16px;border-radius:0 8px 8px 0;font-size:13.5px;color:#991b1b;margin-bottom:16px;line-height:1.6;">
                             <strong>বাতিল করার কারণ:</strong> {{ $admission->rejection_reason ?: 'ভর্তির ন্যূনতম শর্তাবলী বা প্রয়োজনীয় ডকুমেন্টের অসম্পূর্ণতা।' }}
                             <div style="margin-top:6px;font-size:12.5px;color:#7f1d1d;">

@@ -563,6 +563,7 @@ class PaymentGatewayService
         // 3. Mark Admission Form as APPROVED
         $form->update([
             'status' => 'APPROVED',
+            'rejection_reason' => null,
             'reviewed_at' => now(),
         ]);
 

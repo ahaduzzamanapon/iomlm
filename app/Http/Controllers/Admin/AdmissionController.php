@@ -25,7 +25,11 @@ class AdmissionController extends Controller
 
         // Apply status filter
         if ($status) {
-            $base->where('status', $status);
+            if (in_array(strtoupper($status), ['TRASH', 'REJECTED'])) {
+                $base->whereIn('status', ['TRASH', 'REJECTED']);
+            } else {
+                $base->where('status', $status);
+            }
         }
 
         // Apply search
@@ -428,6 +432,7 @@ class AdmissionController extends Controller
                 $admission->waiver_notes = $request->waiver_notes;
             }
             $admission->batch_id = $batch->id;
+            $admission->rejection_reason = null;
 
             // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────
             if (empty($student->student_code)) {
@@ -633,19 +638,44 @@ class AdmissionController extends Controller
         }
     }
 
-    public function reject(Request $request, AdmissionForm $admission)
+    public function trash(Request $request, AdmissionForm $admission)
     {
-        $request->validate([
-            'rejection_reason' => 'required|string|max:500',
-        ]);
+        $reason = $request->input('trash_reason')
+            ?? $request->input('rejection_reason')
+            ?? 'Moved to trash by admin';
 
         $admission->update([
-            'status'           => 'REJECTED',
-            'rejection_reason' => $request->input('rejection_reason'),
+            'status'           => 'TRASH',
+            'rejection_reason' => $reason,
             'reviewed_by'      => auth()->id(),
             'reviewed_at'      => now(),
         ]);
 
-        return back()->with('success', 'Admission application rejected. Reason logged for student re-apply.');
+        return back()->with('success', 'ভর্তি আবেদনটি সফলভাবে ট্র্যাশে (Trash) সরানো হয়েছে।');
+    }
+
+    public function untrash(AdmissionForm $admission)
+    {
+        if (!in_array($admission->status, ['TRASH', 'REJECTED'])) {
+            return back()->with('info', 'আবেদনটি ট্র্যাশে নেই।');
+        }
+
+        $oldReason = $admission->rejection_reason;
+        $untrashNote = 'রিস্টোর করা হয়েছে (' . now()->format('d M Y, h:i A') . ' - ' . (auth()->user()?->name ?? 'এডমিন') . ')';
+
+        $admission->update([
+            'status'           => 'PENDING',
+            'notes'            => trim(($admission->notes ? $admission->notes . "\n" : '') . "Untrashed: " . $untrashNote . ($oldReason ? " (পূর্বের কারণ: {$oldReason})" : "")),
+            'rejection_reason' => null,
+            'reviewed_by'      => auth()->id(),
+            'reviewed_at'      => now(),
+        ]);
+
+        return back()->with('success', 'আবেদনটি ট্র্যাশ থেকে সফলভাবে পুনরুদ্ধার (Untrash) করা হয়েছে! এখন আপনি এটি পর্যালোচনা করে ভর্তি অনুমোদন করতে পারেন।');
+    }
+
+    public function reject(Request $request, AdmissionForm $admission)
+    {
+        return $this->trash($request, $admission);
     }
 }

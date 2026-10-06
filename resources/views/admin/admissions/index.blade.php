@@ -40,10 +40,11 @@
     {{-- Status filter row --}}
     <div style="display:flex;align-items:center;gap:8px;background:var(--card-bg);border:1px solid var(--card-border);border-top:0;border-radius:0 0 8px 8px;padding:10px 16px;margin-bottom:16px;flex-wrap:wrap">
         <span style="font-size:12px;color:var(--text-muted);font-weight:500">Filter:</span>
-        @foreach([''=>'All Status','PENDING'=>'Pending','APPROVED'=>'Approved','REJECTED'=>'Rejected'] as $s => $label)
+        @foreach([''=>'All Status','PENDING'=>'Pending','APPROVED'=>'Approved','TRASH'=>'Trash'] as $s => $label)
         <a href="?tab={{ $tab }}&status={{ $s }}"
-           style="font-size:12px;padding:4px 12px;border-radius:20px;text-decoration:none;border:1px solid var(--card-border);
-                  {{ $status === $s ? 'background:var(--blue);color:#fff;border-color:var(--blue)' : 'color:var(--text-secondary)' }}">
+           style="font-size:12px;padding:4px 12px;border-radius:20px;text-decoration:none;border:1px solid var(--card-border);display:inline-flex;align-items:center;gap:4px;
+                  {{ ($status === $s || ($s === 'TRASH' && $status === 'REJECTED')) ? 'background:var(--blue);color:#fff;border-color:var(--blue)' : 'color:var(--text-secondary)' }}">
+            @if($s === 'TRASH') <i class="fa-solid fa-trash-can" style="font-size:11px"></i> @endif
             {{ $label }}
         </a>
         @endforeach
@@ -96,13 +97,22 @@
                             <td>
                                 @if($unp->status === 'APPROVED')
                                     <span class="badge badge-active">Approved</span>
-                                @elseif($unp->status === 'REJECTED')
-                                    <span class="badge badge-cancelled">Rejected</span>
+                                @elseif(in_array($unp->status, ['TRASH', 'REJECTED']))
+                                    <span class="badge" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;"><i class="fa-solid fa-trash-can"></i> Trash</span>
                                 @else
                                     <span class="badge badge-pending">Pending</span>
                                 @endif
                             </td>
                             <td style="text-align:right;white-space:nowrap;">
+                                @if(in_array($unp->status, ['TRASH', 'REJECTED']))
+                                    <form method="POST" action="{{ route('admin.admissions.untrash', $unp) }}" style="display:inline;" onsubmit="return confirm('আবেদনটি কি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:#047857;border-color:#a7f3d0;background:#ecfdf5;font-weight:600;" title="Restore to pending">
+                                            <i class="fa-solid fa-rotate-left"></i> Untrash
+                                        </button>
+                                    </form>
+                                @endif
                                 <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $unp) }}" style="display:inline;" onsubmit="return confirm('আবেদনকারীর কাছে রি-পেমেন্ট মেইল পাঠাতে চান?')">
                                     @csrf
                                     <button type="submit" class="btn btn-outline btn-sm" style="color:#b45309;border-color:#fde68a;background:#fffbeb;" title="Send Re-Payment Email">
@@ -151,14 +161,25 @@
                                     <div style="font-size:11px;color:#15803d;margin-top:2px;">
                                         অনুমোদনকারী: <strong>{{ $adm->reviewer->name ?? 'এডমিন' }}</strong>
                                     </div>
-                                @else
-                                    <span class="badge badge-cancelled">Rejected</span>
+                                @elseif(in_array($adm->status, ['TRASH', 'REJECTED']))
+                                    <span class="badge" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;"><i class="fa-solid fa-trash-can"></i> Trash</span>
                                     <div style="font-size:11px;color:#991b1b;margin-top:2px;">
                                         পর্যালোচক: {{ $adm->reviewer->name ?? 'এডমিন' }}
                                     </div>
+                                @else
+                                    <span class="badge badge-pending">{{ $adm->status }}</span>
                                 @endif
                             </td>
                             <td style="text-align:right;white-space:nowrap;">
+                                @if(in_array($adm->status, ['TRASH', 'REJECTED']))
+                                    <form method="POST" action="{{ route('admin.admissions.untrash', $adm) }}" style="display:inline;" onsubmit="return confirm('আবেদনটি কি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:#047857;border-color:#a7f3d0;background:#ecfdf5;font-weight:600;" title="Restore to pending">
+                                            <i class="fa-solid fa-rotate-left"></i> Untrash
+                                        </button>
+                                    </form>
+                                @endif
                                 @if(!in_array($adm->id, $paidIds) && ($adm->interestedCourse && $adm->interestedCourse->admission_fee > 0))
                                     <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $adm) }}" style="display:inline;" onsubmit="return confirm('আবেদনকারীর কাছে রি-পেমেন্ট মেইল পাঠাতে চান?')">
                                         @csrf
@@ -212,14 +233,25 @@
                                     </div>
                                 @elseif($pub->status === 'REVIEWED')
                                     <span class="badge badge-scheduled">Reviewed</span>
-                                @else
-                                    <span class="badge badge-cancelled">Rejected</span>
+                                @elseif(in_array($pub->status, ['TRASH', 'REJECTED']))
+                                    <span class="badge" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;"><i class="fa-solid fa-trash-can"></i> Trash</span>
                                     <div style="font-size:11px;color:#991b1b;margin-top:2px;">
                                         পর্যালোচক: {{ $pub->reviewer->name ?? 'এডমিন' }}
                                     </div>
+                                @else
+                                    <span class="badge badge-pending">{{ $pub->status }}</span>
                                 @endif
                             </td>
                             <td style="text-align:right;white-space:nowrap;">
+                                @if(in_array($pub->status, ['TRASH', 'REJECTED']))
+                                    <form method="POST" action="{{ route('admin.admissions.untrash', $pub) }}" style="display:inline;" onsubmit="return confirm('আবেদনটি কি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান?')">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:#047857;border-color:#a7f3d0;background:#ecfdf5;font-weight:600;" title="Restore to pending">
+                                            <i class="fa-solid fa-rotate-left"></i> Untrash
+                                        </button>
+                                    </form>
+                                @endif
                                 @if(!in_array($pub->id, $paidIds) && ($pub->interestedCourse && $pub->interestedCourse->admission_fee > 0))
                                     <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $pub) }}" style="display:inline;" onsubmit="return confirm('আবেদনকারীর কাছে রি-পেমেন্ট মেইল পাঠাতে চান?')">
                                         @csrf

@@ -9,10 +9,24 @@
             <h1>Application: {{ $admission->student->name ?? '—' }}</h1>
             <p>Attempt #{{ $admission->attempt_no }} · Submitted {{ $admission->created_at->format('d M Y, h:i A') }}</p>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;">
             @if($admission->status === 'PENDING')
-                <button class="btn btn-success btn-lg" onclick="openModal('approveModal')">Approve & Activate Student</button>
-                <button class="btn btn-danger btn-lg" onclick="openModal('rejectModal')">Reject Application</button>
+                <button class="btn btn-success btn-lg" onclick="openModal('approveModal')"><i class="fa-solid fa-user-check"></i> Approve & Activate Student</button>
+                <button class="btn btn-danger btn-lg" onclick="openModal('trashModal')"><i class="fa-solid fa-trash-can"></i> Move to Trash (ট্র্যাশে পাঠান)</button>
+            @elseif(in_array($admission->status, ['TRASH', 'REJECTED']))
+                <span class="badge" style="font-size:13px;padding:8px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;display:inline-flex;align-items:center;gap:5px;">
+                    <i class="fa-solid fa-trash-can"></i> Status: Trash
+                </span>
+                <form method="POST" action="{{ route('admin.admissions.untrash', $admission) }}" style="display:inline;" onsubmit="return confirm('আপনি কি নিশ্চিত যে আবেদনটি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান? এটি পুনরায় Pending হবে এবং ভর্তি অনুমোদন করা যাবে।')">
+                    @csrf
+                    @method('PATCH')
+                    <button type="submit" class="btn btn-success btn-lg" style="background:#047857;border-color:#047857;">
+                        <i class="fa-solid fa-rotate-left"></i> আন-ট্র্যাশ করুন (Untrash)
+                    </button>
+                </form>
+                <button class="btn btn-outline btn-lg" onclick="openModal('approveModal')" style="border-color:#047857;color:#047857;background:#ecfdf5;font-weight:600;">
+                    <i class="fa-solid fa-circle-check"></i> সরাসরি অনুমোদন (Approve Now)
+                </button>
             @else
                 <span class="badge badge-{{ strtolower($admission->status) }}" style="font-size:14px;padding:8px 16px">
                     Status: {{ ucfirst(strtolower($admission->status)) }}
@@ -271,14 +285,32 @@
                             No user account linked yet. Re-run approval or contact admin.
                         </div>
                     @endif
-                @elseif($admission->status === 'REJECTED')
-                    <div class="alert alert-danger" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px 14px;border-radius:8px;">
-                        <div style="font-size:14px;font-weight:700;"><i class="fa-solid fa-circle-xmark"></i> আবেদন প্রত্যাখ্যাত (Application Rejected)</div>
-                        <div style="font-size:13px;margin-top:4px;">
-                            <strong>বাতিলের কারণ:</strong> {{ $admission->rejection_reason ?? 'Not specified' }}
+                @elseif(in_array($admission->status, ['TRASH', 'REJECTED']))
+                    <div class="alert" style="background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b;padding:16px;border-radius:10px;font-family:'Kalpurush',sans-serif">
+                        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:space-between">
+                            <span><i class="fa-solid fa-trash-can"></i> আবেদনটি ট্র্যাশে রয়েছে (Application in Trash)</span>
+                            <span class="badge" style="background:#dc2626;color:#fff">Trash</span>
                         </div>
-                        <div style="font-size:12px;color:#7f1d1d;margin-top:2px;">
+                        <div style="font-size:13.5px;margin-top:8px;">
+                            <strong>ট্র্যাশে পাঠানোর কারণ:</strong> {{ $admission->rejection_reason ?: 'নির্দিষ্ট কারণ উল্লেখ নেই' }}
+                        </div>
+                        <div style="font-size:12px;color:#7f1d1d;margin-top:4px;">
                             <strong>পর্যালোচনাকারী:</strong> {{ $admission->reviewer->name ?? 'এডমিন' }} ({{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }})
+                        </div>
+                        <hr style="margin:12px 0;border:0;border-top:1px dashed #fca5a5">
+                        <div style="font-size:13px;color:#7f1d1d;margin-bottom:10px;line-height:1.5;">
+                            💡 শিক্ষার্থী ফি পরিশোধ করলে বা আবেদনটি পুনর্বিবেচনা করতে চাইলে <strong>Untrash</strong> করুন। এতে আবেদনটি পুনরায় পেন্ডিং তালিকায় চলে আসবে এবং ভর্তি অনুমোদন করা যাবে।
+                        </div>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                            <form method="POST" action="{{ route('admin.admissions.untrash', $admission) }}" onsubmit="return confirm('আবেদনটি কি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান?')">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="btn btn-sm" style="background:#047857;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;cursor:pointer;">
+                                    <i class="fa-solid fa-rotate-left"></i> আন-ট্র্যাশ করুন (Untrash to Pending)
+                                </button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="openModal('approveModal')" style="color:#047857;border-color:#047857;background:#fff;padding:7px 16px;border-radius:6px;font-weight:700;cursor:pointer;">
+                                <i class="fa-solid fa-user-check"></i> সরাসরি অনুমোদন করুন (Approve Now)
+                            </button>
                         </div>
                     </div>
                 @else
@@ -657,24 +689,32 @@
     });
     </script>
 
-    <!-- Reject Modal -->
-    <div class="modal-overlay" id="rejectModal">
-        <div class="modal">
+    <!-- Trash Modal -->
+    <div class="modal-overlay" id="trashModal">
+        <div class="modal" style="max-width:550px;font-family:'Kalpurush',sans-serif;">
             <div class="modal-header">
-                <span class="modal-title">Reject Admission Application</span>
-                <button class="modal-close" onclick="closeModal('rejectModal')">&times;</button>
+                <span class="modal-title" style="display:flex;align-items:center;gap:8px;color:#991b1b;font-weight:700;">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>আবেদন ট্র্যাশে পাঠান (Move to Trash)</span>
+                </span>
+                <button class="modal-close" onclick="closeModal('trashModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.admissions.reject', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি বাতিল (Reject) করতে চান?')">
+            <form method="POST" action="{{ route('admin.admissions.trash', $admission) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে এই ভর্তি আবেদনটি ট্র্যাশে (Trash) পাঠাতে চান?')">
                 @csrf @method('PATCH')
                 <div class="modal-body">
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">
+                        আবেদনটি ট্র্যাশে পাঠালে তা ট্র্যাশ তালিকায় সংরক্ষিত থাকবে। পরবর্তীতে শিক্ষার্থী ফি পরিশোধ করলে কিংবা প্রয়োজন হলে যে কোনো সময় এটিকে <strong>Untrash</strong> করে পুনরায় ভর্তি কনফার্ম করা যাবে।
+                    </p>
                     <div class="form-group">
-                        <label>Rejection Reason <span class="required">*</span></label>
-                        <textarea name="rejection_reason" class="form-control" placeholder="e.g. Incomplete HSC certificates, GPA below course requirement..." required></textarea>
+                        <label style="font-weight:600;">ট্র্যাশে পাঠানোর কারণ (Reason) <span class="required">*</span></label>
+                        <textarea name="trash_reason" class="form-control" rows="3" placeholder="যেমন: কাগজপত্র অসম্পূর্ণ, শর্ত পূরণ হয়নি, ভুল তথ্য..." required></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline" onclick="closeModal('rejectModal')">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Confirm Rejection</button>
+                    <button type="button" class="btn btn-outline" onclick="closeModal('trashModal')">বাতিল (Cancel)</button>
+                    <button type="submit" class="btn btn-danger" style="background:#dc2626;border-color:#dc2626;">
+                        <i class="fa-solid fa-trash-can"></i> ট্র্যাশে পাঠান (Confirm Trash)
+                    </button>
                 </div>
             </form>
         </div>

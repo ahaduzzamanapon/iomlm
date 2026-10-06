@@ -55,6 +55,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::middleware('admin.module:admissions')->group(function () {
         Route::resource('admissions', \App\Http\Controllers\Admin\AdmissionController::class);
         Route::patch('admissions/{admission}/approve', [\App\Http\Controllers\Admin\AdmissionController::class, 'approve'])->name('admissions.approve');
+        Route::patch('admissions/{admission}/trash', [\App\Http\Controllers\Admin\AdmissionController::class, 'trash'])->name('admissions.trash');
+        Route::patch('admissions/{admission}/untrash', [\App\Http\Controllers\Admin\AdmissionController::class, 'untrash'])->name('admissions.untrash');
         Route::patch('admissions/{admission}/reject', [\App\Http\Controllers\Admin\AdmissionController::class, 'reject'])->name('admissions.reject');
         Route::post('admissions/{admission}/send-repayment-email', [\App\Http\Controllers\Admin\AdmissionController::class, 'sendRepaymentEmail'])->name('admissions.send-repayment-email');
 

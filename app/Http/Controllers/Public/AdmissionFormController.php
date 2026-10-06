@@ -334,6 +334,7 @@ class AdmissionFormController extends Controller
                 'manual_sender_phone.required'   => 'যে নম্বর থেকে পেমেন্ট পাঠিয়েছেন সেই নম্বরটি লিখুন।',
             ]);
 
+            $wasTrashed = in_array($form->status, ['TRASH', 'REJECTED']);
             $form->update([
                 'manual_payment_method' => $request->input('manual_payment_method'),
                 'manual_trx_id'         => strtoupper(trim($request->input('manual_trx_id'))),
@@ -341,6 +342,8 @@ class AdmissionFormController extends Controller
                 'manual_payment_notes'  => $request->input('manual_payment_notes'),
                 'manual_payment_date'   => now(),
                 'status'                => 'PENDING',
+                'rejection_reason'      => $wasTrashed ? null : $form->rejection_reason,
+                'notes'                 => trim(($form->notes ? $form->notes . "\n" : '') . ($wasTrashed ? 'পেমেন্ট সাবমিট করায় ট্র্যাশ থেকে স্বয়ংক্রিয়ভাবে আন-ট্র্যাশ (Untrashed) করা হয়েছে।' : '')),
             ]);
 
             return redirect()->route('apply.success', $form->application_no)
