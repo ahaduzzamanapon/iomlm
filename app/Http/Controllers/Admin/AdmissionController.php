@@ -218,6 +218,7 @@ class AdmissionController extends Controller
                 'waiver_code'             => $waiverCode,
                 'status'                  => 'PENDING',
                 'notes'                   => $validated['notes'] ?? null,
+                'gender'                  => $validated['gender'] ?? $student->gender,
 
                 // Education Info
                 'occupation'              => $validated['occupation'] ?? null,
@@ -367,11 +368,19 @@ class AdmissionController extends Controller
             // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────
             $course = $batch->course ?: Course::find($batch->course_id);
 
+            $effectiveGender = $admission->gender ?: ($student->gender ?? 'Male');
+            $expectedCourseCode = Student::resolveCourseCode($course, $course?->id);
+            $expectedGenderCode = Student::resolveGenderCode($effectiveGender);
+
+            $year = Student::resolveAcademicYearCode($batch);
+            $batchNum = Student::resolveBatchNumberCode($batch);
+            $expectedPrefix = "{$year}{$batchNum}{$expectedCourseCode}{$expectedGenderCode}";
+
+            $cleanCode = preg_replace('/\D/', '', (string)($student->student_code ?? ''));
+
             // Check if student already belongs to a different course
             $isDifferentCourse = false;
-            if (!empty($student->student_code)) {
-                $expectedCourseCode = Student::resolveCourseCode($course, $course?->id);
-                $cleanCode = preg_replace('/\D/', '', (string)$student->student_code);
+            if (!empty($cleanCode)) {
                 $existingCourseCode = strlen($cleanCode) >= 6 ? substr($cleanCode, 4, 2) : '';
                 if ($existingCourseCode !== $expectedCourseCode) {
                     $isDifferentCourse = true;
@@ -380,19 +389,26 @@ class AdmissionController extends Controller
                 $isDifferentCourse = true;
             }
 
+            $hasPrefixMismatch = empty($cleanCode) || strlen($cleanCode) < 7 || substr($cleanCode, 0, 7) !== $expectedPrefix;
+
             if ($isDifferentCourse) {
                 $newStudent = $student->replicate(['id', 'student_code', 'user_id', 'created_at', 'updated_at']);
                 $newStudent->status = 'ACTIVE';
-                $newStudent->student_code = Student::generateStudentCode($batch, $course, $student->gender);
+                $newStudent->gender = $effectiveGender;
+                $newStudent->student_code = Student::generateStudentCode($batch, $course, $effectiveGender);
                 $newStudent->save();
-                $admission->update(['student_id' => $newStudent->id]);
+                $admission->update(['student_id' => $newStudent->id, 'gender' => $effectiveGender]);
                 $student = $newStudent;
             } else {
-                if (empty($student->student_code)) {
-                    $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
+                if ($hasPrefixMismatch) {
+                    $student->student_code = Student::generateStudentCode($batch, $course, $effectiveGender);
                 }
                 $student->status = 'ACTIVE';
+                $student->gender = $effectiveGender;
                 $student->save();
+                if (empty($admission->gender)) {
+                    $admission->update(['gender' => $effectiveGender]);
+                }
             }
 
             // Sync all profile details from admission form into student
@@ -405,7 +421,7 @@ class AdmissionController extends Controller
             $student->address        = $student->address ?: ($admission->present_house ?: $admission->permanent_house);
             $student->email          = $student->email ?: $admission->email;
             $student->phone          = $student->phone ?: $admission->phone;
-            $student->gender         = $student->gender ?: $admission->gender;
+            $student->gender         = $effectiveGender;
             $student->date_of_birth  = $student->date_of_birth ?: $admission->date_of_birth;
 
             $student->status = 'ACTIVE';

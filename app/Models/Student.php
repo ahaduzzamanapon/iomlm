@@ -322,7 +322,13 @@ class Student extends Model
     {
         if (!empty($gender)) {
             $g = strtolower(trim($gender));
-            if (in_array($g, ['female', '2', 'f', 'নারি', 'নারী', 'মহিলা'])) {
+            if (
+                in_array($g, ['female', '2', 'f', 'নারি', 'নারী', 'মহিলা', 'বোন', 'মেয়ে', 'মেয়ে'])
+                || str_contains($g, 'female')
+                || str_contains($g, 'মহিলা')
+                || str_contains($g, 'নারী')
+                || str_contains($g, 'বোন')
+            ) {
                 return '2';
             }
         }

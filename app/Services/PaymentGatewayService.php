@@ -516,12 +516,23 @@ class PaymentGatewayService
         $batch = $form->batch ?: Batch::where('course_id', $form->interested_course_id)->where('status', 'ACTIVE')->first();
         $targetCourse = $batch?->course ?: Course::find($form->interested_course_id);
 
+        $effectiveGender = $form->gender ?: ($student->gender ?? 'Male');
+        $expectedCourseCode = Student::resolveCourseCode($targetCourse, $targetCourse?->id);
+        $expectedGenderCode = Student::resolveGenderCode($effectiveGender);
+
+        $expectedPrefix = '';
+        if ($batch) {
+            $year = Student::resolveAcademicYearCode($batch);
+            $batchNum = Student::resolveBatchNumberCode($batch);
+            $expectedPrefix = "{$year}{$batchNum}{$expectedCourseCode}{$expectedGenderCode}";
+        }
+
+        $cleanCode = preg_replace('/\D/', '', (string)($student->student_code ?? ''));
+
         // 1. Generate Course-Specific Student ID (YY-BB-CC-G-RRRR)
         // Format: YYBBCCGRRRR (Digits 1-2: Academic Year, 3-4: Batch, 5-6: Course Code, 7: Gender, 8-11: Serial)
         $isDifferentCourse = false;
-        if (!empty($student->student_code)) {
-            $expectedCourseCode = Student::resolveCourseCode($targetCourse, $targetCourse?->id);
-            $cleanCode = preg_replace('/\D/', '', (string)$student->student_code);
+        if (!empty($cleanCode)) {
             $existingCourseCode = strlen($cleanCode) >= 6 ? substr($cleanCode, 4, 2) : '';
             if ($existingCourseCode !== $expectedCourseCode) {
                 $isDifferentCourse = true;
@@ -530,20 +541,29 @@ class PaymentGatewayService
             $isDifferentCourse = true;
         }
 
+        $hasPrefixMismatch = !empty($expectedPrefix) && (empty($cleanCode) || strlen($cleanCode) < 7 || substr($cleanCode, 0, 7) !== $expectedPrefix);
+
         if ($isDifferentCourse) {
             // Replicate student profile to a dedicated Student record for this new course
             $newStudent = $student->replicate(['id', 'student_code', 'user_id', 'created_at', 'updated_at']);
             $newStudent->status = 'ACTIVE';
-            $newStudent->student_code = $batch ? Student::generateStudentCode($batch, $targetCourse, $student->gender) : null;
+            $newStudent->gender = $effectiveGender;
+            $newStudent->student_code = $batch ? Student::generateStudentCode($batch, $targetCourse, $effectiveGender) : null;
             $newStudent->save();
-            $form->update(['student_id' => $newStudent->id]);
+            $form->update(['student_id' => $newStudent->id, 'gender' => $effectiveGender]);
             $student = $newStudent;
         } else {
-            if (empty($student->student_code) && $batch) {
-                $student->student_code = Student::generateStudentCode($batch, $targetCourse, $student->gender);
+            if ($hasPrefixMismatch && $batch) {
+                $student->gender = $effectiveGender;
+                $student->student_code = Student::generateStudentCode($batch, $targetCourse, $effectiveGender);
+            } else {
+                $student->gender = $effectiveGender;
             }
             $student->status = 'ACTIVE';
             $student->save();
+            if (empty($form->gender)) {
+                $form->update(['gender' => $effectiveGender]);
+            }
         }
 
         $student->calculateProfileCompletion();

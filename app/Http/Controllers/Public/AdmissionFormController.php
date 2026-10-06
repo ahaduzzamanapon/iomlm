@@ -199,6 +199,7 @@ class AdmissionFormController extends Controller
                 $form->update([
                     'batch_id' => $validated['batch_id'] ?? $form->batch_id,
                     'academic_session_id' => $sessionId,
+                    'gender' => $validated['gender'] ?? $form->gender,
                     'ip_address' => $request->ip(),
                 ]);
             } else {
@@ -209,6 +210,7 @@ class AdmissionFormController extends Controller
                     'interested_course_id' => $validated['course_id'],
                     'batch_id' => $validated['batch_id'] ?? null,
                     'academic_session_id' => $sessionId,
+                    'gender' => $validated['gender'] ?? null,
                     'attempt_no' => 1,
                     'lead_source' => 'Website',
                     'status' => 'PENDING',
@@ -445,37 +447,56 @@ class AdmissionFormController extends Controller
             ->with('success', 'আপনার ভর্তি আবেদন ও স্কলারশিপ সফলভাবে নিশ্চিত হয়েছে!');
     }
 
-    public function success(string $applicationNo)
+    /**
+     * Self-healing check: Ensure approved application has dedicated student record with accurate Course and Gender code.
+     */
+    public static function ensureCourseAndGenderSpecificStudent(AdmissionForm &$form): void
     {
-        $form = AdmissionForm::with(['interestedCourse', 'session', 'student', 'batch'])
-            ->where('application_no', $applicationNo)
-            ->where('source', 'PUBLIC')
-            ->firstOrFail();
+        $form->load('student');
+        if ($form->status !== 'APPROVED' || !$form->student || !$form->interested_course_id) {
+            return;
+        }
 
-        // Self-healing check: If the form is APPROVED, but the associated student has a student_code from a DIFFERENT course
-        // (e.g. from an earlier course application with the same phone number), ensure this admission has its own course-specific student!
-        if ($form->status === 'APPROVED' && $form->student && $form->interested_course_id) {
-            $student = $form->student;
-            $batch = $form->batch ?: Batch::where('course_id', $form->interested_course_id)->where('status', 'ACTIVE')->first();
-            $targetCourse = $batch?->course ?: Course::find($form->interested_course_id);
+        $student = $form->student;
+        $batch = $form->batch ?: Batch::where('course_id', $form->interested_course_id)->where('status', 'ACTIVE')->first();
+        if (!$batch) {
+            return;
+        }
+        $targetCourse = $batch->course ?: Course::find($form->interested_course_id);
+        if (!$targetCourse) {
+            return;
+        }
 
-            $isDifferentCourse = false;
-            if (!empty($student->student_code)) {
-                $expectedCourseCode = Student::resolveCourseCode($targetCourse, $targetCourse?->id);
-                $cleanCode = preg_replace('/\D/', '', (string)$student->student_code);
-                $existingCourseCode = strlen($cleanCode) >= 6 ? substr($cleanCode, 4, 2) : '';
-                if ($existingCourseCode !== $expectedCourseCode) {
-                    $isDifferentCourse = true;
-                }
-            } elseif ($student->enrollments()->where('course_id', '!=', $targetCourse?->id)->exists()) {
+        $effectiveGender = $form->gender ?: ($student->gender ?? 'Male');
+        $year = Student::resolveAcademicYearCode($batch);
+        $batchNum = Student::resolveBatchNumberCode($batch);
+        $courseCode = Student::resolveCourseCode($targetCourse, $targetCourse->id);
+        $genderCode = Student::resolveGenderCode($effectiveGender);
+        $expectedPrefix = "{$year}{$batchNum}{$courseCode}{$genderCode}";
+
+        $cleanCode = preg_replace('/\D/', '', (string)($student->student_code ?? ''));
+
+        // Check if student belongs to a different course
+        $isDifferentCourse = false;
+        if (!empty($cleanCode)) {
+            $existingCourseCode = strlen($cleanCode) >= 6 ? substr($cleanCode, 4, 2) : '';
+            if ($existingCourseCode !== $courseCode) {
                 $isDifferentCourse = true;
             }
+        } elseif ($student->enrollments()->where('course_id', '!=', $targetCourse->id)->exists()) {
+            $isDifferentCourse = true;
+        }
 
-            if ($isDifferentCourse && $batch) {
-                DB::transaction(function () use ($form, $student, $batch, $targetCourse) {
+        // Check if the current student_code prefix mismatches (e.g. wrong gender digit, wrong batch/course)
+        $hasPrefixMismatch = empty($cleanCode) || strlen($cleanCode) < 7 || substr($cleanCode, 0, 7) !== $expectedPrefix;
+
+        if ($isDifferentCourse || $hasPrefixMismatch) {
+            DB::transaction(function () use ($form, $student, $batch, $targetCourse, $effectiveGender, $isDifferentCourse) {
+                if ($isDifferentCourse) {
                     $newStudent = $student->replicate(['id', 'student_code', 'user_id', 'created_at', 'updated_at']);
                     $newStudent->status = 'ACTIVE';
-                    $newStudent->student_code = Student::generateStudentCode($batch, $targetCourse, $student->gender);
+                    $newStudent->gender = $effectiveGender;
+                    $newStudent->student_code = Student::generateStudentCode($batch, $targetCourse, $effectiveGender);
                     $newStudent->save();
 
                     $rawPassword = $student->temporary_password ?: ($newStudent->phone ?: '12345678');
@@ -493,17 +514,38 @@ class AdmissionFormController extends Controller
                     $newStudent->temporary_password = $rawPassword;
                     $newStudent->save();
 
-                    $form->update(['student_id' => $newStudent->id]);
+                    $form->update(['student_id' => $newStudent->id, 'gender' => $effectiveGender]);
 
-                    // Update enrollment
                     Enrollment::where('admission_form_id', $form->id)->update(['student_id' => $newStudent->id]);
-                    // Update invoices
-                    Invoice::where('admission_form_id', $form->id)->update(['student_id' => $newStudent->id]);
-                });
-                $form->refresh();
-                $form->load('student');
-            }
+                    Invoice::where('source_type', AdmissionForm::class)
+                        ->where('source_id', $form->id)
+                        ->update(['student_id' => $newStudent->id]);
+                } else {
+                    // Update existing student record with the correct gender and code
+                    $student->gender = $effectiveGender;
+                    $student->student_code = Student::generateStudentCode($batch, $targetCourse, $effectiveGender);
+                    $student->save();
+
+                    if ($student->user) {
+                        $loginEmail = $student->student_code . '@iom.student';
+                        $student->user->update(['email' => $loginEmail]);
+                    }
+                    $form->update(['gender' => $effectiveGender]);
+                }
+            });
+            $form->refresh();
+            $form->load('student');
         }
+    }
+
+    public function success(string $applicationNo)
+    {
+        $form = AdmissionForm::with(['interestedCourse', 'session', 'student', 'batch'])
+            ->where('application_no', $applicationNo)
+            ->where('source', 'PUBLIC')
+            ->firstOrFail();
+
+        self::ensureCourseAndGenderSpecificStudent($form);
 
         $transaction = GatewayTransaction::where('admission_form_id', $form->id)
             ->latest()
@@ -540,6 +582,10 @@ class AdmissionFormController extends Controller
                 })
                 ->latest('id')
                 ->first();
+
+            if ($admission && $admission->status === 'APPROVED') {
+                self::ensureCourseAndGenderSpecificStudent($admission);
+            }
 
             if ($admission) {
                 $isPaid = GatewayTransaction::where('admission_form_id', $admission->id)
