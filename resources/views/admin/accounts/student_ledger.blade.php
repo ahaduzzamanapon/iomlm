@@ -138,7 +138,188 @@
         </div>
     </div>
 
-    {{-- Invoices Table --}}
+    {{-- ── 1. Month-wise Fee Schedule & Collection (মাসভিত্তিক ফি বিবরণ ও সরাসরি জমা) ── --}}
+    <div class="card" style="margin-bottom:26px;border-radius:12px;overflow:hidden;border:1px solid #cbd5e1;box-shadow:0 2px 6px rgba(0,0,0,0.04);font-family:'Kalpurush',sans-serif">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#fff;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;gap:10px">
+            <div>
+                <span class="card-title" style="font-family:'Kalpurush',sans-serif;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-calendar-days" style="color:#047857;font-size:18px"></i>
+                    <span>মাসভিত্তিক ফি ও বেতন হিসাব (Month-wise Fee Schedule & Collection)</span>
+                </span>
+                <span style="font-size:12px;color:#64748b;margin-left:26px;display:block">
+                    প্রতিটি মাসের বেতন, ভর্তি ও পরীক্ষার ফি বিবরণ, একক বা একাধিক মাসের ফি সরাসরি জমা এবং এডিট
+                </span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <button type="button" class="btn btn-sm" onclick="openAdminAddFeeModal()"
+                    style="font-family:'Kalpurush',sans-serif;background:#059669;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fa-solid fa-plus-circle"></i> + নতুন ফি যোগ করুন
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body" style="padding:20px;background:#f8fafc">
+            {{-- Semester Selector --}}
+            <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+                <label style="font-weight:700;color:#1e293b;font-size:14px">Check Due For:</label>
+                <select id="adminCheckDueSemesterSelect"
+                    onchange="location.href='{{ route('admin.students.accounts', $student) }}?course_id={{ $course?->id }}&semester_id=' + this.value"
+                    style="padding:6px 18px;border:1.5px solid #10b981;border-radius:6px;font-size:14px;font-weight:700;color:#0f172a;background:#fff;outline:none;cursor:pointer;font-family:'Kalpurush',sans-serif">
+                    @foreach($semesterDropdownOptions as $sOpt)
+                        <option value="{{ $sOpt['id'] }}" {{ (string)$selectedSemesterId === (string)$sOpt['id'] ? 'selected' : '' }}>
+                            {{ $sOpt['label'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            {{-- Prior Due Guard Warning --}}
+            @if($hasPriorSemesterDue && ($selectedSemester?->sequence_no > 1))
+                <div style="background:#fff1f2;border:1.5px solid #fecdd3;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:gap;gap:10px">
+                    <div style="display:flex;align-items:center;gap:10px;color:#9f1239;font-size:13px;font-weight:600">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size:16px;color:#e11d48"></i>
+                        <span>
+                            <strong>পূর্বের সেমিস্টারের বকেয়া অপরিশোধিত:</strong>
+                            পূর্বের সেমিস্টারের বকেয়া ({{ $priorDueSemesterName }} — ৳{{ number_format($priorDueAmount, 2) }}) এখনো বকেয়া রয়েছে।
+                        </span>
+                    </div>
+                    @if($priorDueSemesterId)
+                        <a href="{{ route('admin.students.accounts', ['student' => $student, 'semester_id' => $priorDueSemesterId]) }}"
+                            style="background:#be123c;color:#fff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-arrow-left"></i> পূর্বের সেমিস্টার দেখুন
+                        </a>
+                    @endif
+                </div>
+            @endif
+
+            {{-- Status Filter Buttons & Table Tools --}}
+            <div style="max-width:850px;margin:0 auto 12px auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="font-size:12.5px;font-weight:700;color:#64748b;margin-right:4px">স্ট্যাটাস ফিল্টার:</span>
+                    <button type="button" class="admin-step1-filter-btn" id="adminStep1Filter_all"
+                        onclick="filterAdminStep1Table('all', this)"
+                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #2563eb;background:#2563eb;color:#fff;transition:all .15s">
+                        <i class="fa-solid fa-list-check"></i> সকল আইটেম (All)
+                    </button>
+                    <button type="button" class="admin-step1-filter-btn" id="adminStep1Filter_due"
+                        onclick="filterAdminStep1Table('due', this)"
+                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #cbd5e1;background:#fff;color:#be123c;transition:all .15s">
+                        <i class="fa-solid fa-clock"></i> বকেয়া (Dues Only)
+                    </button>
+                    <button type="button" class="admin-step1-filter-btn" id="adminStep1Filter_paid"
+                        onclick="filterAdminStep1Table('paid', this)"
+                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #cbd5e1;background:#fff;color:#15803d;transition:all .15s">
+                        <i class="fa-solid fa-circle-check"></i> পরিশোধিত (Paid Only)
+                    </button>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                    <button type="button" onclick="openAdminAddFeeModal()"
+                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #16a34a;background:#16a34a;color:#fff;display:inline-flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-plus-circle"></i> + নতুন ফি যোগ করুন
+                    </button>
+                </div>
+            </div>
+
+            {{-- Step 1 Particulars Table Container --}}
+            <div style="max-width:850px;margin:0 auto;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+                <table style="width:100%;border-collapse:collapse;font-size:13.5px">
+                    <thead>
+                        <tr style="background:#f8fafc;border-bottom:1.5px solid #e2e8f0">
+                            <th style="padding:11px 14px;width:55px;text-align:center;font-weight:700;color:#334155">#SL</th>
+                            <th style="padding:11px 14px;font-weight:700;color:#334155;text-align:left">PARTICULAR NAME</th>
+                            <th style="padding:11px 14px;width:180px;text-align:center;font-weight:700;color:#334155">DUES</th>
+                            <th style="padding:11px 14px;width:70px;text-align:center;font-weight:700;color:#334155">PAY</th>
+                            <th style="padding:11px 14px;width:130px;text-align:center;font-weight:700;color:#334155">অ্যাকশন</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($step1Particulars as $p)
+                            <tr style="border-bottom:1px solid #f1f5f9" data-admin-step1-status="{{ $p['is_paid'] ? 'paid' : 'due' }}">
+                                <td style="padding:10px 14px;text-align:center;color:#64748b;font-weight:600">
+                                    {{ $p['sl'] }}
+                                </td>
+                                <td style="padding:10px 14px;font-weight:600;color:#1e293b">
+                                    <span>{{ $p['name'] }}</span>
+                                    @if(!empty($p['is_added']))
+                                        <span style="font-size:10.5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">নতুন যুক্ত</span>
+                                    @elseif(!empty($p['is_custom']))
+                                        <span style="font-size:10.5px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক সমন্বয়কৃত' }}">সমন্বয়কৃত</span>
+                                    @endif
+                                </td>
+                                <td style="padding:10px 14px;text-align:center" id="adminPartDueCell_{{ $p['sl'] }}">
+                                    @if($p['is_paid'])
+                                        <div style="display:inline-flex;align-items:center;gap:6px">
+                                            <span style="color:#16a34a;font-weight:700">Paid ({{ number_format($p['amount'], 0) }})</span>
+                                            <button type="button"
+                                                onclick="openAdminPartEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice?->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
+                                                title="টাকার পরিমাণ এডিট করুন"
+                                                style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;cursor:pointer">
+                                                <i class="fa-solid fa-pencil"></i>
+                                            </button>
+                                        </div>
+                                    @else
+                                        <div style="display:inline-flex;align-items:center;gap:6px">
+                                            <span id="adminPartDueVal_{{ $p['sl'] }}" style="font-weight:700;color:#0f172a">{{ number_format($p['due'], 0) }}</span>
+                                            <button type="button"
+                                                onclick="openAdminPartEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice?->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
+                                                title="টাকার পরিমাণ এডিট বা সমন্বয় করুন"
+                                                style="background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px">
+                                                <i class="fa-solid fa-pencil" style="font-size:10px"></i> এডিট
+                                            </button>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td style="padding:10px 14px;text-align:center">
+                                    @if(!$p['is_paid'])
+                                        <input type="checkbox" class="admin-step1-chk"
+                                            data-name="{{ $p['name'] }}"
+                                            data-amount="{{ $p['due'] }}"
+                                            data-invoice-id="{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}"
+                                            data-invoice-no="{{ $p['invoice_no'] ?? ($selectedSemesterInvoice?->invoice_no ?? '') }}"
+                                            onchange="updateAdminStep1Selection()"
+                                            style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a">
+                                    @endif
+                                </td>
+                                <td style="padding:10px 14px;text-align:center">
+                                    @if(!$p['is_paid'])
+                                        <button type="button" class="btn btn-sm btn-success"
+                                            onclick="openAdminSingleCollectModal('{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }})"
+                                            style="padding:3px 10px;font-size:11.5px;font-family:'Kalpurush',sans-serif;background:#059669;color:#fff;border-radius:5px">
+                                            <i class="fa-solid fa-money-bill-wave"></i> জমা নিন
+                                        </button>
+                                    @else
+                                        <span style="color:#16a34a;font-size:12px;font-weight:700">
+                                            <i class="fa-solid fa-circle-check"></i> পেইড
+                                        </span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" style="text-align:center;padding:20px;color:#64748b">কোন ফি আইটেম পাওয়া যায়নি।</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Multi-select Action Bar --}}
+            <div id="adminStep1MultiBar" style="display:none;max-width:850px;margin:16px auto 0 auto;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:8px;padding:12px 18px;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                <div style="font-weight:700;color:#065f46;font-size:14px">
+                    <i class="fa-solid fa-check-circle" style="color:#059669;margin-right:6px"></i>
+                    নির্বাচিত <span id="adminStep1Count">0</span>টি ফি আইটেম — সর্বমোট: ৳<span id="adminStep1Total">0</span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-success" onclick="openAdminMultiCollectModal()"
+                        style="background:#059669;color:#fff;border:none;padding:7px 18px;border-radius:6px;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-hand-holding-dollar"></i> নির্বাচিত ফি জমা নিন
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── 2. Invoices & Fees List (ইনভয়েস ও ফি ধার্য তালিকা) ── --}}
     <div class="card" style="margin-bottom:26px;border-radius:12px;overflow:hidden">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;background:#fff;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;gap:10px">
             <div>
@@ -726,7 +907,242 @@
         </div>
     </div>
 
+    {{-- Admin Particular Edit Modal --}}
+    <div id="adminPartEditModal" class="modal-overlay" onclick="if(event.target===this) closeAdminPartEditModal()">
+        <div class="modal-dialog" style="max-width:480px">
+            <div class="modal-content" style="border-radius:14px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);font-family:'Kalpurush',sans-serif">
+                <div class="modal-header" style="background:#1e40af;color:#fff;padding:16px 20px">
+                    <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-pencil"></i> ফি এর টাকার পরিমাণ সমন্বয় / এডিট
+                    </div>
+                    <button type="button" onclick="closeAdminPartEditModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1">&times;</button>
+                </div>
+                <form id="adminPartEditForm" onsubmit="submitAdminPartEdit(event)" style="padding:20px">
+                    <input type="hidden" id="admin_pe_invoice_id">
+                    <input type="hidden" id="admin_pe_particular_name">
+                    <input type="hidden" id="admin_pe_current_due">
+                    <input type="hidden" id="admin_pe_row_sl">
+
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px">
+                        <div style="font-size:11.5px;color:#166534;font-weight:700">নির্বাচিত ফি আইটেম:</div>
+                        <div style="font-size:14px;font-weight:700;color:#0f172a;margin-top:2px" id="admin_pe_display_name">—</div>
+                        <div style="font-size:12px;color:#64748b;margin-top:4px">
+                            বর্তমান বকেয়া: <strong style="color:#dc2626" id="admin_pe_display_due">৳0</strong>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:12.5px;font-weight:700;color:#1e293b;margin-bottom:6px">
+                            নতুন টাকার পরিমাণ (New Due Amount - ৳) <span style="color:#dc2626">*</span>:
+                        </label>
+                        <input type="number" step="1" min="0" id="admin_pe_new_amount" required
+                            style="width:100%;padding:9px 12px;border:1.5px solid #2563eb;border-radius:8px;font-size:16px;font-weight:800;color:#0f172a;outline:none;box-sizing:border-box">
+                        <small style="font-size:11px;color:#64748b;display:block;margin-top:4px">
+                            * পরিমাণ ০ (শূন্য) বসালে এই আইটেমটি মওকুফ / পেইড হিসেবে চিহ্নিত হবে।
+                        </small>
+                    </div>
+
+                    <div style="margin-bottom:16px">
+                        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px">
+                            কারণ / পরিবর্তনের নোট (Remarks / Reason - ঐচ্ছিক):
+                        </label>
+                        <input type="text" id="admin_pe_remarks" placeholder="যেমন: বিশেষ ছাড় দেওয়া হয়েছে বা বোর্ড সমন্বয়..."
+                            style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;box-sizing:border-box;outline:none">
+                    </div>
+
+                    <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f1f5f9;padding-top:14px">
+                        <div>
+                            <button type="button" id="admin_pe_delete_btn" onclick="submitAdminPartDelete()"
+                                style="display:none;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">
+                                <i class="fa-solid fa-trash"></i> ফি মুছে ফেলুন
+                            </button>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <button type="button" onclick="closeAdminPartEditModal()" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569;font-size:12px">
+                                বাতিল
+                            </button>
+                            <button type="submit" id="admin_pe_submit_btn" class="btn btn-primary" style="background:#2563eb;border-color:#2563eb;font-weight:700;font-size:12px">
+                                <i class="fa-solid fa-check"></i> সংরক্ষণ করুন
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Admin Add Custom Fee Modal --}}
+    <div id="adminAddFeeModal" class="modal-overlay" onclick="if(event.target===this) closeAdminAddFeeModal()">
+        <div class="modal-dialog" style="max-width:480px">
+            <div class="modal-content" style="border-radius:14px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);font-family:'Kalpurush',sans-serif">
+                <div class="modal-header" style="background:#15803d;color:#fff;padding:16px 20px">
+                    <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-plus-circle"></i> নতুন ফি যোগ করুন (Add Custom Fee)
+                    </div>
+                    <button type="button" onclick="closeAdminAddFeeModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1">&times;</button>
+                </div>
+                <form id="adminAddFeeForm" onsubmit="submitAdminAddFee(event)" style="padding:20px">
+                    <input type="hidden" id="admin_aaf_invoice_id" value="{{ $selectedSemesterInvoice?->id }}">
+                    <input type="hidden" id="admin_aaf_student_id" value="{{ $student->id }}">
+                    <input type="hidden" id="admin_aaf_semester_id" value="{{ $selectedSemesterId }}">
+
+                    <div style="margin-bottom:12px">
+                        <label style="display:block;font-size:11.5px;font-weight:700;color:#64748b;margin-bottom:3px">প্রযোজ্য সেমিস্টার / কোর্স:</label>
+                        <div style="font-size:13.5px;font-weight:700;color:#15803d;background:#f0fdf4;padding:7px 12px;border-radius:6px;border:1px solid #bbf7d0">
+                            {{ $selectedSemester?->name ?? 'সাধারণ কোর্স ফি' }}
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:12.5px;font-weight:700;color:#1e293b;margin-bottom:6px">
+                            ফি এর নাম / বিবরণ (Particular Name) <span style="color:#dc2626">*</span>:
+                        </label>
+                        <input type="text" id="admin_aaf_particular_name" required
+                            placeholder="যেমন: লেট ফি, পুনঃপরীক্ষা ফি, জরিমানা..."
+                            style="width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13.5px;color:#0f172a;outline:none;box-sizing:border-box">
+
+                        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+                            <span style="font-size:11px;color:#64748b;align-self:center;font-weight:600">কুইক সিলেক্ট:</span>
+                            @foreach(['লেট ফি (Late Fee)', 'পুনঃপরীক্ষা ফি (Retake Fee)', 'সার্টিফিকেট ফি (Certificate Fee)', 'আইডি কার্ড ফি (ID Card Fee)', 'জরিমানা (Fine)', 'অন্যান্য ফি (Other Fee)'] as $preset)
+                                <button type="button" onclick="setAdminFeeNamePreset('{{ $preset }}')"
+                                    style="font-size:10.5px;padding:2px 7px;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;cursor:pointer">
+                                    + {{ $preset }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:12.5px;font-weight:700;color:#0f172a;margin-bottom:6px">
+                            টাকার পরিমাণ (Fee Amount - ৳) <span style="color:#dc2626">*</span>:
+                        </label>
+                        <input type="number" step="1" min="1" id="admin_aaf_amount" required placeholder="0"
+                            style="width:100%;padding:9px 12px;border:1.5px solid #16a34a;border-radius:8px;font-size:16px;font-weight:800;color:#0f172a;outline:none;box-sizing:border-box">
+                    </div>
+
+                    <div style="margin-bottom:16px">
+                        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px">
+                            কারণ / নোট (Reason / Remarks - ঐচ্ছিক):
+                        </label>
+                        <input type="text" id="admin_aaf_remarks" placeholder="যেমন: কর্তৃপক্ষের নির্দেশে বিশেষ ফি ধার্য..."
+                            style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;box-sizing:border-box;outline:none">
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #f1f5f9;padding-top:14px">
+                        <button type="button" onclick="closeAdminAddFeeModal()" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569;font-size:12px">
+                            বাতিল
+                        </button>
+                        <button type="submit" id="admin_aaf_submit_btn" class="btn btn-primary" style="background:#16a34a;border-color:#16a34a;font-weight:700;font-size:12px">
+                            <i class="fa-solid fa-plus-circle"></i> ফি যোগ করুন
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Admin Collect Particular Payment Modal --}}
+    <div id="adminCollectParticularPaymentModal" class="modal-overlay" onclick="if(event.target===this) closeAdminCollectModal()">
+        <div class="modal-dialog" style="max-width:520px">
+            <div class="modal-content" style="border-radius:14px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);font-family:'Kalpurush',sans-serif">
+                <div class="modal-header" style="background:#059669;color:#fff;padding:16px 20px">
+                    <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-money-bill-wave"></i> ফি জমা গ্রহণ (Collect Fee Payment)
+                    </div>
+                    <button type="button" onclick="closeAdminCollectModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1">&times;</button>
+                </div>
+                <form action="{{ route('admin.accounts.particular.collect') }}" method="POST" style="padding:20px">
+                    @csrf
+                    <input type="hidden" name="invoice_id" id="acp_invoice_id">
+                    <input type="hidden" name="student_id" id="acp_student_id" value="{{ $student->id }}">
+                    <input type="hidden" name="semester_id" id="acp_semester_id" value="{{ $selectedSemesterId }}">
+                    <div id="acp_hidden_names_container"></div>
+
+                    <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;padding:12px 16px;border-radius:10px;margin-bottom:16px">
+                        <div style="font-size:11.5px;color:#166534;font-weight:700">নির্বাচিত ফি আইটেম সমূহ:</div>
+                        <div style="font-size:13.5px;font-weight:700;color:#0f172a;margin-top:2px" id="acp_items_summary">—</div>
+                    </div>
+
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:12.5px;font-weight:700;color:#0f172a;margin-bottom:6px">
+                            জমা / আদায়ের পরিমাণ (টাকা - ৳) <span style="color:#dc2626">*</span>:
+                        </label>
+                        <input type="number" step="0.01" min="1" name="amount" id="acp_amount" required
+                            style="width:100%;padding:10px 14px;border:1.5px solid #059669;border-radius:8px;font-size:17px;font-weight:800;color:#065f46;outline:none;box-sizing:border-box">
+                    </div>
+
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px">
+                            পেমেন্ট মাধ্যম (Payment Method) <span style="color:#dc2626">*</span>:
+                        </label>
+                        <select name="payment_method" id="acp_payment_method" required class="form-control"
+                            style="width:100%;padding:9px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;font-weight:600">
+                            <option value="CASH" selected>CASH (সরাসরি অফিস ক্যাশ)</option>
+                            <option value="BKASH">BKASH (বিকাশ)</option>
+                            <option value="NAGAD">NAGAD (নগদ)</option>
+                            <option value="ROCKET">ROCKET (রকেট)</option>
+                            <option value="BANK_TRANSFER">BANK_TRANSFER (ব্যাংক ডিপোজিট / স্লিপ)</option>
+                            <option value="CARD">CARD (কার্ড)</option>
+                            <option value="ONLINE">ONLINE (অন্যান্য অনলাইন)</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px">
+                            প্রেরক মোবাইল নং / অ্যাকাউন্ট (ঐচ্ছিক):
+                        </label>
+                        <input type="text" name="sender_number" id="acp_sender_number" placeholder="যেমন: 017XXXXXXXX (বিকাশ/গ্রাহকের নম্বর)"
+                            style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;box-sizing:border-box;outline:none">
+                    </div>
+
+                    <div style="margin-bottom:14px">
+                        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px">
+                            ট্রানজেকশন আইডি / রেফারেন্স নং (ঐচ্ছিক):
+                        </label>
+                        <input type="text" name="transaction_id" id="acp_transaction_id" placeholder="যেমন: TrxID বা ব্যাংক স্লিপ নং"
+                            style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;box-sizing:border-box;outline:none">
+                    </div>
+
+                    <div style="margin-bottom:16px">
+                        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:4px">
+                            মন্তব্য / নোট (Remarks - ঐচ্ছিক):
+                        </label>
+                        <input type="text" name="remarks" id="acp_remarks" placeholder="যেমন: জানুয়ারি-মার্চ মাসের বেতন গ্রহণ..."
+                            style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:12.5px;box-sizing:border-box;outline:none">
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #f1f5f9;padding-top:14px">
+                        <button type="button" onclick="closeAdminCollectModal()" class="btn btn-outline" style="border-color:#cbd5e1;color:#475569;font-size:12.5px">
+                            বাতিল
+                        </button>
+                        <button type="submit" class="btn btn-success" style="background:#059669;color:#fff;border:none;font-weight:700;font-size:12.5px;padding:8px 18px;display:inline-flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-check"></i> টাকা জমা গ্রহণ ও রসিদ তৈরি
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+    function openModal(modalId) {
+        const m = document.getElementById(modalId);
+        if (m) {
+            m.classList.add('open', 'active', 'show');
+            m.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeModal(modalId) {
+        const m = document.getElementById(modalId);
+        if (m) {
+            m.classList.remove('open', 'active', 'show');
+            m.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+
     function openExtraFeeModal() {
         openModal('addExtraFeeModal');
     }
@@ -786,17 +1202,317 @@
     }
 
     function onCollectMethodChange(method) {
-        // Can highlight sender number field if bKash/Nagad/Rocket
         const numInput = document.querySelector('#collectSenderNumberGroup input');
-        if (method === 'BKASH') {
-            numInput.placeholder = "যেমন: 01XXXXXXXXX (বিকাশ নম্বর)";
-        } else if (method === 'NAGAD') {
-            numInput.placeholder = "যেমন: 01XXXXXXXXX (নগদ নম্বর)";
-        } else if (method === 'ROCKET') {
-            numInput.placeholder = "যেমন: 01XXXXXXXXX (রকেট নম্বর)";
-        } else {
-            numInput.placeholder = "যেমন: 01XXXXXXXXX (প্রেরক মোবাইল নম্বর)";
+        if (numInput) {
+            if (method === 'BKASH') {
+                numInput.placeholder = "যেমন: 01XXXXXXXXX (বিকাশ নম্বর)";
+            } else if (method === 'NAGAD') {
+                numInput.placeholder = "যেমন: 01XXXXXXXXX (নগদ নম্বর)";
+            } else if (method === 'ROCKET') {
+                numInput.placeholder = "যেমন: 01XXXXXXXXX (রকেট নম্বর)";
+            } else {
+                numInput.placeholder = "যেমন: 01XXXXXXXXX (প্রেরক মোবাইল নম্বর)";
+            }
         }
     }
+
+    // ── Month-wise Particulars Management JavaScript ──
+
+    function filterAdminStep1Table(type, btn) {
+        document.querySelectorAll('.admin-step1-filter-btn').forEach(b => {
+            b.style.background = '#fff';
+            b.style.color = '#475569';
+            b.style.borderColor = '#cbd5e1';
+        });
+        if (type === 'all') {
+            btn.style.background = '#2563eb';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#2563eb';
+        } else if (type === 'due') {
+            btn.style.background = '#be123c';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#be123c';
+        } else if (type === 'paid') {
+            btn.style.background = '#15803d';
+            btn.style.color = '#fff';
+            btn.style.borderColor = '#15803d';
+        }
+
+        const rows = document.querySelectorAll('tr[data-admin-step1-status]');
+        rows.forEach(r => {
+            const status = r.getAttribute('data-admin-step1-status');
+            if (type === 'all') {
+                r.style.display = '';
+            } else if (type === 'due') {
+                r.style.display = (status === 'due') ? '' : 'none';
+            } else if (type === 'paid') {
+                r.style.display = (status === 'paid') ? '' : 'none';
+            }
+        });
+    }
+
+    function updateAdminStep1Selection() {
+        const chks = document.querySelectorAll('.admin-step1-chk:checked');
+        let total = 0;
+        chks.forEach(c => total += parseFloat(c.dataset.amount) || 0);
+
+        const bar = document.getElementById('adminStep1MultiBar');
+        const countSpan = document.getElementById('adminStep1Count');
+        const totalSpan = document.getElementById('adminStep1Total');
+
+        if (chks.length > 0) {
+            bar.style.display = 'flex';
+            countSpan.innerText = chks.length;
+            totalSpan.innerText = Math.round(total).toLocaleString('en-BD');
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    function openAdminPartEditModal(invoiceId, pName, currentDue, sl, isAdded = false) {
+        document.getElementById('admin_pe_invoice_id').value = invoiceId || '';
+        document.getElementById('admin_pe_particular_name').value = pName;
+        document.getElementById('admin_pe_current_due').value = currentDue;
+        document.getElementById('admin_pe_row_sl').value = sl;
+
+        document.getElementById('admin_pe_display_name').innerText = pName;
+        document.getElementById('admin_pe_display_due').innerText = '৳' + Number(currentDue).toLocaleString('en-BD');
+        document.getElementById('admin_pe_new_amount').value = currentDue;
+        document.getElementById('admin_pe_remarks').value = '';
+
+        const delBtn = document.getElementById('admin_pe_delete_btn');
+        if (delBtn) {
+            delBtn.style.display = isAdded ? 'inline-flex' : 'none';
+        }
+
+        openModal('adminPartEditModal');
+        setTimeout(() => {
+            const input = document.getElementById('admin_pe_new_amount');
+            if (input) { input.focus(); input.select(); }
+        }, 100);
+    }
+
+    function closeAdminPartEditModal() {
+        closeModal('adminPartEditModal');
+    }
+
+    function submitAdminPartDelete() {
+        const pName = document.getElementById('admin_pe_particular_name').value;
+        const invoiceId = document.getElementById('admin_pe_invoice_id').value;
+        if (!confirm('আপনি কি নিশ্চিত যে "' + pName + '" ফি আইটেমটি সম্পূর্ণ মুছে ফেলতে চান?')) {
+            return;
+        }
+        const btn = document.getElementById('admin_pe_delete_btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> মুছা হচ্ছে...';
+
+        fetch("{{ route('admin.accounts.particular.delete') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                invoice_id: invoiceId,
+                particular_name: pName
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            if (data.success) {
+                closeAdminPartEditModal();
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || 'ফি মুছে ফেলতে সমস্যা হয়েছে।');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            alert('সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে।');
+        });
+    }
+
+    function submitAdminPartEdit(e) {
+        e.preventDefault();
+        const btn = document.getElementById('admin_pe_submit_btn');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> সেভ হচ্ছে...';
+
+        const invoiceId = document.getElementById('admin_pe_invoice_id').value;
+        const pName = document.getElementById('admin_pe_particular_name').value;
+        const newAmount = document.getElementById('admin_pe_new_amount').value;
+        const remarks = document.getElementById('admin_pe_remarks').value;
+
+        fetch("{{ route('admin.accounts.particular.update') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                invoice_id: invoiceId,
+                particular_name: pName,
+                new_amount: newAmount,
+                remarks: remarks
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            if (data.success) {
+                closeAdminPartEditModal();
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || 'ফি আপডেট করতে ত্রুটি হয়েছে।');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            alert('সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে।');
+        });
+    }
+
+    function openAdminAddFeeModal() {
+        document.getElementById('admin_aaf_particular_name').value = '';
+        document.getElementById('admin_aaf_amount').value = '';
+        document.getElementById('admin_aaf_remarks').value = '';
+        openModal('adminAddFeeModal');
+        setTimeout(() => {
+            const input = document.getElementById('admin_aaf_particular_name');
+            if (input) input.focus();
+        }, 100);
+    }
+
+    function closeAdminAddFeeModal() {
+        closeModal('adminAddFeeModal');
+    }
+
+    function setAdminFeeNamePreset(name) {
+        const input = document.getElementById('admin_aaf_particular_name');
+        if (input) {
+            input.value = name;
+            const amtInput = document.getElementById('admin_aaf_amount');
+            if (amtInput) amtInput.focus();
+        }
+    }
+
+    function submitAdminAddFee(e) {
+        e.preventDefault();
+        const btn = document.getElementById('admin_aaf_submit_btn');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> যোগ হচ্ছে...';
+
+        const invoiceId = document.getElementById('admin_aaf_invoice_id').value;
+        const studentId = document.getElementById('admin_aaf_student_id').value;
+        const semesterId = document.getElementById('admin_aaf_semester_id').value;
+        const pName = document.getElementById('admin_aaf_particular_name').value;
+        const amount = document.getElementById('admin_aaf_amount').value;
+        const remarks = document.getElementById('admin_aaf_remarks').value;
+
+        fetch("{{ route('admin.accounts.particular.store') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                invoice_id: invoiceId,
+                student_id: studentId,
+                semester_id: semesterId,
+                particular_name: pName,
+                amount: amount,
+                remarks: remarks
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            if (data.success) {
+                closeAdminAddFeeModal();
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || 'ফি যোগ করতে ত্রুটি হয়েছে।');
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+            alert('সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে।');
+        });
+    }
+
+    function openAdminSingleCollectModal(invoiceId, pName, due) {
+        document.getElementById('acp_invoice_id').value = invoiceId || '';
+        document.getElementById('acp_items_summary').innerText = pName;
+        document.getElementById('acp_amount').value = due;
+        document.getElementById('acp_remarks').value = pName + ' বাবদ জমা';
+
+        const container = document.getElementById('acp_hidden_names_container');
+        container.innerHTML = '<input type="hidden" name="particular_names[]" value="' + pName.replace(/"/g, '&quot;') + '">';
+
+        openModal('adminCollectParticularPaymentModal');
+    }
+
+    function openAdminMultiCollectModal() {
+        const chks = document.querySelectorAll('.admin-step1-chk:checked');
+        if (chks.length === 0) {
+            alert('অনুগ্রহ করে ফি জমা নিতে কমপক্ষে একটি ফি আইটেম নির্বাচন করুন।');
+            return;
+        }
+
+        let total = 0;
+        let names = [];
+        let targetInvoiceId = null;
+
+        chks.forEach(c => {
+            total += parseFloat(c.dataset.amount) || 0;
+            names.push(c.dataset.name);
+            if (!targetInvoiceId && c.dataset.invoiceId) {
+                targetInvoiceId = c.dataset.invoiceId;
+            }
+        });
+
+        document.getElementById('acp_invoice_id').value = targetInvoiceId || "{{ $selectedSemesterInvoice?->id ?? '' }}";
+        document.getElementById('acp_items_summary').innerText = names.join(', ');
+        document.getElementById('acp_amount').value = total;
+        document.getElementById('acp_remarks').value = names.join(', ') + ' বাবদ ফি জমা';
+
+        const container = document.getElementById('acp_hidden_names_container');
+        container.innerHTML = '';
+        names.forEach(n => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'particular_names[]';
+            input.value = n;
+            container.appendChild(input);
+        });
+
+        openModal('adminCollectParticularPaymentModal');
+    }
+
+    function closeAdminCollectModal() {
+        closeModal('adminCollectParticularPaymentModal');
+    }
+
+    // Escape closes modals
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+            closeAdminPartEditModal();
+            closeAdminAddFeeModal();
+            closeAdminCollectModal();
+        }
+    });
     </script>
 </x-admin-layout>

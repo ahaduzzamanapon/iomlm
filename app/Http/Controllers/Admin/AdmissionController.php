@@ -261,84 +261,8 @@ class AdmissionController extends Controller
                 ]);
             }
 
-            // ── Auto-Admit & Generate Student ID for Manual Admissions ──
-            $targetBatchId = !empty($validated['batch_id']) ? (int) $validated['batch_id'] : null;
-            if (!$targetBatchId) {
-                $targetBatchId = Batch::where('course_id', (int) $validated['interested_course_id'])
-                    ->where('status', 'ACTIVE')
-                    ->value('id');
-            }
-
-            if ($targetBatchId) {
-                $batch = Batch::findOrFail($targetBatchId);
-                $course = $batch->course ?: Course::find($validated['interested_course_id']);
-
-                // Generate Student ID (YY-BB-CC-G-RRRR)
-                if (empty($student->student_code)) {
-                    $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
-                }
-                $student->status = 'ACTIVE';
-
-                // Auto-create / Retrieve User login
-                $rawPassword = strtolower(\Illuminate\Support\Str::random(8));
-                $student->temporary_password = $rawPassword;
-
-                if (empty($student->user_id)) {
-                    $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
-                    $user = User::where('email', $loginEmail)->first();
-                    if (!$user) {
-                        $user = User::create([
-                            'name'     => $student->name,
-                            'email'    => $loginEmail,
-                            'password' => Hash::make($rawPassword),
-                            'role'     => 'student',
-                        ]);
-                    } else {
-                        $user->password = Hash::make($rawPassword);
-                        $user->save();
-                    }
-                    $student->user_id = $user->id;
-                } else {
-                    $user = $student->user;
-                    if ($user) {
-                        $user->password = Hash::make($rawPassword);
-                        $user->save();
-                    }
-                }
-                $student->save();
-
-                // Update form to APPROVED
-                $form->update([
-                    'status'      => 'APPROVED',
-                    'batch_id'    => $batch->id,
-                    'reviewed_by' => auth()->id(),
-                    'reviewed_at' => now(),
-                ]);
-
-                // Initial Semester & Enrollment
-                $initialSemester = $batch->semesterPosition?->currentSemester
-                    ?? $batch->course?->semesters()->orderBy('sequence_no')->first();
-
-                $enrollment = Enrollment::create([
-                    'student_id'        => $student->id,
-                    'batch_id'          => $batch->id,
-                    'course_id'         => $batch->course_id,
-                    'semester_id'       => $batch->semesterPosition?->current_semester_id ?? $initialSemester?->id,
-                    'admission_form_id' => $form->id,
-                    'enrolled_at'       => now()->toDateString(),
-                    'status'            => 'ACTIVE',
-                ]);
-
-                // Auto-generate Invoices
-                \App\Services\AccountingService::createAdmissionInvoice($student, $form, $enrollment);
-                \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
-
-                return redirect()->route('admin.admissions.show', $form)
-                    ->with('success', "ম্যানুয়ালি শিক্ষার্থী সফলভাবে ভর্তি হয়েছে! স্টুডেন্ট আইডি: {$student->student_code}, পোর্টাল পাসওয়ার্ড: {$rawPassword}, ব্যাচ: {$batch->name}।");
-            }
-
             return redirect()->route('admin.admissions.show', $form)
-                ->with('success', 'ভর্তি আবেদন সফলভাবে সংরক্ষিত হয়েছে। ব্যাচ নির্ধারণ করে অনুমোদন সম্পন্ন করুন।');
+                ->with('success', 'ভর্তি আবেদন সফলভাবে সংরক্ষিত হয়েছে। আবেদন পর্যালোচনা করে ভর্তি অনুমোদন নিশ্চিত করুন।');
         });
     }
 
@@ -651,7 +575,42 @@ class AdmissionController extends Controller
             'reviewed_at'      => now(),
         ]);
 
-        return back()->with('success', 'ভর্তি আবেদনটি সফলভাবে ট্র্যাশে (Trash) সরানো হয়েছে।');
+        // Cancel any active enrollment linked to this admission form
+        Enrollment::where('admission_form_id', $admission->id)->update(['status' => 'CANCELLED']);
+
+        // Check if student has any other APPROVED admission forms or other ACTIVE enrollments
+        $student = $admission->student;
+        if ($student) {
+            $hasOtherApprovedForm = $student->admissionForms()
+                ->where('id', '!=', $admission->id)
+                ->where('status', 'APPROVED')
+                ->exists();
+            $hasOtherActiveEnrollment = $student->enrollments()
+                ->where('admission_form_id', '!=', $admission->id)
+                ->where('status', 'ACTIVE')
+                ->exists();
+
+            if (!$hasOtherApprovedForm && !$hasOtherActiveEnrollment) {
+                // Free the reserved student_code so the serial sequence is released back to the sequence pool
+                $student->student_code = null;
+                $student->status = 'LEAD';
+                $student->temporary_password = null;
+
+                // Deactivate or remove unapproved student user portal account if created
+                if ($student->user_id) {
+                    $user = $student->user;
+                    $student->user_id = null;
+                    $student->save();
+                    if ($user && $user->role === 'student') {
+                        $user->delete();
+                    }
+                } else {
+                    $student->save();
+                }
+            }
+        }
+
+        return back()->with('success', 'ভর্তি আবেদনটি সফলভাবে ট্র্যাশে (Trash) সরানো হয়েছে এবং সংরক্ষিত স্টুডেন্ট আইডি মুক্ত করা হয়েছে।');
     }
 
     public function untrash(AdmissionForm $admission)

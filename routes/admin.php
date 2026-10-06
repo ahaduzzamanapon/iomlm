@@ -181,6 +181,12 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('accounts/payments/{payment}/receipt', [\App\Http\Controllers\Admin\AccountsController::class, 'printReceipt'])->name('accounts.payments.receipt');
         Route::post('accounts/payments/{payment}/approve', [\App\Http\Controllers\Admin\AccountsController::class, 'approvePayment'])->name('accounts.payments.approve');
         Route::post('accounts/payments/{payment}/reject', [\App\Http\Controllers\Admin\AccountsController::class, 'rejectPayment'])->name('accounts.payments.reject');
+
+        // Month-wise Particulars Management & Collection
+        Route::post('accounts/particulars/update', [\App\Http\Controllers\Admin\AccountsController::class, 'updateParticular'])->name('accounts.particular.update');
+        Route::post('accounts/particulars/store', [\App\Http\Controllers\Admin\AccountsController::class, 'storeParticular'])->name('accounts.particular.store');
+        Route::post('accounts/particulars/delete', [\App\Http\Controllers\Admin\AccountsController::class, 'deleteParticular'])->name('accounts.particular.delete');
+        Route::post('accounts/particulars/collect', [\App\Http\Controllers\Admin\AccountsController::class, 'collectParticularPayment'])->name('accounts.particular.collect');
     });
 
     // ── 8. Communication, Surveys & Notices ─────────────────────────────

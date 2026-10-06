@@ -9,26 +9,30 @@
             <h1>Application: {{ $admission->student->name ?? '—' }}</h1>
             <p>Attempt #{{ $admission->attempt_no }} · Submitted {{ $admission->created_at->format('d M Y, h:i A') }}</p>
         </div>
-        <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;">
+        <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;font-family:'Kalpurush',sans-serif;">
             @if($admission->status === 'PENDING')
-                <button class="btn btn-success btn-lg" onclick="openModal('approveModal')"><i class="fa-solid fa-user-check"></i> Approve & Activate Student</button>
-                <button class="btn btn-danger btn-lg" onclick="openModal('trashModal')"><i class="fa-solid fa-trash-can"></i> Move to Trash (ট্র্যাশে পাঠান)</button>
+                <button class="btn btn-success btn-lg" onclick="openModal('approveModal')" style="display:inline-flex;align-items:center;gap:8px;font-weight:700;padding:8px 18px;border-radius:8px;">
+                    <i class="fa-solid fa-user-check"></i> ভর্তি অনুমোদন ও সক্রিয় করুন (Approve)
+                </button>
+                <button class="btn btn-outline btn-lg" onclick="openModal('trashModal')" style="display:inline-flex;align-items:center;gap:8px;border:1.5px solid #fca5a5;color:#dc2626;background:#fff;padding:8px 18px;border-radius:8px;font-weight:700;">
+                    <i class="fa-solid fa-trash-can"></i> ট্র্যাশে পাঠান (Trash)
+                </button>
             @elseif(in_array($admission->status, ['TRASH', 'REJECTED']))
-                <span class="badge" style="font-size:13px;padding:8px 14px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;display:inline-flex;align-items:center;gap:5px;">
+                <span class="badge" style="font-size:13px;padding:8px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;display:inline-flex;align-items:center;gap:6px;border-radius:8px;font-weight:700;">
                     <i class="fa-solid fa-trash-can"></i> Status: Trash
                 </span>
-                <form method="POST" action="{{ route('admin.admissions.untrash', $admission) }}" style="display:inline;" onsubmit="return confirm('আপনি কি নিশ্চিত যে আবেদনটি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান? এটি পুনরায় Pending হবে এবং ভর্তি অনুমোদন করা যাবে।')">
+                <form method="POST" action="{{ route('admin.admissions.untrash', $admission) }}" style="display:inline;margin:0;" onsubmit="return confirm('আপনি কি নিশ্চিত যে আবেদনটি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান? এটি পুনরায় Pending হবে এবং ভর্তি অনুমোদন করা যাবে।')">
                     @csrf
                     @method('PATCH')
-                    <button type="submit" class="btn btn-success btn-lg" style="background:#047857;border-color:#047857;">
+                    <button type="submit" class="btn btn-lg" style="background:#047857;color:#fff;border:none;display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-weight:700;box-shadow:0 2px 6px rgba(4,120,87,0.25);cursor:pointer;">
                         <i class="fa-solid fa-rotate-left"></i> আন-ট্র্যাশ করুন (Untrash)
                     </button>
                 </form>
-                <button class="btn btn-outline btn-lg" onclick="openModal('approveModal')" style="border-color:#047857;color:#047857;background:#ecfdf5;font-weight:600;">
-                    <i class="fa-solid fa-circle-check"></i> সরাসরি অনুমোদন (Approve Now)
+                <button class="btn btn-lg" onclick="openModal('approveModal')" style="border:1.5px solid #047857;color:#047857;background:#ecfdf5;display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-weight:700;cursor:pointer;">
+                    <i class="fa-solid fa-circle-check"></i> সরাসরি অনুমোদন (Approve)
                 </button>
             @else
-                <span class="badge badge-{{ strtolower($admission->status) }}" style="font-size:14px;padding:8px 16px">
+                <span class="badge badge-{{ strtolower($admission->status) }}" style="font-size:14px;padding:8px 16px;border-radius:8px;font-weight:700;">
                     Status: {{ ucfirst(strtolower($admission->status)) }}
                 </span>
             @endif
@@ -42,10 +46,10 @@
                 <span class="card-title">Applicant & Application Details</span>
                 <div>
                     <span class="badge badge-{{ $admission->source === 'PUBLIC' ? 'scheduled' : 'active' }} no-dot">Source: {{ $admission->source }}</span>
-                    @if($admission->student && $admission->student->student_code)
+                    @if($admission->status === 'APPROVED' && $admission->student && $admission->student->student_code)
                         <a href="{{ route('admin.students.impersonate', $admission->student) }}" 
                            class="badge badge-active no-dot" 
-                           style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#ecfdf5;border:1px solid #10b981;color:#047857;text-decoration:none;padding:5px 12px;border-radius:20px;font-weight:700;transition:all 0.2s;"
+                           style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#ecfdf5;border:1px solid #10b981;color:#047857;text-decoration:none;padding:5px 12px;border-radius:20px;font-weight:700;transition:all 0.2s;font-family:'Kalpurush',sans-serif;"
                            title="শিক্ষার্থী হিসেবে সরাসরি লগইন করুন (Click to login as this student)"
                            onmouseover="this.style.background='#047857';this.style.color='#fff';"
                            onmouseout="this.style.background='#ecfdf5';this.style.color='#047857';">
@@ -53,6 +57,12 @@
                             <span>Student ID: <strong>{{ $admission->student->student_code }}</strong></span>
                             <span style="font-size:11px;background:rgba(4,120,87,0.15);padding:1px 6px;border-radius:10px;">লগইন ↗</span>
                         </a>
+                    @else
+                        <span class="badge" 
+                              style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;color:#64748b;border:1px solid #cbd5e1;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;font-family:'Kalpurush',sans-serif;"
+                              title="ভর্তি অনুমোদন নিশ্চিত করার পর আইডি ও পাসওয়ার্ড জেনারেট হবে">
+                            <i class="fa-solid fa-id-card"></i> আইডি: ভর্তি নিশ্চিতের পর জেনারেট হবে
+                        </span>
                     @endif
                 </div>
             </div>
@@ -256,67 +266,118 @@
             <div class="card-header">
                 <span class="card-title">Review Audit Log (ভেরিফিকেশন ও অনুমোদন লগ)</span>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="padding:20px;">
                 @if($admission->status === 'APPROVED')
-                    <div class="alert alert-success" style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:12px 14px;border-radius:8px;">
-                        <div style="font-size:14px;font-weight:700;"><i class="fa-solid fa-circle-check"></i> ভর্তি অনুমোদিত (Application Approved)</div>
-                        <div style="font-size:13px;margin-top:4px;">
-                            <strong>অনুমোদনকারী (Approved By):</strong> {{ $admission->reviewer->name ?? 'এডমিন' }}
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;font-family:'Kalpurush',sans-serif;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #dcfce7;padding-bottom:10px;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:38px;height:38px;border-radius:10px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:15px;font-weight:700;color:#166534;">ভর্তি অনুমোদিত</div>
+                                    <div style="font-size:12px;color:#15803d;">Application Approved</div>
+                                </div>
+                            </div>
+                            <span class="badge badge-active" style="padding:5px 12px;font-size:12px;">Approved</span>
                         </div>
-                        <div style="font-size:12px;color:#15803d;">
-                            <strong>অনুমোদনের তারিখ:</strong> {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}
+                        <div style="background:#ffffff;border:1px solid #dcfce7;border-radius:8px;padding:12px 14px;font-size:13px;color:#1e293b;line-height:1.6;">
+                            <div><strong>অনুমোদনকারী:</strong> {{ $admission->reviewer->name ?? 'এডমিন' }}</div>
+                            <div style="font-size:12px;color:#64748b;"><strong>অনুমোদনের তারিখ:</strong> {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}</div>
+                            @if($admission->approved_admission_fee !== null)
+                            <div style="font-size:12px;color:#15803d;margin-top:2px;">
+                                <strong>অনুমোদিত ভর্তি ফি:</strong> ৳{{ number_format($admission->approved_admission_fee, 2) }}
+                            </div>
+                            @endif
                         </div>
-                        @if($admission->approved_admission_fee !== null)
-                        <div style="font-size:12px;color:#15803d;margin-top:2px;">
-                            <strong>অনুমোদিত ভর্তি ফি:</strong> ৳{{ number_format($admission->approved_admission_fee, 2) }}
-                        </div>
+                        @php $studentUser = $admission->student->user; @endphp
+                        @if($studentUser)
+                            <div style="background:#ffffff;border:1px solid #dcfce7;border-radius:8px;padding:12px 14px;font-size:13px;">
+                                <strong style="color:#166534;"><i class="fa-solid fa-user-lock"></i> Student Login Account</strong><br>
+                                <span style="color:#64748b;">Login Email:</span> <code>{{ $studentUser->email }}</code><br>
+                                <span style="color:#64748b;">Role:</span> <span class="badge badge-active no-dot">{{ ucfirst($studentUser->role) }}</span>
+                                <div style="margin-top:4px;font-size:11px;color:#64748b;">পাসওয়ার্ড শিক্ষার্থীকে এসএমএস ও ইমেইলের মাধ্যমে পৌঁছে দেওয়া হয়েছে।</div>
+                            </div>
                         @endif
                     </div>
-                    @php $studentUser = $admission->student->user; @endphp
-                    @if($studentUser)
-                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px 14px;border-radius:8px;font-size:13px;margin-top:10px">
-                            <strong style="color:#166534">Student Login Account</strong><br>
-                            <span style="color:#15803d">Login Email:</span> <code>{{ $studentUser->email }}</code><br>
-                            <span style="color:#15803d">Role:</span> <span class="badge badge-active no-dot">{{ ucfirst($studentUser->role) }}</span>
-                            <div style="margin-top:6px;font-size:11px;color:#6b7280">Password was dispatched via batch-specific email/SMS template. Student can reset via admin if needed.</div>
-                        </div>
-                    @else
-                        <div style="background:#fef9c3;border:1px solid #fde047;padding:10px 14px;border-radius:8px;font-size:12px;margin-top:10px;color:#713f12">
-                            No user account linked yet. Re-run approval or contact admin.
-                        </div>
-                    @endif
                 @elseif(in_array($admission->status, ['TRASH', 'REJECTED']))
-                    <div class="alert" style="background:#fef2f2;border:1.5px solid #fca5a5;color:#991b1b;padding:16px;border-radius:10px;font-family:'Kalpurush',sans-serif">
-                        <div style="font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:space-between">
-                            <span><i class="fa-solid fa-trash-can"></i> আবেদনটি ট্র্যাশে রয়েছে (Application in Trash)</span>
-                            <span class="badge" style="background:#dc2626;color:#fff">Trash</span>
+                    <div style="background:#fff8f8;border:1.5px solid #fecaca;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box;font-family:'Kalpurush',sans-serif;">
+                        <!-- Header status bar -->
+                        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #fee2e2;padding-bottom:12px;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:40px;height:40px;border-radius:10px;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:15px;font-weight:700;color:#991b1b;">আবেদনটি ট্র্যাশে রয়েছে</div>
+                                    <div style="font-size:12px;color:#dc2626;">Application in Trash</div>
+                                </div>
+                            </div>
+                            <span class="badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:5px 12px;font-size:12px;font-weight:700;">
+                                <i class="fa-solid fa-circle" style="font-size:6px;margin-right:4px;"></i> Trash
+                            </span>
                         </div>
-                        <div style="font-size:13.5px;margin-top:8px;">
-                            <strong>ট্র্যাশে পাঠানোর কারণ:</strong> {{ $admission->rejection_reason ?: 'নির্দিষ্ট কারণ উল্লেখ নেই' }}
+
+                        <!-- Details Box -->
+                        <div style="background:#ffffff;border:1px solid #fee2e2;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+                            <div>
+                                <div style="font-size:12px;color:#64748b;font-weight:600;margin-bottom:4px;">ট্র্যাশে পাঠানোর কারণ:</div>
+                                <div style="font-size:14px;color:#1e293b;font-weight:700;background:#f8fafc;padding:8px 12px;border-radius:6px;border-left:3px solid #dc2626;line-height:1.5;">
+                                    {{ $admission->rejection_reason ?: 'নির্দিষ্ট কারণ উল্লেখ নেই' }}
+                                </div>
+                            </div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px dashed #e2e8f0;font-size:12px;color:#64748b;flex-wrap:wrap;gap:6px;">
+                                <span><i class="fa-solid fa-user-shield" style="color:#94a3b8;margin-right:4px;"></i> পর্যালোচক: <strong style="color:#334155;">{{ $admission->reviewer->name ?? 'এডমিন' }}</strong></span>
+                                <span><i class="fa-regular fa-clock" style="color:#94a3b8;margin-right:4px;"></i> {{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }}</span>
+                            </div>
                         </div>
-                        <div style="font-size:12px;color:#7f1d1d;margin-top:4px;">
-                            <strong>পর্যালোচনাকারী:</strong> {{ $admission->reviewer->name ?? 'এডমিন' }} ({{ $admission->reviewed_at ? \Carbon\Carbon::parse($admission->reviewed_at)->format('d M Y, h:i A') : '—' }})
+
+                        <!-- Guidance Box -->
+                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;">
+                            <i class="fa-solid fa-circle-info" style="color:#16a34a;font-size:16px;margin-top:2px;"></i>
+                            <div style="font-size:12.5px;color:#166534;line-height:1.5;">
+                                শিক্ষার্থী ফি পরিশোধ করলে অথবা তথ্য সংশোধন হলে নিচের <strong>আন-ট্র্যাশ</strong> বাটনে ক্লিক করে আবেদনটি পুনরায় পেন্ডিং তালিকায় ফিরিয়ে আনুন এবং ভর্তি অনুমোদন সম্পন্ন করুন।
+                            </div>
                         </div>
-                        <hr style="margin:12px 0;border:0;border-top:1px dashed #fca5a5">
-                        <div style="font-size:13px;color:#7f1d1d;margin-bottom:10px;line-height:1.5;">
-                            💡 শিক্ষার্থী ফি পরিশোধ করলে বা আবেদনটি পুনর্বিবেচনা করতে চাইলে <strong>Untrash</strong> করুন। এতে আবেদনটি পুনরায় পেন্ডিং তালিকায় চলে আসবে এবং ভর্তি অনুমোদন করা যাবে।
-                        </div>
-                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                            <form method="POST" action="{{ route('admin.admissions.untrash', $admission) }}" onsubmit="return confirm('আবেদনটি কি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান?')">
+
+                        <!-- Action Buttons -->
+                        <div style="display:flex;gap:10px;margin-top:2px;">
+                            <form method="POST" action="{{ route('admin.admissions.untrash', $admission) }}" style="flex:1;margin:0;" onsubmit="return confirm('আবেদনটি কি ট্র্যাশ থেকে পুনরুদ্ধার (Untrash) করতে চান?')">
                                 @csrf @method('PATCH')
-                                <button type="submit" class="btn btn-sm" style="background:#047857;color:#fff;border:none;padding:7px 16px;border-radius:6px;font-weight:700;cursor:pointer;">
-                                    <i class="fa-solid fa-rotate-left"></i> আন-ট্র্যাশ করুন (Untrash to Pending)
+                                <button type="submit" class="btn" style="width:100%;height:42px;background:#047857;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;box-shadow:0 2px 4px rgba(4,120,87,0.2);">
+                                    <i class="fa-solid fa-rotate-left"></i> আন-ট্র্যাশ করুন (Untrash)
                                 </button>
                             </form>
-                            <button type="button" class="btn btn-sm btn-outline" onclick="openModal('approveModal')" style="color:#047857;border-color:#047857;background:#fff;padding:7px 16px;border-radius:6px;font-weight:700;cursor:pointer;">
-                                <i class="fa-solid fa-user-check"></i> সরাসরি অনুমোদন করুন (Approve Now)
+                            <button type="button" class="btn btn-outline" onclick="openModal('approveModal')" style="flex:1;height:42px;border:1.5px solid #047857;color:#047857;background:#fff;border-radius:8px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;">
+                                <i class="fa-solid fa-user-check"></i> সরাসরি অনুমোদন (Approve)
                             </button>
                         </div>
                     </div>
                 @else
-                    <div class="alert alert-info">
-                        <strong>⏳ Pending Committee Review (ভেরিফিকেশন অপেক্ষমান)</strong><br>
-                        Verify applicant documents, adjust course/batch or fee structure if necessary, and click Approve to generate Student Code & enroll.
+                    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px;box-sizing:border-box;font-family:'Kalpurush',sans-serif;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #dbeafe;padding-bottom:10px;">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="width:38px;height:38px;border-radius:10px;background:#dbeafe;color:#2563eb;display:flex;align-items:center;justify-content:center;font-size:18px;">
+                                    <i class="fa-solid fa-clock"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size:15px;font-weight:700;color:#1e40af;">ভেরিফিকেশন অপেক্ষমান</div>
+                                    <div style="font-size:12px;color:#3b82f6;">Pending Review</div>
+                                </div>
+                            </div>
+                            <span class="badge badge-pending" style="padding:5px 12px;font-size:12px;">Pending</span>
+                        </div>
+                        <div style="font-size:13px;color:#1e3a8a;line-height:1.5;">
+                            আবেদনকারীর তথ্য ও সংযুক্ত কাগজপত্র পর্যালোচনা করুন। প্রয়োজনে কোর্স বা ব্যাচ সমন্বয় করে ভর্তি অনুমোদন করুন।
+                        </div>
+                        <div style="display:flex;gap:10px;margin-top:4px;">
+                            <button type="button" class="btn btn-success" onclick="openModal('approveModal')" style="flex:1;height:40px;background:#047857;border-color:#047857;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
+                                <i class="fa-solid fa-user-check"></i> অনুমোদন করুন
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="openModal('trashModal')" style="flex:1;height:40px;color:#dc2626;border-color:#fca5a5;background:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
+                                <i class="fa-solid fa-trash-can"></i> ট্র্যাশে পাঠান
+                            </button>
+                        </div>
                     </div>
                 @endif
             </div>

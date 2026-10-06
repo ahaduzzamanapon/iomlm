@@ -341,39 +341,159 @@ class AccountsController extends Controller
     }
 
     /**
-     * Dedicated Student Accounts Ledger (Full CRUD)
+     * Dedicated Student Accounts Ledger (Full CRUD + Month-wise Fee Breakdown)
      */
-    public function studentLedger(Student $student)
+    public function studentLedger(Request $request, Student $student)
     {
-        $student->load([
-            'enrollments.batch.course',
-            'enrollments.semester',
-            'user',
+        $feeService = app(\App\Services\StudentFeeService::class);
+        $feeData = $feeService->getStudentFeeBreakdown(
+            $student,
+            $request->query('semester_id'),
+            $request->query('course_id') ? (int) $request->query('course_id') : null
+        );
+
+        return view('admin.accounts.student_ledger', $feeData);
+    }
+
+    /**
+     * Admin adjusts/edits a fee particular amount
+     */
+    public function updateParticular(Request $request)
+    {
+        $validated = $request->validate([
+            'invoice_id'      => 'required|exists:invoices,id',
+            'particular_name' => 'required|string',
+            'new_amount'      => 'required|numeric|min:0',
+            'remarks'         => 'nullable|string|max:255',
         ]);
 
-        $invoices = Invoice::where('student_id', $student->id)
-            ->with(['payments', 'enrollment.course'])
-            ->latest()
-            ->get();
+        $res = app(\App\Services\StudentFeeService::class)->updateParticular(
+            (int) $validated['invoice_id'],
+            $validated['particular_name'],
+            (float) $validated['new_amount'],
+            $validated['remarks'] ?? null,
+            auth()->id()
+        );
 
-        $payments = Payment::where('student_id', $student->id)
-            ->with(['invoice', 'receivedBy'])
-            ->latest('paid_at')
-            ->get();
+        return response()->json($res);
+    }
 
-        $activeInvoices = $invoices->where('status', '!=', 'CANCELLED');
-        $totalBilled = $activeInvoices->sum('payable_amount');
-        $totalPaid   = $activeInvoices->sum('paid_amount');
-        $totalDue    = $activeInvoices->sum('due_amount');
+    /**
+     * Admin adds a new custom fee particular
+     */
+    public function storeParticular(Request $request)
+    {
+        $validated = $request->validate([
+            'invoice_id'      => 'nullable|exists:invoices,id',
+            'student_id'      => 'nullable|exists:students,id',
+            'semester_id'     => 'nullable',
+            'particular_name' => 'required|string|max:150',
+            'amount'          => 'required|numeric|min:1',
+            'remarks'         => 'nullable|string|max:255',
+        ]);
 
-        return view('admin.accounts.student_ledger', compact(
-            'student',
-            'invoices',
-            'payments',
-            'totalBilled',
-            'totalPaid',
-            'totalDue'
-        ));
+        $res = app(\App\Services\StudentFeeService::class)->storeParticular(
+            !empty($validated['invoice_id']) ? (int) $validated['invoice_id'] : null,
+            !empty($validated['student_id']) ? (int) $validated['student_id'] : null,
+            $validated['semester_id'] ?? null,
+            $validated['particular_name'],
+            (float) $validated['amount'],
+            $validated['remarks'] ?? null,
+            auth()->id()
+        );
+
+        return response()->json($res);
+    }
+
+    /**
+     * Admin deletes a custom fee particular
+     */
+    public function deleteParticular(Request $request)
+    {
+        $validated = $request->validate([
+            'invoice_id'      => 'required|exists:invoices,id',
+            'particular_name' => 'required|string',
+        ]);
+
+        $res = app(\App\Services\StudentFeeService::class)->deleteParticular(
+            (int) $validated['invoice_id'],
+            $validated['particular_name'],
+            auth()->id()
+        );
+
+        return response()->json($res);
+    }
+
+    /**
+     * Admin collects payment for one or multiple particulars
+     */
+    public function collectParticularPayment(Request $request)
+    {
+        $validated = $request->validate([
+            'invoice_id'         => 'nullable|exists:invoices,id',
+            'student_id'         => 'nullable|exists:students,id',
+            'semester_id'        => 'nullable',
+            'particular_names'   => 'required|array|min:1',
+            'particular_names.*' => 'required|string',
+            'amount'             => 'required|numeric|min:1',
+            'payment_method'     => 'required|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'transaction_id'     => 'nullable|string|max:100',
+            'sender_number'      => 'nullable|string|max:30',
+            'remarks'            => 'nullable|string|max:255',
+        ]);
+
+        $invoice = null;
+        if (!empty($validated['invoice_id'])) {
+            $invoice = Invoice::find($validated['invoice_id']);
+        }
+
+        if (!$invoice && !empty($validated['student_id'])) {
+            $student = Student::findOrFail($validated['student_id']);
+            $enrollment = $student->enrollments()->where('status', 'ACTIVE')->first() ?? $student->enrollments()->first();
+            $isNum = !empty($validated['semester_id']) && is_numeric($validated['semester_id']) && (int)$validated['semester_id'] > 0;
+
+            $invoice = Invoice::create([
+                'invoice_no'         => 'INV-TUI-' . date('Ymd') . '-' . rand(1000, 9999),
+                'student_id'         => $student->id,
+                'enrollment_id'      => $enrollment?->id,
+                'category'           => $isNum ? 'SEMESTER' : 'MANUAL',
+                'title'              => implode(', ', $validated['particular_names']),
+                'amount'             => (float)$validated['amount'],
+                'discount'           => 0,
+                'payable_amount'     => (float)$validated['amount'],
+                'paid_amount'        => 0,
+                'due_amount'         => (float)$validated['amount'],
+                'status'             => 'UNPAID',
+                'source_type'        => $isNum ? \App\Models\Semester::class : null,
+                'source_id'          => $isNum ? (int)$validated['semester_id'] : null,
+                'created_by'         => auth()->id(),
+                'custom_particulars' => [],
+            ]);
+        }
+
+        if (!$invoice) {
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'ইনভয়েস সনাক্ত করা সম্ভব হয়নি।'], 422);
+            }
+            return back()->with('error', 'ইনভয়েস সনাক্ত করা সম্ভব হয়নি।');
+        }
+
+        $res = app(\App\Services\StudentFeeService::class)->collectParticularPayment(
+            $invoice,
+            $validated['particular_names'],
+            (float) $validated['amount'],
+            $validated['payment_method'],
+            $validated['transaction_id'] ?? null,
+            $validated['sender_number'] ?? null,
+            $validated['remarks'] ?? null,
+            auth()->id()
+        );
+
+        if ($request->wantsJson()) {
+            return response()->json($res);
+        }
+
+        return back()->with('success', $res['message']);
     }
 
     /**

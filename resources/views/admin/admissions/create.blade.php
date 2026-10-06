@@ -21,7 +21,7 @@
     @endif
 
     <div class="alert alert-info" style="margin-bottom:20px;font-family:'Kalpurush',sans-serif;line-height:1.7;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46">
-        <i class="fa-solid fa-circle-info"></i> <strong>ম্যানুয়াল ভর্তি ও আইডি জেনারেশন:</strong> ভর্তির সময় কোর্স ও ব্যাচ নির্বাচন করে সংরক্ষণ করলে শিক্ষার্থীর <strong>অফিসিয়াল স্টুডেন্ট আইডি (YYBBCCGRRRR)</strong> এবং স্টুডেন্ট পোর্টালের <strong>র‍্যান্ডম পাসওয়ার্ড</strong> তাৎক্ষণিকভাবে তৈরি হয়ে যাবে।
+        <i class="fa-solid fa-circle-info"></i> <strong>ভর্তি আবেদন সংরক্ষণ:</strong> প্রাথমিক আবেদনটি সংরক্ষণ করার পর আপনি আবেদন তালিকা থেকে বিস্তারিত যাচাই করে <strong>ভর্তি নিশ্চিত/অনুমোদন (Approve)</strong> করতে পারবেন। ভর্তি নিশ্চিত করলেই শিক্ষার্থীর অফিসিয়াল <strong>স্টুডেন্ট আইডি (YYBBCCGRRRR)</strong> এবং স্টুডেন্ট পোর্টালের <strong>পাসওয়ার্ড</strong> জেনারেট হবে।
     </div>
 
     <form method="POST" action="{{ route('admin.admissions.store') }}">
@@ -56,7 +56,7 @@
                                 </option>
                             @endforeach
                         </select>
-                        <small style="color:#047857;font-size:11px">ব্যাচ নির্বাচন করলে তাৎক্ষণিক স্টুডেন্ট আইডি জেনারেট হবে</small>
+                        <small style="color:var(--text-muted);font-size:11px">ভর্তি অনুমোদনের পর এই ব্যাচে আইডি জেনারেট হবে</small>
                     </div>
 
                     <div class="form-group">
