@@ -294,8 +294,9 @@ class WaiverApplicationController extends Controller
     /**
      * Public Poor Fund Application Tracker View
      */
-    public function trackStatus(Request $request)
+    public function trackStatus(?Request $request = null)
     {
+        $request = $request ?? request();
         $searchQuery = trim((string) $request->query('app_no', $request->query('id', '')));
         $selectedId = $request->query('selected_id');
         $applications = collect();

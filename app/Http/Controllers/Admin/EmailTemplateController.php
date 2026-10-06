@@ -53,7 +53,7 @@ class EmailTemplateController extends Controller
         return view('admin.email_templates.index', compact('templates', 'courses', 'batches'));
     }
 
-    public function create(Request $request)
+    public function create(?Request $request = null)
     {
         $courses = Course::where('is_active', true)->with(['batches' => function ($q) {
             $q->where('status', 'ACTIVE');

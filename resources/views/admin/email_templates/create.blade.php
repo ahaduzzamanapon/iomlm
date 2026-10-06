@@ -1,8 +1,6 @@
-@extends('admin.layouts.app')
+<x-admin-layout>
+    <x-slot name="title">নতুন ইমেইল টেমপ্লেট যুক্ত করুন</x-slot>
 
-@section('title', 'নতুন ইমেইল টেমপ্লেট যুক্ত করুন')
-
-@section('content')
 <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
     <div>
         <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:4px;">
@@ -221,4 +219,4 @@
     document.addEventListener('DOMContentLoaded', filterBatches);
 </script>
 @endpush
-@endsection
+</x-admin-layout>

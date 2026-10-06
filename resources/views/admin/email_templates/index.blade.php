@@ -260,4 +260,4 @@
     }
 </script>
 @endpush
-@endsection
+</x-admin-layout>
