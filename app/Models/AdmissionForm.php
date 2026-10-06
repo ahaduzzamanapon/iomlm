@@ -16,6 +16,7 @@ class AdmissionForm extends Model
         'reviewed_at'      => 'datetime',
         'discount_percent' => 'float',
         'discount_amount'  => 'float',
+        'manual_paid_amount' => 'float',
     ];
 
     // ── Relationships ──────────────────────────────────────────────────

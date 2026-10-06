@@ -171,6 +171,9 @@
                     </div>
                     <table class="table" style="font-size:13px;margin:0;background:transparent">
                         <tr><th style="width:170px;color:#065f46">পেমেন্ট মাধ্যম:</th><td><strong>{{ $admission->manual_payment_method }}</strong></td></tr>
+                        @if($admission->manual_paid_amount)
+                        <tr><th style="color:#065f46">পরিশোধিত টাকার পরিমাণ:</th><td><strong style="color:#047857;font-size:15px">৳ {{ number_format($admission->manual_paid_amount, 2) }}</strong></td></tr>
+                        @endif
                         <tr><th style="color:#065f46">ট্রাঞ্জেকশন আইডি (TrxID):</th><td><strong style="font-family:monospace;font-size:15px;color:#047857;letter-spacing:1px">{{ $admission->manual_trx_id }}</strong></td></tr>
                         @if($admission->manual_sender_phone)
                         <tr><th style="color:#065f46">প্রেরকের মোবাইল নম্বর:</th><td><strong>{{ $admission->manual_sender_phone }}</strong></td></tr>

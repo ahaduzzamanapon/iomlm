@@ -361,22 +361,62 @@ class AdmissionFormController extends Controller
 
         // Prior / Manual Merchant Payment Handling
         if ($netPayable > 0 && $request->input('payment_gateway') === 'manual') {
+            $submittedTrxId = strtoupper(trim((string)$request->input('manual_trx_id', '')));
+            $paymentMethod = trim((string)$request->input('manual_payment_method', ''));
+
             $request->validate([
                 'manual_payment_method' => 'required|string|max:50',
-                'manual_trx_id'         => 'required|string|max:100',
                 'manual_sender_phone'   => 'required|string|max:30',
+                'manual_paid_amount'    => 'required|numeric|min:1',
+                'manual_trx_id'         => [
+                    'required',
+                    'string',
+                    function ($attribute, $value, $fail) use ($form, $paymentMethod, $submittedTrxId) {
+                        // 1. bKash 10-character validation (Requirement 4)
+                        if (strtolower($paymentMethod) === 'bkash') {
+                            if (strlen($submittedTrxId) !== 10) {
+                                $fail('বিকাশের ট্রাঞ্জেকশন আইডি (TrxID) অবশ্যই সুনির্দিষ্ট ১০ ডিজিট/অক্ষরের হতে হবে (বর্তমানে ' . strlen($submittedTrxId) . ' অক্ষর দেওয়া হয়েছে)।');
+                                return;
+                            }
+                            if (!preg_match('/^[A-Z0-9]{10}$/', $submittedTrxId)) {
+                                $fail('বিকাশের ট্রাঞ্জেকশন আইডি শুধুমাত্র ইংরেজি অক্ষর ও সংখ্যা মিলিয়ে ১০ অক্ষরের হতে হবে।');
+                                return;
+                            }
+                        } else {
+                            if (strlen($submittedTrxId) < 6 || strlen($submittedTrxId) > 30) {
+                                $fail('ট্রাঞ্জেকশন আইডি সঠিক ফরম্যাটে প্রদান করুন।');
+                                return;
+                            }
+                        }
+
+                        // 2. Prevent duplicate TrxID (Requirement 3)
+                        $isDuplicate = AdmissionForm::where('manual_trx_id', $submittedTrxId)
+                            ->where('id', '!=', $form->id)
+                            ->exists()
+                            || GatewayTransaction::where('gateway_trx_id', $submittedTrxId)->exists()
+                            || GatewayTransaction::where('tran_id', $submittedTrxId)->exists();
+
+                        if ($isDuplicate) {
+                            $fail("এই ট্রাঞ্জেকশন আইডিটি ({$submittedTrxId}) ইতিমধ্যে সিস্টেমে অন্য একটি আবেদনের জন্য ব্যবহৃত হয়েছে। একই TrxID দিয়ে একাধিকবার আবেদন করা যাবে না।");
+                        }
+                    },
+                ],
                 'manual_payment_notes'  => 'nullable|string|max:500',
             ], [
                 'manual_payment_method.required' => 'পেমেন্ট মাধ্যম (বিকাশ/নগদ/রকেট/ব্যাংক) নির্বাচন করুন।',
                 'manual_trx_id.required'         => 'ট্রাঞ্জেকশন আইডি (TrxID) প্রদান করা আবশ্যক।',
                 'manual_sender_phone.required'   => 'যে নম্বর থেকে পেমেন্ট পাঠিয়েছেন সেই নম্বরটি লিখুন।',
+                'manual_paid_amount.required'    => 'কত টাকা পেমেন্ট করেছেন তা উল্লেখ করুন।',
+                'manual_paid_amount.numeric'     => 'পরিশোধিত টাকার পরিমাণ অবশ্যই সংখ্যা হতে হবে।',
+                'manual_paid_amount.min'         => 'পরিশোধিত টাকার পরিমাণ কমপক্ষে ১ টাকা হতে হবে।',
             ]);
 
             $wasTrashed = in_array($form->status, ['TRASH', 'REJECTED']);
             $form->update([
                 'manual_payment_method' => $request->input('manual_payment_method'),
-                'manual_trx_id'         => strtoupper(trim($request->input('manual_trx_id'))),
+                'manual_trx_id'         => $submittedTrxId,
                 'manual_sender_phone'   => trim($request->input('manual_sender_phone')),
+                'manual_paid_amount'    => (float) $request->input('manual_paid_amount'),
                 'manual_payment_notes'  => $request->input('manual_payment_notes'),
                 'manual_payment_date'   => now(),
                 'status'                => 'PENDING',
@@ -385,7 +425,7 @@ class AdmissionFormController extends Controller
             ]);
 
             return redirect()->route('apply.success', $form->application_no)
-                ->with('success', "আপনার পেমেন্ট তথ্য (TrxID: {$form->manual_trx_id}) সফলভাবে জমা নেওয়া হয়েছে! কর্তৃপক্ষ ট্রাঞ্জেকশন যাচাই করে আপনার ভর্তি অনুমোদন করবে।");
+                ->with('success', "আপনার পেমেন্ট তথ্য (TrxID: {$form->manual_trx_id}, ৳ " . number_format($form->manual_paid_amount, 2) . ") সফলভাবে জমা নেওয়া হয়েছে! কর্তৃপক্ষ ট্রাঞ্জেকশন যাচাই করে আপনার ভর্তি অনুমোদন করবে।");
         }
 
         $sslActive = PaymentGatewayService::isSslcommerzActive();

@@ -215,6 +215,12 @@
             <td>পেমেন্ট মাধ্যম (মার্চেন্ট):</td>
             <td><strong>{{ $form->manual_payment_method ?? 'বিকাশ / নগদ / রকেট / ব্যাংক' }}</strong></td>
         </tr>
+        @if($form->manual_paid_amount)
+        <tr>
+            <td>পরিশোধিত ফি:</td>
+            <td style="color:#047857;font-weight:700">৳ {{ number_format($form->manual_paid_amount, 2) }}</td>
+        </tr>
+        @endif
         <tr>
             <td>ট্রাঞ্জেকশন আইডি (TrxID):</td>
             <td><strong style="font-family:monospace;color:#047857;letter-spacing:1px;font-size:15px">{{ $form->manual_trx_id }}</strong></td>
