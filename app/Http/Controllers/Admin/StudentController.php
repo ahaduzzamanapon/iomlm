@@ -238,10 +238,11 @@ class StudentController extends Controller
         $student->load([
             'user',
             'enrollments.batch.course',
+            'enrollments.course',
             'enrollments.semester',
             'admissions.interestedCourse',
             'invoices.payments',
-            'feePackage',
+            'feePackage.items.feeHead',
             'results.exam.subject',
             'finalMarks.subject',
             'finalMarks.semester',
@@ -249,9 +250,41 @@ class StudentController extends Controller
             'loginHistories.impersonator',
         ]);
 
-        $feePackages = \App\Models\CourseFeePackage::where('is_active', true)->get();
+        $activeEnrollments = $student->enrollments->where('status', 'ACTIVE');
+        $courseIds = $activeEnrollments->map(function ($enrollment) {
+            return $enrollment->course_id ?? $enrollment->batch?->course_id;
+        })->filter()->unique();
 
-        return view('admin.students.show', compact('student', 'feePackages'));
+        if ($courseIds->isEmpty()) {
+            $courseIds = $student->enrollments->map(function ($enrollment) {
+                return $enrollment->course_id ?? $enrollment->batch?->course_id;
+            })->filter()->unique();
+        }
+
+        if ($courseIds->isEmpty()) {
+            $interestedCourseId = $student->admissions->first()?->interested_course_id;
+            if ($interestedCourseId) {
+                $courseIds = collect([$interestedCourseId]);
+            }
+        }
+
+        $feePackages = \App\Models\CourseFeePackage::with('items.feeHead')
+            ->whereIn('course_id', $courseIds)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $currentEnrollment = $activeEnrollments->first() ?? $student->enrollments->first();
+        $currentCourse = $currentEnrollment?->batch?->course ?? $currentEnrollment?->course;
+
+        // Auto-heal if student's current feePackage belongs to another course (e.g. from prior transfer)
+        if ($currentCourse && $student->fee_package_id && $student->feePackage && $student->feePackage->course_id != $currentCourse->id) {
+            $matchingPkg = $feePackages->firstWhere('is_default', true) ?? $feePackages->first();
+            $student->update(['fee_package_id' => $matchingPkg?->id]);
+            $student->setRelation('feePackage', $matchingPkg);
+        }
+
+        return view('admin.students.show', compact('student', 'feePackages', 'currentCourse'));
     }
 
     public function edit(Student $student)
@@ -409,6 +442,17 @@ class StudentController extends Controller
             'discount_type'     => 'required|in:FIXED,PERCENT',
             'poor_fund_remarks' => 'nullable|string|max:500',
         ]);
+
+        if ($request->filled('fee_package_id')) {
+            $package = \App\Models\CourseFeePackage::find($request->fee_package_id);
+            $activeCourseIds = $student->enrollments->where('status', 'ACTIVE')->map(fn($e) => $e->course_id ?? $e->batch?->course_id)->filter()->unique();
+            if ($activeCourseIds->isEmpty()) {
+                $activeCourseIds = $student->enrollments->map(fn($e) => $e->course_id ?? $e->batch?->course_id)->filter()->unique();
+            }
+            if ($package && $activeCourseIds->isNotEmpty() && !$activeCourseIds->contains($package->course_id)) {
+                return back()->withErrors(['fee_package_id' => 'নির্বাচিত ফি প্যাকেজটি শিক্ষার্থীর বর্তমান কোর্সের অন্তর্ভুক্ত নয়।']);
+            }
+        }
 
         $student->adjustFeeStructure(
             $request->filled('fee_package_id') ? (int)$request->fee_package_id : null,

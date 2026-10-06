@@ -303,29 +303,41 @@ class AccountingService
             ? 1
             : max(1, $course?->semesters()->count() ?: 6);
 
-        // Check if student has an active approved waiver with a tuition package
+        // Check if student has an assigned fee package for this course
         $approvedPackage = null;
-        // Find waiver code from admission form
-        $waiverCode = \App\Models\AdmissionForm::where('student_id', $student->id)
-            ->whereNotNull('waiver_code')
-            ->value('waiver_code');
+        if ($student->fee_package_id) {
+            $assignedPkg = $student->feePackage ?? \App\Models\CourseFeePackage::find($student->fee_package_id);
+            if ($assignedPkg && (!$course || $assignedPkg->course_id == $course->id)) {
+                $approvedPackage = $assignedPkg;
+            }
+        }
 
-        if ($waiverCode) {
-            $altWaiverCode = str_starts_with($waiverCode, 'PF-')
-                ? str_replace('PF-', 'POOR-', $waiverCode)
-                : (str_starts_with($waiverCode, 'POOR-') ? str_replace('POOR-', 'PF-', $waiverCode) : $waiverCode);
+        // Check if student has an active approved waiver with a tuition package
+        if (!$approvedPackage) {
+            $waiverCode = \App\Models\AdmissionForm::where('student_id', $student->id)
+                ->whereNotNull('waiver_code')
+                ->value('waiver_code');
 
-            $waiverApp = \App\Models\WaiverApplication::where(function ($q) use ($waiverCode, $altWaiverCode) {
-                    $q->where('application_no', $waiverCode)->orWhere('application_no', $altWaiverCode);
-                })
-                ->where('status', 'APPROVED')
-                ->where('is_used', true)
-                ->whereIn('apply_for', ['TUITION_FEE', 'BOTH'])
-                ->whereNotNull('approved_package_id')
-                ->first();
+            if ($waiverCode) {
+                $altWaiverCode = str_starts_with($waiverCode, 'PF-')
+                    ? str_replace('PF-', 'POOR-', $waiverCode)
+                    : (str_starts_with($waiverCode, 'POOR-') ? str_replace('POOR-', 'PF-', $waiverCode) : $waiverCode);
 
-            if ($waiverApp) {
-                $approvedPackage = \App\Models\CourseFeePackage::find($waiverApp->approved_package_id);
+                $waiverApp = \App\Models\WaiverApplication::where(function ($q) use ($waiverCode, $altWaiverCode) {
+                        $q->where('application_no', $waiverCode)->orWhere('application_no', $altWaiverCode);
+                    })
+                    ->where('status', 'APPROVED')
+                    ->where('is_used', true)
+                    ->whereIn('apply_for', ['TUITION_FEE', 'BOTH'])
+                    ->whereNotNull('approved_package_id')
+                    ->first();
+
+                if ($waiverApp) {
+                    $waiverPkg = \App\Models\CourseFeePackage::find($waiverApp->approved_package_id);
+                    if ($waiverPkg && (!$course || $waiverPkg->course_id == $course->id)) {
+                        $approvedPackage = $waiverPkg;
+                    }
+                }
             }
         }
 

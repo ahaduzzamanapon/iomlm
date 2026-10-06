@@ -11,13 +11,17 @@ use App\Models\BloodGroup;
 use App\Models\Course;
 use App\Models\District;
 use App\Models\Division;
+use App\Models\Enrollment;
 use App\Models\GatewayTransaction;
+use App\Models\Invoice;
 use App\Models\Religion;
 use App\Models\Student;
+use App\Models\User;
 use App\Models\WaiverApplication;
 use App\Services\PaymentGatewayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
 class AdmissionFormController extends Controller
@@ -106,47 +110,79 @@ class AdmissionFormController extends Controller
             }
         }
 
-        // Check if student with this email is already actively enrolled in this course
-        $existingStudent = !empty($validated['email'])
-            ? Student::where('email', $validated['email'])->first()
-            : null;
+        // Check if student with this email or phone is already actively enrolled in this exact course
+        $alreadyEnrolled = Enrollment::where('course_id', $validated['course_id'])
+            ->where('status', 'ACTIVE')
+            ->whereHas('student', function ($q) use ($validated) {
+                $q->where(function ($sub) use ($validated) {
+                    if (!empty($validated['phone'])) {
+                        $sub->where('phone', $validated['phone']);
+                    }
+                    if (!empty($validated['email'])) {
+                        $sub->orWhere('email', $validated['email']);
+                    }
+                });
+            })
+            ->exists();
 
-        if ($existingStudent) {
-            $alreadyEnrolled = $existingStudent->enrollments()
-                ->where('course_id', $validated['course_id'])
-                ->where('status', 'ACTIVE')
-                ->exists();
-
-            if ($alreadyEnrolled) {
-                return back()->withInput()->with('error', 'আপনি ইতিমধ্যে এই কোর্সে সক্রিয়ভাবে ভর্তি আছেন। অনুগ্রহ করে লগইন করে আপনার ড্যাশবোর্ডে প্রবেশ করুন।');
-            }
+        if ($alreadyEnrolled) {
+            return back()->withInput()->with('error', 'আপনি ইতিমধ্যে এই কোর্সে সক্রিয়ভাবে ভর্তি আছেন। অনুগ্রহ করে লগইন করে আপনার ড্যাশবোর্ডে প্রবেশ করুন।');
         }
 
         // Create Application & Lead Student inside Transaction
-        $result = DB::transaction(function () use ($validated, $request, $existingStudent) {
+        $result = DB::transaction(function () use ($validated, $request) {
             $sessionId = $validated['academic_session_id']
                 ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
 
-            // 1. Find or Create Student as LEAD
-            $student = $existingStudent;
-            if (!$student && !empty($validated['phone'])) {
-                $student = Student::where('phone', $validated['phone'])->first();
-            }
+            // 1. Find or Create Student as LEAD for this specific course
+            $targetCourseId = (int) $validated['course_id'];
+            $student = Student::where(function ($q) use ($validated) {
+                if (!empty($validated['phone'])) {
+                    $q->where('phone', $validated['phone']);
+                }
+                if (!empty($validated['email'])) {
+                    $q->orWhere('email', $validated['email']);
+                }
+            })->where(function ($q) use ($targetCourseId) {
+                $q->whereHas('admissionForms', fn($af) => $af->where('interested_course_id', $targetCourseId))
+                  ->orWhereHas('enrollments', fn($en) => $en->where('course_id', $targetCourseId))
+                  ->orWhere(fn($sq) => $sq->whereNull('student_code')->whereDoesntHave('enrollments'));
+            })->first();
 
             if ($student) {
                 $student->update([
-                    'name' => $validated['applicant_name'],
-                    'phone' => $validated['phone'] ?: $student->phone,
+                    'name'   => $validated['applicant_name'],
+                    'phone'  => $validated['phone'] ?: $student->phone,
                     'gender' => $validated['gender'] ?: $student->gender,
                 ]);
             } else {
-                $student = Student::create([
-                    'name' => $validated['applicant_name'],
-                    'phone' => $validated['phone'],
-                    'email' => $validated['email'] ?? null,
+                // If applicant had an earlier student record (for another course), inherit their profile info
+                $prevStudent = Student::where(function ($q) use ($validated) {
+                    if (!empty($validated['phone'])) {
+                        $q->where('phone', $validated['phone']);
+                    }
+                    if (!empty($validated['email'])) {
+                        $q->orWhere('email', $validated['email']);
+                    }
+                })->latest('id')->first();
+
+                $studentData = [
+                    'name'   => $validated['applicant_name'],
+                    'phone'  => $validated['phone'],
+                    'email'  => $validated['email'] ?? null,
                     'gender' => $validated['gender'] ?? null,
                     'status' => 'LEAD',
-                ]);
+                ];
+
+                if ($prevStudent) {
+                    foreach (['date_of_birth', 'blood_group', 'national_id', 'address', 'father_name', 'mother_name', 'guardian_name', 'guardian_phone'] as $fld) {
+                        if (empty($studentData[$fld]) && !empty($prevStudent->{$fld})) {
+                            $studentData[$fld] = $prevStudent->{$fld};
+                        }
+                    }
+                }
+
+                $student = Student::create($studentData);
             }
 
             $student->calculateProfileCompletion();
@@ -415,6 +451,59 @@ class AdmissionFormController extends Controller
             ->where('application_no', $applicationNo)
             ->where('source', 'PUBLIC')
             ->firstOrFail();
+
+        // Self-healing check: If the form is APPROVED, but the associated student has a student_code from a DIFFERENT course
+        // (e.g. from an earlier course application with the same phone number), ensure this admission has its own course-specific student!
+        if ($form->status === 'APPROVED' && $form->student && $form->interested_course_id) {
+            $student = $form->student;
+            $batch = $form->batch ?: Batch::where('course_id', $form->interested_course_id)->where('status', 'ACTIVE')->first();
+            $targetCourse = $batch?->course ?: Course::find($form->interested_course_id);
+
+            $isDifferentCourse = false;
+            if (!empty($student->student_code)) {
+                $expectedCourseCode = Student::resolveCourseCode($targetCourse, $targetCourse?->id);
+                $cleanCode = preg_replace('/\D/', '', (string)$student->student_code);
+                $existingCourseCode = strlen($cleanCode) >= 6 ? substr($cleanCode, 4, 2) : '';
+                if ($existingCourseCode !== $expectedCourseCode) {
+                    $isDifferentCourse = true;
+                }
+            } elseif ($student->enrollments()->where('course_id', '!=', $targetCourse?->id)->exists()) {
+                $isDifferentCourse = true;
+            }
+
+            if ($isDifferentCourse && $batch) {
+                DB::transaction(function () use ($form, $student, $batch, $targetCourse) {
+                    $newStudent = $student->replicate(['id', 'student_code', 'user_id', 'created_at', 'updated_at']);
+                    $newStudent->status = 'ACTIVE';
+                    $newStudent->student_code = Student::generateStudentCode($batch, $targetCourse, $student->gender);
+                    $newStudent->save();
+
+                    $rawPassword = $student->temporary_password ?: ($newStudent->phone ?: '12345678');
+                    $loginEmail = $newStudent->student_code . '@iom.student';
+                    $user = User::where('email', $loginEmail)->first();
+                    if (!$user) {
+                        $user = User::create([
+                            'name'     => $newStudent->name,
+                            'email'    => $loginEmail,
+                            'password' => Hash::make($rawPassword),
+                            'role'     => 'student',
+                        ]);
+                    }
+                    $newStudent->user_id = $user->id;
+                    $newStudent->temporary_password = $rawPassword;
+                    $newStudent->save();
+
+                    $form->update(['student_id' => $newStudent->id]);
+
+                    // Update enrollment
+                    Enrollment::where('admission_form_id', $form->id)->update(['student_id' => $newStudent->id]);
+                    // Update invoices
+                    Invoice::where('admission_form_id', $form->id)->update(['student_id' => $newStudent->id]);
+                });
+                $form->refresh();
+                $form->load('student');
+            }
+        }
 
         $transaction = GatewayTransaction::where('admission_form_id', $form->id)
             ->latest()

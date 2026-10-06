@@ -155,14 +155,20 @@ class AdmissionController extends Controller
                 $bloodGroupName = \App\Models\BloodGroup::find($validated['blood_group_id'])?->name;
             }
 
-            // Find existing student or create new
-            $student = null;
-            if (!empty($validated['email'])) {
-                $student = Student::where('email', $validated['email'])->first();
-            }
-            if (!$student && !empty($validated['phone'])) {
-                $student = Student::where('phone', $validated['phone'])->first();
-            }
+            // Find existing student or create new for this specific course
+            $targetCourseId = (int) $validated['interested_course_id'];
+            $student = Student::where(function ($q) use ($validated) {
+                if (!empty($validated['phone'])) {
+                    $q->where('phone', $validated['phone']);
+                }
+                if (!empty($validated['email'])) {
+                    $q->orWhere('email', $validated['email']);
+                }
+            })->where(function ($q) use ($targetCourseId) {
+                $q->whereHas('admissionForms', fn($af) => $af->where('interested_course_id', $targetCourseId))
+                  ->orWhereHas('enrollments', fn($en) => $en->where('course_id', $targetCourseId))
+                  ->orWhere(fn($sq) => $sq->whereNull('student_code')->whereDoesntHave('enrollments'));
+            })->first();
 
             if ($student) {
                 $student->update(array_filter([
@@ -359,9 +365,34 @@ class AdmissionController extends Controller
             $admission->rejection_reason = null;
 
             // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────
-            if (empty($student->student_code)) {
-                $course = $batch->course ?: Course::find($batch->course_id);
-                $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
+            $course = $batch->course ?: Course::find($batch->course_id);
+
+            // Check if student already belongs to a different course
+            $isDifferentCourse = false;
+            if (!empty($student->student_code)) {
+                $expectedCourseCode = Student::resolveCourseCode($course, $course?->id);
+                $cleanCode = preg_replace('/\D/', '', (string)$student->student_code);
+                $existingCourseCode = strlen($cleanCode) >= 6 ? substr($cleanCode, 4, 2) : '';
+                if ($existingCourseCode !== $expectedCourseCode) {
+                    $isDifferentCourse = true;
+                }
+            } elseif ($student->enrollments()->where('course_id', '!=', $course?->id)->exists()) {
+                $isDifferentCourse = true;
+            }
+
+            if ($isDifferentCourse) {
+                $newStudent = $student->replicate(['id', 'student_code', 'user_id', 'created_at', 'updated_at']);
+                $newStudent->status = 'ACTIVE';
+                $newStudent->student_code = Student::generateStudentCode($batch, $course, $student->gender);
+                $newStudent->save();
+                $admission->update(['student_id' => $newStudent->id]);
+                $student = $newStudent;
+            } else {
+                if (empty($student->student_code)) {
+                    $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
+                }
+                $student->status = 'ACTIVE';
+                $student->save();
             }
 
             // Sync all profile details from admission form into student
@@ -384,17 +415,13 @@ class AdmissionController extends Controller
             // ── AUTO-CREATE OR RETRIEVE USER ACCOUNT ──────────────────────
             $rawPassword = $request->filled('custom_password')
                 ? trim($request->input('custom_password'))
-                : strtolower(\Illuminate\Support\Str::random(8));
+                : ($student->temporary_password ?: ($student->phone ?: strtolower(\Illuminate\Support\Str::random(8))));
 
             $student->temporary_password = $rawPassword;
 
             if (empty($student->user_id)) {
-                $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
+                $loginEmail = $student->student_code ? ($student->student_code . '@iom.student') : ($student->email ?: uniqid() . '@iom.student');
                 $user = User::where('email', $loginEmail)->first();
-                if (!$user && User::where('email', $loginEmail)->exists()) {
-                    $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code)) . '@iom.student';
-                    $user = User::where('email', $loginEmail)->first();
-                }
 
                 if (!$user) {
                     $user = User::create([

@@ -172,6 +172,9 @@ class StudentFeeService
         if (!$studentFeePackage && $student->fee_package_id) {
             $studentFeePackage = CourseFeePackage::find($student->fee_package_id);
         }
+        if ($studentFeePackage && $course && $studentFeePackage->course_id != $course->id) {
+            $studentFeePackage = null;
+        }
         if (!$studentFeePackage) {
             $admForm = AdmissionForm::where('student_id', $student->id)->whereNotNull('waiver_code')->latest()->first();
             $waiverCode = $admForm?->waiver_code;
@@ -186,7 +189,10 @@ class StudentFeeService
                     ->whereNotNull('approved_package_id')
                     ->first();
                 if ($waiverApp) {
-                    $studentFeePackage = CourseFeePackage::find($waiverApp->approved_package_id);
+                    $pkg = CourseFeePackage::find($waiverApp->approved_package_id);
+                    if ($pkg && (!$course || $pkg->course_id == $course->id)) {
+                        $studentFeePackage = $pkg;
+                    }
                 }
             }
         }
@@ -197,21 +203,27 @@ class StudentFeeService
                 ->latest()
                 ->first();
             if ($waiverApp) {
-                $studentFeePackage = CourseFeePackage::find($waiverApp->approved_package_id);
+                $pkg = CourseFeePackage::find($waiverApp->approved_package_id);
+                if ($pkg && (!$course || $pkg->course_id == $course->id)) {
+                    $studentFeePackage = $pkg;
+                }
             }
         }
         if (!$studentFeePackage) {
             $existingSemInv = Invoice::where('student_id', $student->id)->where('category', 'SEMESTER')->latest()->first();
             if ($existingSemInv && preg_match('/\(([^)]+)\)\s*(?:\([^)]+\))?$/', $existingSemInv->title, $pm)) {
                 $pkgName = trim($pm[1]);
-                $studentFeePackage = CourseFeePackage::where('name', $pkgName)->first();
+                $pkg = CourseFeePackage::where('name', $pkgName)->where('course_id', $course?->id)->first();
+                if ($pkg) {
+                    $studentFeePackage = $pkg;
+                }
             }
         }
         if (!$studentFeePackage && $course) {
             $studentFeePackage = $course->feePackages()->where('is_default', true)->first()
                 ?? $course->feePackages()->first();
         }
-        if ($studentFeePackage && !$student->fee_package_id) {
+        if ($studentFeePackage && (!$student->fee_package_id || $student->fee_package_id != $studentFeePackage->id)) {
             try {
                 $student->update(['fee_package_id' => $studentFeePackage->id]);
             } catch (\Throwable $e) {}

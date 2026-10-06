@@ -2,9 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
+use App\Models\Course;
 use App\Models\CourseTransfer;
 use App\Models\Enrollment;
+use App\Models\Invoice;
+use App\Models\Semester;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class CourseTransferService
 {
@@ -56,7 +61,51 @@ class CourseTransferService
             // 4. Update Student ID (Course code at digits 5 & 6, Batch at digits 3 & 4)
             $student->updateCodeForTransferOrReadmission($transfer->toBatch, $transfer->toCourse);
 
-            // 5. Update CourseTransfer record to COMPLETED
+            // 5. Update Fee Structure & Package for the target course
+            $toCourse = $transfer->toCourse ?? Course::find($transfer->to_course_id);
+            $newFeePackage = $toCourse?->feePackages()->where('is_default', true)->where('is_active', true)->first()
+                ?? $toCourse?->feePackages()->where('is_active', true)->first();
+
+            $oldFeePackageId = $student->fee_package_id;
+            $student->fee_package_id = $newFeePackage?->id;
+            $student->save();
+
+            \App\Models\AuditLog::log(
+                'fee_structure_adjusted',
+                $student,
+                ['fee_package_id' => $oldFeePackageId],
+                ['fee_package_id' => $newFeePackage?->id],
+                "কোর্স স্থানান্তরের কারণে ফি কাঠামো নতুন কোর্স ({$toCourse?->name})-এর প্যাকেজে আপডেট করা হয়েছে"
+            );
+
+            // 6. Cancel old course unpaid semester invoices
+            $oldInvoices = \App\Models\Invoice::where('student_id', $student->id)
+                ->where('category', 'SEMESTER')
+                ->where('status', 'UNPAID')
+                ->where('paid_amount', 0)
+                ->where(function ($q) use ($transfer, $oldEnrollments) {
+                    $q->whereIn('enrollment_id', $oldEnrollments->pluck('id'))
+                      ->orWhereHas('enrollment', fn($q2) => $q2->where('course_id', $transfer->from_course_id))
+                      ->orWhere('title', 'like', "%{$transfer->fromCourse?->name}%");
+                })
+                ->get();
+
+            foreach ($oldInvoices as $oldInv) {
+                $oldInv->update([
+                    'status' => 'CANCELLED',
+                    'notes'  => trim(($oldInv->notes ?? '') . "\nকোর্স স্থানান্তরের কারণে এই ইনভয়েস বাতিল করা হয়েছে।"),
+                ]);
+            }
+
+            // 7. Auto-generate semester tuition invoice for the new course & semester
+            $targetSemester = $targetSemesterId ? \App\Models\Semester::find($targetSemesterId) : null;
+            try {
+                \App\Services\AccountingService::createSemesterInvoice($student, $newEnrollment, $targetSemester);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("CourseTransferService: Failed to generate semester invoice after transfer: " . $e->getMessage());
+            }
+
+            // 8. Update CourseTransfer record to COMPLETED
             $transfer->update([
                 'status'            => 'COMPLETED',
                 'new_enrollment_id' => $newEnrollment->id,

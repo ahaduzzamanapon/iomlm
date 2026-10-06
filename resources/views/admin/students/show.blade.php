@@ -1186,7 +1186,12 @@
                 </div>
                 <div class="admin-modal-body">
                     <div style="margin-bottom:16px">
-                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">কোর্স ফি প্যাকেজ নির্বাচন করুন:</label>
+                        <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">
+                            কোর্স ফি প্যাকেজ নির্বাচন করুন
+                            @if(isset($currentCourse) && $currentCourse)
+                                <span style="font-weight:600;color:#0284c7;">({{ $currentCourse->name }})</span>
+                            @endif:
+                        </label>
                         <select name="fee_package_id" class="form-control">
                             <option value="">-- ডিফল্ট কোর্স ফি প্যাকেজ --</option>
                             @foreach($feePackages as $pkg)
@@ -1195,6 +1200,11 @@
                                 </option>
                             @endforeach
                         </select>
+                        @if($feePackages->isEmpty())
+                            <div style="font-size:12px;color:#dc2626;margin-top:6px;">
+                                <i class="fa-solid fa-triangle-exclamation"></i> এই কোর্সের জন্য কোনো সক্রিয় ফি প্যাকেজ তৈরি করা নেই।
+                            </div>
+                        @endif
                     </div>
 
                     <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">

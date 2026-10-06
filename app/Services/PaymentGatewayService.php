@@ -514,48 +514,57 @@ class PaymentGatewayService
     {
         $student = $form->student;
         $batch = $form->batch ?: Batch::where('course_id', $form->interested_course_id)->where('status', 'ACTIVE')->first();
+        $targetCourse = $batch?->course ?: Course::find($form->interested_course_id);
 
-        // 1. Generate Custom Student ID (YY-BB-CC-G-RRRR)
+        // 1. Generate Course-Specific Student ID (YY-BB-CC-G-RRRR)
         // Format: YYBBCCGRRRR (Digits 1-2: Academic Year, 3-4: Batch, 5-6: Course Code, 7: Gender, 8-11: Serial)
-        if (empty($student->student_code) && $batch) {
-            $course = $batch->course ?: Course::find($batch->course_id);
-            $student->student_code = Student::generateStudentCode($batch, $course, $student->gender);
+        $isDifferentCourse = false;
+        if (!empty($student->student_code)) {
+            $expectedCourseCode = Student::resolveCourseCode($targetCourse, $targetCourse?->id);
+            $cleanCode = preg_replace('/\D/', '', (string)$student->student_code);
+            $existingCourseCode = strlen($cleanCode) >= 6 ? substr($cleanCode, 4, 2) : '';
+            if ($existingCourseCode !== $expectedCourseCode) {
+                $isDifferentCourse = true;
+            }
+        } elseif ($student->enrollments()->where('course_id', '!=', $targetCourse?->id)->exists()) {
+            $isDifferentCourse = true;
         }
 
-        // Sync details to Student
-        $student->status = 'ACTIVE';
-        $student->save();
+        if ($isDifferentCourse) {
+            // Replicate student profile to a dedicated Student record for this new course
+            $newStudent = $student->replicate(['id', 'student_code', 'user_id', 'created_at', 'updated_at']);
+            $newStudent->status = 'ACTIVE';
+            $newStudent->student_code = $batch ? Student::generateStudentCode($batch, $targetCourse, $student->gender) : null;
+            $newStudent->save();
+            $form->update(['student_id' => $newStudent->id]);
+            $student = $newStudent;
+        } else {
+            if (empty($student->student_code) && $batch) {
+                $student->student_code = Student::generateStudentCode($batch, $targetCourse, $student->gender);
+            }
+            $student->status = 'ACTIVE';
+            $student->save();
+        }
+
         $student->calculateProfileCompletion();
 
         // 2. Create Student User Account if not exists
-        $rawPassword = null;
+        $rawPassword = $student->temporary_password ?: ($student->phone ?: '12345678');
         if (empty($student->user_id)) {
-            $loginEmail = $student->email ?: ($student->student_code . '@iom.student');
-            $existingUser = !empty($student->email) ? User::where('email', $student->email)->first() : null;
+            $loginEmail = $student->student_code ? ($student->student_code . '@iom.student') : ($student->email ?: uniqid() . '@iom.student');
 
-            if ($existingUser) {
-                $user = $existingUser;
-                $student->user_id = $user->id;
-                $student->save();
-            } else {
-                $tempPassword = strtolower(\Illuminate\Support\Str::random(8));
-                $rawPassword = $tempPassword;
-
-                if (User::where('email', $loginEmail)->exists()) {
-                    $loginEmail = strtolower(str_replace([' ', '-'], '.', $student->student_code ?: uniqid())) . '@iom.student';
-                }
-
+            $user = User::where('email', $loginEmail)->first();
+            if (!$user) {
                 $user = User::create([
-                    'name' => $student->name,
-                    'email' => $loginEmail,
-                    'password' => Hash::make($tempPassword),
-                    'role' => 'student',
+                    'name'     => $student->name,
+                    'email'    => $loginEmail,
+                    'password' => Hash::make($rawPassword),
+                    'role'     => 'student',
                 ]);
-
-                $student->user_id = $user->id;
-                $student->temporary_password = $tempPassword;
-                $student->save();
             }
+            $student->user_id = $user->id;
+            $student->temporary_password = $rawPassword;
+            $student->save();
         } else {
             $user = $student->user;
         }

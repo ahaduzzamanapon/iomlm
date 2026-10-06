@@ -276,8 +276,9 @@
                                             data-amount="{{ $p['due'] }}"
                                             data-invoice-id="{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}"
                                             data-invoice-no="{{ $p['invoice_no'] ?? ($selectedSemesterInvoice?->invoice_no ?? '') }}"
-                                            onchange="updateAdminStep1Selection()"
-                                            style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a">
+                                            onchange="onAdminStep1CheckboxChange(this)"
+                                            style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a"
+                                            title="পরবর্তী মাস নির্বাচন করলে পূর্বের সকল বকেয়া মাস স্বয়ংক্রিয়ভাবে নির্বাচিত হবে">
                                     @endif
                                 </td>
                                 <td style="padding:10px 14px;text-align:center">
@@ -1247,8 +1248,28 @@
                 r.style.display = (status === 'due') ? '' : 'none';
             } else if (type === 'paid') {
                 r.style.display = (status === 'paid') ? '' : 'none';
-            }
         });
+    }
+
+    function onAdminStep1CheckboxChange(clickedChk) {
+        const allChks = Array.from(document.querySelectorAll('.admin-step1-chk:not(:disabled)'));
+        const clickedIndex = allChks.indexOf(clickedChk);
+
+        if (clickedIndex !== -1) {
+            if (clickedChk.checked) {
+                // নিচের যেকোনো মাস সিলেক্ট করলে উপরের সব গুলো একসাথে অটো সিলেক্ট হবে (0 to clickedIndex)
+                for (let i = 0; i <= clickedIndex; i++) {
+                    allChks[i].checked = true;
+                }
+            } else {
+                // কোনো মাস আনসিলেক্ট করলে তার নিচের সব গুলো অটো আনসিলেক্ট হবে (clickedIndex to end)
+                for (let i = clickedIndex; i < allChks.length; i++) {
+                    allChks[i].checked = false;
+                }
+            }
+        }
+
+        updateAdminStep1Selection();
     }
 
     function updateAdminStep1Selection() {
