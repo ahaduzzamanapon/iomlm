@@ -57,7 +57,10 @@ Route::match(['get', 'post'], '/payment/callback/bkash', [\App\Http\Controllers\
 Route::match(['get', 'post'], '/api/payment/bkash/callback', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback']);
 
 
-// ── Public Poor Fund / Waiver Form ────────────────────────────────────
+// ── Public Poor Fund / Waiver Form & Status Tracker ─────────────────────
+Route::get('/poor-fund/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatus'])->name('poor_fund.status');
+Route::post('/poor-fund/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatusLookup'])->name('poor_fund.status.lookup');
+Route::get('/poor-fund/track', fn() => redirect()->route('poor_fund.status'));
 Route::get('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'show'])->name('poor_fund.show');
 Route::get('/poor-fund/admission', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showAdmission'])->name('poor_fund.admission');
 Route::get('/poor-fund/tuition', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.tuition');

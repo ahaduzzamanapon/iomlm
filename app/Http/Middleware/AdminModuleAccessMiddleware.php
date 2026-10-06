@@ -21,7 +21,17 @@ class AdminModuleAccessMiddleware
 
         $user = auth()->user();
 
-        if (!$user->canAccess($module)) {
+        $modules = preg_split('/[,|]/', $module);
+        $hasAccess = false;
+        foreach ($modules as $m) {
+            $trimmed = trim($m);
+            if ($trimmed !== '' && $user->canAccess($trimmed)) {
+                $hasAccess = true;
+                break;
+            }
+        }
+
+        if (!$hasAccess) {
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
@@ -29,7 +39,8 @@ class AdminModuleAccessMiddleware
                 ], 403);
             }
 
-            $moduleName = User::adminModules()[$module]['name'] ?? $module;
+            $firstModule = trim($modules[0]);
+            $moduleName = User::adminModules()[$firstModule]['name'] ?? $firstModule;
             return redirect()->route('admin.dashboard')
                 ->with('error', "⛔ অ্যাক্সেস অস্বীকৃত! আপনার '{$moduleName}' মডিউলে প্রবেশের অনুমতি নেই।");
         }

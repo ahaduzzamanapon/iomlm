@@ -290,4 +290,53 @@ class WaiverApplicationController extends Controller
             'message'                   => "✓ অভিনন্দন! আপনার পুওর ফান্ড কোডটি অনুমোদিত (Approved)। {$discText} — ফর্মের তথ্যগুলো অটো-ফিল করা হয়েছে।",
         ]);
     }
+
+    /**
+     * Public Poor Fund Application Tracker View
+     */
+    public function trackStatus(Request $request)
+    {
+        $searchQuery = trim((string) $request->query('app_no', $request->query('id', '')));
+        $selectedId = $request->query('selected_id');
+        $applications = collect();
+        $application = null;
+
+        if (!empty($searchQuery)) {
+            $applications = WaiverApplication::with(['division', 'course', 'approvedPackage'])
+                ->where(function ($q) use ($searchQuery) {
+                    $q->where('application_no', $searchQuery)
+                      ->orWhere('application_no', 'like', "%{$searchQuery}%")
+                      ->orWhere('phone', $searchQuery)
+                      ->orWhere('national_id', $searchQuery)
+                      ->orWhere('email', $searchQuery);
+                })
+                ->latest('id')
+                ->get();
+
+            if ($selectedId) {
+                $application = $applications->firstWhere('id', (int) $selectedId);
+            } elseif ($applications->contains('application_no', $searchQuery)) {
+                $application = $applications->firstWhere('application_no', $searchQuery);
+            } elseif ($applications->isNotEmpty()) {
+                $application = $applications->first();
+            }
+        }
+
+        return view('public.poor_fund_track', compact('applications', 'application', 'searchQuery'));
+    }
+
+    /**
+     * Public Poor Fund Tracker POST Lookup
+     */
+    public function trackStatusLookup(Request $request)
+    {
+        $request->validate([
+            'search' => 'required|string|max:100',
+        ], [
+            'search.required' => 'আবেদন আইডি (উদা: PF-2026-0001), ফোন নম্বর বা এনআইডি প্রবেশ করান।'
+        ]);
+
+        $searchQuery = trim((string) $request->input('search'));
+        return redirect()->route('poor_fund.status', ['app_no' => $searchQuery]);
+    }
 }

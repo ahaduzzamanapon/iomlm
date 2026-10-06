@@ -65,7 +65,7 @@
                             <option value="">-- সেশন নির্বাচন করুন --</option>
                             @foreach($sessions as $s)
                                 <option value="{{ $s->id }}" {{ old('academic_session_id') == $s->id ? 'selected' : '' }}>
-                                    {{ $s->name }}
+                                    {{ $s->name }}{{ $s->academicYear ? ' (' . $s->academicYear->name . ')' : '' }}
                                 </option>
                             @endforeach
                         </select>

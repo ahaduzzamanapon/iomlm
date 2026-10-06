@@ -253,10 +253,12 @@
     </div>
     @endif
 
+    @if($form->status === 'APPROVED')
     <div class="note">
         <i class="fa-solid fa-circle-info" style="margin-right:4px"></i>
         ভর্তির বিস্তারিত তথ্যের কপি আপনার ইমেইলে পাঠানো হয়েছে। আপনার শিক্ষার্থী আইডি বা আবেদন নম্বরটি ভবিষ্যতে ব্যবহারের জন্য সংরক্ষণ করুন।
     </div>
+    @endif
 
     <div class="actions">
         @if($form->status === 'APPROVED')

@@ -537,7 +537,11 @@ class PaymentGatewayService
             if ($existingCourseCode !== $expectedCourseCode) {
                 $isDifferentCourse = true;
             }
-        } elseif ($student->enrollments()->where('course_id', '!=', $targetCourse?->id)->exists()) {
+        }
+        if ($student->enrollments()->where('course_id', '!=', $targetCourse?->id)->exists()) {
+            $isDifferentCourse = true;
+        }
+        if ($student->admissionForms()->where('id', '!=', $form->id)->where('interested_course_id', '!=', $targetCourse?->id)->exists()) {
             $isDifferentCourse = true;
         }
 
@@ -551,6 +555,7 @@ class PaymentGatewayService
             $newStudent->student_code = $batch ? Student::generateStudentCode($batch, $targetCourse, $effectiveGender) : null;
             $newStudent->save();
             $form->update(['student_id' => $newStudent->id, 'gender' => $effectiveGender]);
+            $form->setRelation('student', $newStudent);
             $student = $newStudent;
         } else {
             if ($hasPrefixMismatch && $batch) {
@@ -640,31 +645,58 @@ class PaymentGatewayService
             }
         }
 
-        // 5. Send celebratory credentials email
+        // 5. Send course, batch & gender-specific celebratory credentials email
         $targetEmail = $student->email ?: ($user ? $user->email : null);
         if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
             try {
                 $mailService = app(\App\Services\DynamicMailService::class);
                 $courseName = $form->interestedCourse->name ?? 'Course';
                 $batchName = $batch ? $batch->name : 'Target Batch';
-                $subject = "🎉 Admission Approved & Payment Received! Welcome to IOM";
-                $displayPassword = $rawPassword ?: ($student->phone ?: 'Your registered phone number');
+                $courseId = $form->course_id ?? $student->course_id;
+                $batchId = $batch?->id ?? $form->batch_id ?? $student->batch_id;
+                $gender = $student->gender ?? $form->gender ?? 'Male';
+                $displayPassword = $rawPassword ?: ($student->temporary_password ?: ($student->phone ?: '12345678'));
+                $loginUrl = url('/login');
 
-                $body = "Assalamu Alaikum, {$student->name}!\n\n"
-                    . "Alhamdulillah! Your online admission and payment of ৳" . number_format($transaction->amount, 2) . " for \"{$courseName}\" has been successfully confirmed.\n\n"
-                    . "Official Student Credentials:\n"
-                    . "• Student ID: {$student->student_code}\n"
-                    . "• Batch: {$batchName}\n"
-                    . "• Login Email/ID: {$user->email} OR {$student->student_code}\n"
-                    . "• Password: {$displayPassword}\n\n"
-                    . "Please login to your Student Portal to access class schedules and complete your profile.";
+                $replaceVars = [
+                    '{name}'       => $student->name,
+                    '{student_id}' => $student->student_code,
+                    '{roll}'       => $student->student_code,
+                    '{password}'   => $displayPassword,
+                    '{course}'     => $courseName,
+                    '{batch}'      => $batchName,
+                    '{login_url}'  => $loginUrl,
+                ];
+
+                $template = \App\Models\EmailTemplate::resolveAdmissionTemplate($courseId, $batchId, $gender);
+
+                if ($template) {
+                    $compiled = $template->compile($replaceVars);
+                    $subject = $compiled['subject'];
+                    $body = $compiled['content'];
+                } else {
+                    $rawBody = $batch ? $batch->getEffectiveEmailTemplate() : null;
+                    if (empty($rawBody)) {
+                        $rawBody = "আসসালামু আলাইকুম {name},\n\n"
+                            . "আলহামদুলিল্লাহ! ইসলামিক অনলাইন মাদ্রাসায় \"{course}\" ({batch}) কোর্সে আপনার ভর্তি সফলভাবে অনুমোদিত ও নিশ্চিত হয়েছে।\n\n"
+                            . "আপনার অফিসিয়াল লগইন তথ্য:\n"
+                            . "----------------------------------------\n"
+                            . "• স্টুডেন্ট আইডি: {student_id}\n"
+                            . "• লগইন পাসওয়ার্ড: {password}\n"
+                            . "• পোর্টাল লিংক: {login_url}\n"
+                            . "----------------------------------------\n\n"
+                            . "আপনি আপনার স্টুডেন্ট আইডি অথবা ইমেইল এবং পাসওয়ার্ড দিয়ে স্টুডেন্ট পোর্টালে লগইন করতে পারবেন।";
+                    }
+                    $subject = "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";
+                    $body = str_replace(array_keys($replaceVars), array_values($replaceVars), $rawBody);
+                }
 
                 $mailService->sendHtmlNotification(
                     $targetEmail,
                     $subject,
                     $body,
                     null,
-                    url('/login')
+                    $loginUrl
                 );
             } catch (\Exception $e) {
                 Log::error('Admission Approval Email Error: ' . $e->getMessage());

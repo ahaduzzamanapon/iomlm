@@ -12,23 +12,39 @@ class EmailTemplate extends Model
     protected $fillable = [
         'name',
         'category',
+        'course_id',
+        'batch_id',
+        'gender',
         'subject',
         'content',
         'is_system',
+        'is_active',
         'created_by',
     ];
 
     protected $casts = [
         'is_system' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     protected $appends = [
         'category_label',
+        'gender_label',
     ];
 
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class, 'course_id');
+    }
+
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class, 'batch_id');
     }
 
     public function getCategoryLabelAttribute(): string
@@ -41,6 +57,94 @@ class EmailTemplate extends Model
             'ADMISSION' => 'ভর্তি সংক্রান্ত',
             default     => 'সাধারণ বিজ্ঞপ্তি',
         };
+    }
+
+    public function getGenderLabelAttribute(): string
+    {
+        return match ($this->gender) {
+            'Male'   => 'ভাইদের শাখা (পুরুষ)',
+            'Female' => 'বোনদের শাখা (মহিলা)',
+            default  => 'সকলের জন্য (উভয়)',
+        };
+    }
+
+    /**
+     * Resolve the best admission email template for a given course, batch, and gender.
+     */
+    public static function resolveAdmissionTemplate(?int $courseId, ?int $batchId, ?string $gender = null): ?self
+    {
+        $normalizedGender = 'All';
+        if ($gender) {
+            $g = strtolower(trim($gender));
+            if ($g === 'male' || str_starts_with($g, 'm') || str_starts_with($g, 'প')) {
+                $normalizedGender = 'Male';
+            } elseif ($g === 'female' || str_starts_with($g, 'f') || str_starts_with($g, 'মহ')) {
+                $normalizedGender = 'Female';
+            }
+        }
+
+        $base = self::where('is_active', true)
+            ->where(function ($q) {
+                $q->where('category', 'ADMISSION')->orWhereNull('category');
+            });
+
+        // 1. Try exact course + batch + gender
+        if ($courseId && $batchId && $normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->where('batch_id', $batchId)
+                ->where('gender', $normalizedGender)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 2. Try course + batch + 'All'
+        if ($courseId && $batchId) {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->where('batch_id', $batchId)
+                ->where('gender', 'All')
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 3. Try course + gender
+        if ($courseId && $normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->whereNull('batch_id')
+                ->where('gender', $normalizedGender)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 4. Try course + 'All'
+        if ($courseId) {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->whereNull('batch_id')
+                ->where('gender', 'All')
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 5. Fallback: Any generic active admission template
+        return (clone $base)->orderByDesc('is_system')->first();
+    }
+
+    /**
+     * Compile template with placeholders.
+     */
+    public function compile(array $vars): array
+    {
+        $subject = $this->subject ?: '🎉 ইসলামিক অনলাইন মাদ্রাসায় আপনার ভর্তি নিশ্চিত হয়েছে';
+        $content = $this->content;
+
+        foreach ($vars as $key => $val) {
+            $subject = str_replace($key, (string)$val, $subject);
+            $content = str_replace($key, (string)$val, $content);
+        }
+
+        return [
+            'subject' => $subject,
+            'content' => $content,
+        ];
     }
 
     /**
@@ -82,10 +186,10 @@ class EmailTemplate extends Model
                 'is_system' => true,
             ],
             [
-                'name'      => 'ভর্তি নিশ্চিতকরণ ও স্বাগতম বার্তা',
+                'name'      => 'ভর্তি নিশ্চিতকরণ ও স্বাগতম বার্তা (সাধারণ)',
                 'category'  => 'ADMISSION',
-                'subject'   => 'অভিনন্দন: ইসলামিক অনলাইন মাদ্রাসায় আপনার ভর্তি নিশ্চিত হয়েছে',
-                'content'   => "আসসালামু আলাইকুম ওয়া রাহমাতুল্লাহ,\n\nআলহামদুলিল্লাহ! ইসলামিক অনলাইন মাদ্রাসায় আপনার আবেদন অনুমোদিত হয়েছে এবং আপনার ভর্তি সফলভাবে নিশ্চিত হয়েছে। আপনাকে আইওএম পরিবারে আন্তরিক অভিনন্দন ও মোবারকবাদ!\n\nআপনার অফিসিয়াল স্টুডেন্ট পোর্টাল থেকে নিয়মিত রুটিন, সিলেবাস, ও পাঠ্য উপাদান সংগ্রহ করতে পারবেন। আপনার ইলমি সফর সুন্দর ও বরকতময় হোক।\n\nআল্লাহ আমাদের দ্বীনের সহিহ বুঝ দান করুন। আমীন।\n\nবিনীত,\nভর্তি শাখা,\nইসলামিক অনলাইন মাদ্রাসা (IOM)",
+                'subject'   => 'অভিনন্দন: {course} ({batch}) কোর্সে আপনার ভর্তি নিশ্চিত হয়েছে',
+                'content'   => "আসসালামু আলাইকুম {name},\n\nআলহামদুলিল্লাহ! ইসলামিক অনলাইন মাদ্রাসায় \"{course}\" ({batch}) কোর্সে আপনার ভর্তি সফলভাবে অনুমোদিত ও নিশ্চিত হয়েছে। আপনাকে আইওএম পরিবারে আন্তরিক অভিনন্দন ও মোবারকবাদ!\n\nআপনার অফিসিয়াল লগইন তথ্য:\n----------------------------------------\n• স্টুডেন্ট আইডি: {student_id}\n• লগইন পাসওয়ার্ড: {password}\n• পোর্টাল লিংক: {login_url}\n----------------------------------------\n\nআপনি আপনার স্টুডেন্ট আইডি অথবা ইমেইল এবং পাসওয়ার্ড দিয়ে স্টুডেন্ট পোর্টালে লগইন করতে পারবেন। নিয়মিত লাইভ ক্লাসে অংশ নিন এবং পোর্টাল থেকে শিক্ষণ সামগ্রী সংগ্রহ করুন।\n\nআপনার ইলমি সফর সুন্দর ও বরকতময় হোক। আমীন।\n\nবিনীত,\nভর্তি শাখা,\nইসলামিক অনলাইন মাদ্রাসা (IOM)",
                 'is_system' => true,
             ],
             [

@@ -17,11 +17,14 @@ class AdmissionController extends Controller
 {
     public function index(Request $request)
     {
-        $tab    = $request->query('tab', 'all');
-        $status = $request->query('status', '');
-        $search = $request->query('search', '');
+        $tab       = $request->query('tab', 'all');
+        $status    = $request->query('status', '');
+        $search    = $request->query('search', '');
+        $courseId  = $request->query('course_id', '');
+        $sessionId = $request->query('session_id', '');
+        $gender    = $request->query('gender', '');
 
-        $base = AdmissionForm::with(['student', 'interestedCourse', 'session', 'reviewer']);
+        $base = AdmissionForm::with(['student', 'interestedCourse', 'session', 'session.academicYear', 'reviewer']);
 
         // Apply status filter
         if ($status) {
@@ -32,12 +35,38 @@ class AdmissionController extends Controller
             }
         }
 
+        // Apply course filter (Requirement 1)
+        if ($courseId) {
+            $base->where('interested_course_id', $courseId);
+        }
+
+        // Apply session filter (Requirement 2)
+        if ($sessionId) {
+            $base->where('academic_session_id', $sessionId);
+        }
+
+        // Apply gender filter (Requirement 3)
+        if ($gender) {
+            $base->where(function ($q) use ($gender) {
+                $q->where('admission_forms.gender', $gender)
+                  ->orWhereHas('student', function ($sq) use ($gender) {
+                      $sq->where('gender', $gender);
+                  });
+            });
+        }
+
         // Apply search
         if ($search) {
-            $base->whereHas('student', function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
-            })->orWhere('application_no', 'like', "%{$search}%");
+            $base->where(function ($q) use ($search) {
+                $q->whereHas('student', function ($sq) use ($search) {
+                    $sq->where('name', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('student_code', 'like', "%{$search}%");
+                })
+                ->orWhere('application_no', 'like', "%{$search}%")
+                ->orWhere('manual_trx_id', 'like', "%{$search}%");
+            });
         }
 
         $adminAdmissions    = (clone $base)->where('source', 'ADMIN')->latest()->get();
@@ -55,10 +84,36 @@ class AdmissionController extends Controller
         $publicCount  = $publicApplications->count();
         $publicPending = AdmissionForm::where('source', 'PUBLIC')->where('status', 'PENDING')->count();
 
+        // Dropdown Data for Filters
+        $courses  = Course::where('is_active', true)->orderBy('name')->get();
+        $sessions = \App\Models\AcademicSession::with('academicYear')->where('is_active', true)->orderByDesc('id')->get();
+
+        // Course & Session-wise Admission Statistics Report
+        $admissionReport = AdmissionForm::query()
+            ->leftJoin('students', 'admission_forms.student_id', '=', 'students.id')
+            ->select('admission_forms.interested_course_id', 'admission_forms.academic_session_id')
+            ->selectRaw('count(admission_forms.id) as total_apps')
+            ->selectRaw("count(case when admission_forms.status = 'APPROVED' then 1 end) as approved_count")
+            ->selectRaw("count(case when admission_forms.status = 'PENDING' then 1 end) as pending_count")
+            ->selectRaw("count(case when COALESCE(admission_forms.gender, students.gender) = 'Male' then 1 end) as male_count")
+            ->selectRaw("count(case when COALESCE(admission_forms.gender, students.gender) = 'Female' then 1 end) as female_count")
+            ->with(['interestedCourse', 'session', 'session.academicYear'])
+            ->groupBy('admission_forms.interested_course_id', 'admission_forms.academic_session_id')
+            ->orderByDesc('total_apps')
+            ->get();
+
+        $reportTotalApps    = $admissionReport->sum('total_apps');
+        $reportApprovedApps = $admissionReport->sum('approved_count');
+        $reportPendingApps  = $admissionReport->sum('pending_count');
+        $reportMaleApps     = $admissionReport->sum('male_count');
+        $reportFemaleApps   = $admissionReport->sum('female_count');
+
         return view('admin.admissions.index', compact(
             'adminAdmissions', 'publicApplications', 'unpaidApplications', 'allPaidFormIds',
             'totalCount', 'adminCount', 'publicCount', 'publicPending', 'unpaidCount',
-            'tab', 'status', 'search'
+            'tab', 'status', 'search', 'courseId', 'sessionId', 'gender',
+            'courses', 'sessions', 'admissionReport',
+            'reportTotalApps', 'reportApprovedApps', 'reportPendingApps', 'reportMaleApps', 'reportFemaleApps'
         ));
     }
 
@@ -66,7 +121,7 @@ class AdmissionController extends Controller
     {
         $courses       = Course::where('is_active', true)->orderBy('name')->get();
         $activeBatches = \App\Models\Batch::where('status', 'ACTIVE')->get();
-        $sessions      = \App\Models\AcademicSession::where('is_active', true)->orderByDesc('id')->get();
+        $sessions      = \App\Models\AcademicSession::with('academicYear')->where('is_active', true)->orderByDesc('id')->get();
         $bloodGroups   = \App\Models\BloodGroup::active()->get();
         $religions     = \App\Models\Religion::active()->get();
         $divisions     = \App\Models\Division::orderBy('name')->get();
@@ -166,8 +221,7 @@ class AdmissionController extends Controller
                 }
             })->where(function ($q) use ($targetCourseId) {
                 $q->whereHas('admissionForms', fn($af) => $af->where('interested_course_id', $targetCourseId))
-                  ->orWhereHas('enrollments', fn($en) => $en->where('course_id', $targetCourseId))
-                  ->orWhere(fn($sq) => $sq->whereNull('student_code')->whereDoesntHave('enrollments'));
+                  ->orWhereHas('enrollments', fn($en) => $en->where('course_id', $targetCourseId));
             })->first();
 
             if ($student) {
@@ -185,7 +239,16 @@ class AdmissionController extends Controller
                     'hsc_gpa'          => $validated['hsc_gpa'] ?? $student->hsc_gpa,
                 ]));
             } else {
-                $student = Student::create([
+                $prevStudent = Student::where(function ($q) use ($validated) {
+                    if (!empty($validated['phone'])) {
+                        $q->where('phone', $validated['phone']);
+                    }
+                    if (!empty($validated['email'])) {
+                        $q->orWhere('email', $validated['email']);
+                    }
+                })->latest('id')->first();
+
+                $studentData = [
                     'name'             => $validated['applicant_name'],
                     'email'            => !empty($validated['email']) ? $validated['email'] : null,
                     'phone'            => $validated['phone'],
@@ -199,7 +262,17 @@ class AdmissionController extends Controller
                     'ssc_gpa'          => $validated['ssc_gpa'] ?? null,
                     'hsc_gpa'          => $validated['hsc_gpa'] ?? null,
                     'status'           => 'PENDING',
-                ]);
+                ];
+
+                if ($prevStudent) {
+                    foreach (['father_name', 'mother_name', 'guardian_relation', 'permanent_address', 'nationality', 'religion'] as $fld) {
+                        if (empty($studentData[$fld]) && !empty($prevStudent->{$fld})) {
+                            $studentData[$fld] = $prevStudent->{$fld};
+                        }
+                    }
+                }
+
+                $student = Student::create($studentData);
             }
 
             $student->calculateProfileCompletion();
@@ -324,7 +397,21 @@ class AdmissionController extends Controller
             ];
         }
 
-        return view('admin.admissions.show', compact('admission', 'activeBatches', 'allCourses', 'batchTemplates'));
+        $admissionTemplates = \App\Models\EmailTemplate::where('is_active', true)
+            ->where(function ($q) {
+                $q->where('category', 'ADMISSION')->orWhereNull('category');
+            })
+            ->with(['course', 'batch'])
+            ->orderBy('name')
+            ->get();
+
+        $suggestedTemplate = \App\Models\EmailTemplate::resolveAdmissionTemplate(
+            $admission->course_id,
+            $admission->batch_id,
+            $admission->student?->gender ?? $admission->gender
+        );
+
+        return view('admin.admissions.show', compact('admission', 'activeBatches', 'allCourses', 'batchTemplates', 'admissionTemplates', 'suggestedTemplate'));
     }
 
     public function approve(Request $request, AdmissionForm $admission)
@@ -385,7 +472,11 @@ class AdmissionController extends Controller
                 if ($existingCourseCode !== $expectedCourseCode) {
                     $isDifferentCourse = true;
                 }
-            } elseif ($student->enrollments()->where('course_id', '!=', $course?->id)->exists()) {
+            }
+            if ($student->enrollments()->where('course_id', '!=', $course?->id)->exists()) {
+                $isDifferentCourse = true;
+            }
+            if ($student->admissionForms()->where('id', '!=', $admission->id)->where('interested_course_id', '!=', $course?->id)->exists()) {
                 $isDifferentCourse = true;
             }
 
@@ -397,7 +488,24 @@ class AdmissionController extends Controller
                 $newStudent->gender = $effectiveGender;
                 $newStudent->student_code = Student::generateStudentCode($batch, $course, $effectiveGender);
                 $newStudent->save();
+
+                $rawPassword = $student->temporary_password ?: ($newStudent->phone ?: '12345678');
+                $loginEmail = $newStudent->student_code . '@iom.student';
+                $user = User::where('email', $loginEmail)->first();
+                if (!$user) {
+                    $user = User::create([
+                        'name'     => $newStudent->name,
+                        'email'    => $loginEmail,
+                        'password' => Hash::make($rawPassword),
+                        'role'     => 'student',
+                    ]);
+                }
+                $newStudent->user_id = $user->id;
+                $newStudent->temporary_password = $rawPassword;
+                $newStudent->save();
+
                 $admission->update(['student_id' => $newStudent->id, 'gender' => $effectiveGender]);
+                $admission->setRelation('student', $newStudent);
                 $student = $newStudent;
             } else {
                 if ($hasPrefixMismatch) {
@@ -503,16 +611,21 @@ class AdmissionController extends Controller
                 '{login_url}'  => $loginUrl,
             ];
 
-            // Use customized content from request or fallback to batch defaults
+            $selectedTemplate = $request->filled('email_template_id')
+                ? \App\Models\EmailTemplate::find($request->input('email_template_id'))
+                : null;
+
+            // Use customized content from request or selected template or fallback to batch defaults
             $rawEmailBody = $request->filled('email_body')
                 ? $request->input('email_body')
-                : $batch->getEffectiveEmailTemplate();
+                : ($selectedTemplate ? $selectedTemplate->content : $batch->getEffectiveEmailTemplate());
 
             $rawSmsBody = $request->filled('sms_body')
                 ? $request->input('sms_body')
                 : $batch->getEffectiveSmsTemplate();
 
-            $defaultSubject = "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";
+            $defaultSubject = $selectedTemplate?->subject
+                ?: "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";
             $rawSubject = $request->filled('email_subject')
                 ? $request->input('email_subject')
                 : $defaultSubject;

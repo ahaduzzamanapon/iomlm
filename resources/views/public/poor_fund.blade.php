@@ -99,7 +99,12 @@
         <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="height:34px;width:auto;object-fit:contain">
         <span>Online Poor Fund Application — IOM</span>
     </div>
-    <a href="/apply" class="btn-home">← Online Admission Form</a>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <a href="{{ route('poor_fund.status') }}" class="btn-home" style="background:#fbbf24;color:#064e3b;font-weight:700;">
+            <i class="fa-solid fa-magnifying-glass"></i> স্ট্যাটাস চেক করুন
+        </a>
+        <a href="/apply" class="btn-home">← Online Admission Form</a>
+    </div>
 </nav>
 
 <div class="container">

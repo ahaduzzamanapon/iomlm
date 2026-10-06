@@ -196,11 +196,14 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('notifications/create', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'create'])->name('notifications.create');
         Route::get('notifications/{notification}/json', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'showJson'])->name('notifications.show-json');
         Route::post('notifications', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'send'])->name('notifications.send');
-        Route::post('email-templates', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'store'])->name('email-templates.store');
-        Route::delete('email-templates/{emailTemplate}', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'destroy'])->name('email-templates.destroy');
-        Route::get('email-templates/list-json', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'listJson'])->name('email-templates.list-json');
+    });
 
-        // Surveys & Dynamic Forms
+    Route::middleware('admin.module:admissions,communication')->group(function () {
+        Route::resource('email-templates', \App\Http\Controllers\Admin\EmailTemplateController::class);
+        Route::get('email-templates/list-json', [\App\Http\Controllers\Admin\EmailTemplateController::class, 'listJson'])->name('email-templates.list-json');
+    });
+
+    Route::middleware('admin.module:communication')->group(function () {
         Route::get('surveys', [\App\Http\Controllers\Admin\SurveyController::class, 'index'])->name('surveys.index');
         Route::post('surveys', [\App\Http\Controllers\Admin\SurveyController::class, 'store'])->name('surveys.store');
         Route::get('surveys/{survey}/builder', [\App\Http\Controllers\Admin\SurveyController::class, 'builder'])->name('surveys.builder');

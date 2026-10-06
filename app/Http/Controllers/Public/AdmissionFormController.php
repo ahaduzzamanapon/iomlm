@@ -145,8 +145,7 @@ class AdmissionFormController extends Controller
                 }
             })->where(function ($q) use ($targetCourseId) {
                 $q->whereHas('admissionForms', fn($af) => $af->where('interested_course_id', $targetCourseId))
-                  ->orWhereHas('enrollments', fn($en) => $en->where('course_id', $targetCourseId))
-                  ->orWhere(fn($sq) => $sq->whereNull('student_code')->whereDoesntHave('enrollments'));
+                  ->orWhereHas('enrollments', fn($en) => $en->where('course_id', $targetCourseId));
             })->first();
 
             if ($student) {
@@ -523,7 +522,11 @@ class AdmissionFormController extends Controller
             if ($existingCourseCode !== $courseCode) {
                 $isDifferentCourse = true;
             }
-        } elseif ($student->enrollments()->where('course_id', '!=', $targetCourse->id)->exists()) {
+        }
+        if ($student->enrollments()->where('course_id', '!=', $targetCourse->id)->exists()) {
+            $isDifferentCourse = true;
+        }
+        if ($student->admissionForms()->where('id', '!=', $form->id)->where('interested_course_id', '!=', $targetCourse->id)->exists()) {
             $isDifferentCourse = true;
         }
 
@@ -555,6 +558,7 @@ class AdmissionFormController extends Controller
                     $newStudent->save();
 
                     $form->update(['student_id' => $newStudent->id, 'gender' => $effectiveGender]);
+                    $form->setRelation('student', $newStudent);
 
                     Enrollment::where('admission_form_id', $form->id)->update(['student_id' => $newStudent->id]);
                     Invoice::where('source_type', AdmissionForm::class)
@@ -611,35 +615,57 @@ class AdmissionFormController extends Controller
     public function trackStatus(Request $request)
     {
         $searchQuery = trim($request->query('app_no', ''));
+        $selectedId = $request->query('selected_id');
+        $admissions = collect();
         $admission = null;
         $isPaid = false;
 
         if (!empty($searchQuery)) {
-            $admission = AdmissionForm::with(['student', 'interestedCourse', 'batch', 'reviewer'])
-                ->where('application_no', $searchQuery)
-                ->orWhereHas('student', function ($q) use ($searchQuery) {
-                    $q->where('phone', $searchQuery)->orWhere('student_code', $searchQuery);
+            // Find ALL matching applications by Application No, Student Phone, Email, or Student ID
+            $admissions = AdmissionForm::with(['student', 'interestedCourse', 'batch', 'reviewer', 'session'])
+                ->where(function ($q) use ($searchQuery) {
+                    $q->where('application_no', $searchQuery)
+                      ->orWhereHas('student', function ($sq) use ($searchQuery) {
+                          $sq->where('phone', $searchQuery)
+                             ->orWhere('email', $searchQuery)
+                             ->orWhere('student_code', $searchQuery);
+                      });
                 })
                 ->latest('id')
-                ->first();
+                ->get();
 
-            if ($admission && $admission->status === 'APPROVED') {
-                self::ensureCourseAndGenderSpecificStudent($admission);
+            // Self-heal each approved admission to guarantee accurate course-specific roll & credentials
+            foreach ($admissions as $adm) {
+                if ($adm->status === 'APPROVED') {
+                    self::ensureCourseAndGenderSpecificStudent($adm);
+                }
+
+                // Check payment status for each
+                $adm->is_paid = GatewayTransaction::where('admission_form_id', $adm->id)
+                    ->where('status', 'SUCCESS')
+                    ->exists()
+                    || Invoice::where('source_type', AdmissionForm::class)
+                    ->where('source_id', $adm->id)
+                    ->where('status', 'PAID')
+                    ->exists()
+                    || ($adm->interestedCourse && (float)($adm->interestedCourse->admission_fee ?? 0) == 0);
+            }
+
+            // Determine which admission to display in full detail
+            if ($selectedId) {
+                $admission = $admissions->firstWhere('id', (int) $selectedId);
+            } elseif ($admissions->contains('application_no', $searchQuery)) {
+                $admission = $admissions->firstWhere('application_no', $searchQuery);
+            } elseif ($admissions->isNotEmpty()) {
+                $admission = $admissions->first();
             }
 
             if ($admission) {
-                $isPaid = GatewayTransaction::where('admission_form_id', $admission->id)
-                    ->where('status', 'SUCCESS')
-                    ->exists()
-                    || \App\Models\Invoice::where('source_type', AdmissionForm::class)
-                    ->where('source_id', $admission->id)
-                    ->where('status', 'PAID')
-                    ->exists()
-                    || ($admission->interestedCourse && $admission->interestedCourse->admission_fee == 0);
+                $isPaid = $admission->is_paid ?? false;
             }
         }
 
-        return view('apply.track', compact('admission', 'searchQuery', 'isPaid'));
+        return view('apply.track', compact('admissions', 'admission', 'searchQuery', 'isPaid'));
     }
 
     /**

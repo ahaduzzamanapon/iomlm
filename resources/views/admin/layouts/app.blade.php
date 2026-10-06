@@ -403,7 +403,7 @@
             {{-- ── 3. People ── --}}
             @if(auth()->user()->canAccess('admissions') || auth()->user()->canAccess('students') || auth()->user()->canAccess('teachers'))
             @php 
-                $peopleActive = request()->routeIs('admin.admissions*','admin.students*','admin.teachers*','admin.waiver-applications*','admin.course-transfers*'); 
+                $peopleActive = request()->routeIs('admin.admissions*','admin.students*','admin.teachers*','admin.waiver-applications*','admin.course-transfers*','admin.email-templates*'); 
                 try { $pendingCount = \App\Models\AdmissionForm::where('status','PENDING')->count(); } catch(\Exception $e) { $pendingCount = 0; }
                 try { $waiverPending = \App\Models\WaiverApplication::where('status','PENDING')->count(); } catch(\Exception) { $waiverPending = 0; }
                 try { $transferPending = \App\Models\CourseTransfer::where('status','PENDING')->count(); } catch(\Exception) { $transferPending = 0; }
@@ -424,6 +424,10 @@
                         <i class="fa-solid fa-user-plus"></i>
                         Admissions
                         @if($pendingCount > 0)<span class="nav-badge">{{ $pendingCount }}</span>@endif
+                    </a>
+                    <a href="{{ route('admin.email-templates.index') }}" class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                        Email Templates (ইমেইল টেমপ্লেট)
                     </a>
                     <a href="{{ route('admin.course-transfers.index') }}" class="nav-item {{ request()->routeIs('admin.course-transfers*') ? 'active' : '' }}">
                         <i class="fa-solid fa-arrow-right-arrow-left"></i>
@@ -535,7 +539,7 @@
 
             {{-- ── 6. Communication ── --}}
             @if(auth()->user()->canAccess('communication'))
-            @php $commActive = request()->routeIs('admin.notices*','admin.notifications*','admin.surveys*'); @endphp
+            @php $commActive = request()->routeIs('admin.notices*','admin.notifications*','admin.surveys*','admin.email-templates*'); @endphp
             <div class="tree-group">
                 <div class="tree-toggle {{ $commActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                     <i class="fa-solid fa-bullhorn"></i>
@@ -550,6 +554,10 @@
                     <a href="{{ route('admin.notifications.index') }}" class="nav-item {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
                         <i class="fa-solid fa-paper-plane"></i>
                         Send Notification
+                    </a>
+                    <a href="{{ route('admin.email-templates.index') }}" class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                        Email Templates (ইমেইল টেমপ্লেট)
                     </a>
                     <a href="{{ route('admin.notices.index') }}" class="nav-item {{ request()->routeIs('admin.notices*') ? 'active' : '' }}">
                         <i class="fa-solid fa-bell"></i>

@@ -77,7 +77,7 @@
                     <tr><th style="color:var(--text-muted)">Gender / Device:</th><td>{{ $admission->gender ?? $admission->student->gender ?? '—' }} ({{ $admission->device_type ?? 'N/A' }})</td></tr>
                     <tr><th style="color:var(--text-muted)">Course Interested:</th><td><strong>{{ $admission->interestedCourse->name ?? '—' }}</strong></td></tr>
                     <tr><th style="color:var(--text-muted)">Course Admission Fee:</th><td><strong style="color:#047857;font-size:14px">৳ {{ number_format($admission->interestedCourse->admission_fee ?? 0, 0) }}</strong></td></tr>
-                    <tr><th style="color:var(--text-muted)">Academic Session:</th><td>{{ $admission->session->name ?? '—' }}</td></tr>
+                    <tr><th style="color:var(--text-muted)">Academic Session:</th><td>{{ $admission->session->name ?? '—' }}{{ $admission->session && $admission->session->academicYear ? ' (' . $admission->session->academicYear->name . ')' : '' }}</td></tr>
                     <tr><th style="color:var(--text-muted)">Lead Source / Waiver:</th><td>{{ $admission->lead_source ?? 'Direct' }} (Waiver: {{ $admission->discount_percent ?? 0 }}%)</td></tr>
                 </table>
 
@@ -493,6 +493,31 @@
                                 <span style="font-size:11px;color:#64748b;">প্রাপক: <strong>{{ $admission->email ?: ($admission->student?->email ?: 'নেই') }}</strong></span>
                             </div>
 
+                            {{-- Specific Email Template Selector --}}
+                            <div class="form-group" style="margin-bottom:12px;background:#f0fdf4;padding:10px 14px;border:1.5px solid #a7f3d0;border-radius:8px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                    <label style="font-size:12.5px;font-weight:700;color:#065f46;margin-bottom:0;display:flex;align-items:center;gap:6px;">
+                                        <i class="fa-solid fa-envelope-open-text"></i>
+                                        <span>ইমেইল টেমপ্লেট নির্বাচন করুন (Select Email Template):</span>
+                                    </label>
+                                    <a href="{{ route('admin.email-templates.create') }}" target="_blank" style="font-size:11.5px;color:#047857;text-decoration:none;font-weight:700;">
+                                        <i class="fa-solid fa-plus-circle"></i> নতুন টেমপ্লেট তৈরি ↗
+                                    </a>
+                                </div>
+                                <select name="email_template_id" id="approve_email_template_id" class="form-control" onchange="onEmailTemplateSelect(this.value)" style="height:38px;font-size:13.5px;font-weight:700;color:#0f172a;background:#fff;border-color:#059669;font-family:'Kalpurush',sans-serif;">
+                                    <option value="">— কাস্টম / সাধারণ টেমপ্লেট —</option>
+                                    @foreach($admissionTemplates ?? [] as $tpl)
+                                        <option value="{{ $tpl->id }}" {{ ($suggestedTemplate && $suggestedTemplate->id == $tpl->id) ? 'selected' : '' }}>
+                                            {{ $tpl->name }} @if($tpl->gender) ({{ $tpl->gender_label }}) @endif @if($tpl->batch) [{{ $tpl->batch->name }}] @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:11px;color:#047857;">
+                                    <span><i class="fa-solid fa-circle-check"></i> টেমপ্লেট সিলেক্ট করলে স্বয়ংক্রিয়ভাবে বিষয় ও বার্তা লোড হবে।</span>
+                                    <a href="{{ route('admin.email-templates.index') }}" target="_blank" style="color:#0284c7;text-decoration:underline;">সকল টেমপ্লেট দেখুন</a>
+                                </div>
+                            </div>
+
                             <div class="form-group" style="margin-bottom:10px;">
                                 <label style="font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;display:block;">ইমেইল বিষয় (Subject)</label>
                                 <input type="text" name="email_subject" id="approve_email_subject" class="form-control" oninput="this.dataset.edited='1'" style="height:34px;font-size:12.5px;font-family:'Kalpurush',sans-serif;">
@@ -572,12 +597,67 @@
 
     <script>
     const BATCH_TEMPLATES = @json($batchTemplates ?? []);
+    const ADMISSION_TEMPLATES = @json($admissionTemplates ?? []);
+    const SUGGESTED_TEMPLATE_ID = @json($suggestedTemplate?->id ?? null);
     const STUDENT_NAME = @json($admission->student?->name ?? $admission->applicant_name ?? 'সম্মানিত শিক্ষার্থী');
     const STUDENT_PHONE = @json($admission->phone ?? $admission->student?->phone ?? '');
     const STUDENT_EMAIL = @json($admission->email ?? $admission->student?->email ?? '');
     const LOGIN_URL = @json(url('/login'));
 
     let currentNotificationTab = 'email';
+
+    function onEmailTemplateSelect(tplId) {
+        if (!tplId) {
+            populateTemplateForSelectedBatch(true);
+            return;
+        }
+
+        const tpl = ADMISSION_TEMPLATES.find(t => t.id == tplId);
+        if (!tpl) return;
+
+        const customPassword = document.getElementById('approve_custom_password')?.value.trim();
+        const batchSelect = document.getElementById('approve_batch_id');
+        const batchId = batchSelect ? batchSelect.value : null;
+        const b = batchId && BATCH_TEMPLATES[batchId] ? BATCH_TEMPLATES[batchId] : null;
+
+        const courseName = b ? b.course_name : @json($admission->interestedCourse?->name ?? 'কোর্স');
+        const batchName = b ? b.name : @json($admission->batch?->name ?? 'ব্যাচ');
+        const rollVal = @json($admission->student?->student_code ?? 'অফিসিয়াল রোল');
+
+        const replaceMap = {
+            '{name}': STUDENT_NAME,
+            '{student_id}': rollVal,
+            '{roll}': rollVal,
+            '{course}': courseName,
+            '{batch}': batchName,
+            '{login_url}': LOGIN_URL,
+        };
+
+        let subject = tpl.subject || `🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — ${STUDENT_NAME} (${courseName})`;
+        let content = tpl.content || '';
+
+        for (const [key, val] of Object.entries(replaceMap)) {
+            subject = subject.split(key).join(val);
+            content = content.split(key).join(val);
+        }
+
+        if (customPassword) {
+            subject = subject.split('{password}').join(customPassword);
+            content = content.split('{password}').join(customPassword);
+        }
+
+        const emailSubjectInput = document.getElementById('approve_email_subject');
+        const emailBodyInput = document.getElementById('approve_email_body');
+
+        if (emailSubjectInput) {
+            emailSubjectInput.value = subject;
+            delete emailSubjectInput.dataset.edited;
+        }
+        if (emailBodyInput) {
+            emailBodyInput.value = content;
+            delete emailBodyInput.dataset.edited;
+        }
+    }
 
     function switchNotificationTab(tab) {
         currentNotificationTab = tab;
@@ -748,7 +828,11 @@
         if (courseSelect) {
             onApproveCourseChange(courseSelect);
         }
-        populateTemplateForSelectedBatch(false);
+        if (SUGGESTED_TEMPLATE_ID) {
+            onEmailTemplateSelect(SUGGESTED_TEMPLATE_ID);
+        } else {
+            populateTemplateForSelectedBatch(false);
+        }
         updateSmsCharCounter();
     });
     </script>

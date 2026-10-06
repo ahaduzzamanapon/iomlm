@@ -169,7 +169,8 @@
             <div class="site-logo-sub">Through Knowledge, Towards Jannah</div>
         </div>
     </div>
-    <div style="display:flex;gap:10px;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="{{ route('poor_fund.status') }}" class="btn-outline-sm"><i class="fa-solid fa-hand-holding-dollar"></i> পুওর ফান্ড ট্র্যাকার</a>
         <a href="{{ route('apply.show') }}" class="btn-outline-sm"><i class="fa-solid fa-file-pen"></i> ভর্তি আবেদন</a>
         <a href="/" class="btn-outline-sm">মূলপাতা (Home)</a>
     </div>
@@ -202,6 +203,58 @@
 
     {{-- Search Result Display --}}
     @if(!empty($searchQuery))
+        @if($admissions->count() > 1)
+            <div style="margin-bottom: 24px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <h3 style="font-size:16px;font-weight:700;color:#064e3b;margin:0;">
+                        <i class="fa-solid fa-layer-group"></i> আপনার মোট {{ $admissions->count() }}টি কোর্সে আবেদন পাওয়া গেছে:
+                    </h3>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">
+                    @foreach($admissions as $adm)
+                        @php
+                            $isSelected = ($admission && $admission->id === $adm->id);
+                        @endphp
+                        <a href="{{ route('admission.status', ['app_no' => $searchQuery, 'selected_id' => $adm->id]) }}"
+                           style="text-decoration:none;display:block;padding:14px 16px;border-radius:10px;border:2px solid {{ $isSelected ? '#047857' : '#e2e8f0' }};background:{{ $isSelected ? '#ecfdf5' : '#fff' }};box-shadow:{{ $isSelected ? '0 4px 12px rgba(4,120,87,0.15)' : '0 2px 6px rgba(0,0,0,0.04)' }};transition:all .2s;">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                                <strong style="color:#0f172a;font-size:15px;">{{ $adm->interestedCourse?->name ?? 'কোর্স' }}</strong>
+                                @if($adm->status === 'APPROVED')
+                                    <span style="font-size:11px;font-weight:700;background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:12px;">
+                                        <i class="fa-solid fa-circle-check"></i> অনুমোদিত
+                                    </span>
+                                @elseif(in_array($adm->status, ['TRASH', 'REJECTED']))
+                                    <span style="font-size:11px;font-weight:700;background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:12px;">
+                                        <i class="fa-solid fa-circle-xmark"></i> প্রত্যাখ্যাত
+                                    </span>
+                                @else
+                                    <span style="font-size:11px;font-weight:700;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;">
+                                        <i class="fa-solid fa-clock"></i> পেন্ডিং
+                                    </span>
+                                @endif
+                            </div>
+                            <div style="font-size:12.5px;color:#64748b;margin-bottom:4px;">
+                                আবেদন নং: <strong style="color:#0284c7;">{{ $adm->application_no }}</strong>
+                                @if($adm->batch) &bull; ব্যাচ: {{ $adm->batch->name }} @endif
+                            </div>
+                            @if($adm->status === 'APPROVED' && $adm->student && $adm->student->student_code)
+                            <div style="font-size:13px;font-weight:700;color:#047857;margin-top:6px;background:#d1fae5;padding:4px 8px;border-radius:6px;display:inline-block;">
+                                শিক্ষার্থী আইডি: {{ $adm->student->student_code }}
+                            </div>
+                            @endif
+                            <div style="margin-top:8px;font-size:12px;color:{{ $isSelected ? '#047857' : '#64748b' }};font-weight:600;display:flex;align-items:center;gap:4px;">
+                                @if($isSelected)
+                                    <i class="fa-solid fa-check"></i> বিস্তারিত নিচে প্রদর্শিত হচ্ছে
+                                @else
+                                    <i class="fa-solid fa-arrow-right"></i> বিস্তারিত দেখতে ক্লিক করুন
+                                @endif
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         @if($admission)
             <div class="status-card">
                 @if($admission->status === 'APPROVED')
