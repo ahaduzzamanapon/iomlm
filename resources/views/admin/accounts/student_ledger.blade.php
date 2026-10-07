@@ -211,9 +211,9 @@
             </div>
 
             {{-- Step 1 Particulars Table Container --}}
-            <div style="max-width:850px;margin:0 auto;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+            <div style="max-width:850px;margin:0 auto;border:1px solid #cbd5e1;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.05);max-height:480px;overflow-y:auto">
                 <table style="width:100%;border-collapse:collapse;font-size:13.5px">
-                    <thead>
+                    <thead style="position:sticky;top:0;z-index:2;background:#f8fafc">
                         <tr style="background:#f8fafc;border-bottom:1.5px solid #e2e8f0">
                             <th style="padding:11px 14px;width:55px;text-align:center;font-weight:700;color:#334155">#SL</th>
                             <th style="padding:11px 14px;font-weight:700;color:#334155;text-align:left">PARTICULAR NAME</th>
@@ -232,8 +232,6 @@
                                     <span>{{ $p['name'] }}</span>
                                     @if(!empty($p['is_added']))
                                         <span style="font-size:10.5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">নতুন যুক্ত</span>
-                                    @elseif(!empty($p['is_custom']))
-                                        <span style="font-size:10.5px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক সমন্বয়কৃত' }}">সমন্বয়কৃত</span>
                                     @endif
                                 </td>
                                 <td style="padding:10px 14px;text-align:center" id="adminPartDueCell_{{ $p['sl'] }}">
@@ -250,6 +248,11 @@
                                     @else
                                         <div style="display:inline-flex;align-items:center;gap:6px">
                                             <span id="adminPartDueVal_{{ $p['sl'] }}" style="font-weight:700;color:#0f172a">{{ number_format($p['due'], 0) }}</span>
+                                            @if(($p['paid_amt'] ?? 0) > 0)
+                                                <span style="font-size:11px;color:#059669;background:#ecfdf5;padding:1px 6px;border-radius:4px;border:1px solid #a7f3d0;font-weight:600" title="ইতোমধ্যে পরিশোধিত: ৳{{ number_format($p['paid_amt'], 0) }}">
+                                                    (পেইড: {{ number_format($p['paid_amt'], 0) }})
+                                                </span>
+                                            @endif
                                             <button type="button"
                                                 onclick="openAdminPartEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice?->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
                                                 title="টাকার পরিমাণ এডিট বা সমন্বয় করুন"
@@ -264,17 +267,18 @@
                                         <input type="checkbox" class="admin-step1-chk"
                                             data-name="{{ $p['name'] }}"
                                             data-amount="{{ $p['due'] }}"
+                                            data-total-amount="{{ $p['amount'] }}"
                                             data-invoice-id="{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}"
                                             data-invoice-no="{{ $p['invoice_no'] ?? ($selectedSemesterInvoice?->invoice_no ?? '') }}"
                                             onchange="onAdminStep1CheckboxChange(this)"
                                             style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a"
-                                            title="পরবর্তী মাস নির্বাচন করলে পূর্বের সকল বকেয়া মাস স্বয়ংক্রিয়ভাবে নির্বাচিত হবে">
+                                            title="ফি আইটেমটি নির্বাচন করুন">
                                     @endif
                                 </td>
                                 <td style="padding:10px 14px;text-align:center">
                                     @if(!$p['is_paid'])
                                         <button type="button" class="btn btn-sm btn-success"
-                                            onclick="openAdminSingleCollectModal('{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }})"
+                                            onclick="openAdminSingleCollectModal('{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['amount'] }})"
                                             style="padding:3px 10px;font-size:11.5px;font-family:'Kalpurush',sans-serif;background:#059669;color:#fff;border-radius:5px">
                                             <i class="fa-solid fa-money-bill-wave"></i> জমা দিন
                                         </button>
@@ -328,9 +332,28 @@
                 </button>
             </div>
         </div>
-        <div class="table-wrapper" style="overflow-x:auto">
+        {{-- Calculation Explanation Banner --}}
+        <div style="background:#f0fdf4;border-bottom:1px solid #bbf7d0;padding:11px 20px;font-family:'Kalpurush',sans-serif">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                <div style="display:flex;align-items:center;gap:8px;font-weight:700;color:#166534;font-size:13px">
+                    <i class="fa-solid fa-calculator" style="color:#059669;font-size:15px"></i>
+                    <span>হিসাব পদ্ধতি:</span>
+                    <span style="background:#dcfce7;border:1px solid #86efac;padding:2px 8px;border-radius:6px;font-weight:800;color:#047857">
+                        প্রদেয় = মোট ফি - ছাড়
+                    </span>
+                    <span style="color:#64748b;font-weight:400">|</span>
+                    <span style="background:#fee2e2;border:1px solid #fca5a5;padding:2px 8px;border-radius:6px;font-weight:800;color:#991b1b">
+                        বকেয়া = প্রদেয় - পরিশোধিত
+                    </span>
+                </div>
+                <div style="font-size:12px;color:#15803d">
+                    <i class="fa-solid fa-circle-info"></i> প্রতি মাসের ফি আদায় বা এডিটের সাথে সাথে ইনভয়েস হিসাব স্বয়ংক্রিয়ভাবে সংরক্ষিত
+                </div>
+            </div>
+        </div>
+        <div class="table-wrapper" style="overflow-x:auto;max-height:480px;overflow-y:auto">
             <table class="table-sl" style="width:100%;border-collapse:collapse">
-                <thead>
+                <thead style="position:sticky;top:0;z-index:2;background:#f8fafc">
                     <tr>
                         <th>ইনভয়েস নং</th>
                         <th>বিবরণ ও ফি ধার্যের কারণ</th>
@@ -354,6 +377,15 @@
                             @if($inv->notes)
                                 <div style="font-size:12px;color:#047857;background:#ecfdf5;padding:2px 8px;border-radius:6px;margin-top:3px;display:inline-block;border:1px solid #a7f3d0">
                                     <i class="fa-solid fa-circle-info" style="font-size:11px"></i> কারণ: {{ $inv->notes }}
+                                </div>
+                            @endif
+                            @if(!empty($inv->custom_particulars))
+                                <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
+                                    @foreach($inv->custom_particulars as $cpName => $cpVal)
+                                        <span style="font-size:10.5px;background:#f8fafc;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#334155" title="ফি: ৳{{ number_format($cpVal['amount'] ?? 0, 0) }} | বকেয়া: ৳{{ number_format($cpVal['due'] ?? 0, 0) }}">
+                                            {{ $cpName }}: ৳{{ number_format($cpVal['due'] ?? ($cpVal['amount'] ?? 0), 0) }} {{ ($cpVal['due'] ?? 0) <= 0 ? '✓' : '' }}
+                                        </span>
+                                    @endforeach
                                 </div>
                             @endif
                             @if($inv->enrollment)
@@ -1243,23 +1275,7 @@
     }
 
     function onAdminStep1CheckboxChange(clickedChk) {
-        const allChks = Array.from(document.querySelectorAll('.admin-step1-chk:not(:disabled)'));
-        const clickedIndex = allChks.indexOf(clickedChk);
-
-        if (clickedIndex !== -1) {
-            if (clickedChk.checked) {
-                // নিচের যেকোনো মাস সিলেক্ট করলে উপরের সব গুলো একসাথে অটো সিলেক্ট হবে (0 to clickedIndex)
-                for (let i = 0; i <= clickedIndex; i++) {
-                    allChks[i].checked = true;
-                }
-            } else {
-                // কোনো মাস আনসিলেক্ট করলে তার নিচের সব গুলো অটো আনসিলেক্ট হবে (clickedIndex to end)
-                for (let i = clickedIndex; i < allChks.length; i++) {
-                    allChks[i].checked = false;
-                }
-            }
-        }
-
+        // Admin has full freedom to select or deselect any fee independently without auto-selecting upper rows
         updateAdminStep1Selection();
     }
 
@@ -1356,6 +1372,7 @@
 
         const invoiceId = document.getElementById('admin_pe_invoice_id').value;
         const pName = document.getElementById('admin_pe_particular_name').value;
+        const currentDue = document.getElementById('admin_pe_current_due').value;
         const newAmount = document.getElementById('admin_pe_new_amount').value;
         const remarks = document.getElementById('admin_pe_remarks').value;
 
@@ -1369,6 +1386,7 @@
             body: JSON.stringify({
                 invoice_id: invoiceId,
                 particular_name: pName,
+                current_due: currentDue,
                 new_amount: newAmount,
                 remarks: remarks
             })
@@ -1465,14 +1483,17 @@
         });
     }
 
-    function openAdminSingleCollectModal(invoiceId, pName, due) {
+    function openAdminSingleCollectModal(invoiceId, pName, due, totalAmount) {
         document.getElementById('acp_invoice_id').value = invoiceId || '';
         document.getElementById('acp_items_summary').innerText = pName;
         document.getElementById('acp_amount').value = due;
         document.getElementById('acp_remarks').value = pName + ' বাবদ জমা';
 
+        const totalAmt = totalAmount || due;
         const container = document.getElementById('acp_hidden_names_container');
-        container.innerHTML = '<input type="hidden" name="particular_names[]" value="' + pName.replace(/"/g, '&quot;') + '">';
+        container.innerHTML = '<input type="hidden" name="particular_names[]" value="' + pName.replace(/"/g, '&quot;') + '">' +
+                              '<input type="hidden" name="particular_dues[' + pName.replace(/"/g, '&quot;') + ']" value="' + due + '">' +
+                              '<input type="hidden" name="particular_amounts[' + pName.replace(/"/g, '&quot;') + ']" value="' + totalAmt + '">';
 
         openModal('adminCollectParticularPaymentModal');
     }
@@ -1503,12 +1524,28 @@
 
         const container = document.getElementById('acp_hidden_names_container');
         container.innerHTML = '';
-        names.forEach(n => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'particular_names[]';
-            input.value = n;
-            container.appendChild(input);
+        chks.forEach(c => {
+            const n = c.dataset.name;
+            const d = parseFloat(c.dataset.amount) || 0;
+            const a = parseFloat(c.dataset.totalAmount) || d;
+
+            const inputName = document.createElement('input');
+            inputName.type = 'hidden';
+            inputName.name = 'particular_names[]';
+            inputName.value = n;
+            container.appendChild(inputName);
+
+            const inputDue = document.createElement('input');
+            inputDue.type = 'hidden';
+            inputDue.name = 'particular_dues[' + n + ']';
+            inputDue.value = d;
+            container.appendChild(inputDue);
+
+            const inputAmt = document.createElement('input');
+            inputAmt.type = 'hidden';
+            inputAmt.name = 'particular_amounts[' + n + ']';
+            inputAmt.value = a;
+            container.appendChild(inputAmt);
         });
 
         openModal('adminCollectParticularPaymentModal');

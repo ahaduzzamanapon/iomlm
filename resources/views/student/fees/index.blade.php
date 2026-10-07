@@ -273,10 +273,6 @@
                                             <span
                                                 style="font-size:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700"
                                                 title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">নতুন যুক্ত</span>
-                                        @elseif(!empty($p['is_custom']))
-                                            <span
-                                                style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 5px;border-radius:8px;margin-left:4px;font-weight:700"
-                                                title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক সমন্বয়কৃত' }}">সমন্বয়কৃত</span>
                                         @endif
                                     </td>
                                     <td style="padding:9px 14px;text-align:center" id="particularDueCell_{{ $p['sl'] }}">
@@ -298,6 +294,11 @@
                                             <div style="display:inline-flex;align-items:center;gap:6px">
                                                 <span id="particularDueVal_{{ $p['sl'] }}"
                                                     style="font-weight:700;color:#0f172a">{{ number_format($p['due'], 0) }}</span>
+                                                @if(($p['paid_amt'] ?? 0) > 0)
+                                                    <span style="font-size:11px;color:#059669;background:#ecfdf5;padding:1px 6px;border-radius:4px;border:1px solid #a7f3d0;font-weight:600" title="ইতোমধ্যে পরিশোধিত: ৳{{ number_format($p['paid_amt'], 0) }}">
+                                                        (পেইড: {{ number_format($p['paid_amt'], 0) }})
+                                                    </span>
+                                                @endif
                                                 @if($isAdminSession && $selectedSemesterInvoice)
                                                     <button type="button"
                                                         onclick="openAdminParticularEditModal('{{ $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"

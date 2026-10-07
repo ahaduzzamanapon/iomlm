@@ -1211,58 +1211,16 @@ class FeeController extends Controller
             'remarks'         => 'nullable|string|max:255',
         ]);
 
-        $invoice = Invoice::findOrFail($validated['invoice_id']);
-        $pName   = trim($validated['particular_name']);
-        $newDue  = round((float)$validated['new_amount'], 2);
+        $res = app(\App\Services\StudentFeeService::class)->updateParticular(
+            (int) $validated['invoice_id'],
+            $validated['particular_name'],
+            (float) $validated['new_amount'],
+            $validated['remarks'] ?? null,
+            session('admin_impersonator_id') ?? auth()->id(),
+            isset($validated['current_due']) ? (float)$validated['current_due'] : null
+        );
 
-        $custom = $invoice->custom_particulars ?? [];
-        $oldDue = isset($custom[$pName]['due']) ? (float)$custom[$pName]['due'] : (float)($request->input('current_due') ?? $newDue);
-
-        $diff = $newDue - $oldDue;
-
-        $custom[$pName] = [
-            'due'         => $newDue,
-            'adjusted_at' => now()->toDateTimeString(),
-            'adjusted_by' => session('admin_impersonator_id') ?? auth()->id(),
-            'remarks'     => $validated['remarks'] ?? 'Admin manual adjustment',
-        ];
-
-        $newPayable = max(0, $invoice->payable_amount + $diff);
-        $newDueAmt  = max(0, $invoice->due_amount + $diff);
-
-        $status = 'UNPAID';
-        if ($newDueAmt <= 0 && $invoice->paid_amount > 0) {
-            $status = 'PAID';
-        } elseif ($invoice->paid_amount > 0) {
-            $status = 'PARTIAL';
-        }
-
-        $invoice->update([
-            'custom_particulars' => $custom,
-            'payable_amount'     => $newPayable,
-            'due_amount'         => $newDueAmt,
-            'status'             => $status,
-        ]);
-
-        try {
-            \App\Models\AuditLog::log(
-                'fee_particular_adjusted',
-                $invoice,
-                ['old_due' => $oldDue],
-                ['new_due' => $newDue, 'particular' => $pName, 'remarks' => $validated['remarks']],
-                "অ্যাডমিন {$pName} ফি ৳{$oldDue} থেকে পরিবর্তন করে ৳{$newDue} করেছেন।"
-            );
-        } catch (\Throwable $e) {}
-
-        return response()->json([
-            'success'       => true,
-            'message'       => "✓ {$pName} এর ফি সফলভাবে ৳" . number_format($newDue, 0) . " এ আপডেট এবং সেভ করা হয়েছে।",
-            'particular'    => $pName,
-            'new_due'       => $newDue,
-            'is_paid'       => $newDue <= 0,
-            'invoice_due'   => $newDueAmt,
-            'invoice_id'    => $invoice->id,
-        ]);
+        return response()->json($res);
     }
 
     /**

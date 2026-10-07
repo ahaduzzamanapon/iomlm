@@ -364,6 +364,7 @@ class AccountsController extends Controller
             'invoice_id'      => 'required|exists:invoices,id',
             'particular_name' => 'required|string',
             'new_amount'      => 'required|numeric|min:0',
+            'current_due'     => 'nullable|numeric|min:0',
             'remarks'         => 'nullable|string|max:255',
         ]);
 
@@ -372,7 +373,8 @@ class AccountsController extends Controller
             $validated['particular_name'],
             (float) $validated['new_amount'],
             $validated['remarks'] ?? null,
-            auth()->id()
+            auth()->id(),
+            isset($validated['current_due']) ? (float)$validated['current_due'] : null
         );
 
         return response()->json($res);
@@ -435,6 +437,8 @@ class AccountsController extends Controller
             'semester_id'        => 'nullable',
             'particular_names'   => 'required|array|min:1',
             'particular_names.*' => 'required|string',
+            'particular_dues'    => 'nullable|array',
+            'particular_amounts' => 'nullable|array',
             'amount'             => 'required|numeric|min:1',
             'payment_method'     => 'required|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
             'transaction_id'     => 'nullable|string|max:100',
@@ -486,7 +490,9 @@ class AccountsController extends Controller
             $validated['transaction_id'] ?? null,
             $validated['sender_number'] ?? null,
             $validated['remarks'] ?? null,
-            auth()->id()
+            auth()->id(),
+            $request->input('particular_dues', []),
+            $request->input('particular_amounts', [])
         );
 
         if ($request->wantsJson()) {
