@@ -266,7 +266,7 @@
             <h2 style="margin:0;font-size:20px;font-weight:800;color:#047857">Islamic Online Madrasah (IOM)</h2>
             <div style="font-size:13px;color:#475569;margin-top:2px">ভর্তি পরিসংখ্যান ও সেশন সামারি রিপোর্ট</div>
             <h3 style="margin:6px 0 0 0;font-size:16px;font-weight:700">Report of {{ $selectedSession?->name ?? 'All Sessions' }}</h3>
-            <div style="font-size:12px;color:#64748b">তারিখ: {{ \Carbon\Carbon::parse($admissionDate)->format('d F Y') }} | প্রস্তুতকারী: {{ auth()->user()->name }}</div>
+            <div style="font-size:12px;color:#64748b">তারিখ: {{ \Carbon\Carbon::parse($admissionDate)->format('d F Y') }} | প্রস্তুতকারী: {{ auth()->user()?->name ?? 'Admin' }}</div>
             <hr style="margin:10px 0;border:0;border-top:1px solid #cbd5e1">
         </div>
 
@@ -348,7 +348,7 @@
                             Academic Programs &amp; Admission Distribution
                             @if($selectedSession)
                                 <span style="font-weight:normal;color:#475569;font-size:12.5px;margin-left:8px">
-                                    (সেশন: <strong>{{ $selectedSession->name }}</strong>{{ $selectedSession->academicYear ? ' | শিক্ষাবর্ষ: ' . $selectedSession->academicYear->name : '' }})
+                                    (সেশন: <strong>{{ $selectedSession->name }}</strong>{{ $selectedSession->academicYear?->name ? ' | শিক্ষাবর্ষ: ' . $selectedSession->academicYear->name : '' }})
                                 </span>
                             @endif
                         </th>

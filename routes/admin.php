@@ -15,6 +15,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::redirect('/', '/admin/dashboard');
     Route::post('notifications/mark-read', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'markAllRead'])->name('notifications.mark-read');
+    Route::post('notifications/{notification}/mark-single-read', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'markSingleRead'])->name('notifications.mark-single-read');
 
     // ── 1. Academic Setup ───────────────────────────────────────────────
     Route::middleware('admin.module:academic')->group(function () {

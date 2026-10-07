@@ -21,6 +21,7 @@ class User extends Authenticatable
         'is_common_account',
         'is_active',
         'notifications_read_at',
+        'read_notification_ids',
     ];
 
     protected $hidden = [
@@ -33,6 +34,7 @@ class User extends Authenticatable
         return [
             'email_verified_at'       => 'datetime',
             'notifications_read_at'   => 'datetime',
+            'read_notification_ids'   => 'array',
             'password'                => 'hashed',
             'admin_permissions'       => 'array',
             'can_provide_support'     => 'boolean',
@@ -91,6 +93,55 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    /**
+     * Check if a specific notification is marked as read by this user
+     */
+    public function isNotificationRead(int $notificationId, $createdAt = null): bool
+    {
+        $readIds = (array) ($this->read_notification_ids ?? []);
+        if (in_array($notificationId, $readIds, true)) {
+            return true;
+        }
+
+        $sessionIds = (array) session('read_notification_ids', []);
+        if (in_array($notificationId, $sessionIds, true)) {
+            return true;
+        }
+
+        if ($this->notifications_read_at && $createdAt) {
+            $createdCarbon = $createdAt instanceof \Carbon\CarbonInterface ? $createdAt : \Carbon\Carbon::parse($createdAt);
+            if ($createdCarbon <= $this->notifications_read_at) {
+                return true;
+            }
+        }
+
+        $sessionReadAt = session('notifications_read_at');
+        if ($sessionReadAt && $createdAt) {
+            $createdCarbon = $createdAt instanceof \Carbon\CarbonInterface ? $createdAt : \Carbon\Carbon::parse($createdAt);
+            if ($createdCarbon <= $sessionReadAt) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Mark a specific notification as read by this user
+     */
+    public function markNotificationAsRead(int $notificationId): void
+    {
+        $readIds = (array) ($this->read_notification_ids ?? []);
+        if (!in_array($notificationId, $readIds, true)) {
+            $readIds[] = $notificationId;
+            $this->forceFill(['read_notification_ids' => array_values(array_unique($readIds))])->save();
+        }
+
+        $sessionIds = (array) session('read_notification_ids', []);
+        $sessionIds[] = $notificationId;
+        session(['read_notification_ids' => array_values(array_unique($sessionIds))]);
     }
 
     /**

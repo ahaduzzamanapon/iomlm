@@ -39,14 +39,25 @@
                     </thead>
                     <tbody>
                         @forelse($notifications as $n)
-                            <tr>
+                            @php
+                                $isReadRow = auth()->user()?->isNotificationRead($n->id, $n->created_at);
+                            @endphp
+                            <tr id="table-notif-row-{{ $n->id }}" class="table-notif-row {{ $isReadRow ? 'row-read' : 'row-unread' }}"
+                                style="transition:all .2s;{{ $isReadRow ? 'background:#f8fafc;opacity:0.82;' : 'background:#ffffff;' }}">
                                 <td>
-                                    <div style="font-weight:600">{{ $n->created_at->format('M d, Y') }}</div>
-                                    <div style="font-size:12px;color:#64748b">{{ $n->created_at->format('h:i A') }}</div>
+                                    <div style="font-weight:600;{{ $isReadRow ? 'color:#64748b;' : 'color:#1e293b;' }}">{{ $n->created_at->format('M d, Y') }}</div>
+                                    <div style="font-size:12px;color:#94a3b8">{{ $n->created_at->format('h:i A') }}</div>
                                 </td>
                                 <td>
-                                    <div style="font-weight:700;color:#1e293b;margin-bottom:3px">{{ $n->title }}</div>
-                                    <div style="font-size:13px;color:#475569;max-width:350px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                                        <span class="table-notif-title" style="font-size:13.5px;{{ $isReadRow ? 'font-weight:500;color:#64748b;' : 'font-weight:700;color:#0f172a;' }}">
+                                            {{ $n->title }}
+                                        </span>
+                                        @if(!$isReadRow)
+                                            <span class="table-notif-badge badge" style="background:#dcfce7;color:#166534;font-size:9.5px;padding:1px 5px;font-weight:700">নতুন</span>
+                                        @endif
+                                    </div>
+                                    <div style="font-size:13px;max-width:350px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;{{ $isReadRow ? 'color:#94a3b8;' : 'color:#475569;' }}">
                                         {{ Str::limit(strip_tags($n->message), 80) }}
                                     </div>
                                     @if($n->image_url)
@@ -93,12 +104,24 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <div style="font-size:13px;font-weight:600">{{ $n->sender->name ?? 'System' }}</div>
+                                    <div style="font-size:13px;{{ $isReadRow ? 'color:#64748b;font-weight:500;' : 'color:#1e293b;font-weight:600;' }}">{{ $n->sender->name ?? 'System' }}</div>
                                 </td>
                                 <td style="text-align:right">
-                                    <button type="button" class="btn btn-sm btn-outline" style="color:#0284c7;border-color:#bae6fd;" onclick="viewNotificationDetails({{ $n->id }})">
-                                        <i class="fa-solid fa-eye"></i> সম্পূর্ণ দেখুন
-                                    </button>
+                                    <div style="display:inline-flex;align-items:center;gap:6px">
+                                        @if(!$isReadRow)
+                                            <button type="button" class="btn btn-sm btn-outline btn-mark-table-read"
+                                                    style="color:#047857;border-color:#a7f3d0;background:#ffffff;font-size:11px;padding:3px 8px;font-weight:700"
+                                                    onclick="markSingleNotificationAsRead(event, {{ $n->id }}, this)"
+                                                    title="পঠিত হিসেবে চিহ্নিত করুন">
+                                                <i class="fa-solid fa-check"></i> রিড
+                                            </button>
+                                        @else
+                                            <span style="font-size:11px;color:#94a3b8;font-weight:600"><i class="fa-solid fa-check-double"></i> পঠিত</span>
+                                        @endif
+                                        <button type="button" class="btn btn-sm btn-outline" style="color:#0284c7;border-color:#bae6fd;" onclick="viewNotificationDetails({{ $n->id }})">
+                                            <i class="fa-solid fa-eye"></i> বিস্তারিত
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -156,7 +179,15 @@
                     </a>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <button type="button" id="btn_modal_mark_read" class="btn btn-sm btn-outline" style="color:#047857;border-color:#a7f3d0;display:none" onclick="markCurrentModalNotifAsRead()">
+                        <i class="fa-solid fa-check"></i> পঠিত হিসেবে চিহ্নিত করুন
+                    </button>
+                    <span id="modal_already_read_badge" style="display:none;font-size:12px;color:#94a3b8;font-weight:600">
+                        <i class="fa-solid fa-check-double"></i> ইতোমধ্যে পঠিত
+                    </span>
+                </div>
                 <button type="button" class="btn btn-primary" onclick="closeModal('viewNotificationModal')">বন্ধ করুন</button>
             </div>
         </div>
@@ -164,7 +195,10 @@
 
     @push('scripts')
     <script>
+    let currentModalNotifId = null;
+
     function viewNotificationDetails(id) {
+        currentModalNotifId = id;
         fetch('/admin/notifications/' + id + '/json')
             .then(res => res.json())
             .then(n => {
@@ -210,12 +244,38 @@
                     actContainer.style.display = 'none';
                 }
 
+                // Read / Unread in modal
+                const btnMark = document.getElementById('btn_modal_mark_read');
+                const badgeRead = document.getElementById('modal_already_read_badge');
+                if (n.is_read) {
+                    if (btnMark) btnMark.style.display = 'none';
+                    if (badgeRead) badgeRead.style.display = 'inline-flex';
+                } else {
+                    if (btnMark) {
+                        btnMark.style.display = 'inline-flex';
+                        btnMark.disabled = false;
+                        btnMark.innerHTML = '<i class="fa-solid fa-check"></i> পঠিত হিসেবে চিহ্নিত করুন';
+                    }
+                    if (badgeRead) badgeRead.style.display = 'none';
+                }
+
                 openModal('viewNotificationModal');
             })
             .catch(err => {
                 console.error(err);
                 alert('নোটিফিকেশন তথ্য লোড করতে সমস্যা হয়েছে।');
             });
+    }
+
+    function markCurrentModalNotifAsRead() {
+        if (!currentModalNotifId) return;
+        const btn = document.getElementById('btn_modal_mark_read');
+        if (typeof markSingleNotificationAsRead === 'function') {
+            markSingleNotificationAsRead(null, currentModalNotifId, btn);
+            btn.style.display = 'none';
+            const badgeRead = document.getElementById('modal_already_read_badge');
+            if (badgeRead) badgeRead.style.display = 'inline-flex';
+        }
     }
     </script>
     @endpush

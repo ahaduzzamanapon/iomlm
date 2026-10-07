@@ -213,7 +213,33 @@ class BroadcastNotificationController extends Controller
             'scheduled_at'   => $notification->scheduled_at ? $notification->scheduled_at->format('d M Y, h:i A') : null,
             'created_at'     => $notification->created_at->format('d M Y, h:i A'),
             'sender_name'    => $notification->sender?->name ?? 'System',
+            'is_read'        => auth()->user() ? auth()->user()->isNotificationRead($notification->id, $notification->created_at) : false,
         ]);
+    }
+
+    /**
+     * Mark a single notification as read for current admin
+     */
+    public function markSingleRead(Request $request, SentNotification $notification)
+    {
+        $user = auth()->user();
+        if ($user) {
+            $user->markNotificationAsRead($notification->id);
+        } else {
+            $sessionIds = (array) session('read_notification_ids', []);
+            $sessionIds[] = $notification->id;
+            session(['read_notification_ids' => array_values(array_unique($sessionIds))]);
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success'         => true,
+                'notification_id' => $notification->id,
+                'message'         => 'মেসেজটি পঠিত হিসেবে চিহ্নিত করা হয়েছে।',
+            ]);
+        }
+
+        return back()->with('success', 'মেসেজটি পঠিত হিসেবে চিহ্নিত করা হয়েছে।');
     }
 
     /**

@@ -742,9 +742,20 @@
                     try { $notifPendingReadmissions = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingReadmissions = 0; }
                     try { $notifPendingSupport = \App\Models\SupportTicket::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingSupport = 0; }
                     $notifTotalActions = $notifPendingAdmissions + $notifPendingWaivers + $notifPendingTransfers + $notifPendingReadmissions + $notifPendingSupport;
-                    try { $recentNotifs = \App\Models\SentNotification::latest()->take(4)->get(); } catch (\Throwable) { $recentNotifs = collect(); }
+                    try { $recentNotifs = \App\Models\SentNotification::latest()->take(6)->get(); } catch (\Throwable) { $recentNotifs = collect(); }
                     
                     $userReadAt = auth()->user()?->notifications_read_at ?? session('notifications_read_at');
+                    $readNotifIds = (array) (auth()->user()?->read_notification_ids ?? session('read_notification_ids', []));
+
+                    $unreadBrdCount = 0;
+                    foreach ($recentNotifs as $rn) {
+                        $isRnRead = in_array($rn->id, $readNotifIds, true) || ($userReadAt && $rn->created_at <= $userReadAt);
+                        $rn->is_read = (bool) $isRnRead;
+                        if (!$isRnRead) {
+                            $unreadBrdCount++;
+                        }
+                    }
+
                     if ($userReadAt) {
                         try {
                             $newAdm = \App\Models\AdmissionForm::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
@@ -752,13 +763,12 @@
                             $newTrn = \App\Models\CourseTransfer::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
                             $newRed = \App\Models\Readmission::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
                             $newSup = \App\Models\SupportTicket::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
-                            $newBrd = \App\Models\SentNotification::where('created_at', '>', $userReadAt)->count();
-                            $notifUnreadCount = $newAdm + $newWai + $newTrn + $newRed + $newSup + $newBrd;
+                            $notifUnreadCount = $newAdm + $newWai + $newTrn + $newRed + $newSup + $unreadBrdCount;
                         } catch (\Throwable) {
-                            $notifUnreadCount = 0;
+                            $notifUnreadCount = $unreadBrdCount;
                         }
                     } else {
-                        $notifUnreadCount = $notifTotalActions;
+                        $notifUnreadCount = $notifTotalActions + $unreadBrdCount;
                     }
                 @endphp
                 <div class="dropdown">
@@ -772,7 +782,7 @@
                             <span id="topbarNotifDot" class="notif-dot"></span>
                         @endif
                     </button>
-                    <div class="dropdown-menu" id="adminNotif" style="min-width:340px;max-width:380px;right:0;padding:0;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.18);border:1px solid #e2e8f0">
+                    <div class="dropdown-menu" id="adminNotif" style="min-width:340px;max-width:380px;right:0;padding:0;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.18);border:1px solid #e2e8f0;font-family:'Kalpurush',sans-serif">
                         <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;gap:8px">
                             <div style="font-weight:700;font-size:13px;color:#0f172a;display:flex;align-items:center;gap:6px">
                                 <i class="fa-solid fa-bell" style="color:#047857"></i> নোটিফিকেশন
@@ -787,7 +797,7 @@
                                         onmouseover="this.style.background='#ecfdf5';this.style.borderColor='#047857'"
                                         onmouseout="this.style.background='#ffffff';this.style.borderColor='#cbd5e1'">
                                     <i class="fa-solid fa-check-double"></i>
-                                    <span>রিড হয়েছে</span>
+                                    <span>সব রিড</span>
                                 </button>
                             </div>
                         </div>
@@ -866,19 +876,48 @@
 
                             @if($recentNotifs->isNotEmpty())
                                 <div style="padding:8px 16px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;background:#f8fafc">
-                                    সাম্প্রতিক ব্রডকাস্ট
+                                    সাম্প্রতিক ব্রডকাস্ট মেসেজ
                                 </div>
                                 @foreach($recentNotifs as $rn)
-                                    <a href="{{ route('admin.notifications.index') }}" style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                                        <div style="width:28px;height:28px;border-radius:50%;background:#ecfdf5;color:#047857;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;margin-top:2px">
+                                    @php
+                                        $isUnreadMsg = !$rn->is_read;
+                                    @endphp
+                                    <div id="topbar-notif-item-{{ $rn->id }}" class="topbar-notif-item {{ $isUnreadMsg ? 'is-unread' : 'is-read' }}"
+                                         style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f1f5f9;transition:all .2s;{{ $isUnreadMsg ? 'background:#ffffff;border-left:3px solid #047857;' : 'background:#f8fafc;border-left:3px solid transparent;opacity:0.8;' }}">
+                                        <div class="notif-item-icon" style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;margin-top:2px;{{ $isUnreadMsg ? 'background:#ecfdf5;color:#047857;' : 'background:#e2e8f0;color:#94a3b8;' }}">
                                             <i class="fa-solid fa-bullhorn"></i>
                                         </div>
                                         <div style="flex:1;min-width:0">
-                                            <div style="font-size:12.5px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ $rn->title }}</div>
-                                            <div style="font-size:11.5px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ Str::limit($rn->message, 45) }}</div>
-                                            <div style="font-size:10px;color:#94a3b8;margin-top:2px">{{ $rn->created_at?->diffForHumans() ?? '—' }}</div>
+                                            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                                                <a href="{{ route('admin.notifications.index') }}" class="notif-item-title" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;{{ $isUnreadMsg ? 'font-weight:700;color:#0f172a;' : 'font-weight:500;color:#64748b;' }}" title="{{ $rn->title }}">
+                                                    {{ $rn->title }}
+                                                </a>
+                                                @if($isUnreadMsg)
+                                                    <span class="notif-item-badge badge" style="background:#dcfce7;color:#166534;font-size:9.5px;padding:1px 5px;font-weight:700;flex-shrink:0">নতুন</span>
+                                                @else
+                                                    <span class="notif-item-badge" style="font-size:10px;color:#94a3b8;flex-shrink:0"><i class="fa-solid fa-check-double"></i> পঠিত</span>
+                                                @endif
+                                            </div>
+                                            <div class="notif-item-msg" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;{{ $isUnreadMsg ? 'color:#334155;' : 'color:#94a3b8;' }}">
+                                                {{ Str::limit(strip_tags($rn->message), 45) }}
+                                            </div>
+                                            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+                                                <span style="font-size:10px;color:#94a3b8">{{ $rn->created_at?->diffForHumans() ?? '—' }}</span>
+                                                <div class="notif-item-action">
+                                                    @if($isUnreadMsg)
+                                                        <button type="button" class="btn-mark-single-read" onclick="markSingleNotificationAsRead(event, {{ $rn->id }}, this)"
+                                                                title="নির্দিষ্ট এই মেসেজটি পঠিত চিহ্নিত করুন"
+                                                                style="background:#ffffff;border:1px solid #cbd5e1;color:#047857;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:all .15s"
+                                                                onmouseover="this.style.background='#ecfdf5';this.style.borderColor='#047857'"
+                                                                onmouseout="this.style.background='#ffffff';this.style.borderColor='#cbd5e1'">
+                                                            <i class="fa-solid fa-check"></i>
+                                                            <span>রিড</span>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </div>
                                         </div>
-                                    </a>
+                                    </div>
                                 @endforeach
                             @endif
 
@@ -1216,6 +1255,119 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+function markSingleNotificationAsRead(e, id, btn) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    if (!btn) return;
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+    fetch('/admin/notifications/' + id + '/mark-single-read', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        // Update topbar item styling to faded (ফ্যাকাশে কালার)
+        const item = document.getElementById('topbar-notif-item-' + id);
+        if (item) {
+            item.classList.remove('is-unread');
+            item.classList.add('is-read');
+            item.style.background = '#f8fafc';
+            item.style.borderLeft = '3px solid transparent';
+            item.style.opacity = '0.8';
+
+            const icon = item.querySelector('.notif-item-icon');
+            if (icon) {
+                icon.style.background = '#e2e8f0';
+                icon.style.color = '#94a3b8';
+            }
+
+            const title = item.querySelector('.notif-item-title');
+            if (title) {
+                title.style.color = '#64748b';
+                title.style.fontWeight = '500';
+            }
+
+            const msg = item.querySelector('.notif-item-msg');
+            if (msg) {
+                msg.style.color = '#94a3b8';
+            }
+
+            const badge = item.querySelector('.notif-item-badge');
+            if (badge) {
+                badge.className = 'notif-item-badge';
+                badge.style.background = 'transparent';
+                badge.style.color = '#94a3b8';
+                badge.innerHTML = '<i class="fa-solid fa-check-double"></i> পঠিত';
+            }
+
+            const actionBox = item.querySelector('.notif-item-action');
+            if (actionBox) {
+                actionBox.innerHTML = '';
+            }
+        }
+
+        // Also update table row if present
+        const tableRow = document.getElementById('table-notif-row-' + id);
+        if (tableRow) {
+            tableRow.classList.remove('row-unread');
+            tableRow.classList.add('row-read');
+            tableRow.style.background = '#f8fafc';
+            tableRow.style.opacity = '0.82';
+            const rTitle = tableRow.querySelector('.table-notif-title');
+            if (rTitle) {
+                rTitle.style.color = '#64748b';
+                rTitle.style.fontWeight = '500';
+            }
+            const rBadge = tableRow.querySelector('.table-notif-badge');
+            if (rBadge) {
+                rBadge.style.display = 'none';
+            }
+            const rBtn = tableRow.querySelector('.btn-mark-table-read');
+            if (rBtn) {
+                rBtn.outerHTML = '<span style="font-size:11px;color:#94a3b8;font-weight:600"><i class="fa-solid fa-check-double"></i> পঠিত</span>';
+            }
+        }
+
+        // Update bell badge
+        const bellBadge = document.getElementById('topbarBellBadge');
+        if (bellBadge) {
+            let curCount = parseInt(bellBadge.innerText) || 0;
+            if (curCount > 1) {
+                bellBadge.innerText = (curCount - 1);
+            } else {
+                bellBadge.style.display = 'none';
+                const notifDot = document.getElementById('topbarNotifDot');
+                if (notifDot) notifDot.style.display = 'none';
+            }
+        }
+
+        const unreadItems = document.querySelectorAll('.topbar-notif-item.is-unread').length;
+        const statusBadge = document.getElementById('notifStatusBadge');
+        if (statusBadge) {
+            if (unreadItems > 0) {
+                statusBadge.className = 'badge badge-danger no-dot';
+                statusBadge.innerText = unreadItems + 'টি নতুন';
+            } else {
+                statusBadge.className = 'badge badge-success no-dot';
+                statusBadge.innerText = 'সব পঠিত';
+            }
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    });
+}
+
 function markAllNotificationsAsRead(e) {
     if (e) {
         e.stopPropagation();
@@ -1247,6 +1399,66 @@ function markAllNotificationsAsRead(e) {
             statusBadge.className = 'badge badge-success no-dot';
             statusBadge.innerText = 'সব পঠিত';
         }
+
+        // Transform all topbar unread items to faded
+        document.querySelectorAll('.topbar-notif-item.is-unread').forEach(item => {
+            item.classList.remove('is-unread');
+            item.classList.add('is-read');
+            item.style.background = '#f8fafc';
+            item.style.borderLeft = '3px solid transparent';
+            item.style.opacity = '0.8';
+
+            const icon = item.querySelector('.notif-item-icon');
+            if (icon) {
+                icon.style.background = '#e2e8f0';
+                icon.style.color = '#94a3b8';
+            }
+
+            const title = item.querySelector('.notif-item-title');
+            if (title) {
+                title.style.color = '#64748b';
+                title.style.fontWeight = '500';
+            }
+
+            const msg = item.querySelector('.notif-item-msg');
+            if (msg) {
+                msg.style.color = '#94a3b8';
+            }
+
+            const badge = item.querySelector('.notif-item-badge');
+            if (badge) {
+                badge.className = 'notif-item-badge';
+                badge.style.background = 'transparent';
+                badge.style.color = '#94a3b8';
+                badge.innerHTML = '<i class="fa-solid fa-check-double"></i> পঠিত';
+            }
+
+            const actionBox = item.querySelector('.notif-item-action');
+            if (actionBox) {
+                actionBox.innerHTML = '';
+            }
+        });
+
+        // Also transform all table rows to faded if on index page
+        document.querySelectorAll('.table-notif-row.row-unread').forEach(row => {
+            row.classList.remove('row-unread');
+            row.classList.add('row-read');
+            row.style.background = '#f8fafc';
+            row.style.opacity = '0.82';
+            const rTitle = row.querySelector('.table-notif-title');
+            if (rTitle) {
+                rTitle.style.color = '#64748b';
+                rTitle.style.fontWeight = '500';
+            }
+            const rBadge = row.querySelector('.table-notif-badge');
+            if (rBadge) {
+                rBadge.style.display = 'none';
+            }
+            const rBtn = row.querySelector('.btn-mark-table-read');
+            if (rBtn) {
+                rBtn.outerHTML = '<span style="font-size:11px;color:#94a3b8;font-weight:600"><i class="fa-solid fa-check-double"></i> পঠিত</span>';
+            }
+        });
 
         btn.innerHTML = '<i class="fa-solid fa-check"></i> সম্পন্ন';
         btn.style.color = '#10b981';

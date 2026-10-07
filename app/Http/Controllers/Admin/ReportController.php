@@ -85,15 +85,15 @@ class ReportController extends Controller
                 ->selectRaw("COUNT(CASE WHEN COALESCE(admission_forms.gender, students.gender) = 'Female' THEN 1 END) as female_count")
                 ->selectRaw("COUNT(admission_forms.id) as total_count")
                 ->selectRaw("COUNT(CASE WHEN (DATE(admission_forms.reviewed_at) = ? OR (admission_forms.reviewed_at IS NULL AND DATE(admission_forms.created_at) = ?)) THEN 1 END) as date_count", [$admissionDate, $admissionDate])
-                ->groupBy('course_id')
+                ->groupByRaw("COALESCE(admission_forms.interested_course_id, batches.course_id)")
                 ->get()
                 ->keyBy('course_id');
 
             // Incomplete Profiles Count in this session
             $incompleteProfilesCount = AdmissionForm::where('academic_session_id', $selectedSession->id)
                 ->whereHas('student', function ($q) {
-                    $q->where('profile_completion_percentage', '<', 95)
-                      ->orWhereNull('profile_completion_percentage');
+                    $q->where('profile_completed_percent', '<', 95)
+                      ->orWhereNull('profile_completed_percent');
                 })
                 ->count();
         }
@@ -166,7 +166,7 @@ class ReportController extends Controller
                 ->selectRaw("COUNT(CASE WHEN COALESCE(admission_forms.gender, students.gender) = 'Female' THEN 1 END) as female_count")
                 ->selectRaw("COUNT(admission_forms.id) as total_count")
                 ->selectRaw("COUNT(CASE WHEN (DATE(admission_forms.reviewed_at) = ? OR (admission_forms.reviewed_at IS NULL AND DATE(admission_forms.created_at) = ?)) THEN 1 END) as date_count", [$admissionDate, $admissionDate])
-                ->groupBy('course_id')
+                ->groupByRaw("COALESCE(admission_forms.interested_course_id, batches.course_id)")
                 ->get()
                 ->keyBy('course_id');
         }
