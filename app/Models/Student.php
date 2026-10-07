@@ -16,6 +16,40 @@ class Student extends Model
         'fee_package_id'    => 'integer',
     ];
 
+    protected static function booted()
+    {
+        static::creating(function ($student) {
+            if (empty($student->temporary_password)) {
+                $student->temporary_password = self::generateDefaultPassword();
+            }
+        });
+    }
+
+    /**
+     * Generate 5-digit numeric password (১০০০০ - ৯৯৯৯৯)
+     */
+    public static function generateDefaultPassword(): string
+    {
+        return (string) random_int(10000, 99999);
+    }
+
+    /**
+     * Get or generate a valid 5-digit numeric password
+     */
+    public function getOrGenerateNumericPassword(): string
+    {
+        if (!empty($this->temporary_password) && is_numeric($this->temporary_password) && strlen((string)$this->temporary_password) === 5) {
+            return (string) $this->temporary_password;
+        }
+
+        $password = self::generateDefaultPassword();
+        $this->temporary_password = $password;
+        if ($this->exists) {
+            $this->saveQuietly();
+        }
+        return $password;
+    }
+
     // ── Relationships ───────────────────────────────────────────────────
     public function user()
     {

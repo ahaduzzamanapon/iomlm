@@ -267,52 +267,6 @@
                         </div>
                     </div>
 
-                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px; font-family:'Kalpurush',sans-serif">
-                        <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
-                            <i class="fa-solid fa-calendar-days" style="color:#6366f1"></i> ব্যাচ সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
-                        </div>
-                        <div class="form-row" style="margin-bottom:8px">
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">ব্যাচ শুরুর মাস</label>
-                                <select name="start_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}" {{ old('start_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">ব্যাচ সমাপ্তির মাস</label>
-                                <select name="end_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}" {{ old('end_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">টিউশন ফি শুরুর মাস</label>
-                                <select name="fee_start_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}" {{ old('fee_start_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">টিউশন ফি সমাপ্তির মাস</label>
-                                <select name="fee_end_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}" {{ old('fee_end_month') == $mKey ? 'selected' : '' }}>{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="form-group" style="margin-top:10px">
                         <label class="form-check" style="cursor:pointer;font-weight:600">
                             <input type="checkbox" name="is_admission_open" value="1" checked> Open for Admission
@@ -377,52 +331,6 @@
                         </div>
                     </div>
 
-                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-top:14px; font-family:'Kalpurush',sans-serif">
-                        <div style="font-weight:700; color:#0f172a; margin-bottom:8px; font-size:13px">
-                            <i class="fa-solid fa-calendar-days" style="color:#6366f1"></i> ব্যাচ সময়কাল ও বেতন সাইকেল মাস নির্ধারণ
-                        </div>
-                        <div class="form-row" style="margin-bottom:8px">
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">ব্যাচ শুরুর মাস</label>
-                                <select name="start_month" id="eb_start_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">ব্যাচ সমাপ্তির মাস</label>
-                                <select name="end_month" id="eb_end_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">টিউশন ফি শুরুর মাস</label>
-                                <select name="fee_start_month" id="eb_fee_start_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom:0">
-                                <label style="font-size:12px">টিউশন ফি সমাপ্তির মাস</label>
-                                <select name="fee_end_month" id="eb_fee_end_month" class="form-control">
-                                    <option value="">-- কোর্সের নিয়ম অনুযায়ী --</option>
-                                    @foreach($months as $mKey => $mLabel)
-                                        <option value="{{ $mKey }}">{{ $mLabel }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="form-group">
                         <label>Batch Status <span class="required">*</span></label>
                         <select name="status" id="eb_status" class="form-control" required>
@@ -456,10 +364,6 @@
             academic_year_id: @json($b->academic_year_id),
             start_date: @json(\Carbon\Carbon::parse($b->start_date)->format('Y-m-d')),
             expected_end_date: @json($b->expected_end_date ? \Carbon\Carbon::parse($b->expected_end_date)->format('Y-m-d') : ''),
-            start_month: @json($b->start_month),
-            end_month: @json($b->end_month),
-            fee_start_month: @json($b->fee_start_month),
-            fee_end_month: @json($b->fee_end_month),
             status: @json($b->status),
             is_admission_open: {{ $b->is_admission_open ? 'true' : 'false' }}
         },
@@ -476,10 +380,6 @@
         document.getElementById('eb_academic_year_id').value = b.academic_year_id || '';
         document.getElementById('eb_start_date').value = b.start_date;
         document.getElementById('eb_expected_end_date').value = b.expected_end_date || '';
-        document.getElementById('eb_start_month').value = b.start_month || '';
-        document.getElementById('eb_end_month').value = b.end_month || '';
-        document.getElementById('eb_fee_start_month').value = b.fee_start_month || '';
-        document.getElementById('eb_fee_end_month').value = b.fee_end_month || '';
         document.getElementById('eb_status').value = b.status;
         document.getElementById('eb_is_admission_open').checked = b.is_admission_open;
         openModal('editBatchModal');

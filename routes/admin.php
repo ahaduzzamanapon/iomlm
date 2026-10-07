@@ -14,6 +14,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
     // Dashboard (accessible to all authenticated admins)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::redirect('/', '/admin/dashboard');
+    Route::post('notifications/mark-read', [\App\Http\Controllers\Admin\BroadcastNotificationController::class, 'markAllRead'])->name('notifications.mark-read');
 
     // ── 1. Academic Setup ───────────────────────────────────────────────
     Route::middleware('admin.module:academic')->group(function () {
@@ -225,9 +226,16 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::resource('support-agents', \App\Http\Controllers\Admin\SupportUserController::class);
     });
 
-    // ── 10. Settings, Reports & System Config ───────────────────────────
-    Route::middleware('admin.module:settings')->group(function () {
+    // ── 7.8. Reports ────────────────────────────────────────────────────
+    Route::middleware('admin.module:reports,admissions,settings')->group(function () {
         Route::get('reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/admission-summary', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.admission-summary');
+        Route::get('reports/admission-summary/export', [\App\Http\Controllers\Admin\ReportController::class, 'exportAdmissionSummary'])->name('reports.admission-summary.export');
+        Route::get('reports/system', [\App\Http\Controllers\Admin\ReportController::class, 'systemAnalytics'])->name('reports.system');
+    });
+
+    // ── 10. Settings & System Config ────────────────────────────────────
+    Route::middleware('admin.module:settings')->group(function () {
         Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::put('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
 

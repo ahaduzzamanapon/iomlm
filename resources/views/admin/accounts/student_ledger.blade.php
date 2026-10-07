@@ -94,12 +94,7 @@
             <a href="{{ route('admin.students.impersonate', $student) }}" class="btn btn-outline" style="color:#047857;border-color:#10b981;font-weight:700">
                 <i class="fa-solid fa-arrow-right-to-bracket"></i> শিক্ষার্থী হিসেবে লগইন
             </a>
-            <button type="button" class="btn btn-success" onclick="openExtraFeeModal()" style="font-family:'Kalpurush',sans-serif;background:#059669;color:#fff;border:none">
-                <i class="fa-solid fa-file-circle-plus"></i> অতিরিক্ত ফি (Extra Fee)
-            </button>
-            <button type="button" class="btn btn-primary" onclick="openModal('addCustomFeeModal')" style="font-family:'Kalpurush',sans-serif">
-                <i class="fa-solid fa-plus-circle"></i> নতুন ফি / পেমেন্ট ধার্য
-            </button>
+
             <a href="{{ route('admin.students.show', $student) }}" class="btn btn-outline" style="font-family:'Kalpurush',sans-serif">
                 প্রোফাইল দেখুন →
             </a>
@@ -212,12 +207,7 @@
                         <i class="fa-solid fa-circle-check"></i> পরিশোধিত (Paid Only)
                     </button>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px">
-                    <button type="button" onclick="openAdminAddFeeModal()"
-                        style="padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #16a34a;background:#16a34a;color:#fff;display:inline-flex;align-items:center;gap:6px">
-                        <i class="fa-solid fa-plus-circle"></i> + নতুন ফি যোগ করুন
-                    </button>
-                </div>
+
             </div>
 
             {{-- Step 1 Particulars Table Container --}}
@@ -286,7 +276,7 @@
                                         <button type="button" class="btn btn-sm btn-success"
                                             onclick="openAdminSingleCollectModal('{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }})"
                                             style="padding:3px 10px;font-size:11.5px;font-family:'Kalpurush',sans-serif;background:#059669;color:#fff;border-radius:5px">
-                                            <i class="fa-solid fa-money-bill-wave"></i> জমা নিন
+                                            <i class="fa-solid fa-money-bill-wave"></i> জমা দিন
                                         </button>
                                     @else
                                         <span style="color:#16a34a;font-size:12px;font-weight:700">
@@ -1136,7 +1126,7 @@
     }
 
     function closeModal(modalId) {
-        const m = document.getElementById(modalId);
+        const m = (typeof modalId === 'string') ? document.getElementById(modalId) : modalId;
         if (m) {
             m.classList.remove('open', 'active', 'show');
             m.style.display = 'none';
@@ -1248,6 +1238,7 @@
                 r.style.display = (status === 'due') ? '' : 'none';
             } else if (type === 'paid') {
                 r.style.display = (status === 'paid') ? '' : 'none';
+            }
         });
     }
 

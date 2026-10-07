@@ -84,8 +84,10 @@ class Batch extends Model
     public function getDurationCycleTextAttribute(): string
     {
         $months = Course::monthsList();
-        $start = $this->start_month ? ($months[$this->start_month] ?? $this->start_month) : null;
-        $end   = $this->end_month ? ($months[$this->end_month] ?? $this->end_month) : null;
+        $startRaw = $this->start_month ?: ($this->start_date ? date('F', strtotime($this->start_date)) : null);
+        $endRaw   = $this->end_month ?: ($this->expected_end_date ? date('F', strtotime($this->expected_end_date)) : null);
+        $start = $startRaw ? ($months[$startRaw] ?? $startRaw) : null;
+        $end   = $endRaw ? ($months[$endRaw] ?? $endRaw) : null;
 
         if ($start && $end) {
             return "{$start} হতে {$end}";
@@ -102,8 +104,10 @@ class Batch extends Model
     public function getFeeCycleTextAttribute(): string
     {
         $months = Course::monthsList();
-        $start = $this->fee_start_month ? ($months[$this->fee_start_month] ?? $this->fee_start_month) : null;
-        $end   = $this->fee_end_month ? ($months[$this->fee_end_month] ?? $this->fee_end_month) : null;
+        $startRaw = $this->fee_start_month ?: ($this->start_date ? date('F', strtotime($this->start_date)) : null);
+        $endRaw   = $this->fee_end_month ?: ($this->expected_end_date ? date('F', strtotime($this->expected_end_date)) : null);
+        $start = $startRaw ? ($months[$startRaw] ?? $startRaw) : null;
+        $end   = $endRaw ? ($months[$endRaw] ?? $endRaw) : null;
 
         if ($start && $end) {
             return "{$start} হতে {$end}";

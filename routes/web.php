@@ -57,17 +57,43 @@ Route::match(['get', 'post'], '/payment/callback/bkash', [\App\Http\Controllers\
 Route::match(['get', 'post'], '/api/payment/bkash/callback', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback']);
 
 
-// ── Public Poor Fund / Waiver Form & Status Tracker ─────────────────────
-Route::get('/poor-fund/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatus'])->name('poor_fund.status');
-Route::post('/poor-fund/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatusLookup'])->name('poor_fund.status.lookup');
+// ── Public Special Discount / Waiver (SD / PF) Form & Status Tracker ──────
+// Primary routes under /sd (Special Discount)
+Route::get('/sd/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatus'])->name('poor_fund.status');
+Route::post('/sd/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatusLookup'])->name('poor_fund.status.lookup');
+Route::get('/sd/track', fn() => redirect()->route('poor_fund.status'));
+Route::get('/sd', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'show'])->name('poor_fund.show');
+Route::get('/sd/admission', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showAdmission'])->name('poor_fund.admission');
+Route::get('/sd/tuition', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.tuition');
+Route::get('/sd/monthly', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.monthly');
+Route::get('/sd/both', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showBoth'])->name('poor_fund.both');
+Route::post('/sd', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store'])->name('poor_fund.store');
+Route::get('/sd/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('poor_fund.success');
+
+// Short Alias routes under /pf (PF)
+Route::get('/pf/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatus'])->name('pf.status');
+Route::post('/pf/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatusLookup'])->name('pf.status.lookup');
+Route::get('/pf/track', fn() => redirect()->route('poor_fund.status'));
+Route::get('/pf', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'show'])->name('pf.show');
+Route::get('/pf/admission', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showAdmission'])->name('pf.admission');
+Route::get('/pf/tuition', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('pf.tuition');
+Route::get('/pf/monthly', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('pf.monthly');
+Route::get('/pf/both', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showBoth'])->name('pf.both');
+Route::post('/pf', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store'])->name('pf.store');
+Route::get('/pf/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('pf.success');
+
+// Backward Compatibility redirects for legacy /poor-fund URLs
+Route::get('/poor-fund/status', fn() => redirect()->route('poor_fund.status'));
+Route::post('/poor-fund/status', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'trackStatusLookup']);
 Route::get('/poor-fund/track', fn() => redirect()->route('poor_fund.status'));
-Route::get('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'show'])->name('poor_fund.show');
-Route::get('/poor-fund/admission', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showAdmission'])->name('poor_fund.admission');
-Route::get('/poor-fund/tuition', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.tuition');
-Route::get('/poor-fund/monthly', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.monthly');
-Route::get('/poor-fund/both', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showBoth'])->name('poor_fund.both');
-Route::post('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store'])->name('poor_fund.store');
-Route::get('/poor-fund/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('poor_fund.success');
+Route::get('/poor-fund', fn() => redirect()->route('poor_fund.show'));
+Route::get('/poor-fund/admission', fn() => redirect()->route('poor_fund.admission'));
+Route::get('/poor-fund/tuition', fn() => redirect()->route('poor_fund.tuition'));
+Route::get('/poor-fund/monthly', fn() => redirect()->route('poor_fund.tuition'));
+Route::get('/poor-fund/both', fn() => redirect()->route('poor_fund.both'));
+Route::post('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store']);
+Route::get('/poor-fund/success/{applicationNo}', fn($no) => redirect()->route('poor_fund.success', $no));
+
 Route::get('/api/waiver-lookup', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'lookup'])->name('api.waiver-lookup');
 
 // ── Public Online Support Form & Chat ─────────────────────────────

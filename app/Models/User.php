@@ -20,6 +20,7 @@ class User extends Authenticatable
         'can_provide_support',
         'is_common_account',
         'is_active',
+        'notifications_read_at',
     ];
 
     protected $hidden = [
@@ -30,12 +31,13 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at'   => 'datetime',
-            'password'            => 'hashed',
-            'admin_permissions'   => 'array',
-            'can_provide_support' => 'boolean',
-            'is_common_account'   => 'boolean',
-            'is_active'           => 'boolean',
+            'email_verified_at'       => 'datetime',
+            'notifications_read_at'   => 'datetime',
+            'password'                => 'hashed',
+            'admin_permissions'       => 'array',
+            'can_provide_support'     => 'boolean',
+            'is_common_account'       => 'boolean',
+            'is_active'               => 'boolean',
         ];
     }
 
@@ -146,6 +148,11 @@ class User extends Authenticatable
                 'name' => 'সিস্টেম সেটিংস',
                 'desc' => 'অ্যাপ সেটিংস, পেমেন্ট গেটওয়ে, নোটিফিকেশন সেটিংস ও গুগল লগইন',
                 'icon' => 'fa-sliders',
+            ],
+            'reports' => [
+                'name' => 'রিপোর্ট ও বিশ্লেষণ',
+                'desc' => 'ভর্তি সামারি রিপোর্ট, সেশন ভিত্তিক পরিসংখ্যান ও এনালাইটিক্স',
+                'icon' => 'fa-chart-column',
             ],
             'user_management' => [
                 'name' => 'ইউজার ও রোল ম্যানেজমেন্ট',

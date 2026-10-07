@@ -94,12 +94,17 @@ class AcademicYearController extends Controller
             'end_date'   => 'nullable|date|after_or_equal:start_date',
         ]);
 
+        $isActive = $request->boolean('is_active', true);
+        if ($isActive) {
+            AcademicSession::where('academic_year_id', $academicYear->id)->update(['is_active' => false]);
+        }
+
         AcademicSession::create([
             'academic_year_id' => $academicYear->id,
             'name'             => $validated['name'],
             'start_date'       => $validated['start_date'] ?? null,
             'end_date'         => $validated['end_date'] ?? null,
-            'is_active'        => $request->boolean('is_active', true),
+            'is_active'        => $isActive,
         ]);
 
         return back()->with('success', "সেশন '{$validated['name']}' সফলভাবে তৈরি হয়েছে।");
@@ -114,12 +119,17 @@ class AcademicYearController extends Controller
             'end_date'         => 'nullable|date|after_or_equal:start_date',
         ]);
 
+        $isActive = $request->boolean('is_active', true);
+        if ($isActive) {
+            AcademicSession::where('academic_year_id', $validated['academic_year_id'])->update(['is_active' => false]);
+        }
+
         AcademicSession::create([
             'academic_year_id' => $validated['academic_year_id'],
             'name'             => $validated['name'],
             'start_date'       => $validated['start_date'] ?? null,
             'end_date'         => $validated['end_date'] ?? null,
-            'is_active'        => $request->boolean('is_active', true),
+            'is_active'        => $isActive,
         ]);
 
         return back()->with('success', "সেশন '{$validated['name']}' সফলভাবে যোগ করা হয়েছে।");
@@ -134,12 +144,20 @@ class AcademicYearController extends Controller
             'end_date'         => 'nullable|date|after_or_equal:start_date',
         ]);
 
+        $targetYearId = $validated['academic_year_id'] ?? $academicSession->academic_year_id;
+        $isActive = $request->boolean('is_active');
+        if ($isActive) {
+            AcademicSession::where('academic_year_id', $targetYearId)
+                ->where('id', '!=', $academicSession->id)
+                ->update(['is_active' => false]);
+        }
+
         $academicSession->update([
-            'academic_year_id' => $validated['academic_year_id'] ?? $academicSession->academic_year_id,
+            'academic_year_id' => $targetYearId,
             'name'             => $validated['name'],
             'start_date'       => $validated['start_date'] ?? null,
             'end_date'         => $validated['end_date'] ?? null,
-            'is_active'        => $request->boolean('is_active'),
+            'is_active'        => $isActive,
         ]);
 
         return back()->with('success', "সেশন '{$academicSession->name}' তথ্য সফলভাবে আপডেট হয়েছে।");
@@ -148,6 +166,14 @@ class AcademicYearController extends Controller
     public function toggleSessionStatus(AcademicSession $academicSession)
     {
         $newStatus = !$academicSession->is_active;
+
+        if ($newStatus) {
+            // Deactivate other sessions in the same academic year so only one is active
+            AcademicSession::where('academic_year_id', $academicSession->academic_year_id)
+                ->where('id', '!=', $academicSession->id)
+                ->update(['is_active' => false]);
+        }
+
         $academicSession->update(['is_active' => $newStatus]);
 
         $statusText = $newStatus ? 'সক্রিয় (Active)' : 'নিষ্ক্রিয় (Inactive)';

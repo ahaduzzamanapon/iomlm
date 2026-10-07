@@ -1,3 +1,6 @@
+@php
+    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag();
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -594,6 +597,28 @@
             </div>
             @endif
 
+            {{-- ── 7.6. Reports ── --}}
+            @if(auth()->user()->canAccess('reports') || auth()->user()->canAccess('admissions') || auth()->user()->isAdmin())
+            @php $reportsActive = request()->routeIs('admin.reports*'); @endphp
+            <div class="tree-group">
+                <div class="tree-toggle {{ $reportsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                    <i class="fa-solid fa-chart-column"></i>
+                    Reports (রিপোর্ট)
+                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                </div>
+                <div class="tree-children {{ $reportsActive ? 'open' : '' }}">
+                    <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports.index') || request()->routeIs('admin.reports.admission-summary') ? 'active' : '' }}">
+                        <i class="fa-solid fa-table-list"></i>
+                        Admission Summary (ভর্তি সামারি)
+                    </a>
+                    <a href="{{ route('admin.reports.system') }}" class="nav-item {{ request()->routeIs('admin.reports.system') ? 'active' : '' }}">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        System Analytics (পরিসংখ্যান)
+                    </a>
+                </div>
+            </div>
+            @endif
+
             {{-- ── 7.5. Support & Helpdesk ── --}}
             @if(auth()->user()->canAccess('support') || auth()->user()->isSupportAgent())
             @php $supportActive = request()->routeIs('admin.support-tickets*','admin.support-departments*','admin.support-agents*','support*'); @endphp
@@ -718,28 +743,53 @@
                     try { $notifPendingSupport = \App\Models\SupportTicket::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingSupport = 0; }
                     $notifTotalActions = $notifPendingAdmissions + $notifPendingWaivers + $notifPendingTransfers + $notifPendingReadmissions + $notifPendingSupport;
                     try { $recentNotifs = \App\Models\SentNotification::latest()->take(4)->get(); } catch (\Throwable) { $recentNotifs = collect(); }
+                    
+                    $userReadAt = auth()->user()?->notifications_read_at ?? session('notifications_read_at');
+                    if ($userReadAt) {
+                        try {
+                            $newAdm = \App\Models\AdmissionForm::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                            $newWai = \App\Models\WaiverApplication::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                            $newTrn = \App\Models\CourseTransfer::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                            $newRed = \App\Models\Readmission::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                            $newSup = \App\Models\SupportTicket::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                            $newBrd = \App\Models\SentNotification::where('created_at', '>', $userReadAt)->count();
+                            $notifUnreadCount = $newAdm + $newWai + $newTrn + $newRed + $newSup + $newBrd;
+                        } catch (\Throwable) {
+                            $notifUnreadCount = 0;
+                        }
+                    } else {
+                        $notifUnreadCount = $notifTotalActions;
+                    }
                 @endphp
                 <div class="dropdown">
                     <button class="topbar-btn" onclick="toggleDropdown('adminNotif')" title="নোটিফিকেশন ও অ্যাকশন সেন্টার" style="position:relative">
                         <i class="fa-solid fa-bell"></i>
-                        @if($notifTotalActions > 0)
-                            <span style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:#ffffff;font-size:10px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:16px;line-height:1.2;text-align:center;box-shadow:0 2px 4px rgba(239,68,68,0.4);border:2px solid #ffffff">
-                                {{ $notifTotalActions > 99 ? '99+' : $notifTotalActions }}
+                        @if($notifUnreadCount > 0)
+                            <span id="topbarBellBadge" style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:#ffffff;font-size:10px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:16px;line-height:1.2;text-align:center;box-shadow:0 2px 4px rgba(239,68,68,0.4);border:2px solid #ffffff">
+                                {{ $notifUnreadCount > 99 ? '99+' : $notifUnreadCount }}
                             </span>
-                        @elseif($recentNotifs->isNotEmpty())
-                            <span class="notif-dot"></span>
+                        @elseif($recentNotifs->isNotEmpty() && !$userReadAt)
+                            <span id="topbarNotifDot" class="notif-dot"></span>
                         @endif
                     </button>
                     <div class="dropdown-menu" id="adminNotif" style="min-width:340px;max-width:380px;right:0;padding:0;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.18);border:1px solid #e2e8f0">
-                        <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc">
-                            <div style="font-weight:700;font-size:13.5px;color:#0f172a;display:flex;align-items:center;gap:7px">
-                                <i class="fa-solid fa-bell" style="color:#047857"></i> নোটিফিকেশন ও অ্যাকশন সেন্টার
+                        <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;gap:8px">
+                            <div style="font-weight:700;font-size:13px;color:#0f172a;display:flex;align-items:center;gap:6px">
+                                <i class="fa-solid fa-bell" style="color:#047857"></i> নোটিফিকেশন
                             </div>
-                            @if($notifTotalActions > 0)
-                                <span class="badge badge-danger no-dot" style="font-size:10.5px;padding:3px 8px;font-weight:700">
-                                    {{ $notifTotalActions }}টি অপেক্ষমাণ
+                            <div style="display:flex;align-items:center;gap:6px">
+                                <span id="notifStatusBadge" class="badge {{ $notifUnreadCount > 0 ? 'badge-danger' : 'badge-success' }} no-dot" style="font-size:10.5px;padding:3px 8px;font-weight:700">
+                                    {{ $notifUnreadCount > 0 ? ($notifUnreadCount . 'টি নতুন') : ($notifTotalActions > 0 ? ($notifTotalActions . 'টি পেন্ডিং') : 'সব পঠিত') }}
                                 </span>
-                            @endif
+                                <button type="button" id="btnMarkNotifRead" onclick="markAllNotificationsAsRead(event)"
+                                        style="background:#ffffff;border:1px solid #cbd5e1;color:#047857;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s"
+                                        title="সকল নোটিফিকেশন পঠিত চিহ্নিত করুন"
+                                        onmouseover="this.style.background='#ecfdf5';this.style.borderColor='#047857'"
+                                        onmouseout="this.style.background='#ffffff';this.style.borderColor='#cbd5e1'">
+                                    <i class="fa-solid fa-check-double"></i>
+                                    <span>রিড হয়েছে</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div style="max-height:380px;overflow-y:auto">
@@ -1165,6 +1215,49 @@ document.addEventListener('keydown', function(e) {
         document.body.style.overflow = '';
     }
 });
+
+function markAllNotificationsAsRead(e) {
+    if (e) {
+        e.stopPropagation();
+        e.preventDefault();
+    }
+    const btn = document.getElementById('btnMarkNotifRead');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> সেভ হচ্ছে...';
+    btn.disabled = true;
+
+    fetch('{{ route('admin.notifications.mark-read') }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        const bellBadge = document.getElementById('topbarBellBadge');
+        if (bellBadge) bellBadge.style.display = 'none';
+        const notifDot = document.getElementById('topbarNotifDot');
+        if (notifDot) notifDot.style.display = 'none';
+
+        const statusBadge = document.getElementById('notifStatusBadge');
+        if (statusBadge) {
+            statusBadge.className = 'badge badge-success no-dot';
+            statusBadge.innerText = 'সব পঠিত';
+        }
+
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> সম্পন্ন';
+        btn.style.color = '#10b981';
+        btn.style.borderColor = '#a7f3d0';
+        btn.style.background = '#ecfdf5';
+    })
+    .catch(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
 </script>
 <style>
 /* Custom smooth scrollbar for all modals */

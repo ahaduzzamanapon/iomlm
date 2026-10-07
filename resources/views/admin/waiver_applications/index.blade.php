@@ -132,12 +132,28 @@
             <div style="background:linear-gradient(135deg,#047857,#065f46);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
                 <div>
                     <div style="font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px">
-                        <i class="fa-solid fa-link"></i> পুওর ফান্ড ও ওয়েভার আবেদন লিংকসমূহ
+                        <i class="fa-solid fa-link"></i> স্পেশাল ডিসকাউন্ট ও ওয়েভার আবেদন লিংকসমূহ
                     </div>
                     <div style="font-size:12px;opacity:.9;margin-top:2px">পাবলিক পেজে এই লিংকগুলো লুকানো থাকে; প্রয়োজন অনুযায়ী শিক্ষার্থীকে ইনবক্সে পাঠান</div>
                 </div>
                 <button type="button" onclick="closeShareLinksModal()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
             </div>
+
+            {{-- Prefix Switcher (SD / PF) --}}
+            <div style="background:#f1f5f9;padding:10px 22px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0">
+                <span style="font-size:12.5px;font-weight:600;color:#475569">
+                    <i class="fa-solid fa-sliders" style="margin-right:4px"></i> লিংকের ধরন (Prefix):
+                </span>
+                <div style="display:inline-flex;background:#e2e8f0;padding:2px;border-radius:8px;gap:2px">
+                    <button type="button" id="btnPrefixSd" onclick="switchLinkPrefix('sd')" style="padding:4px 14px;border:none;border-radius:6px;font-size:12px;font-weight:700;background:#047857;color:#fff;cursor:pointer;transition:all .15s">
+                        /sd (Special Discount)
+                    </button>
+                    <button type="button" id="btnPrefixPf" onclick="switchLinkPrefix('pf')" style="padding:4px 14px;border:none;border-radius:6px;font-size:12px;font-weight:700;background:transparent;color:#475569;cursor:pointer;transition:all .15s">
+                        /pf (PF)
+                    </button>
+                </div>
+            </div>
+
             <div style="padding:22px;display:flex;flex-direction:column;gap:14px">
                 
                 {{-- Link 1: Admission Fee --}}
@@ -146,11 +162,11 @@
                         <span style="font-size:13px;font-weight:700;color:#0f172a">
                             <i class="fa-solid fa-graduation-cap" style="color:#047857"></i> ১. শুধুমাত্র ভর্তি ফি কমানো
                         </span>
-                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink('{{ route('poor_fund.admission') }}', this)">
+                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink(document.getElementById('inputLinkAdmission').value, this)">
                             <i class="fa-regular fa-copy"></i> কপি করুন
                         </button>
                     </div>
-                    <input type="text" readonly value="{{ route('poor_fund.admission') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
+                    <input type="text" id="inputLinkAdmission" readonly value="{{ route('poor_fund.admission') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
                 </div>
 
                 {{-- Link 2: Tuition Fee --}}
@@ -159,11 +175,11 @@
                         <span style="font-size:13px;font-weight:700;color:#0f172a">
                             <i class="fa-solid fa-book-open-reader" style="color:#047857"></i> ২. শুধুমাত্র টিউশন ফি কমানো
                         </span>
-                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink('{{ route('poor_fund.tuition') }}', this)">
+                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink(document.getElementById('inputLinkTuition').value, this)">
                             <i class="fa-regular fa-copy"></i> কপি করুন
                         </button>
                     </div>
-                    <input type="text" readonly value="{{ route('poor_fund.tuition') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
+                    <input type="text" id="inputLinkTuition" readonly value="{{ route('poor_fund.tuition') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
                 </div>
 
                 {{-- Link 3: Both Fees --}}
@@ -172,11 +188,11 @@
                         <span style="font-size:13px;font-weight:700;color:#0f172a">
                             <i class="fa-solid fa-layer-group" style="color:#047857"></i> ৩. উভয় ফি কমানোর আবেদন (সকল)
                         </span>
-                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink('{{ route('poor_fund.both') }}', this)">
+                        <button type="button" class="btn btn-sm btn-primary copy-btn" onclick="copyLink(document.getElementById('inputLinkBoth').value, this)">
                             <i class="fa-regular fa-copy"></i> কপি করুন
                         </button>
                     </div>
-                    <input type="text" readonly value="{{ route('poor_fund.both') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
+                    <input type="text" id="inputLinkBoth" readonly value="{{ route('poor_fund.both') }}" style="width:100%;font-size:12px;background:#fff;color:#64748b;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1" onclick="this.select()">
                 </div>
 
             </div>
@@ -189,6 +205,39 @@
 
     @push('scripts')
     <script>
+    const linksData = {
+        sd: {
+            admission: "{{ route('poor_fund.admission') }}",
+            tuition: "{{ route('poor_fund.tuition') }}",
+            both: "{{ route('poor_fund.both') }}"
+        },
+        pf: {
+            admission: "{{ route('pf.admission') }}",
+            tuition: "{{ route('pf.tuition') }}",
+            both: "{{ route('pf.both') }}"
+        }
+    };
+
+    function switchLinkPrefix(type) {
+        const btnSd = document.getElementById('btnPrefixSd');
+        const btnPf = document.getElementById('btnPrefixPf');
+        if (type === 'sd') {
+            btnSd.style.background = '#047857';
+            btnSd.style.color = '#fff';
+            btnPf.style.background = 'transparent';
+            btnPf.style.color = '#475569';
+        } else {
+            btnPf.style.background = '#047857';
+            btnPf.style.color = '#fff';
+            btnSd.style.background = 'transparent';
+            btnSd.style.color = '#475569';
+        }
+
+        document.getElementById('inputLinkAdmission').value = linksData[type].admission;
+        document.getElementById('inputLinkTuition').value = linksData[type].tuition;
+        document.getElementById('inputLinkBoth').value = linksData[type].both;
+    }
+
     function openShareLinksModal() {
         document.getElementById('shareLinksModal').style.display = 'flex';
     }

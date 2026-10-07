@@ -432,18 +432,126 @@
                         </select>
                     </div>
 
-                    {{-- 3. Custom Initial Password --}}
+                    {{-- 3. Payment Verification & Admission Fee Settlement --}}
+                    @php
+                        $hasManualPayment = !empty($admission->manual_trx_id) || ($admission->manual_paid_amount > 0);
+                        $defaultPaidVal = ($admission->manual_paid_amount !== null && $admission->manual_paid_amount >= 0) 
+                            ? $admission->manual_paid_amount 
+                            : ($hasManualPayment ? $admission->manual_paid_amount : $netPayable);
+                        $isInitiallyPaid = $hasManualPayment;
+                    @endphp
+                    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:16px;margin-bottom:16px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+                            <h4 style="margin:0;font-size:14px;font-weight:700;color:#166534;display:flex;align-items:center;gap:8px;">
+                                <i class="fa-solid fa-money-check-dollar" style="color:#059669;font-size:16px;"></i>
+                                <span>পেমেন্ট যাচাই ও ভর্তি ফি নিষ্পত্তি (Payment &amp; Admission Fee Verification)</span>
+                            </h4>
+                            @if($hasManualPayment)
+                                <span class="badge" style="background:#047857;color:#fff;font-size:11px;padding:3px 8px;">
+                                    <i class="fa-solid fa-receipt"></i> মার্চেন্ট পেমেন্ট জমা আছে
+                                </span>
+                            @endif
+                        </div>
+
+                        @if(!empty($admission->manual_trx_id))
+                            {{-- Applicant's Submitted Payment Card --}}
+                            <div style="background:#ffffff;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#14532d;">
+                                <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:center;">
+                                    <div><strong>মাধ্যম:</strong> {{ $admission->manual_payment_method ?? 'bKash' }}</div>
+                                    <div><strong>আবেদনকারীর পরিশোধিত টাকা:</strong> <strong style="color:#047857;font-size:14px">৳ {{ number_format($admission->manual_paid_amount ?? 0, 2) }}</strong></div>
+                                    <div><strong>TrxID:</strong> <code style="font-weight:700;color:#047857;font-size:13px">{{ $admission->manual_trx_id }}</code></div>
+                                    @if($admission->manual_sender_phone)
+                                        <div><strong>প্রেরক নম্বর:</strong> {{ $admission->manual_sender_phone }}</div>
+                                    @endif
+                                    @if($admission->manual_payment_date)
+                                        <div style="color:#64748b;font-size:11.5px">{{ \Carbon\Carbon::parse($admission->manual_payment_date)->format('d M Y, h:i A') }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
+                        {{-- Option 1: ফি পেইড কিনা? টিক মার্ক বাটন --}}
+                        <div style="background:#ffffff;border:1.5px solid #cbd5e1;border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+                            <label class="form-check" style="cursor:pointer;display:flex;align-items:flex-start;gap:10px;margin-bottom:0;">
+                                <input type="checkbox" name="is_fee_paid" id="approve_is_fee_paid" value="1" 
+                                    {{ $isInitiallyPaid ? 'checked' : '' }}
+                                    onchange="toggleFeePaymentControls(this.checked)"
+                                    style="width:18px;height:18px;accent-color:#047857;margin-top:2px;">
+                                <div style="flex:1;">
+                                    <div style="font-weight:700;color:#0f172a;font-size:13.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                        <span>১. ফি পেইড (Fee Paid)?</span>
+                                        <span id="fee_paid_status_badge" class="badge" style="font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;background:{{ $isInitiallyPaid ? '#ecfdf5' : '#fef2f2' }};color:{{ $isInitiallyPaid ? '#047857' : '#dc2626' }};border:1px solid {{ $isInitiallyPaid ? '#a7f3d0' : '#fca5a5' }};">
+                                            {{ $isInitiallyPaid ? '✓ ফি পরিশোধিত হিসেবে গণ্য' : '✗ সম্পূর্ণ অপরিশোধিত (UNPAID)' }}
+                                        </span>
+                                    </div>
+                                    <div style="font-size:11.5px;color:#64748b;margin-top:3px;line-height:1.4;">
+                                        টিক মার্ক সক্রিয় থাকলে উল্লেখিত টাকা ভর্তি ফি হিসেবে পেইড গণ্য হবে। <strong>আনচেক থাকলে ফি অপরিশোধিত (Unpaid) থাকবে</strong> এবং স্টুডেন্টের পেমেন্ট পোর্টালে বকেয়া দেখাবে।
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        {{-- Option 2: কত টাকা পে করেছে লেখার ফিল্ড ও লাইভ ক্যালকুলেশন --}}
+                        <div id="fee_amount_controls_box" style="background:#ffffff;border:1.5px solid #cbd5e1;border-radius:8px;padding:14px;transition:all 0.2s ease;">
+                            <div class="form-row" style="margin-bottom:6px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;">
+                                <div class="form-group" style="flex:1.2;min-width:180px;margin-bottom:0;">
+                                    <label style="font-weight:700;color:#1e293b;font-size:12.5px;margin-bottom:4px;display:block;">
+                                        ২. কত টাকা পে করেছে (Paid Amount)? <span class="required">*</span>
+                                    </label>
+                                    <div style="position:relative;display:flex;align-items:center;">
+                                        <span style="position:absolute;left:10px;font-weight:700;color:#64748b;font-size:14px;">৳</span>
+                                        <input type="number" step="0.01" min="0" name="admission_paid_amount" id="approve_admission_paid_amount"
+                                            class="form-control"
+                                            value="{{ $defaultPaidVal }}"
+                                            oninput="recalculateFeeDuePreview()"
+                                            style="padding-left:26px;height:38px;font-size:14px;font-weight:700;color:#047857;border-color:#059669;">
+                                    </div>
+                                    <small style="color:#64748b;font-size:11px;margin-top:3px;display:block;">
+                                        মোট প্রদেয় ভর্তি ফি: <strong style="color:#0f172a">৳ <span id="display_net_payable">{{ number_format($netPayable, 0) }}</span></strong>
+                                    </small>
+                                </div>
+
+                                <div class="form-group" style="flex:1;min-width:140px;margin-bottom:0;">
+                                    <label style="font-weight:600;color:#475569;font-size:12px;margin-bottom:4px;display:block;">
+                                        পেমেন্ট মাধ্যম
+                                    </label>
+                                    <select name="payment_method" id="approve_payment_method" class="form-control" style="height:38px;font-size:12.5px;">
+                                        <option value="bKash" {{ ($admission->manual_payment_method === 'bKash') ? 'selected' : '' }}>bKash</option>
+                                        <option value="Nagad" {{ ($admission->manual_payment_method === 'Nagad') ? 'selected' : '' }}>Nagad</option>
+                                        <option value="Rocket" {{ ($admission->manual_payment_method === 'Rocket') ? 'selected' : '' }}>Rocket</option>
+                                        <option value="Bank" {{ ($admission->manual_payment_method === 'Bank') ? 'selected' : '' }}>Bank Transfer</option>
+                                        <option value="CASH" {{ ($admission->manual_payment_method === 'CASH') ? 'selected' : '' }}>Cash / Counter</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" style="flex:1.2;min-width:160px;margin-bottom:0;">
+                                    <label style="font-weight:600;color:#475569;font-size:12px;margin-bottom:4px;display:block;">
+                                        ট্রানজেকশন আইডি (TrxID)
+                                    </label>
+                                    <input type="text" name="transaction_id" id="approve_transaction_id" class="form-control" 
+                                        value="{{ $admission->manual_trx_id ?? '' }}" placeholder="যেমন: BFDHFJFJFF" style="height:38px;font-size:12.5px;font-family:monospace;">
+                                </div>
+                            </div>
+
+                            {{-- Live Due/Status Preview Banner --}}
+                            <div id="fee_calc_preview_banner" style="margin-top:10px;padding:9px 14px;border-radius:6px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                                <!-- Live Calculated in JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- 4. Custom Initial Password --}}
                     <div class="form-group" style="margin-bottom:16px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                             <label style="font-weight:700;color:#1e293b;margin-bottom:0;font-size:13px;">
                                 লগইন পাসওয়ার্ড নির্ধারণ (Portal Login Password)
                             </label>
                             <button type="button" class="btn btn-sm btn-outline" onclick="generateApprovePassword()" style="font-size:11.5px;padding:2px 8px;border-color:#047857;color:#047857;font-weight:700;">
-                                <i class="fa-solid fa-dice"></i> র্যান্ডম জেনারেট
+                                <i class="fa-solid fa-dice"></i> ৫ ডিজিট র্যান্ডম
                             </button>
                         </div>
-                        <input type="text" id="approve_custom_password" name="custom_password" class="form-control" placeholder="খালি রাখলে স্বয়ংক্রিয়ভাবে ৮ অক্ষরের র্যান্ডম পাসওয়ার্ড তৈরি হবে" oninput="onCustomPasswordInput()" style="height:36px;font-size:13px;font-family:monospace;">
-                        <small style="color:#64748b;font-size:11px;">খালি রাখলে সিস্টেম স্বয়ংক্রিয়ভাবে শক্তিশালী র্যান্ডম পাসওয়ার্ড জেনারেট করবে। নিজস্ব পাসওয়ার্ড দিলে তা নোটিফিকেশনে বসানো হবে।</small>
+                        <input type="text" id="approve_custom_password" name="custom_password" class="form-control" placeholder="খালি রাখলে স্বয়ংক্রিয়ভাবে ৫ ডিজিটের নিউমেরিক পাসওয়ার্ড তৈরি হবে" oninput="onCustomPasswordInput()" style="height:36px;font-size:13px;font-family:monospace;">
+                        <small style="color:#64748b;font-size:11px;">খালি রাখলে সিস্টেম স্বয়ংক্রিয়ভাবে ৫ ডিজিটের নিউমেরিক পাসওয়ার্ড তৈরি করবে। নিজস্ব পাসওয়ার্ড দিলে তা নোটিফিকেশনে বসানো হবে।</small>
                     </div>
 
                     {{-- 4. Notification Section (Email & SMS) --}}
@@ -780,16 +888,95 @@
         populateTemplateForSelectedBatch(false);
     }
 
+    let NET_PAYABLE_FEE = {{ (float)$netPayable }};
+
+    function toggleFeePaymentControls(isPaid) {
+        const amountBox = document.getElementById('fee_amount_controls_box');
+        const badge = document.getElementById('fee_paid_status_badge');
+        const amountInput = document.getElementById('approve_admission_paid_amount');
+        
+        if (isPaid) {
+            if (badge) {
+                badge.textContent = '✓ ফি পরিশোধিত হিসেবে গণ্য';
+                badge.style.background = '#ecfdf5';
+                badge.style.color = '#047857';
+                badge.style.borderColor = '#a7f3d0';
+            }
+            if (amountBox) {
+                amountBox.style.opacity = '1';
+                amountBox.style.pointerEvents = 'auto';
+            }
+            if (amountInput && (parseFloat(amountInput.value) <= 0 || isNaN(parseFloat(amountInput.value)))) {
+                amountInput.value = @json($admission->manual_paid_amount > 0 ? $admission->manual_paid_amount : $netPayable);
+            }
+        } else {
+            if (badge) {
+                badge.textContent = '✗ সম্পূর্ণ অপরিশোধিত (UNPAID)';
+                badge.style.background = '#fef2f2';
+                badge.style.color = '#dc2626';
+                badge.style.borderColor = '#fca5a5';
+            }
+            if (amountBox) {
+                amountBox.style.opacity = '0.55';
+                amountBox.style.pointerEvents = 'none';
+            }
+        }
+        recalculateFeeDuePreview();
+    }
+
+    function recalculateFeeDuePreview() {
+        const isPaid = document.getElementById('approve_is_fee_paid')?.checked ?? false;
+        const amountInput = document.getElementById('approve_admission_paid_amount');
+        const previewBanner = document.getElementById('fee_calc_preview_banner');
+        if (!previewBanner) return;
+
+        if (!isPaid) {
+            previewBanner.style.background = '#fef2f2';
+            previewBanner.style.border = '1px solid #fecaca';
+            previewBanner.style.color = '#991b1b';
+            previewBanner.innerHTML = `
+                <div><i class="fa-solid fa-circle-xmark"></i> <strong>স্ট্যাটাস: সম্পূর্ণ অপরিশোধিত (UNPAID DUE)</strong></div>
+                <div>শিক্ষার্থীর পেমেন্ট পোর্টালে বকেয়া থাকবে: <strong>৳ ${NET_PAYABLE_FEE.toLocaleString()}</strong></div>
+            `;
+            return;
+        }
+
+        const paidVal = parseFloat(amountInput?.value) || 0;
+        const dueVal = Math.max(0, NET_PAYABLE_FEE - paidVal);
+
+        if (dueVal <= 0 && NET_PAYABLE_FEE > 0) {
+            previewBanner.style.background = '#ecfdf5';
+            previewBanner.style.border = '1px solid #a7f3d0';
+            previewBanner.style.color = '#065f46';
+            previewBanner.innerHTML = `
+                <div><i class="fa-solid fa-circle-check"></i> <strong>স্ট্যাটাস: সম্পূর্ণ পরিশোধিত (PAID)</strong> (পরিশোধ: ৳ ${paidVal.toLocaleString()})</div>
+                <div>শিক্ষার্থীর পোর্টালে কোনো বকেয়া থাকবে না (Due: ৳ 0)</div>
+            `;
+        } else if (paidVal > 0) {
+            previewBanner.style.background = '#fffbeb';
+            previewBanner.style.border = '1px solid #fde68a';
+            previewBanner.style.color = '#92400e';
+            previewBanner.innerHTML = `
+                <div><i class="fa-solid fa-triangle-exclamation"></i> <strong>স্ট্যাটাস: আংশিক পরিশোধ (PARTIAL DUE)</strong> (পরিশোধ: ৳ ${paidVal.toLocaleString()})</div>
+                <div>বাকি টাকা শিক্ষার্থীর পোর্টালে বকেয়া দেখাবে: <strong style="color:#b45309">৳ ${dueVal.toLocaleString()}</strong></div>
+            `;
+        } else {
+            previewBanner.style.background = '#fef2f2';
+            previewBanner.style.border = '1px solid #fecaca';
+            previewBanner.style.color = '#991b1b';
+            previewBanner.innerHTML = `
+                <div><i class="fa-solid fa-circle-exclamation"></i> <strong>স্ট্যাটাস: অপরিশোধিত (UNPAID DUE)</strong></div>
+                <div>শিক্ষার্থীর পেমেন্ট পোর্টালে বকেয়া দেখাবে: <strong>৳ ${NET_PAYABLE_FEE.toLocaleString()}</strong></div>
+            `;
+        }
+    }
+
     function onCustomPasswordInput() {
         // Dynamic template update if custom password changes and not manually overwritten
     }
 
     function generateApprovePassword() {
-        const chars = 'abcdefghjkmnpqrstuvwxyz23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-        let res = '';
-        for (let i = 0; i < 8; i++) {
-            res += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        let res = Math.floor(10000 + Math.random() * 90000).toString();
         const input = document.getElementById('approve_custom_password');
         if (input) {
             input.value = res;
@@ -834,6 +1021,7 @@
             populateTemplateForSelectedBatch(false);
         }
         updateSmsCharCounter();
+        toggleFeePaymentControls(document.getElementById('approve_is_fee_paid')?.checked ?? false);
     });
     </script>
 

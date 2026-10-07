@@ -1,3 +1,6 @@
+@php
+    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag();
+@endphp
 <x-admin-layout>
     <x-slot name="title">নতুন ইমেইল টেমপ্লেট যুক্ত করুন</x-slot>
 
@@ -204,8 +207,12 @@
             const bCourse = opt.getAttribute('data-course');
             if (!courseId || bCourse === courseId) {
                 opt.style.display = '';
+                opt.hidden = false;
+                opt.disabled = false;
             } else {
                 opt.style.display = 'none';
+                opt.hidden = true;
+                opt.disabled = true;
             }
         });
 

@@ -131,8 +131,9 @@ class AdmissionFormController extends Controller
 
         // Create Application & Lead Student inside Transaction
         $result = DB::transaction(function () use ($validated, $request) {
-            $sessionId = $validated['academic_session_id']
-                ?? AcademicSession::where('is_active', true)->orderByDesc('id')->value('id');
+            $sessionId = (!empty($validated['academic_session_id']) && AcademicSession::where('id', $validated['academic_session_id'])->where('is_active', true)->exists())
+                ? (int) $validated['academic_session_id']
+                : (AcademicSession::getActiveSession()?->id ?? AcademicSession::where('is_active', true)->latest('id')->value('id') ?? AcademicSession::latest('id')->value('id'));
 
             // 1. Find or Create Student as LEAD for this specific course
             $targetCourseId = (int) $validated['course_id'];
@@ -542,7 +543,7 @@ class AdmissionFormController extends Controller
                     $newStudent->student_code = Student::generateStudentCode($batch, $targetCourse, $effectiveGender);
                     $newStudent->save();
 
-                    $rawPassword = $student->temporary_password ?: ($newStudent->phone ?: '12345678');
+                    $rawPassword = $student->getOrGenerateNumericPassword();
                     $loginEmail = $newStudent->student_code . '@iom.student';
                     $user = User::where('email', $loginEmail)->first();
                     if (!$user) {

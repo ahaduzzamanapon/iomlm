@@ -27,9 +27,9 @@ class WaiverApplicationController extends Controller
         $routeName = $request->route()?->getName();
         $queryType = strtolower(trim((string) $request->query('type', '')));
 
-        if ($routeName === 'poor_fund.admission' || $type === 'admission' || in_array($queryType, ['admission', 'admission-fee', 'admission_fee'])) {
+        if (in_array($routeName, ['poor_fund.admission', 'pf.admission']) || $type === 'admission' || in_array($queryType, ['admission', 'admission-fee', 'admission_fee'])) {
             $activeType = 'admission';
-        } elseif ($routeName === 'poor_fund.tuition' || $routeName === 'poor_fund.monthly' || in_array($type, ['tuition', 'monthly']) || in_array($queryType, ['tuition', 'monthly', 'tuition-fee', 'monthly-fee'])) {
+        } elseif (in_array($routeName, ['poor_fund.tuition', 'poor_fund.monthly', 'pf.tuition', 'pf.monthly']) || in_array($type, ['tuition', 'monthly']) || in_array($queryType, ['tuition', 'monthly', 'tuition-fee', 'monthly-fee'])) {
             $activeType = 'tuition';
         } else {
             $activeType = 'both';

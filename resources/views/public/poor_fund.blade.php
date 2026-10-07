@@ -118,7 +118,7 @@
         </div>
     </div>
 
-    @if(isset($errors) && $errors->any())
+    @if(isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
     <div class="alert-error">
         <strong>অনুরোধ: অনুগ্রহ করে নিচের ভুলগুলো সংশোধন করুন:</strong>
         <ul style="margin-top:6px;margin-left:18px">

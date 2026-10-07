@@ -393,12 +393,12 @@ class StudentController extends Controller
     public function resetPassword(Request $request, Student $student)
     {
         $request->validate([
-            'new_password' => 'nullable|string|min:6',
+            'new_password' => 'nullable|string|min:4|max:30',
         ]);
 
         $newPassword = $request->filled('new_password')
             ? trim($request->new_password)
-            : strtolower(\Illuminate\Support\Str::random(8));
+            : Student::generateDefaultPassword();
 
         $user = $student->user;
         if (!$user) {

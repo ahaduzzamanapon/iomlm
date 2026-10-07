@@ -215,4 +215,28 @@ class BroadcastNotificationController extends Controller
             'sender_name'    => $notification->sender?->name ?? 'System',
         ]);
     }
+
+    /**
+     * Mark all notifications and pending actions as read for current admin
+     */
+    public function markAllRead(Request $request)
+    {
+        $user = auth()->user();
+        $now = now();
+        if ($user) {
+            $user->forceFill(['notifications_read_at' => now()])->save();
+        }
+        session(['notifications_read_at' => $now]);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'সকল নোটিফিকেশন পঠিত হিসেবে চিহ্নিত করা হয়েছে।',
+                'read_at' => $now->toIso8601String(),
+            ]);
+        }
+
+        return back()->with('success', 'সকল নোটিফিকেশন পঠিত হিসেবে চিহ্নিত করা হয়েছে।');
+    }
 }
+

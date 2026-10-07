@@ -342,6 +342,9 @@
                         <input type="checkbox" name="is_active" value="1" checked style="width:16px;height:16px;accent-color:#047857">
                         সক্রিয় সেশন হিসেবে রাখুন (Active Session)
                     </label>
+                    <div style="font-size:12px;color:#047857;margin-top:4px;">
+                        <i class="fa-solid fa-circle-info"></i> একই শিক্ষাবর্ষে একই সাথে একাধিক সেশন সক্রিয় রাখা যাবে না। এটি সক্রিয় করলে ঐ বর্ষের অন্য সেশন স্বয়ংক্রিয়ভাবে নিষ্ক্রিয় হবে এবং নতুন ভর্তি এই সেশনে জমা হবে।
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('createSessionModal')">বাতিল</button>
@@ -395,6 +398,9 @@
                         <input type="checkbox" name="is_active" id="edit_session_is_active" value="1" style="width:16px;height:16px;accent-color:#047857">
                         সক্রিয় সেশন হিসেবে রাখুন (Active Session)
                     </label>
+                    <div style="font-size:12px;color:#047857;margin-top:4px;">
+                        <i class="fa-solid fa-circle-info"></i> একই শিক্ষাবর্ষে একই সাথে একাধিক সেশন সক্রিয় রাখা যাবে না। এটি সক্রিয় করলে ঐ বর্ষের অন্য সেশন স্বয়ংক্রিয়ভাবে নিষ্ক্রিয় হবে এবং নতুন ভর্তি এই সেশনে জমা হবে।
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('editSessionModal')">বাতিল</button>

@@ -29,10 +29,10 @@
 
         <div>
             <label style="display:block;font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px;">কোর্স</label>
-            <select name="course_id" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
+            <select name="course_id" id="filter_course_id" onchange="filterIndexBatches()" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
                 <option value="">— সকল কোর্স —</option>
                 @foreach($courses as $c)
-                    <option value="{{ $c->id }}" {{ request('course_id') == $c->id ? 'selected' : '' }}>
+                    <option value="{{ $c->id }}" {{ (string)request('course_id') === (string)$c->id ? 'selected' : '' }}>
                         {{ $c->code ? "[{$c->code}] " : '' }}{{ $c->name }}
                     </option>
                 @endforeach
@@ -41,12 +41,14 @@
 
         <div>
             <label style="display:block;font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px;">ব্যাচ</label>
-            <select name="batch_id" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
+            <select name="batch_id" id="filter_batch_id" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
                 <option value="">— সকল ব্যাচ —</option>
                 @foreach($batches as $b)
-                    <option value="{{ $b->id }}" {{ request('batch_id') == $b->id ? 'selected' : '' }}>
-                        {{ $b->name }}
-                    </option>
+                    @if(!request('course_id') || (string)$b->course_id === (string)request('course_id'))
+                        <option value="{{ $b->id }}" data-course="{{ $b->course_id }}" {{ (string)request('batch_id') === (string)$b->id ? 'selected' : '' }}>
+                            {{ $b->name }}
+                        </option>
+                    @endif
                 @endforeach
             </select>
         </div>
@@ -245,6 +247,37 @@
 @push('scripts')
 <script>
     const allTemplates = @json($templates->items());
+    const allBatches = {!! json_encode($batches->map(fn($b) => [
+        'id' => $b->id,
+        'name' => $b->name,
+        'course_id' => $b->course_id,
+    ])) !!};
+
+    function filterIndexBatches() {
+        const courseSelect = document.getElementById('filter_course_id');
+        const batchSelect = document.getElementById('filter_batch_id');
+        if (!courseSelect || !batchSelect) return;
+
+        const courseId = courseSelect.value;
+        const currentSelected = batchSelect.value;
+
+        batchSelect.innerHTML = '<option value="">— সকল ব্যাচ —</option>';
+
+        const filtered = courseId 
+            ? allBatches.filter(b => String(b.course_id) === String(courseId))
+            : allBatches;
+
+        filtered.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b.id;
+            opt.textContent = b.name;
+            opt.setAttribute('data-course', b.course_id);
+            if (String(b.id) === String(currentSelected)) {
+                opt.selected = true;
+            }
+            batchSelect.appendChild(opt);
+        });
+    }
 
     function previewTemplate(id) {
         const tpl = allTemplates.find(t => t.id === id);

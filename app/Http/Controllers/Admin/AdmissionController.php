@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\Course;
 use App\Models\Batch;
 use App\Models\Enrollment;
+use App\Models\AcademicSession;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -284,7 +285,9 @@ class AdmissionController extends Controller
                 'student_id'              => $student->id,
                 'interested_course_id'    => (int) $validated['interested_course_id'],
                 'batch_id'                => !empty($validated['batch_id']) ? (int) $validated['batch_id'] : null,
-                'academic_session_id'     => !empty($validated['academic_session_id']) ? (int) $validated['academic_session_id'] : null,
+                'academic_session_id'     => !empty($validated['academic_session_id'])
+                    ? (int) $validated['academic_session_id']
+                    : (\App\Models\AcademicSession::getActiveSession()?->id ?? \App\Models\AcademicSession::where('is_active', true)->latest('id')->value('id')),
                 'attempt_no'              => 1,
                 'lead_source'             => $validated['lead_source'] ?? 'Direct',
                 'discount_percent'        => $validated['discount_percent'] ?? 0,
@@ -417,14 +420,19 @@ class AdmissionController extends Controller
     public function approve(Request $request, AdmissionForm $admission)
     {
         $request->validate([
-            'batch_id'       => 'required|exists:batches,id',
-            'course_id'      => 'nullable|exists:courses,id',
-            'email_subject'  => 'nullable|string|max:255',
-            'email_body'     => 'nullable|string',
-            'sms_body'       => 'nullable|string|max:1000',
-            'send_email'     => 'nullable|boolean',
-            'send_sms'       => 'nullable|boolean',
-            'save_template'  => 'nullable|boolean',
+            'batch_id'              => 'required|exists:batches,id',
+            'course_id'             => 'nullable|exists:courses,id',
+            'is_fee_paid'           => 'nullable|boolean',
+            'admission_paid_amount' => 'nullable|numeric|min:0',
+            'payment_method'        => 'nullable|string|max:50',
+            'transaction_id'        => 'nullable|string|max:100',
+            'sender_number'         => 'nullable|string|max:50',
+            'email_subject'         => 'nullable|string|max:255',
+            'email_body'            => 'nullable|string',
+            'sms_body'              => 'nullable|string|max:1000',
+            'send_email'            => 'nullable|boolean',
+            'send_sms'              => 'nullable|boolean',
+            'save_template'         => 'nullable|boolean',
         ]);
 
         return DB::transaction(function () use ($admission, $request) {
@@ -489,7 +497,7 @@ class AdmissionController extends Controller
                 $newStudent->student_code = Student::generateStudentCode($batch, $course, $effectiveGender);
                 $newStudent->save();
 
-                $rawPassword = $student->temporary_password ?: ($newStudent->phone ?: '12345678');
+                $rawPassword = $student->getOrGenerateNumericPassword();
                 $loginEmail = $newStudent->student_code . '@iom.student';
                 $user = User::where('email', $loginEmail)->first();
                 if (!$user) {
@@ -539,7 +547,7 @@ class AdmissionController extends Controller
             // ── AUTO-CREATE OR RETRIEVE USER ACCOUNT ──────────────────────
             $rawPassword = $request->filled('custom_password')
                 ? trim($request->input('custom_password'))
-                : ($student->temporary_password ?: ($student->phone ?: strtolower(\Illuminate\Support\Str::random(8))));
+                : $student->getOrGenerateNumericPassword();
 
             $student->temporary_password = $rawPassword;
 
@@ -592,8 +600,19 @@ class AdmissionController extends Controller
                 'status'            => 'ACTIVE',
             ]);
 
+            // Settle Admission Fee with Admin-specified Paid Amount
+            $isFeePaid  = $request->boolean('is_fee_paid');
+            $paidAmount = $isFeePaid ? (float) $request->input('admission_paid_amount', 0) : 0.00;
+
+            $paymentDetails = [
+                'method'        => $request->input('payment_method', $admission->manual_payment_method ?: 'bKash'),
+                'trx_id'        => $request->input('transaction_id', $admission->manual_trx_id),
+                'sender_number' => $request->input('sender_number', $admission->manual_sender_phone),
+                'notes'         => 'Admission fee payment approved by Admin during admission review',
+            ];
+
             // Auto-generate Admission & Initial Semester Fee Invoices
-            \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment);
+            \App\Services\AccountingService::createAdmissionInvoice($student, $admission, $enrollment, $paidAmount, $paymentDetails);
             \App\Services\AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
 
             // ── DISPATCH BATCH-SPECIFIC ADMISSION APPROVAL EMAIL & SMS ───

@@ -140,6 +140,9 @@ class BatchController extends Controller
             $nextCode = $baseCode . str_pad($seq, 2, '0', STR_PAD_LEFT);
         }
 
+        $startDateMonth = date('F', strtotime($validated['start_date']));
+        $endDateMonth = !empty($validated['expected_end_date']) ? date('F', strtotime($validated['expected_end_date'])) : null;
+
         $batch = Batch::create([
             'name'                     => $validated['name'],
             'batch_code'               => $nextCode,
@@ -147,10 +150,10 @@ class BatchController extends Controller
             'academic_year_id'         => $validated['academic_year_id'] ?? null,
             'start_date'               => $validated['start_date'],
             'expected_end_date'        => $validated['expected_end_date'] ?? null,
-            'start_month'              => $validated['start_month'] ?? null,
-            'end_month'                => $validated['end_month'] ?? null,
-            'fee_start_month'          => $validated['fee_start_month'] ?? null,
-            'fee_end_month'            => $validated['fee_end_month'] ?? null,
+            'start_month'              => $validated['start_month'] ?? $startDateMonth,
+            'end_month'                => $validated['end_month'] ?? $endDateMonth,
+            'fee_start_month'          => $validated['fee_start_month'] ?? $startDateMonth,
+            'fee_end_month'            => $validated['fee_end_month'] ?? $endDateMonth,
             'admission_fee'            => $validated['admission_fee'] ?? 0.00,
             'monthly_fee'              => $validated['monthly_fee'] ?? 0.00,
             'status'                   => 'ACTIVE',
@@ -224,12 +227,15 @@ class BatchController extends Controller
             ]);
         }
 
+        $startDateMonth = date('F', strtotime($validated['start_date']));
+        $endDateMonth = !empty($validated['expected_end_date']) ? date('F', strtotime($validated['expected_end_date'])) : null;
+
         $batch->update(array_merge($validated, [
             'expected_end_date' => $validated['expected_end_date'] ?? null,
-            'start_month'       => $validated['start_month'] ?? null,
-            'end_month'         => $validated['end_month'] ?? null,
-            'fee_start_month'   => $validated['fee_start_month'] ?? null,
-            'fee_end_month'     => $validated['fee_end_month'] ?? null,
+            'start_month'       => $validated['start_month'] ?? $startDateMonth,
+            'end_month'         => $validated['end_month'] ?? $endDateMonth,
+            'fee_start_month'   => $validated['fee_start_month'] ?? $startDateMonth,
+            'fee_end_month'     => $validated['fee_end_month'] ?? $endDateMonth,
             'admission_fee'     => $validated['admission_fee'] ?? 0.00,
             'monthly_fee'       => $validated['monthly_fee'] ?? 0.00,
             'is_admission_open' => $request->boolean('is_admission_open'),

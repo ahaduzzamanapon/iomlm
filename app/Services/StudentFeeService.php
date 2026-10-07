@@ -256,6 +256,9 @@ class StudentFeeService
         }
 
         $batchStartMonth = $batch?->fee_start_month ?: ($batch?->start_month ?: null);
+        if (!$batchStartMonth && $batch?->start_date) {
+            $batchStartMonth = Carbon::parse($batch->start_date)->format('F');
+        }
         if (!$batchStartMonth && $academicYear?->start_date) {
             $batchStartMonth = Carbon::parse($academicYear->start_date)->format('F');
         }

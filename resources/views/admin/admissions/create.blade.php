@@ -61,11 +61,12 @@
 
                     <div class="form-group">
                         <label>একাডেমিক সেশন</label>
+                        @php $activeSessionId = $sessions->firstWhere('is_active', true)?->id ?? $sessions->first()?->id; @endphp
                         <select name="academic_session_id" class="form-control">
                             <option value="">-- সেশন নির্বাচন করুন --</option>
                             @foreach($sessions as $s)
-                                <option value="{{ $s->id }}" {{ old('academic_session_id') == $s->id ? 'selected' : '' }}>
-                                    {{ $s->name }}{{ $s->academicYear ? ' (' . $s->academicYear->name . ')' : '' }}
+                                <option value="{{ $s->id }}" {{ old('academic_session_id', $activeSessionId) == $s->id ? 'selected' : '' }}>
+                                    {{ $s->name }}{{ $s->academicYear ? ' (' . $s->academicYear->name . ')' : '' }}{{ $s->is_active ? ' (সক্রিয়)' : '' }}
                                 </option>
                             @endforeach
                         </select>

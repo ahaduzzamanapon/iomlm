@@ -574,7 +574,7 @@ class PaymentGatewayService
         $student->calculateProfileCompletion();
 
         // 2. Create Student User Account if not exists
-        $rawPassword = $student->temporary_password ?: ($student->phone ?: '12345678');
+        $rawPassword = $student->getOrGenerateNumericPassword();
         if (empty($student->user_id)) {
             $loginEmail = $student->student_code ? ($student->student_code . '@iom.student') : ($student->email ?: uniqid() . '@iom.student');
 
@@ -655,7 +655,7 @@ class PaymentGatewayService
                 $courseId = $form->course_id ?? $student->course_id;
                 $batchId = $batch?->id ?? $form->batch_id ?? $student->batch_id;
                 $gender = $student->gender ?? $form->gender ?? 'Male';
-                $displayPassword = $rawPassword ?: ($student->temporary_password ?: ($student->phone ?: '12345678'));
+                $displayPassword = $rawPassword ?: $student->getOrGenerateNumericPassword();
                 $loginUrl = url('/login');
 
                 $replaceVars = [

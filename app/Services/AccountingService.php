@@ -19,33 +19,25 @@ class AccountingService
      * Auto-generate Admission Fee Invoice when student is approved.
      * Respects waiver approved_admission_fee if a used waiver is linked.
      */
-    public static function createAdmissionInvoice(Student $student, AdmissionForm $admission, Enrollment $enrollment): Invoice
-    {
-        // ── SAFEGUARD 1: Prevent duplicate admission invoice for the same enrollment ──
-        $existing = Invoice::where('student_id', $student->id)
-            ->where('enrollment_id', $enrollment->id)
-            ->where('category', 'ADMISSION')
-            ->first();
-        if ($existing) {
-            return $existing; // Already created — return existing, don't duplicate
-        }
-
+    public static function createAdmissionInvoice(
+        Student $student,
+        AdmissionForm $admission,
+        Enrollment $enrollment,
+        ?float $paidAmountOverride = null,
+        array $paymentDetails = []
+    ): Invoice {
         $batch  = $enrollment->batch;
         $course = $enrollment->course ?? $batch?->course;
 
         // Priority 1: Batch admission fee, Priority 2: Course admission fee, Priority 3: FeeStructure fallback
-        // IMPORTANT: if batch/course explicitly set to 0, honour that (don't fallback to FeeStructure)
         $batchFee  = $batch  ? (float)$batch->admission_fee  : null;
         $courseFee = $course ? (float)$course->admission_fee : null;
 
         if ($batchFee !== null && $batchFee > 0) {
-            // Batch admission_fee is explicitly configured — use it
             $feeRate = $batchFee;
         } elseif ($courseFee !== null && $courseFee > 0) {
-            // Course admission_fee is explicitly configured — use it
             $feeRate = $courseFee;
         } else {
-            // No batch/course fee configured — fall back to FeeStructure
             $feeRate = (float)(FeeStructure::where('category', 'ADMISSION')
                 ->where(function ($q) use ($enrollment) {
                     $q->where('course_id', $enrollment->course_id)
@@ -78,7 +70,7 @@ class AccountingService
             $discountAmount = max(0, $feeRate - $approvedFee);
             $payableAmount  = $approvedFee;
         } else {
-            // Legacy: percentage or fixed discount from admission form
+            // Percentage or fixed discount from admission form
             $discountAmount = 0.00;
             if (($admission->discount_type ?? 'PERCENTAGE') === 'FIXED') {
                 $val = $admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent;
@@ -90,29 +82,106 @@ class AccountingService
             $payableAmount = max(0, $feeRate - $discountAmount);
         }
 
-        $invNo = 'INV-ADM-' . date('Ymd') . '-' . rand(1000, 9999);
+        // Determine Paid, Due, and Status
+        if ($paidAmountOverride !== null) {
+            $finalPaidAmount = max(0.00, round((float) $paidAmountOverride, 2));
+            if ($payableAmount <= 0) {
+                $finalPaidAmount = 0.00;
+                $finalDueAmount  = 0.00;
+                $status          = 'PAID';
+            } else {
+                $finalDueAmount = max(0.00, round($payableAmount - $finalPaidAmount, 2));
+                if ($finalDueAmount <= 0) {
+                    $status         = 'PAID';
+                    $finalDueAmount = 0.00;
+                } elseif ($finalPaidAmount > 0) {
+                    $status = 'PARTIAL';
+                } else {
+                    $status         = 'UNPAID';
+                    $finalDueAmount = $payableAmount;
+                }
+            }
+        } else {
+            $isFreeAdmission = ($payableAmount <= 0);
+            $finalPaidAmount = 0.00;
+            $finalDueAmount  = $isFreeAdmission ? 0.00 : $payableAmount;
+            $status          = $isFreeAdmission ? 'PAID' : 'UNPAID';
+        }
 
-        // ── SAFEGUARD 2: If payable amount is 0, auto-mark as PAID immediately ──
-        // This ensures courses/batches with admission_fee=0 never show a pending due
-        $isFreAdmission = ($payableAmount <= 0);
+        // Check for existing admission invoice
+        $existing = Invoice::where('student_id', $student->id)
+            ->where('enrollment_id', $enrollment->id)
+            ->where('category', 'ADMISSION')
+            ->first();
 
-        return Invoice::create([
-            'invoice_no'     => $invNo,
-            'student_id'     => $student->id,
-            'enrollment_id'  => $enrollment->id,
-            'category'       => 'ADMISSION',
-            'title'          => "Admission Fee — " . ($batch ? $batch->name : ($enrollment->course?->name ?? 'Course')),
-            'amount'         => $feeRate,
-            'discount'       => $discountAmount,
-            'payable_amount' => $payableAmount,
-            'paid_amount'    => $isFreAdmission ? 0.00 : 0.00,
-            'due_amount'     => $isFreAdmission ? 0.00 : $payableAmount,
-            'status'         => $isFreAdmission ? 'PAID' : 'UNPAID',
-            'due_date'       => $isFreAdmission ? null : Carbon::now()->addDays(7),
-            'source_type'    => AdmissionForm::class,
-            'source_id'      => $admission->id,
-            'created_by'     => auth()->id(),
+        if ($existing) {
+            $invoice = $existing;
+            $invoice->update([
+                'amount'         => $feeRate,
+                'discount'       => $discountAmount,
+                'payable_amount' => $payableAmount,
+                'paid_amount'    => $finalPaidAmount,
+                'due_amount'     => $finalDueAmount,
+                'status'         => $status,
+                'due_date'       => ($status === 'PAID') ? null : Carbon::now()->addDays(7),
+            ]);
+        } else {
+            $invNo = 'INV-ADM-' . date('Ymd') . '-' . rand(1000, 9999);
+            $invoice = Invoice::create([
+                'invoice_no'     => $invNo,
+                'student_id'     => $student->id,
+                'enrollment_id'  => $enrollment->id,
+                'category'       => 'ADMISSION',
+                'title'          => "Admission Fee — " . ($batch ? $batch->name : ($enrollment->course?->name ?? 'Course')),
+                'amount'         => $feeRate,
+                'discount'       => $discountAmount,
+                'payable_amount' => $payableAmount,
+                'paid_amount'    => $finalPaidAmount,
+                'due_amount'     => $finalDueAmount,
+                'status'         => $status,
+                'due_date'       => ($status === 'PAID') ? null : Carbon::now()->addDays(7),
+                'source_type'    => AdmissionForm::class,
+                'source_id'      => $admission->id,
+                'created_by'     => auth()->id(),
+            ]);
+        }
+
+        // Record Payment if paid amount > 0
+        if ($finalPaidAmount > 0) {
+            $alreadyRecorded = Payment::where('invoice_id', $invoice->id)
+                ->where('status', 'APPROVED')
+                ->sum('amount');
+
+            if ($alreadyRecorded < $finalPaidAmount) {
+                $amountToCredit = $finalPaidAmount - $alreadyRecorded;
+                $payMethod = $paymentDetails['method'] ?? $admission->manual_payment_method ?? 'bKash';
+                $trxId     = $paymentDetails['trx_id'] ?? $admission->manual_trx_id ?? null;
+                $sender    = $paymentDetails['sender_number'] ?? $admission->manual_sender_phone ?? null;
+                $notes     = $paymentDetails['notes'] ?? 'Admission fee payment approved during admission review';
+
+                Payment::create([
+                    'payment_no'     => 'PAY-ADM-' . date('Ymd') . '-' . rand(1000, 9999),
+                    'invoice_id'     => $invoice->id,
+                    'student_id'     => $student->id,
+                    'amount'         => $amountToCredit,
+                    'payment_method' => $payMethod,
+                    'transaction_id' => $trxId,
+                    'sender_number'  => $sender,
+                    'remarks'        => $notes,
+                    'received_by'    => auth()->id(),
+                    'status'         => 'APPROVED',
+                    'approved_at'    => now(),
+                    'paid_at'        => now(),
+                ]);
+            }
+        }
+
+        // Sync manual_paid_amount in admission form
+        $admission->update([
+            'manual_paid_amount' => $finalPaidAmount,
         ]);
+
+        return $invoice;
     }
 
 
