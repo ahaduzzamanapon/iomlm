@@ -938,6 +938,118 @@ class StudentFeeService
             }
         }
 
+        // ── Append All Other Invoices (Course Activation Fee, Fines, Extra Fees, Document Fees, Retakes, etc.) ──
+        if ($selectedSemesterId !== 'admission') {
+            $alreadyRepresentedInvoiceIds = array_filter(array_column($step1Particulars, 'invoice_id'));
+            $existingPartNames = array_map('mb_strtolower', array_column($step1Particulars, 'name'));
+
+            foreach ($activeInvoices as $otherInv) {
+                // Skip the main semester invoice which is already represented by months/term fees
+                if ($selectedSemesterInvoice && $otherInv->id === $selectedSemesterInvoice->id) {
+                    continue;
+                }
+
+                // Skip admission invoice if already represented
+                if ($otherInv->category === 'ADMISSION' && in_array($otherInv->id, $alreadyRepresentedInvoiceIds, true)) {
+                    continue;
+                }
+
+                // Check if this invoice is explicitly linked to another semester
+                if ($otherInv->source_type === Semester::class && $otherInv->source_id && $selectedSemester && $otherInv->source_id != $selectedSemester->id) {
+                    continue;
+                }
+
+                $belongsToSelected = false;
+
+                if ($otherInv->source_type === Semester::class && $otherInv->source_id == $selectedSemester?->id) {
+                    $belongsToSelected = true;
+                } elseif ($selectedSemester && $runningSemester && $selectedSemester->id == $runningSemester->id) {
+                    // Running semester shows all unassigned/general student fees (activation fees, fines, extra)
+                    $belongsToSelected = true;
+                } elseif ($otherInv->due_amount > 0) {
+                    // Any unpaid due should be visible on the active/selected semester so it can be paid
+                    $belongsToSelected = true;
+                } else {
+                    // Check if created_at or due_date falls within the semester startCarbon -> startCarbon + 6 months
+                    if (isset($startCarbon) && $otherInv->created_at) {
+                        $invDate = Carbon::parse($otherInv->created_at);
+                        $semEnd = $startCarbon->copy()->addMonths(6);
+                        if ($invDate->between($startCarbon, $semEnd)) {
+                            $belongsToSelected = true;
+                        }
+                    }
+                }
+
+                if (!$belongsToSelected) {
+                    continue;
+                }
+
+                // If invoice has custom particulars:
+                if (!empty($otherInv->custom_particulars)) {
+                    foreach ($otherInv->custom_particulars as $cpName => $cpData) {
+                        if (in_array(mb_strtolower($cpName), $existingPartNames, true)) {
+                            continue;
+                        }
+                        $cDue   = (float) ($cpData['due'] ?? 0);
+                        $cAmt   = (float) ($cpData['amount'] ?? $cDue);
+                        $cPaid  = isset($cpData['paid_amt']) ? (float)$cpData['paid_amt'] : max(0, $cAmt - $cDue);
+                        $isPaid = ($cDue <= 0);
+
+                        $step1Particulars[] = [
+                            'sl'             => $sl++,
+                            'name'           => $cpName,
+                            'amount'         => $cAmt,
+                            'paid_amt'       => $cPaid,
+                            'due'            => $cDue,
+                            'is_paid'        => $isPaid,
+                            'is_custom'      => true,
+                            'is_added'       => true,
+                            'custom_remarks' => $cpData['remarks'] ?? $otherInv->notes ?? $otherInv->category,
+                            'invoice_id'     => $otherInv->id,
+                            'invoice_no'     => $otherInv->invoice_no,
+                            'category'       => $otherInv->category,
+                        ];
+                        $existingPartNames[] = mb_strtolower($cpName);
+                    }
+                } else {
+                    // The invoice itself is the fee item
+                    $invTitle = $otherInv->title ?: ($otherInv->category . ' Fee');
+                    
+                    // Clean long auto-generated activation fee titles if needed
+                    $isActivation = ($otherInv->category === 'FINE' && (str_contains(mb_strtolower($invTitle), 'activation') || str_contains($invTitle, 'এক্টিভিশন') || str_contains($otherInv->invoice_no, 'INV-ACT-')));
+                    if ($isActivation && str_contains($invTitle, '(')) {
+                        $parts = explode('(', $invTitle, 2);
+                        $invTitle = trim($parts[0]);
+                    }
+
+                    if (in_array(mb_strtolower($invTitle), $existingPartNames, true)) {
+                        continue;
+                    }
+
+                    $invPayable = $otherInv->payable_amount > 0 ? (float)$otherInv->payable_amount : (float)$otherInv->amount;
+                    $invDue     = (float)$otherInv->due_amount;
+                    $invPaid    = (float)$otherInv->paid_amount;
+                    $isPaid     = ($invDue <= 0 && $otherInv->status === 'PAID');
+
+                    $step1Particulars[] = [
+                        'sl'             => $sl++,
+                        'name'           => $invTitle,
+                        'amount'         => $invPayable,
+                        'paid_amt'       => $invPaid,
+                        'due'            => $invDue,
+                        'is_paid'        => $isPaid,
+                        'is_custom'      => true,
+                        'is_added'       => true,
+                        'custom_remarks' => $otherInv->notes ?? ($isActivation ? 'কোর্স এক্টিভিশন ফি' : $otherInv->category),
+                        'invoice_id'     => $otherInv->id,
+                        'invoice_no'     => $otherInv->invoice_no,
+                        'category'       => $otherInv->category,
+                    ];
+                    $existingPartNames[] = mb_strtolower($invTitle);
+                }
+            }
+        }
+
         return [
             'student'                 => $student,
             'course'                  => $course,
@@ -1176,6 +1288,15 @@ class StudentFeeService
 
         $custom = $invoice->custom_particulars ?? [];
         if (!isset($custom[$pName])) {
+            if ($invoice->paid_amount <= 0 && ($invoice->title === $pName || str_contains($invoice->title, $pName))) {
+                $invoice->delete();
+                return [
+                    'success'     => true,
+                    'message'     => "✓ '{$pName}' ফি সফলভাবে মুছে ফেলা হয়েছে।",
+                    'invoice_id'  => $invoiceId,
+                    'invoice_due' => 0,
+                ];
+            }
             return [
                 'success' => false,
                 'message' => 'এই ফি আইটেমটি পাওয়া যায়নি।',
@@ -1237,7 +1358,8 @@ class StudentFeeService
         ?string $remarks = null,
         ?int $userId = null,
         array $particularDues = [],
-        array $particularAmounts = []
+        array $particularAmounts = [],
+        array $particularInvoices = []
     ): array {
         $amount = round($amount, 2);
         if ($amount <= 0) {
@@ -1247,54 +1369,46 @@ class StudentFeeService
             ];
         }
 
-        // Collect payment in AccountingService
-        $paymentAmt = min($amount, (float) $invoice->due_amount);
-        if ($paymentAmt <= 0) {
-            $paymentAmt = $amount;
-        }
-
-        $payment = AccountingService::receivePayment(
-            $invoice,
-            $paymentAmt,
-            strtoupper($paymentMethod),
-            $trxId,
-            $remarks ?: ('ফি আদায়: ' . implode(', ', $particularNames)),
-            $senderNumber
-        );
-
-        $custom = $invoice->custom_particulars ?? [];
+        $allocationsByInvoice = [];
         $remainingPayment = $amount;
 
         foreach ($particularNames as $idx => $pName) {
             $pName = trim($pName);
+            $targetInvId = $particularInvoices[$pName] ?? $invoice->id;
+            $targetInv = ($targetInvId == $invoice->id) ? $invoice : (Invoice::find($targetInvId) ?? $invoice);
 
-            // Determine current due
-            if (isset($custom[$pName]['due'])) {
-                $itemDue = (float) $custom[$pName]['due'];
+            if (!isset($allocationsByInvoice[$targetInv->id])) {
+                $allocationsByInvoice[$targetInv->id] = [
+                    'invoice'   => $targetInv,
+                    'allocated' => 0.0,
+                    'items'     => [],
+                ];
+            }
+
+            $itemCustom = $targetInv->custom_particulars ?? [];
+            if (isset($itemCustom[$pName]['due'])) {
+                $itemDue = (float) $itemCustom[$pName]['due'];
             } elseif (isset($particularDues[$pName])) {
                 $itemDue = (float) $particularDues[$pName];
             } else {
-                $itemDue = $amount;
+                $itemDue = (float) $targetInv->due_amount ?: $amount;
             }
 
-            // Determine total amount
-            if (isset($custom[$pName]['amount'])) {
-                $itemAmount = (float) $custom[$pName]['amount'];
+            if (isset($itemCustom[$pName]['amount'])) {
+                $itemAmount = (float) $itemCustom[$pName]['amount'];
             } elseif (isset($particularAmounts[$pName])) {
                 $itemAmount = (float) $particularAmounts[$pName];
             } else {
                 $itemAmount = $itemDue;
             }
 
-            // Determine current paid
-            $currentPaid = isset($custom[$pName]['paid_amt'])
-                ? (float) $custom[$pName]['paid_amt']
+            $currentPaid = isset($itemCustom[$pName]['paid_amt'])
+                ? (float) $itemCustom[$pName]['paid_amt']
                 : max(0, $itemAmount - $itemDue);
 
             $isLast = ($idx === count($particularNames) - 1);
             $allocated = min($remainingPayment, $itemDue);
             if ($isLast && $remainingPayment > $itemDue) {
-                // Last item absorbs remaining payment
                 $allocated = $remainingPayment;
             }
             $allocated = max(0, $allocated);
@@ -1303,7 +1417,8 @@ class StudentFeeService
             $newDue  = max(0, $itemAmount - $newPaid);
             $isPaid  = ($newDue <= 0);
 
-            $custom[$pName] = [
+            $allocationsByInvoice[$targetInv->id]['allocated'] += $allocated;
+            $allocationsByInvoice[$targetInv->id]['items'][$pName] = [
                 'name'        => $pName,
                 'amount'      => $itemAmount,
                 'paid_amt'    => $newPaid,
@@ -1319,14 +1434,43 @@ class StudentFeeService
             $remainingPayment -= $allocated;
         }
 
-        $invoice->update([
-            'custom_particulars' => $custom,
-        ]);
+        $lastPayment = null;
+        foreach ($allocationsByInvoice as $invData) {
+            $curInv = $invData['invoice'];
+            $invAllocated = (float) $invData['allocated'];
+
+            if ($invAllocated > 0) {
+                $curPaymentAmt = min($invAllocated, (float) $curInv->due_amount);
+                if ($curPaymentAmt <= 0) {
+                    $curPaymentAmt = $invAllocated;
+                }
+
+                $p = AccountingService::receivePayment(
+                    $curInv,
+                    $curPaymentAmt,
+                    strtoupper($paymentMethod),
+                    $trxId,
+                    $remarks ?: ('ফি আদায়: ' . implode(', ', array_keys($invData['items']))),
+                    $senderNumber
+                );
+                $lastPayment = $p;
+            }
+
+            $curCustom = $curInv->custom_particulars ?? [];
+            foreach ($invData['items'] as $itName => $itVals) {
+                $curCustom[$itName] = $itVals;
+            }
+            $curInv->update([
+                'custom_particulars' => $curCustom,
+            ]);
+        }
+
+        $paymentNo = $lastPayment ? $lastPayment->payment_no : 'N/A';
 
         return [
             'success'     => true,
-            'message'     => "✓ নির্বাচিত ফি (৳" . number_format($amount, 2) . ") সফলভাবে আদায় করা হয়েছে! মানি রসিদ নং: {$payment->payment_no}",
-            'payment'     => $payment,
+            'message'     => "✓ নির্বাচিত ফি (৳" . number_format($amount, 2) . ") সফলভাবে আদায় করা হয়েছে! মানি রসিদ নং: {$paymentNo}",
+            'payment'     => $lastPayment,
             'invoice'     => $invoice->fresh(),
         ];
     }

@@ -244,8 +244,8 @@
                 </div>
 
                 {{-- Step 1 Particulars Table --}}
-                <div style="max-width:750px;margin:0 auto;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
-                    <table style="width:100%;border-collapse:collapse;font-size:13px">
+                <div style="max-width:750px;margin:0 auto;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;font-family:'Kalpurush',sans-serif">
+                    <table style="width:100%;border-collapse:collapse;font-size:13px;font-family:'Kalpurush',sans-serif">
                         <thead>
                             <tr style="background:#f1f5f9;border-bottom:1px solid #cbd5e1">
                                 <th
@@ -268,11 +268,23 @@
                                     <td style="padding:9px 14px;text-align:center;color:#64748b;font-weight:600">
                                         {{ $p['sl'] }}</td>
                                     <td style="padding:9px 14px;font-weight:600;color:#1e293b">
-                                        {{ $p['name'] }}
-                                        @if(!empty($p['is_added']))
-                                            <span
-                                                style="font-size:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700"
-                                                title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">নতুন যুক্ত</span>
+                                        <span>{{ $p['name'] }}</span>
+                                        @if(!empty($p['category']) && $p['category'] === 'FINE')
+                                            <span style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'বিলম্ব / জরিমানা' }}">
+                                                {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'জরিমানা' }}
+                                            </span>
+                                        @elseif(!empty($p['category']) && $p['category'] === 'DOCUMENT')
+                                            <span style="font-size:10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'ডকুমেন্ট ফি' }}">
+                                                ডকুমেন্ট ফি
+                                            </span>
+                                        @elseif(!empty($p['category']) && $p['category'] === 'EXTRA')
+                                            <span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অতিরিক্ত ফি' }}">
+                                                অতিরিক্ত ফি
+                                            </span>
+                                        @elseif(!empty($p['is_added']))
+                                            <span style="font-size:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">
+                                                {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'নতুন যুক্ত' }}
+                                            </span>
                                         @endif
                                     </td>
                                     <td style="padding:9px 14px;text-align:center" id="particularDueCell_{{ $p['sl'] }}">
@@ -281,9 +293,9 @@
                                                 <span id="particularDueVal_{{ $p['sl'] }}"
                                                     style="color:#16a34a;font-weight:700">Paid
                                                     ({{ number_format($p['amount'], 0) }})</span>
-                                                @if($isAdminSession && $selectedSemesterInvoice)
+                                                @if($isAdminSession && ($p['invoice_id'] ?? $selectedSemesterInvoice?->id))
                                                     <button type="button"
-                                                        onclick="openAdminParticularEditModal('{{ $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
+                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
                                                         title="টাকার পরিমাণ এডিট করুন (Admin Edit)"
                                                         style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:2px">
                                                         <i class="fa-solid fa-pencil"></i>
@@ -299,9 +311,9 @@
                                                         (পেইড: {{ number_format($p['paid_amt'], 0) }})
                                                     </span>
                                                 @endif
-                                                @if($isAdminSession && $selectedSemesterInvoice)
+                                                @if($isAdminSession && ($p['invoice_id'] ?? $selectedSemesterInvoice?->id))
                                                     <button type="button"
-                                                        onclick="openAdminParticularEditModal('{{ $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
+                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
                                                         title="টাকার পরিমাণ এডিট বা সমন্বয় করুন (Admin Edit: Increase/Decrease Taka)"
                                                         style="background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:all .15s"
                                                         onmouseover="this.style.background='#dbeafe'"
@@ -321,13 +333,22 @@
                                                     <i class="fa-solid fa-lock" style="color:#dc2626;font-size:11px"></i>
                                                 </span>
                                             @else
+                                                @php
+                                                    $isMonthly = !empty($p['name']) && (
+                                                        str_contains($p['name'], 'Tuition Fee') || 
+                                                        str_contains($p['name'], 'মাস') || 
+                                                        str_contains($p['name'], 'Month')
+                                                    ) && empty($p['is_added']) && (empty($p['category']) || $p['category'] === 'SEMESTER');
+                                                @endphp
                                                 <input type="checkbox" class="step1-chk" data-name="{{ $p['name'] }}"
                                                     data-amount="{{ $p['due'] }}"
-                                                    data-invoice-id="{{ $p['invoice_id'] ?? '' }}"
-                                                    data-invoice-no="{{ $p['invoice_no'] ?? '' }}"
+                                                    data-total-amount="{{ $p['amount'] }}"
+                                                    data-invoice-id="{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}"
+                                                    data-invoice-no="{{ $p['invoice_no'] ?? ($selectedSemesterInvoice?->invoice_no ?? '') }}"
+                                                    data-is-monthly="{{ $isMonthly ? '1' : '0' }}"
                                                     onchange="onStep1CheckboxChange(this)"
                                                     style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a"
-                                                    title="পরবর্তী মাস নির্বাচন করলে পূর্বের সকল বকেয়া মাস স্বয়ংক্রিয়ভাবে নির্বাচিত হবে">
+                                                    title="{{ $isMonthly ? 'পরবর্তী মাস নির্বাচন করলে পূর্বের সকল বকেয়া মাস ক্রমানুসারে নির্বাচিত হবে' : 'স্বতন্ত্রভাবে নির্বাচন করুন' }}">
                                             @endif
                                         @endif
                                     </td>
@@ -355,7 +376,7 @@
 
                 {{-- Next Button --}}
                 <div style="text-align:center;margin-top:16px">
-                    <button type="button" class="btn btn-success" id="step1NextBtn" onclick="goToStep2()" disabled
+                    <button type="button" class="btn btn-success" id="step1NextBtn" onclick="goToStep2Payment()" disabled
                         style="padding:10px 28px;font-size:14px;font-weight:700;border-radius:8px;display:inline-flex;align-items:center;gap:8px">
                         <i class="fa-solid fa-arrow-right"></i> Next (Go Step 2)
                     </button>
@@ -412,8 +433,13 @@
                                         $catLabel = ($inv->category === 'SEMESTER' && $courseType === 'SUBJECT_BASED')
                                             ? 'COURSE FEE'
                                             : $inv->category;
+                                        $isActInv = ($inv->category === 'FINE' && (str_contains($inv->invoice_no, 'INV-ACT') || str_contains($inv->title, 'এক্টিভিশন') || str_contains(mb_strtolower($inv->title), 'activation')));
                                     @endphp
-                                    <span class="badge badge-secondary no-dot" style="font-size:10px">{{ $catLabel }}</span>
+                                    @if($isActInv)
+                                        <span class="badge no-dot" style="font-size:10.5px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; font-weight:700">এক্টিভিশন ফি</span>
+                                    @else
+                                        <span class="badge badge-secondary no-dot" style="font-size:10px">{{ $catLabel }}</span>
+                                    @endif
                                     @if($inv->is_current_running_semester)
                                         @if($courseType === 'SUBJECT_BASED')
                                             <span class="badge badge-primary no-dot"
@@ -862,7 +888,7 @@
                     {{-- Quick preset pills --}}
                     <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">
                         <span style="font-size:11px;color:#64748b;align-self:center;font-weight:600">কুইক সিলেক্ট:</span>
-                        @foreach(['লেট ফি (Late Fee)', 'পুনঃপরীক্ষা ফি (Retake Fee)', 'সার্টিফিকেট ফি (Certificate Fee)', 'আইডি কার্ড ফি (ID Card Fee)', 'জরিমানা (Fine)', 'অন্যান্য ফি (Other Fee)'] as $preset)
+                        @foreach(['কোর্স এক্টিভিশন ফি (Activation Fee)', 'লেট ফি (Late Fee)', 'পুনঃপরীক্ষা ফি (Retake Fee)', 'সার্টিফিকেট ফি (Certificate Fee)', 'আইডি কার্ড ফি (ID Card Fee)', 'জরিমানা (Fine)', 'অন্যান্য ফি (Other Fee)'] as $preset)
                             <button type="button" onclick="setFeeNamePreset('{{ $preset }}')"
                                 style="font-size:11px;padding:2px 8px;border-radius:12px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s"
                                 onmouseover="this.style.background='#e2e8f0'"
@@ -1145,22 +1171,27 @@
             }
 
             function onStep1CheckboxChange(clickedChk) {
-                const allChks = Array.from(document.querySelectorAll('.step1-chk:not(:disabled)'));
-                const clickedIndex = allChks.indexOf(clickedChk);
+                const isMonthly = clickedChk.dataset.isMonthly === '1';
 
-                if (clickedIndex !== -1) {
-                    if (clickedChk.checked) {
-                        // নিচের যেকোনো মাস সিলেক্ট করলে উপরের সব গুলো একসাথে অটো সিলেক্ট হবে (0 to clickedIndex)
-                        for (let i = 0; i <= clickedIndex; i++) {
-                            allChks[i].checked = true;
-                        }
-                    } else {
-                        // কোনো মাস আনসিলেক্ট করলে তার নিচের সব গুলো অটো আনসিলেক্ট হবে (clickedIndex to end)
-                        for (let i = clickedIndex; i < allChks.length; i++) {
-                            allChks[i].checked = false;
+                if (isMonthly) {
+                    const monthlyChks = Array.from(document.querySelectorAll('.step1-chk:not(:disabled)[data-is-monthly="1"]'));
+                    const clickedIndex = monthlyChks.indexOf(clickedChk);
+
+                    if (clickedIndex !== -1) {
+                        if (clickedChk.checked) {
+                            // ক্রমানুসারে আগের সকল বকেয়া মাস অটো-সিলেক্ট হবে
+                            for (let i = 0; i <= clickedIndex; i++) {
+                                monthlyChks[i].checked = true;
+                            }
+                        } else {
+                            // কোনো মাস আনসিলেক্ট করলে পরবর্তী মাসগুলো আনসিলেক্ট হবে
+                            for (let i = clickedIndex; i < monthlyChks.length; i++) {
+                                monthlyChks[i].checked = false;
+                            }
                         }
                     }
                 }
+                // এক্টিভিশন ফি, জরিমানা, ডকুমেন্ট ফি বা অন্যান্য ফি স্বতন্ত্রভাবে সিলেক্ট/আনসিলেক্ট করা যাবে
 
                 updateStep1Total();
             }
@@ -1202,26 +1233,35 @@
                 }
 
                 let total = 0;
-                let names = [];
-                let targetInvoiceId = null;
-                let targetInvoiceNo = null;
+                let invoiceMap = {};
 
                 chks.forEach(c => {
-                    total += parseFloat(c.dataset.amount) || 0;
-                    names.push(c.dataset.name);
-                    if (!targetInvoiceId && c.dataset.invoiceId) {
-                        targetInvoiceId = c.dataset.invoiceId;
-                        targetInvoiceNo = c.dataset.invoiceNo;
+                    const amt = parseFloat(c.dataset.amount) || 0;
+                    total += amt;
+                    const invId = c.dataset.invoiceId || "{{ $selectedSemesterInvoice?->id ?? '' }}";
+                    const invNo = c.dataset.invoiceNo || "{{ $selectedSemesterInvoice?->invoice_no ?? '' }}";
+                    if (!invoiceMap[invId]) {
+                        invoiceMap[invId] = { id: invId, no: invNo, due: 0, names: [] };
                     }
+                    invoiceMap[invId].due += amt;
+                    invoiceMap[invId].names.push(c.dataset.name);
                 });
 
-                const invoiceId = targetInvoiceId || "{{ $selectedSemesterInvoice?->id ?? ($invoices->first()?->id ?? '') }}";
-                const invoiceNo = targetInvoiceNo || "{{ $selectedSemesterInvoice?->invoice_no ?? ($invoices->first()?->invoice_no ?? 'INV-001') }}";
-                const title = "{{ $selectedSemester?->name ?? 'সেমিস্টার ফি' }} — " + names.join(', ');
-                const totalDue = parseFloat("{{ $totalDue }}") || total;
+                const invoiceIds = Object.keys(invoiceMap);
+                if (invoiceIds.length > 1) {
+                    alert('অনলাইন গেটওয়ের মাধ্যমে একসাথে একাধিক ভিন্ন ইনভয়েস পরিশোধ করা যায় না। অনুগ্রহ করে কোর্স ফি এবং এক্টিভিশন ফি আলাদাভাবে নির্বাচন করে পরিশোধ করুন।');
+                    return;
+                }
 
-                openPayModal(invoiceId, title, invoiceNo, totalDue, total, names.join(', '), {{ $monthlyTuition ?? 100 }});
+                const target = invoiceMap[invoiceIds[0]];
+                const invoiceId = target.id || "{{ $selectedSemesterInvoice?->id ?? ($invoices->first()?->id ?? '') }}";
+                const invoiceNo = target.no || "{{ $selectedSemesterInvoice?->invoice_no ?? ($invoices->first()?->invoice_no ?? 'INV-001') }}";
+                const title = target.names.join(', ');
+                const invoiceDue = parseFloat(target.due) || total;
+
+                openPayModal(invoiceId, title, invoiceNo, invoiceDue, total, target.names.join(', '), {{ $monthlyTuition ?? 100 }});
             }
+            window.goToStep2 = goToStep2Payment;
 
             function closePayModal() {
                 document.getElementById('payInvoiceModal').style.display = 'none';

@@ -11,6 +11,8 @@ class Invoice extends Model
 
     protected $guarded = [];
 
+    public $is_current_running_semester = false;
+
     protected $casts = [
         'amount'         => 'float',
         'discount'       => 'float',

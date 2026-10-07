@@ -438,12 +438,13 @@ class AccountsController extends Controller
             'particular_names'   => 'required|array|min:1',
             'particular_names.*' => 'required|string',
             'particular_dues'    => 'nullable|array',
-            'particular_amounts' => 'nullable|array',
-            'amount'             => 'required|numeric|min:1',
-            'payment_method'     => 'required|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
-            'transaction_id'     => 'nullable|string|max:100',
-            'sender_number'      => 'nullable|string|max:30',
-            'remarks'            => 'nullable|string|max:255',
+            'particular_amounts'  => 'nullable|array',
+            'particular_invoices' => 'nullable|array',
+            'amount'              => 'required|numeric|min:1',
+            'payment_method'      => 'required|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'transaction_id'      => 'nullable|string|max:100',
+            'sender_number'       => 'nullable|string|max:30',
+            'remarks'             => 'nullable|string|max:255',
         ]);
 
         $invoice = null;
@@ -492,7 +493,8 @@ class AccountsController extends Controller
             $validated['remarks'] ?? null,
             auth()->id(),
             $request->input('particular_dues', []),
-            $request->input('particular_amounts', [])
+            $request->input('particular_amounts', []),
+            $request->input('particular_invoices', [])
         );
 
         if ($request->wantsJson()) {

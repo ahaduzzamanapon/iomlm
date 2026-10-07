@@ -230,8 +230,22 @@
                                 </td>
                                 <td style="padding:10px 14px;font-weight:600;color:#1e293b">
                                     <span>{{ $p['name'] }}</span>
-                                    @if(!empty($p['is_added']))
-                                        <span style="font-size:10.5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">নতুন যুক্ত</span>
+                                    @if(!empty($p['category']) && $p['category'] === 'FINE')
+                                        <span style="font-size:10.5px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'বিলম্ব / জরিমানা' }}">
+                                            {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'জরিমানা' }}
+                                        </span>
+                                    @elseif(!empty($p['category']) && $p['category'] === 'DOCUMENT')
+                                        <span style="font-size:10.5px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'ডকুমেন্ট ফি' }}">
+                                            ডকুমেন্ট ফি
+                                        </span>
+                                    @elseif(!empty($p['category']) && $p['category'] === 'EXTRA')
+                                        <span style="font-size:10.5px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অতিরিক্ত ফি' }}">
+                                            অতিরিক্ত ফি
+                                        </span>
+                                    @elseif(!empty($p['is_added']))
+                                        <span style="font-size:10.5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">
+                                            {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'নতুন যুক্ত' }}
+                                        </span>
                                     @endif
                                 </td>
                                 <td style="padding:10px 14px;text-align:center" id="adminPartDueCell_{{ $p['sl'] }}">
@@ -1026,7 +1040,7 @@
 
                         <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
                             <span style="font-size:11px;color:#64748b;align-self:center;font-weight:600">কুইক সিলেক্ট:</span>
-                            @foreach(['লেট ফি (Late Fee)', 'পুনঃপরীক্ষা ফি (Retake Fee)', 'সার্টিফিকেট ফি (Certificate Fee)', 'আইডি কার্ড ফি (ID Card Fee)', 'জরিমানা (Fine)', 'অন্যান্য ফি (Other Fee)'] as $preset)
+                            @foreach(['কোর্স এক্টিভিশন ফি (Activation Fee)', 'লেট ফি (Late Fee)', 'পুনঃপরীক্ষা ফি (Retake Fee)', 'সার্টিফিকেট ফি (Certificate Fee)', 'আইডি কার্ড ফি (ID Card Fee)', 'জরিমানা (Fine)', 'অন্যান্য ফি (Other Fee)'] as $preset)
                                 <button type="button" onclick="setAdminFeeNamePreset('{{ $preset }}')"
                                     style="font-size:10.5px;padding:2px 7px;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;cursor:pointer">
                                     + {{ $preset }}
@@ -1491,9 +1505,13 @@
 
         const totalAmt = totalAmount || due;
         const container = document.getElementById('acp_hidden_names_container');
-        container.innerHTML = '<input type="hidden" name="particular_names[]" value="' + pName.replace(/"/g, '&quot;') + '">' +
-                              '<input type="hidden" name="particular_dues[' + pName.replace(/"/g, '&quot;') + ']" value="' + due + '">' +
-                              '<input type="hidden" name="particular_amounts[' + pName.replace(/"/g, '&quot;') + ']" value="' + totalAmt + '">';
+        let html = '<input type="hidden" name="particular_names[]" value="' + pName.replace(/"/g, '&quot;') + '">' +
+                   '<input type="hidden" name="particular_dues[' + pName.replace(/"/g, '&quot;') + ']" value="' + due + '">' +
+                   '<input type="hidden" name="particular_amounts[' + pName.replace(/"/g, '&quot;') + ']" value="' + totalAmt + '">';
+        if (invoiceId) {
+            html += '<input type="hidden" name="particular_invoices[' + pName.replace(/"/g, '&quot;') + ']" value="' + invoiceId + '">';
+        }
+        container.innerHTML = html;
 
         openModal('adminCollectParticularPaymentModal');
     }
@@ -1528,6 +1546,7 @@
             const n = c.dataset.name;
             const d = parseFloat(c.dataset.amount) || 0;
             const a = parseFloat(c.dataset.totalAmount) || d;
+            const invId = c.dataset.invoiceId;
 
             const inputName = document.createElement('input');
             inputName.type = 'hidden';
@@ -1546,6 +1565,14 @@
             inputAmt.name = 'particular_amounts[' + n + ']';
             inputAmt.value = a;
             container.appendChild(inputAmt);
+
+            if (invId) {
+                const inputInv = document.createElement('input');
+                inputInv.type = 'hidden';
+                inputInv.name = 'particular_invoices[' + n + ']';
+                inputInv.value = invId;
+                container.appendChild(inputInv);
+            }
         });
 
         openModal('adminCollectParticularPaymentModal');
