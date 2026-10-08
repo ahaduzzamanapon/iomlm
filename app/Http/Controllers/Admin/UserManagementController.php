@@ -44,6 +44,7 @@ class UserManagementController extends Controller implements HasMiddleware
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('employee_id', 'like', "%{$search}%")
                   ->orWhere('designation', 'like', "%{$search}%");
             });
         }
@@ -94,6 +95,7 @@ class UserManagementController extends Controller implements HasMiddleware
             'password'            => 'required|string|min:6',
             'role'                => 'required|in:admin,super_admin',
             'designation'         => 'nullable|string|max:120',
+            'employee_id'         => 'nullable|string|max:50',
             'permissions'         => 'nullable|array',
             'permissions.*'       => 'string',
             'can_provide_support' => 'nullable|boolean',
@@ -113,6 +115,7 @@ class UserManagementController extends Controller implements HasMiddleware
             'password'            => bcrypt($validated['password']),
             'role'                => $validated['role'],
             'designation'         => $validated['designation'] ?? null,
+            'employee_id'         => $validated['employee_id'] ?? null,
             'admin_permissions'   => $permissions,
             'can_provide_support' => $canSupport,
             'is_active'           => true,
@@ -149,6 +152,7 @@ class UserManagementController extends Controller implements HasMiddleware
             'password'            => 'nullable|string|min:6',
             'role'                => 'required|in:admin,super_admin',
             'designation'         => 'nullable|string|max:120',
+            'employee_id'         => 'nullable|string|max:50',
             'permissions'         => 'nullable|array',
             'permissions.*'       => 'string',
             'can_provide_support' => 'nullable|boolean',
@@ -168,6 +172,7 @@ class UserManagementController extends Controller implements HasMiddleware
             'email'               => $validated['email'],
             'role'                => $validated['role'],
             'designation'         => $validated['designation'] ?? null,
+            'employee_id'         => $validated['employee_id'] ?? null,
             'admin_permissions'   => $permissions,
             'can_provide_support' => $canSupport,
             'is_active'           => $request->boolean('is_active', true),

@@ -265,14 +265,14 @@
         <div class="print-only-header">
             <h2 style="margin:0;font-size:20px;font-weight:800;color:#047857">Islamic Online Madrasah (IOM)</h2>
             <div style="font-size:13px;color:#475569;margin-top:2px">ভর্তি পরিসংখ্যান ও সেশন সামারি রিপোর্ট</div>
-            <h3 style="margin:6px 0 0 0;font-size:16px;font-weight:700">Report of {{ $selectedSession?->name ?? 'All Sessions' }}</h3>
+            <h3 style="margin:6px 0 0 0;font-size:16px;font-weight:700">Report of {{ $selectedSession?->name ?? 'All Sessions' }}{{ $selectedSession?->academicYear?->name ? ' (' . $selectedSession->academicYear->name . ')' : '' }}</h3>
             <div style="font-size:12px;color:#64748b">তারিখ: {{ \Carbon\Carbon::parse($admissionDate)->format('d F Y') }} | প্রস্তুতকারী: {{ auth()->user()?->name ?? 'Admin' }}</div>
             <hr style="margin:10px 0;border:0;border-top:1px solid #cbd5e1">
         </div>
 
         {{-- Top Title matching screenshot --}}
         <h1 class="report-header-title">
-            Report of {{ $selectedSession?->name ?? 'Admission' }}
+            Report of {{ $selectedSession?->name ?? 'Admission' }}{{ $selectedSession?->academicYear?->name ? ' (' . $selectedSession->academicYear->name . ')' : '' }}
         </h1>
 
         {{-- Filter & Control Bar matching user specifications --}}
@@ -284,7 +284,7 @@
                     <select name="session_id" id="session_id" onchange="document.getElementById('reportFilterForm').submit()">
                         @foreach($sessions as $sess)
                             <option value="{{ $sess->id }}" {{ $selectedSession?->id == $sess->id ? 'selected' : '' }}>
-                                {{ $sess->name }}{{ $sess->is_active ? ' (Current)' : '' }}
+                                {{ $sess->name }}{{ $sess->academicYear?->name ? ' (' . $sess->academicYear->name . ')' : '' }}{{ $sess->is_active ? ' (Current)' : '' }}
                             </option>
                         @endforeach
                     </select>

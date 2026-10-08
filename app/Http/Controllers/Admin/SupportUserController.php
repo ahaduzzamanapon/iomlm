@@ -15,15 +15,17 @@ class SupportUserController extends Controller
             'name'           => 'required|string|max:150',
             'email'          => 'required|email|unique:users,email',
             'password'       => 'required|string|min:6',
+            'employee_id'    => 'nullable|string|max:50',
             'departments'    => 'nullable|array',
             'departments.*'  => 'exists:support_departments,id',
         ]);
 
         $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => bcrypt($validated['password']),
-            'role'     => 'support_agent',
+            'name'        => $validated['name'],
+            'email'       => $validated['email'],
+            'password'    => bcrypt($validated['password']),
+            'employee_id' => $validated['employee_id'] ?? null,
+            'role'        => 'support_agent',
         ]);
 
         if (!empty($validated['departments'])) {
@@ -39,13 +41,15 @@ class SupportUserController extends Controller
             'name'          => 'required|string|max:150',
             'email'         => 'required|email|unique:users,email,' . $user->id,
             'password'      => 'nullable|string|min:6',
+            'employee_id'   => 'nullable|string|max:50',
             'departments'   => 'nullable|array',
             'departments.*' => 'exists:support_departments,id',
         ]);
 
         $userData = [
-            'name'  => $validated['name'],
-            'email' => $validated['email'],
+            'name'        => $validated['name'],
+            'email'       => $validated['email'],
+            'employee_id' => $validated['employee_id'] ?? null,
         ];
 
         if (!empty($validated['password'])) {

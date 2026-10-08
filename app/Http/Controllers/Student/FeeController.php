@@ -57,10 +57,11 @@ class FeeController extends Controller
             'remarks'        => 'nullable|string|max:255',
         ]);
 
-        $method = strtolower($validated['payment_method']);
+        $rawMethod = strtoupper(trim($validated['payment_method']));
+        $method = strtolower($rawMethod);
 
-        // 1. Direct Online Payment Gateways (bKash & SSLCommerz)
-        if (in_array($method, ['bkash', 'sslcommerz'])) {
+        // 1. Direct Online Payment Gateways (Automated PGW - only exact 'bkash' or 'sslcommerz')
+        if (in_array($method, ['bkash', 'sslcommerz']) && !str_contains($rawMethod, 'MANUAL')) {
             $user = auth()->user();
             $sslActive = \App\Services\PaymentGatewayService::isSslcommerzActive();
             $bkashActive = \App\Services\PaymentGatewayService::isBkashActive();
@@ -115,13 +116,69 @@ class FeeController extends Controller
             return back()->with('error', $initRes['message'] ?? 'পেমেন্ট গেটওয়েতে সংযোগ করতে সমস্যা হয়েছে।');
         }
 
-        // 2. Manual / Offline Payment (bKash Manual, Cash, Bank Transfer, Offline TrxID)
+        // 2. Manual / Offline Payment (BKASH_MANUAL, NAGAD_MANUAL, ROCKET_MANUAL, BANK_TRANSFER, CASH)
+        $isMobileManual = in_array($rawMethod, ['BKASH_MANUAL', 'NAGAD_MANUAL', 'ROCKET_MANUAL', 'BKASH', 'NAGAD', 'ROCKET']);
+
+        if ($isMobileManual) {
+            $request->validate([
+                'transaction_id' => [
+                    'required',
+                    'string',
+                    'size:10',
+                    'regex:/^[A-Za-z0-9]{10}$/',
+                ],
+                'sender_number' => 'required|string|regex:/^01[3-9]\d{8}$/',
+            ], [
+                'transaction_id.required' => 'ট্রানজেকশন আইডি (TrxID) প্রদান করা বাধ্যতামূলক।',
+                'transaction_id.size'     => 'ট্রানজেকশন আইডি অবশ্যই ১০ অক্ষরের হতে হবে।',
+                'transaction_id.regex'    => 'ট্রানজেকশন আইডি কেবল বর্ণ ও সংখ্যা (A-Z, 0-9) সমন্বয়ে ১০ ডিজিটের হতে হবে।',
+                'sender_number.required'  => 'প্রেরক মোবাইল নম্বর প্রদান করা আবশ্যক।',
+                'sender_number.regex'     => 'সঠিক ১১ ডিজিটের বাংলাদেশী মোবাইল নম্বর প্রদান করুন (যেমন: 01712345678)।',
+            ]);
+        }
+
+        $cleanTrxId = !empty($validated['transaction_id']) ? strtoupper(trim($validated['transaction_id'])) : null;
+
+        // Duplicate Transaction ID prevention check
+        if ($cleanTrxId) {
+            $isTrxUsed = \App\Models\Payment::where('transaction_id', $cleanTrxId)
+                ->where('status', '!=', 'REJECTED')
+                ->exists()
+                || \App\Models\GatewayTransaction::where('gateway_trx_id', $cleanTrxId)
+                ->where('status', 'SUCCESS')
+                ->exists()
+                || \App\Models\AdmissionForm::where('manual_trx_id', $cleanTrxId)
+                ->where('status', '!=', 'REJECTED')
+                ->exists();
+
+            if ($isTrxUsed) {
+                return back()->withInput()->with('error', 'এই ট্রানজেকশন আইডি (' . $cleanTrxId . ') ইতিপূর্বে ব্যবহার করা হয়েছে। এক ট্রাঞ্জেকশন আইডি একাধিকবার ব্যবহার করা যাবে না। অনুগ্রহ করে নতুন ট্রানজেকশন আইডি দিন।');
+            }
+        }
+
+        $dbPaymentMethod = match ($rawMethod) {
+            'BKASH_MANUAL'  => 'BKASH',
+            'NAGAD_MANUAL'  => 'NAGAD',
+            'ROCKET_MANUAL' => 'ROCKET',
+            'BANK_TRANSFER' => 'BANK_TRANSFER',
+            'CASH'          => 'CASH',
+            default         => in_array($rawMethod, ['BKASH', 'NAGAD', 'ROCKET', 'BANK_TRANSFER', 'CASH', 'CARD', 'ONLINE']) ? $rawMethod : 'BKASH'
+        };
+
+        $defaultRemarks = match ($rawMethod) {
+            'BKASH_MANUAL'  => 'বিকাশ ম্যানুয়াল ট্রানজেকশন (Pending Approval)',
+            'NAGAD_MANUAL'  => 'নগদ ম্যানুয়াল ট্রানজেকশন (Pending Approval)',
+            'ROCKET_MANUAL' => 'রকেট ম্যানুয়াল ট্রানজেকশন (Pending Approval)',
+            'BANK_TRANSFER' => 'ব্যাংক ডিপোজিট / স্লিপ (Pending Approval)',
+            default         => 'Student Portal Manual Payment (Pending Approval)'
+        };
+
         $payment = \App\Services\AccountingService::submitStudentPayment(
             $invoice,
             (float) $validated['amount'],
-            strtoupper($validated['payment_method']),
-            $validated['transaction_id'] ?? null,
-            $validated['remarks'] ?? null,
+            $dbPaymentMethod,
+            $cleanTrxId,
+            $validated['remarks'] ?: $defaultRemarks,
             $validated['sender_number'] ?? null
         );
 

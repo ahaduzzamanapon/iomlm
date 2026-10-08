@@ -149,7 +149,12 @@
                     @forelse($pendingPayments ?? [] as $pPay)
                     <tr style="background:#fff">
                         <td style="font-weight:700; color:#b45309; font-size:12px">
-                            {{ $pPay->transaction_id ?: $pPay->payment_no }}
+                            <code>{{ $pPay->transaction_id ?: $pPay->payment_no }}</code>
+                            @if($pPay->sender_number)
+                                <div style="font-size:11px; color:#047857; margin-top:3px; font-weight:600">
+                                    <i class="fa-solid fa-phone"></i> {{ $pPay->sender_number }}
+                                </div>
+                            @endif
                         </td>
                         <td>
                             <strong>{{ $pPay->student->name }}</strong><br>
@@ -160,7 +165,19 @@
                             <br><small style="color:#94a3b8">Inv No: {{ $pPay->invoice->invoice_no ?? 'N/A' }}</small>
                         </td>
                         <td><strong style="color:#2563eb; font-size:15px">৳{{ number_format($pPay->amount, 2) }}</strong></td>
-                        <td><span class="badge badge-warning no-dot" style="font-weight:700">{{ $pPay->payment_method }}</span></td>
+                        <td>
+                            @if(str_contains($pPay->payment_method, 'BKASH'))
+                                <span class="badge" style="background:#fce7f3; color:#be185d; font-weight:700">বিকাশ ম্যানুয়াল</span>
+                            @elseif(str_contains($pPay->payment_method, 'NAGAD'))
+                                <span class="badge" style="background:#ffedd5; color:#c2410c; font-weight:700">নগদ ম্যানুয়াল</span>
+                            @elseif(str_contains($pPay->payment_method, 'ROCKET'))
+                                <span class="badge" style="background:#ede9fe; color:#6d28d9; font-weight:700">রকেট ম্যানুয়াল</span>
+                            @elseif(str_contains($pPay->payment_method, 'BANK'))
+                                <span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700">ব্যাংক ট্রান্সফার</span>
+                            @else
+                                <span class="badge badge-warning no-dot" style="font-weight:700">{{ $pPay->payment_method }}</span>
+                            @endif
+                        </td>
                         <td class="td-muted" style="font-size:12px">{{ $pPay->paid_at ? $pPay->paid_at->format('d M Y, h:i A') : '—' }}</td>
                         <td style="text-align:center">
                             <div style="display:flex; justify-content:center; gap:6px">

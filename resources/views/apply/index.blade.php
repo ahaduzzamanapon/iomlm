@@ -346,6 +346,7 @@
                                         — ফি: ৳{{ number_format($batch->admission_fee, 0) }}
                                     @endif
                                 </option>
+                            @endif
                         @endforeach
                     </select>
                 </div>

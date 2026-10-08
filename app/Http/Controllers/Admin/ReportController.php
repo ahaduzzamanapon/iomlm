@@ -138,7 +138,7 @@ class ReportController extends Controller
     public function exportAdmissionSummary(Request $request): StreamedResponse
     {
         $sessionId = $request->query('session_id');
-        $session = AcademicSession::find($sessionId) ?: AcademicSession::where('is_active', true)->first();
+        $session = AcademicSession::with('academicYear')->find($sessionId) ?: AcademicSession::with('academicYear')->where('is_active', true)->first();
         $admissionDate = $request->query('admission_date', today()->toDateString());
         $selectedFaculty = $request->query('faculty', 'All');
         $status = $request->query('status', 'APPROVED');
@@ -171,8 +171,9 @@ class ReportController extends Controller
                 ->keyBy('course_id');
         }
 
+        $sessionYear = $session?->academicYear?->name ? '_' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $session->academicYear->name) : '';
         $sessionNameClean = $session ? preg_replace('/[^a-zA-Z0-9_-]/', '_', $session->name) : 'admission_report';
-        $filename = "admission_report_{$sessionNameClean}_{$admissionDate}.csv";
+        $filename = "admission_report_{$sessionNameClean}{$sessionYear}_{$admissionDate}.csv";
 
         return response()->streamDownload(function () use ($courses, $stats, $admissionDate) {
             $handle = fopen('php://output', 'w');

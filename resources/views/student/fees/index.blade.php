@@ -268,6 +268,9 @@
                         </thead>
                         <tbody>
                             @foreach($step1Particulars as $p)
+                                @if(($p['name'] ?? '') === '_history')
+                                    @continue
+                                @endif
                                 <tr style="border-bottom:1px solid #f1f5f9"
                                     data-step1-status="{{ $p['is_paid'] ? 'paid' : 'due' }}">
                                     <td style="padding:9px 14px;text-align:center;color:#64748b;font-weight:600">
@@ -787,46 +790,67 @@
                         <span style="font-size:11px; color:#64748b; font-weight:500">(আংশিক বা সম্পূর্ণ প্রদেয়)</span>
                     </label>
                     <input type="number" step="0.01" id="payAmountInput" name="amount" class="form-control" required
-                        style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:16px; font-weight:700; color:#1e293b; box-sizing:border-box"
-                        oninput="updateModalButtonAmount()">
-                </div>
-
-                {{-- Payment Gateway Selection --}}
-                <div style="margin-bottom:16px">
-                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:8px">
-                        পেমেন্ট মাধ্যম নির্বাচন করুন <span style="color:#dc2626">*</span>
-                    </label>
-
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px" id="modalGatewayGrid">
-                        {{-- SSLCommerz Card --}}
-                        <label class="modal-gateway-card selected" id="card_sslcommerz"
-                            onclick="selectModalGateway('sslcommerz')">
-                            <input type="radio" name="payment_method" value="sslcommerz" checked style="display:none">
-                            <div
-                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
-                                <img src="{{ asset('images/gateways/sslcommerz.png') }}" alt="SSLCommerz"
-                                    style="height:22px; max-width:115px; object-fit:contain">
-                                <span
-                                    style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; background:#e0f2fe; color:#0369a1">সব
-                                    মাধ্যম</span>
+                        style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:16px; font-weight:700; color:#1e                    {{-- Manual Fields (Hidden by default) --}}
+                    <div id="manualPaymentFields"
+                        style="display:none; background:#f8fafc; border:1.5px dashed #059669; border-radius:10px; padding:16px; margin-top:10px; font-family:'Kalpurush',sans-serif">
+                        
+                        {{-- Official Merchant Number Banner --}}
+                        <div id="merchantNoticeBox" style="background:#f0fdf4; border:1.5px solid #86efac; border-radius:8px; padding:12px 14px; margin-bottom:14px">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px">
+                                <div style="display:flex; align-items:center; gap:8px">
+                                    <span style="background:#047857; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:5px">মার্চেন্ট তথ্য</span>
+                                    <span id="merchantTypeLabel" style="font-weight:700; font-size:13px; color:#14532d">বিকাশ মার্চেন্ট / পেমেন্ট নম্বর:</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:6px">
+                                    <code id="merchantNumberCode" style="font-size:15px; font-weight:800; color:#047857; background:#dcfce7; padding:3px 10px; border-radius:6px; letter-spacing:1px">01766305059</code>
+                                    <button type="button" onclick="copyMerchantNumber()" id="copyMerchantBtn" style="background:#047857; color:#fff; border:none; padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px">
+                                        <i class="fa-solid fa-copy"></i> <span id="copyBtnText">কপি</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div style="font-size:11px; color:#64748b; line-height:1.3">
-                                কার্ড, নগদ, রকেট ও ব্যাংক
+                            <div id="merchantInstructions" style="margin-top:6px; font-size:11.5px; color:#166534; line-height:1.4">
+                                📌 আপনার বিকাশ অ্যাপ থেকে <strong>Payment</strong> অথবা <strong>Send Money</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং আপনার প্রেরক নম্বরটি নিচে দিন।
                             </div>
-                        </label>
+                        </div>
 
-                        {{-- bKash Card --}}
-                        <label class="modal-gateway-card" id="card_bkash" onclick="selectModalGateway('bkash')">
-                            <input type="radio" name="payment_method" value="bkash" style="display:none">
-                            <div
-                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
-                                <img src="{{ asset('images/gateways/bkash.png') }}" alt="bKash"
-                                    style="height:24px; max-width:85px; object-fit:contain">
-                                <span
-                                    style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; background:#fce7f3; color:#be185d">বিকাশ</span>
+                        <div style="margin-bottom:12px">
+                            <label
+                                style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px">ম্যানুয়াল
+                                মাধ্যম নির্বাচন করুন <span style="color:#dc2626">*</span></label>
+                            <select id="manualMethodSelect" class="form-control"
+                                style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px"
+                                onchange="onManualMethodChange(this.value)">
+                                <option value="BKASH_MANUAL" selected>ম্যানুয়াল বিকাশ ট্রানজেকশন (bKash Manual Send Money / Payment)</option>
+                                <option value="NAGAD_MANUAL">নগদ ম্যানুয়াল ট্রানজেকশন (Nagad TrxID)</option>
+                                <option value="ROCKET_MANUAL">রকেট ম্যানুয়াল ট্রানজেকশন (Rocket TrxID)</option>
+                                <option value="BANK_TRANSFER">ব্যাংক ডিপোজিট / স্লিপ (Bank Transfer)</option>
+                                <option value="CASH">সরাসরি অফিস ক্যাশ (Cash at Office)</option>
+                            </select>
+                        </div>
+                        <div style="margin-bottom:12px">
+                            <label id="manualSenderLabel"
+                                style="font-size:12px; font-weight:700; color:#334155; display:block; margin-bottom:4px">বিকাশ
+                                / প্রেরক মোবাইল নম্বর (Sender Mobile No) <span style="color:#dc2626">*</span></label>
+                            <input type="text" name="sender_number" id="manualSenderInput" maxlength="15"
+                                placeholder="যেমন: 01712345678 বা আপনার বিকাশ নম্বর" class="form-control"
+                                style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; box-sizing:border-box">
+                        </div>
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+                                <label id="manualTrxLabel"
+                                    style="font-size:12px; font-weight:700; color:#334155; margin:0">Transaction
+                                    ID / রেফারেন্স ট্রানজেকশন আইডি (TrxID) <span style="color:#dc2626">*</span></label>
+                                <span id="trxCharCounter" style="font-size:11px; font-weight:700; color:#64748b">১০ ডিজিট আবশ্যক</span>
                             </div>
-                            <div style="font-size:11px; color:#64748b; line-height:1.3">
-                                সরাসরি বিকাশ ওয়ালেট ও পিন
+                            <input type="text" name="transaction_id" id="manualTrxInput" maxlength="10" minlength="10"
+                                placeholder="যেমন: 8N7A6B5C4D (১০ ডিজিটের TrxID)" class="form-control"
+                                oninput="onTrxInput(this)"
+                                style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:14px; font-weight:700; letter-spacing:1px; box-sizing:border-box; text-transform:uppercase">
+                            <div id="trxHelperText" style="font-size:11px; color:#64748b; margin-top:4px">
+                                বিকাশ/নগদ এর এসএমএস বা অ্যাপে প্রদর্শিত ১০ অক্ষরের TrxID লিখুন। এক TrxID একাধিকবার ব্যবহার করা যাবে না।
+                            </div>
+                        </div>
+                    </div>ওয়ালেট ও পিন
                             </div>
                         </label>
                     </div>
@@ -1148,9 +1172,108 @@
                 updateModalButtonAmount();
             }
 
+            function copyMerchantNumber() {
+                const num = '01766305059';
+                navigator.clipboard.writeText(num).then(() => {
+                    const btnText = document.getElementById('copyBtnText');
+                    if (btnText) btnText.innerText = 'কপি হয়েছে!';
+                    setTimeout(() => { if (btnText) btnText.innerText = 'কপি'; }, 2000);
+                }).catch(() => {
+                    alert('মার্চেন্ট নম্বর: ' + num);
+                });
+            }
+
+            function onTrxInput(input) {
+                input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                const len = input.value.length;
+                const counter = document.getElementById('trxCharCounter');
+                if (counter) {
+                    if (len === 10) {
+                        counter.innerText = '✓ ১০ ডিজিট পূর্ণ';
+                        counter.style.color = '#047857';
+                        input.style.borderColor = '#10b981';
+                    } else {
+                        counter.innerText = len + '/১০ ডিজিট';
+                        counter.style.color = len > 0 ? '#b45309' : '#64748b';
+                        input.style.borderColor = len > 0 ? '#f59e0b' : '#cbd5e1';
+                    }
+                }
+            }
+
             function onManualMethodChange(val) {
                 if (isManualModeActive) {
                     setManualMethodValue(val);
+                }
+
+                const noticeBox = document.getElementById('merchantNoticeBox');
+                const typeLabel = document.getElementById('merchantTypeLabel');
+                const numCode = document.getElementById('merchantNumberCode');
+                const copyBtn = document.getElementById('copyMerchantBtn');
+                const instText = document.getElementById('merchantInstructions');
+                const senderLabel = document.getElementById('manualSenderLabel');
+                const senderInput = document.getElementById('manualSenderInput');
+                const trxLabel = document.getElementById('manualTrxLabel');
+                const trxInput = document.getElementById('manualTrxInput');
+                const trxHelper = document.getElementById('trxHelperText');
+                const trxCounter = document.getElementById('trxCharCounter');
+
+                if (noticeBox) noticeBox.style.display = 'block';
+
+                if (val === 'BKASH_MANUAL') {
+                    if (typeLabel) typeLabel.innerText = 'বিকাশ মার্চেন্ট / পেমেন্ট নম্বর:';
+                    if (numCode) { numCode.innerText = '01766305059'; numCode.style.display = 'inline'; }
+                    if (copyBtn) copyBtn.style.display = 'inline-flex';
+                    if (instText) instText.innerHTML = '📌 আপনার বিকাশ অ্যাপ থেকে <strong>Payment</strong> অথবা <strong>Send Money</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং প্রেরক নম্বরটি নিচে দিন।';
+                    if (senderLabel) senderLabel.innerHTML = 'বিকাশ / প্রেরক মোবাইল নম্বর (Sender Mobile No) <span style="color:#dc2626">*</span>';
+                    if (senderInput) senderInput.placeholder = 'যেমন: 01712345678 বা আপনার বিকাশ নম্বর';
+                    if (trxLabel) trxLabel.innerHTML = 'Transaction ID / রেফারেন্স ট্রানজেকশন আইডি (TrxID) <span style="color:#dc2626">*</span>';
+                    if (trxInput) { trxInput.placeholder = 'যেমন: 8N7A6B5C4D (১০ ডিজিটের বিকাশ TrxID)'; trxInput.maxLength = 10; }
+                    if (trxHelper) trxHelper.innerText = 'বিকাশ অ্যাপ বা এসএমএস-এ প্রাপ্ত ১০ অক্ষরের TrxID লিখুন। এক TrxID একাধিকবার ব্যবহার করা যাবে না।';
+                    if (trxCounter) trxCounter.style.display = 'inline';
+                } else if (val === 'NAGAD_MANUAL') {
+                    if (typeLabel) typeLabel.innerText = 'নগদ পেমেন্ট / মার্চেন্ট নম্বর:';
+                    if (numCode) { numCode.innerText = '01766305059'; numCode.style.display = 'inline'; }
+                    if (copyBtn) copyBtn.style.display = 'inline-flex';
+                    if (instText) instText.innerHTML = '📌 আপনার নগদ একাউন্ট থেকে <strong>Merchant Pay</strong> অথবা <strong>Send Money</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং প্রেরক নম্বর দিন।';
+                    if (senderLabel) senderLabel.innerHTML = 'নগদ / প্রেরক মোবাইল নম্বর (Sender Mobile No) <span style="color:#dc2626">*</span>';
+                    if (senderInput) senderInput.placeholder = 'যেমন: 01812345678 বা আপনার নগদ নম্বর';
+                    if (trxLabel) trxLabel.innerHTML = 'নগদ ট্রানজেকশন আইডি (Nagad TrxID) <span style="color:#dc2626">*</span>';
+                    if (trxInput) { trxInput.placeholder = 'যেমন: 7K9M2P4Q1R (১০ ডিজিটের নগদ TrxID)'; trxInput.maxLength = 10; }
+                    if (trxHelper) trxHelper.innerText = 'নগদের ১০ অক্ষরের TrxID লিখুন। এক TrxID একাধিকবার ব্যবহার করা যাবে না।';
+                    if (trxCounter) trxCounter.style.display = 'inline';
+                } else if (val === 'ROCKET_MANUAL') {
+                    if (typeLabel) typeLabel.innerText = 'রকেট পেমেন্ট নম্বর:';
+                    if (numCode) { numCode.innerText = '01766305059'; numCode.style.display = 'inline'; }
+                    if (copyBtn) copyBtn.style.display = 'inline-flex';
+                    if (instText) instText.innerHTML = '📌 রকেট ওয়ালেট থেকে পেমেন্ট বা ট্রান্সফার করে প্রাপ্ত ১০ ডিজিটের ট্রানজেকশন আইডি প্রদান করুন।';
+                    if (senderLabel) senderLabel.innerHTML = 'রকেট প্রেরক নম্বর <span style="color:#dc2626">*</span>';
+                    if (senderInput) senderInput.placeholder = 'যেমন: 017123456789 (রকেট ১২ ডিজিট)';
+                    if (trxLabel) trxLabel.innerHTML = 'রকেট TrxID <span style="color:#dc2626">*</span>';
+                    if (trxInput) { trxInput.placeholder = '১০ ডিজিটের ট্রানজেকশন আইডি'; trxInput.maxLength = 10; }
+                    if (trxHelper) trxHelper.innerText = 'রকেট এসএমএস-এর ১০ অক্ষরের TrxID লিখুন।';
+                    if (trxCounter) trxCounter.style.display = 'inline';
+                } else if (val === 'BANK_TRANSFER') {
+                    if (typeLabel) typeLabel.innerText = 'ব্যাংক একাউন্ট বিবরণ:';
+                    if (numCode) { numCode.innerText = 'IOM Account: 2050XXXXXXXXX'; numCode.style.display = 'inline'; }
+                    if (copyBtn) copyBtn.style.display = 'none';
+                    if (instText) instText.innerHTML = '📌 ব্যাংকে সরাসরি বা অনলাইন ট্রান্সফার (BEFTN/NPSB) করে ব্যাংক স্লিপ নম্বর / ডিপোজিট রেফারেন্স নিচে দিন।';
+                    if (senderLabel) senderLabel.innerHTML = 'ডিপোজিটর নাম / প্রেরক ব্যাংক ও একাউন্ট <span style="color:#dc2626">*</span>';
+                    if (senderInput) senderInput.placeholder = 'যেমন: মো: আব্দুল্লাহ, ইসলামী ব্যাংক বাংলাদেশ';
+                    if (trxLabel) trxLabel.innerHTML = 'ব্যাংক ডিপোজিট স্লিপ নং / রেফারেন্স <span style="color:#dc2626">*</span>';
+                    if (trxInput) { trxInput.placeholder = 'যেমন: SLIP-123456 বা রেফারেন্স আইডি'; trxInput.maxLength = 30; }
+                    if (trxHelper) trxHelper.innerText = 'ব্যাংক রসিদ বা ট্রান্সফারের রেফারেন্স নম্বর লিখুন।';
+                    if (trxCounter) trxCounter.style.display = 'none';
+                } else {
+                    if (typeLabel) typeLabel.innerText = 'অফিস ক্যাশ পেমেন্ট:';
+                    if (numCode) numCode.style.display = 'none';
+                    if (copyBtn) copyBtn.style.display = 'none';
+                    if (instText) instText.innerHTML = '📌 মাদ্রাসার অফিসে সরাসরি নগদ জমা দিয়ে থাকলে ক্যাশ ভাউচার বা রসিদের তথ্য উল্লেখ করুন।';
+                    if (senderLabel) senderLabel.innerHTML = 'জমাদানকারীর নাম / যোগাযোগের নম্বর <span style="color:#dc2626">*</span>';
+                    if (senderInput) senderInput.placeholder = 'যেমন: অভিভাবক বা শিক্ষার্থীর মোবাইল নম্বর';
+                    if (trxLabel) trxLabel.innerHTML = 'অফিস মানি রিসিট নং (যদি থাকে)';
+                    if (trxInput) { trxInput.placeholder = 'যেমন: MR-2026-001 (ঐচ্ছিক)'; trxInput.maxLength = 30; }
+                    if (trxHelper) trxHelper.innerText = 'অফিস থেকে প্রদত্ত রসিদ নম্বর লিখুন (যদি থাকে)।';
+                    if (trxCounter) trxCounter.style.display = 'none';
                 }
             }
 
@@ -1925,6 +2048,58 @@
                     closeAdminAddFeeModal();
                 }
             });
+
+            // Client-side validation on payForm submission
+            const payFormEl = document.getElementById('payForm');
+            if (payFormEl) {
+                payFormEl.addEventListener('submit', function (e) {
+                    if (isManualModeActive) {
+                        const method = document.getElementById('manualMethodSelect').value;
+                        const sender = (document.getElementById('manualSenderInput').value || '').trim();
+                        const trx = (document.getElementById('manualTrxInput').value || '').trim();
+
+                        if (['BKASH_MANUAL', 'NAGAD_MANUAL', 'ROCKET_MANUAL'].includes(method)) {
+                            if (!sender) {
+                                e.preventDefault();
+                                alert('অনুগ্রহ করে আপনার প্রেরক মোবাইল নম্বর প্রদান করুন।');
+                                document.getElementById('manualSenderInput').focus();
+                                return false;
+                            }
+                            if (!/^01[3-9]\d{8}$/.test(sender)) {
+                                e.preventDefault();
+                                alert('অনুগ্রহ করে সঠিক ১১ ডিজিটের বাংলাদেশী মোবাইল নম্বর প্রদান করুন (যেমন: 01712345678)।');
+                                document.getElementById('manualSenderInput').focus();
+                                return false;
+                            }
+                            if (!trx) {
+                                e.preventDefault();
+                                alert('অনুগ্রহ করে ১০ ডিজিটের ট্রানজেকশন আইডি (TrxID) প্রদান করুন।');
+                                document.getElementById('manualTrxInput').focus();
+                                return false;
+                            }
+                            if (trx.length !== 10 || !/^[A-Za-z0-9]{10}$/.test(trx)) {
+                                e.preventDefault();
+                                alert('ট্রানজেকশন আইডি অবশ্যই সঠিক ১০ ডিজিট/অক্ষরের হতে হবে (যেমন: 8N7A6B5C4D)। বর্তমান দৈর্ঘ্য: ' + trx.length);
+                                document.getElementById('manualTrxInput').focus();
+                                return false;
+                            }
+                        } else if (method === 'BANK_TRANSFER') {
+                            if (!sender) {
+                                e.preventDefault();
+                                alert('অনুগ্রহ করে ডিপোজিটর নাম / একাউন্ট তথ্য লিখুন।');
+                                document.getElementById('manualSenderInput').focus();
+                                return false;
+                            }
+                            if (!trx) {
+                                e.preventDefault();
+                                alert('অনুগ্রহ করে ব্যাংক স্লিপ নম্বর / ডিপোজিট রেফারেন্স প্রদান করুন।');
+                                document.getElementById('manualTrxInput').focus();
+                                return false;
+                            }
+                        }
+                    }
+                });
+            }
 
             // Escape key closes any active modal
             window.addEventListener('keydown', function (e) {

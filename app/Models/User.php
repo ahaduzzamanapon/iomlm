@@ -17,6 +17,7 @@ class User extends Authenticatable
         'role',
         'admin_permissions',
         'designation',
+        'employee_id',
         'can_provide_support',
         'is_common_account',
         'is_active',

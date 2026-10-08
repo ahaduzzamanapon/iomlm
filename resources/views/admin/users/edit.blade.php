@@ -78,14 +78,24 @@
                     </div>
 
                     <div class="form-group-um">
-                        <label class="form-label-um">পাসওয়ার্ড পরিবর্তন (Password)</label>
-                        <input type="password" name="password" class="form-input-um" placeholder="পাসওয়ার্ড অপরিবর্তিত রাখতে ফাঁকা রাখুন">
-                        <small style="color:#64748b;font-size:11px">যদি পাসওয়ার্ড পরিবর্তন করতে চান তবেই লিখুন</small>
+                        <label class="form-label-um">ইমপ্লোয়ী আইডি (Employee ID)</label>
+                        <input type="text" name="employee_id" class="form-input-um" value="{{ old('employee_id', $user->employee_id) }}" placeholder="যেমন: EMP-2026-001">
                     </div>
 
                     <div class="form-group-um">
                         <label class="form-label-um">পদবী / দায়িত্ব (Designation)</label>
                         <input type="text" name="designation" class="form-input-um" value="{{ old('designation', $user->designation) }}" placeholder="যেমন: হিসাব কর্মকর্তা, পরীক্ষা নিয়ন্ত্রক...">
+                    </div>
+
+                    <div class="form-group-um">
+                        <label class="form-label-um">পাসওয়ার্ড পরিবর্তন (Password)</label>
+                        <div style="position:relative">
+                            <input type="password" id="adminEditPasswordInput" name="password" class="form-input-um" style="padding-right:42px" placeholder="পাসওয়ার্ড অপরিবর্তিত রাখতে ফাঁকা রাখুন">
+                            <button type="button" onclick="togglePasswordVisibility('adminEditPasswordInput', 'editPasswordEyeIcon')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;padding:6px;font-size:15px;display:flex;align-items:center;justify-content:center" title="পাসওয়ার্ড দেখুন / লুকান">
+                                <i id="editPasswordEyeIcon" class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <small style="color:#64748b;font-size:11px">যদি পাসওয়ার্ড পরিবর্তন করতে চান তবেই লিখুন</small>
                     </div>
                 </div>
 
@@ -258,6 +268,22 @@
             chk.checked = list.includes(key);
             updateBoxStyle(key);
         });
+    }
+
+    function togglePasswordVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (input && icon) {
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
     }
 
     // Initialize box styles on load

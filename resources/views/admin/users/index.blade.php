@@ -109,7 +109,7 @@
         <form method="GET" action="{{ route('admin.users.index') }}" style="display:contents">
             <div class="search-wrap-um">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" name="search" value="{{ $search }}" placeholder="নাম, ইমেইল বা পদবী দিয়ে খুঁজুন...">
+                <input type="text" name="search" value="{{ $search }}" placeholder="নাম, ইমেইল, ইমপ্লোয়ী আইডি বা পদবী দিয়ে খুঁজুন...">
             </div>
 
             <select name="role" onchange="this.form.submit()" style="height:38px;padding:0 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;outline:none;background:#fff">
@@ -166,7 +166,14 @@
                                         <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:4px;margin-left:4px">আপনি (You)</span>
                                     @endif
                                 </div>
-                                <div style="font-size:12px;color:#64748b">{{ $u->email }}</div>
+                                <div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap">
+                                    <span style="font-size:12px;color:#64748b">{{ $u->email }}</span>
+                                    @if($u->employee_id)
+                                        <span style="font-size:11px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;font-weight:600;font-family:monospace" title="ইমপ্লোয়ী আইডি">
+                                            ID: {{ $u->employee_id }}
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </td>

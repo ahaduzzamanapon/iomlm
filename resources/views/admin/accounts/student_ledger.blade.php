@@ -224,6 +224,9 @@
                     </thead>
                     <tbody>
                         @forelse($step1Particulars as $p)
+                            @if(($p['name'] ?? '') === '_history')
+                                @continue
+                            @endif
                             <tr style="border-bottom:1px solid #f1f5f9" data-admin-step1-status="{{ $p['is_paid'] ? 'paid' : 'due' }}">
                                 <td style="padding:10px 14px;text-align:center;color:#64748b;font-weight:600">
                                     {{ $p['sl'] }}
@@ -510,6 +513,7 @@
                             @if(!empty($inv->custom_particulars))
                                 <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px">
                                     @foreach($inv->custom_particulars as $cpName => $cpVal)
+                                        @if($cpName === '_history') @continue @endif
                                         <span style="font-size:10.5px;background:#f8fafc;border:1px solid #e2e8f0;padding:1px 6px;border-radius:4px;color:#334155" title="ফি: ৳{{ number_format($cpVal['amount'] ?? 0, 0) }} | বকেয়া: ৳{{ number_format($cpVal['due'] ?? 0, 0) }}">
                                             {{ $cpName }}: ৳{{ number_format($cpVal['due'] ?? ($cpVal['amount'] ?? 0), 0) }} {{ ($cpVal['due'] ?? 0) <= 0 ? '✓' : '' }}
                                         </span>

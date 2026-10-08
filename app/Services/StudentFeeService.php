@@ -646,7 +646,8 @@ class StudentFeeService
 
             $customOverrides = $selectedSemesterInvoice?->custom_particulars ?? [];
             $customPaidTotal = 0;
-            foreach ($customOverrides as $cov) {
+            foreach ($customOverrides as $cName => $cov) {
+                if ($cName === '_history') continue;
                 $customPaidTotal += (float) ($cov['paid_amt'] ?? 0);
             }
             $paidPool = max(0, $targetPaid - $customPaidTotal);
@@ -799,6 +800,7 @@ class StudentFeeService
             // Sequential resolution of items and paidPool
             foreach ($orderedItems as $raw) {
                 $pName = $raw['name'];
+                if ($pName === '_history') continue;
 
                 if (!empty($raw['is_admission'])) {
                     $step1Particulars[] = [
@@ -936,7 +938,8 @@ class StudentFeeService
 
             $customOverrides = $selectedSemesterInvoice?->custom_particulars ?? [];
             $customPaidTotal = 0;
-            foreach ($customOverrides as $cov) {
+            foreach ($customOverrides as $cName => $cov) {
+                if ($cName === '_history') continue;
                 $customPaidTotal += (float) ($cov['paid_amt'] ?? 0);
             }
             $paidPool = max(0, $targetPaid - $customPaidTotal);
@@ -1114,6 +1117,7 @@ class StudentFeeService
 
             foreach ($orderedItems as $raw) {
                 $pName = $raw['name'];
+                if ($pName === '_history') continue;
 
                 if (!empty($raw['is_admission'])) {
                     $step1Particulars[] = [
@@ -1469,7 +1473,13 @@ class StudentFeeService
 
         $customAdded = [];
         foreach ($customOverrides as $cName => $cData) {
+            if ($cName === '_history' || (is_array($cData) && ($cData['name'] ?? '') === '_history')) {
+                continue;
+            }
             $pName = is_string($cName) && !is_numeric($cName) ? $cName : ($cData['name'] ?? (string)$cName);
+            if ($pName === '_history') {
+                continue;
+            }
             if (!in_array($pName, $existingNames, true)) {
                 $customAdded[] = [
                     'name'           => $pName,
