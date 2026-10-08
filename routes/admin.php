@@ -189,6 +189,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('accounts/particulars/store', [\App\Http\Controllers\Admin\AccountsController::class, 'storeParticular'])->name('accounts.particular.store');
         Route::post('accounts/particulars/delete', [\App\Http\Controllers\Admin\AccountsController::class, 'deleteParticular'])->name('accounts.particular.delete');
         Route::post('accounts/particulars/collect', [\App\Http\Controllers\Admin\AccountsController::class, 'collectParticularPayment'])->name('accounts.particular.collect');
+        Route::post('accounts/particulars/revert-payment', [\App\Http\Controllers\Admin\AccountsController::class, 'revertParticularPayment'])->name('accounts.particular.revert_payment');
     });
 
     // ── 8. Communication, Surveys & Notices ─────────────────────────────

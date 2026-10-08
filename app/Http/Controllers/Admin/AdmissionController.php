@@ -179,10 +179,23 @@ class AdmissionController extends Controller
             'discount_percent'        => 'nullable|numeric|min:0|max:100',
             'waiver_code'             => 'nullable|string|max:50',
             'notes'                   => 'nullable|string',
+            'photo'                   => 'nullable|image|max:3072',
+            'avatar_preset'           => 'nullable|string|max:255',
         ]);
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $request) {
             $sameAsPresent = $request->boolean('same_as_present');
+
+            // Resolve student photo or avatar preset
+            $photoUrl = null;
+            if ($request->hasFile('photo')) {
+                $path = $request->file('photo')->store('photos/students', 'public');
+                $photoUrl = '/storage/' . $path;
+            } elseif (!empty($validated['avatar_preset'])) {
+                $photoUrl = $validated['avatar_preset'];
+            } else {
+                $photoUrl = Student::defaultAvatarForGender($validated['gender'] ?? null);
+            }
 
             // Check Waiver Code
             $waiverCode = null;
@@ -226,7 +239,7 @@ class AdmissionController extends Controller
             })->first();
 
             if ($student) {
-                $student->update(array_filter([
+                $studentUpdateData = [
                     'name'             => $validated['applicant_name'] ?? $student->name,
                     'phone'            => $validated['phone'] ?? $student->phone,
                     'date_of_birth'    => $validated['date_of_birth'] ?? $student->date_of_birth,
@@ -238,7 +251,11 @@ class AdmissionController extends Controller
                     'guardian_phone'   => $validated['guardian_phone'] ?? $student->guardian_phone,
                     'ssc_gpa'          => $validated['ssc_gpa'] ?? $student->ssc_gpa,
                     'hsc_gpa'          => $validated['hsc_gpa'] ?? $student->hsc_gpa,
-                ]));
+                ];
+                if ($photoUrl) {
+                    $studentUpdateData['photo_url'] = $photoUrl;
+                }
+                $student->update(array_filter($studentUpdateData));
             } else {
                 $prevStudent = Student::where(function ($q) use ($validated) {
                     if (!empty($validated['phone'])) {
@@ -262,6 +279,7 @@ class AdmissionController extends Controller
                     'guardian_phone'   => $validated['guardian_phone'] ?? null,
                     'ssc_gpa'          => $validated['ssc_gpa'] ?? null,
                     'hsc_gpa'          => $validated['hsc_gpa'] ?? null,
+                    'photo_url'        => $photoUrl,
                     'status'           => 'PENDING',
                 ];
 
@@ -270,6 +288,9 @@ class AdmissionController extends Controller
                         if (empty($studentData[$fld]) && !empty($prevStudent->{$fld})) {
                             $studentData[$fld] = $prevStudent->{$fld};
                         }
+                    }
+                    if (empty($studentData['photo_url']) && !empty($prevStudent->photo_url)) {
+                        $studentData['photo_url'] = $prevStudent->photo_url;
                     }
                 }
 
@@ -498,7 +519,8 @@ class AdmissionController extends Controller
                 $newStudent->save();
 
                 $rawPassword = $student->getOrGenerateNumericPassword();
-                $loginEmail = $newStudent->student_code . '@iom.student';
+                $realEmail = $newStudent->email ?: ($admission->email ?: null);
+                $loginEmail = $realEmail ?: ($newStudent->student_code . '@iom.student');
                 $user = User::where('email', $loginEmail)->first();
                 if (!$user) {
                     $user = User::create([
@@ -507,6 +529,9 @@ class AdmissionController extends Controller
                         'password' => Hash::make($rawPassword),
                         'role'     => 'student',
                     ]);
+                } else {
+                    $user->password = Hash::make($rawPassword);
+                    $user->save();
                 }
                 $newStudent->user_id = $user->id;
                 $newStudent->temporary_password = $rawPassword;
@@ -551,18 +576,34 @@ class AdmissionController extends Controller
 
             $student->temporary_password = $rawPassword;
 
-            if (empty($student->user_id)) {
-                $loginEmail = $student->student_code ? ($student->student_code . '@iom.student') : ($student->email ?: uniqid() . '@iom.student');
-                $user = User::where('email', $loginEmail)->first();
+            $realEmail = $student->email ?: ($admission->email ?: null);
 
-                if (!$user) {
-                    $user = User::create([
+            if (empty($student->user_id)) {
+                $existingUserWithRealEmail = $realEmail ? User::where('email', $realEmail)->first() : null;
+                $canUseRealEmail = $realEmail && (!$existingUserWithRealEmail || !Student::where('user_id', $existingUserWithRealEmail->id)->where('id', '!=', $student->id)->exists());
+
+                if ($canUseRealEmail) {
+                    $loginEmail = $realEmail;
+                    $user = $existingUserWithRealEmail ?: User::create([
                         'name'     => $student->name,
                         'email'    => $loginEmail,
                         'password' => Hash::make($rawPassword),
                         'role'     => 'student',
                     ]);
+                    if ($existingUserWithRealEmail) {
+                        $user->password = Hash::make($rawPassword);
+                        $user->save();
+                    }
                 } else {
+                    $loginEmail = $student->student_code ? ($student->student_code . '@iom.student') : (uniqid() . '@iom.student');
+                    $user = User::firstOrCreate(
+                        ['email' => $loginEmail],
+                        [
+                            'name'     => $student->name,
+                            'password' => Hash::make($rawPassword),
+                            'role'     => 'student',
+                        ]
+                    );
                     $user->password = Hash::make($rawPassword);
                     $user->save();
                 }
@@ -572,6 +613,12 @@ class AdmissionController extends Controller
             } else {
                 $user = $student->user;
                 if ($user) {
+                    if ($realEmail && str_contains($user->email, '@iom.student')) {
+                        $existingUserWithEmail = User::where('email', $realEmail)->where('id', '!=', $user->id)->first();
+                        if (!$existingUserWithEmail) {
+                            $user->email = $realEmail;
+                        }
+                    }
                     $user->password = Hash::make($rawPassword);
                     $user->save();
                 }
@@ -621,13 +668,15 @@ class AdmissionController extends Controller
             $loginUrl   = url('/login');
 
             $replaceVars = [
-                '{name}'       => $student->name,
-                '{roll}'       => $student->student_code,
-                '{student_id}' => $student->student_code,
-                '{password}'   => $rawPassword,
-                '{course}'     => $courseName,
-                '{batch}'      => $batch->name,
-                '{login_url}'  => $loginUrl,
+                '{name}'        => $student->name,
+                '{roll}'        => $student->student_code,
+                '{student_id}'  => $student->student_code,
+                '{email}'       => $user->email,
+                '{login_email}' => $user->email,
+                '{password}'    => $rawPassword,
+                '{course}'      => $courseName,
+                '{batch}'       => $batch->name,
+                '{login_url}'   => $loginUrl,
             ];
 
             $selectedTemplate = $request->filled('email_template_id')

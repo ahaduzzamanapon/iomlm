@@ -159,6 +159,8 @@ class FeeController extends Controller
             'new_amount'      => 'required|numeric|min:0',
             'current_due'     => 'nullable|numeric|min:0',
             'remarks'         => 'nullable|string|max:255',
+            'position'        => 'nullable|string|in:at_bottom,at_top,after,before',
+            'relative_to'     => 'nullable|string|max:150',
         ]);
 
         $res = app(\App\Services\StudentFeeService::class)->updateParticular(
@@ -167,7 +169,9 @@ class FeeController extends Controller
             (float) $validated['new_amount'],
             $validated['remarks'] ?? null,
             session('admin_impersonator_id') ?? auth()->id(),
-            isset($validated['current_due']) ? (float)$validated['current_due'] : null
+            isset($validated['current_due']) ? (float)$validated['current_due'] : null,
+            $validated['position'] ?? null,
+            $validated['relative_to'] ?? null
         );
 
         return response()->json($res);
@@ -195,6 +199,8 @@ class FeeController extends Controller
             'particular_name' => 'required|string|max:150',
             'amount'          => 'required|numeric|min:1',
             'remarks'         => 'nullable|string|max:255',
+            'position'        => 'nullable|string|in:at_bottom,at_top,after,before',
+            'relative_to'     => 'nullable|string|max:150',
         ]);
 
         $res = app(\App\Services\StudentFeeService::class)->storeParticular(
@@ -204,7 +210,9 @@ class FeeController extends Controller
             $validated['particular_name'],
             (float) $validated['amount'],
             $validated['remarks'] ?? null,
-            session('admin_impersonator_id') ?? auth()->id()
+            session('admin_impersonator_id') ?? auth()->id(),
+            $validated['position'] ?? 'at_bottom',
+            $validated['relative_to'] ?? null
         );
 
         return response()->json($res);
@@ -234,6 +242,39 @@ class FeeController extends Controller
             (int) $validated['invoice_id'],
             $validated['particular_name'],
             session('admin_impersonator_id') ?? auth()->id()
+        );
+
+        return response()->json($res);
+    }
+
+    /**
+     * Admin reverts/deletes the payment of a specific fee particular, restoring it to UNPAID.
+     */
+    public function revertParticularPayment(Request $request)
+    {
+        $isAdmin = session()->has('admin_impersonator_id') 
+            || (auth()->check() && (auth()->user()->isAdmin() || auth()->user()->role === 'ADMIN'));
+
+        if (!$isAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'অননুমোদিত অনুরোধ। শুধুমাত্র অ্যাডমিন পেমেন্ট বাতিল করতে পারবেন।'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'invoice_id'      => 'required|exists:invoices,id',
+            'particular_name' => 'required|string',
+            'paid_amount'     => 'nullable|numeric|min:0',
+            'reason'          => 'nullable|string|max:255',
+        ]);
+
+        $res = app(\App\Services\StudentFeeService::class)->revertParticularPayment(
+            (int) $validated['invoice_id'],
+            $validated['particular_name'],
+            $validated['reason'] ?? null,
+            session('admin_impersonator_id') ?? auth()->id(),
+            isset($validated['paid_amount']) ? (float)$validated['paid_amount'] : null
         );
 
         return response()->json($res);

@@ -185,7 +185,19 @@
         </div>
     @endif
 
-    @foreach($enrollments as $enrollment)
+    @php
+        $activeEnrollments = $enrollments->filter(fn($e) => $e->status === 'ACTIVE');
+        $otherEnrollments  = $enrollments->filter(fn($e) => $e->status !== 'ACTIVE');
+        $orderedEnrollments = $activeEnrollments->concat($otherEnrollments);
+    @endphp
+
+    @if($activeEnrollments->isNotEmpty() && $otherEnrollments->isNotEmpty())
+        <div style="margin-bottom:16px; font-size:15px; font-weight:800; color:#047857; display:flex; align-items:center; gap:8px">
+            <i class="fa-solid fa-graduation-cap"></i> বর্তমান সক্রিয় কোর্স (Active Enrolled Courses)
+        </div>
+    @endif
+
+    @foreach($orderedEnrollments as $enrollment)
     @php
         $course  = $enrollment->course;
         $batch   = $enrollment->batch;
@@ -195,7 +207,13 @@
         $finalMarks = $enrollment->_final_marks;
     @endphp
 
-    <div class="enrollment-card">
+    @if($loop->iteration === ($activeEnrollments->count() + 1) && $otherEnrollments->isNotEmpty())
+        <div style="margin-top:36px; margin-bottom:16px; font-size:15px; font-weight:800; color:#64748b; display:flex; align-items:center; gap:8px">
+            <i class="fa-solid fa-arrow-right-arrow-left"></i> স্থানান্তরিত ও পূর্ববর্তী কোর্সসমূহ (Transferred & Previous Courses)
+        </div>
+    @endif
+
+    <div class="enrollment-card" style="{{ $enrollment->status === 'TRANSFERRED' ? 'border:1px solid #cbd5e1; opacity:0.92' : '' }}">
 
         {{-- Card Header --}}
         <div class="enrollment-card-header" style="{{ $enrollment->status === 'TRANSFERRED' ? 'background:linear-gradient(90deg, #475569 0%, #64748b 100%)' : '' }}">
@@ -221,9 +239,9 @@
         </div>
 
         @if($enrollment->status === 'TRANSFERRED')
-            <div style="background:#f8fafc; border-bottom:1px solid #e2e8f0; padding:12px 24px; font-size:13px; color:#475569; display:flex; align-items:center; gap:8px">
-                <i class="fa-solid fa-circle-info" style="color:#0284c7"></i>
-                <span>এই কোর্সটি থেকে নতুন কোর্সে সফলভাবে স্থানান্তর সম্পন্ন হয়েছে। বিস্তারিত তথ্যের জন্য <a href="{{ route('student.course-transfers.index') }}" style="color:#0284c7; font-weight:700">কোর্স পরিবর্তন ইতিহাস</a> দেখুন।</span>
+            <div style="background:#fff1f2; border-bottom:1px solid #fecdd3; padding:12px 24px; font-size:13px; color:#9f1239; display:flex; align-items:center; gap:8px">
+                <i class="fa-solid fa-arrow-right-arrow-left" style="color:#be123c"></i>
+                <span><strong>পূর্ববর্তী কোর্স:</strong> এই কোর্সটি থেকে স্থানান্তর সম্পন্ন হয়েছে। বর্তমানে শিক্ষার্থী নতুন সক্রিয় কোর্সে অধ্যয়নরত। বিস্তারিত তথ্যের জন্য <a href="{{ route('student.course-transfers.index') }}" style="color:#2563eb; font-weight:700">কোর্স পরিবর্তন ইতিহাস</a> দেখুন।</span>
             </div>
         @endif
 

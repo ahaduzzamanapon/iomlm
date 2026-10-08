@@ -23,22 +23,73 @@ class ExamController extends Controller
     public function index()
     {
         $student = $this->student();
+        if (!$student) {
+            return view('student.exams.index', ['exams' => collect(), 'student' => null]);
+        }
 
-        $batchIds = Enrollment::where('student_id', $student?->id)
+        $activeEnrollments = Enrollment::where('student_id', $student->id)
             ->where('status', 'ACTIVE')
-            ->pluck('batch_id');
+            ->with(['batch.course', 'course'])
+            ->get();
+
+        if ($activeEnrollments->isEmpty()) {
+            $activeEnrollments = Enrollment::where('student_id', $student->id)
+                ->with(['batch.course', 'course'])
+                ->get();
+        }
+
+        $courseIds = $activeEnrollments->map(fn($e) => $e->course_id ?? $e->batch?->course_id)->filter()->unique()->values();
+        $batchIds = $activeEnrollments->pluck('batch_id')->filter()->unique()->values();
+        $semesterIds = $activeEnrollments->map(fn($e) => $e->semester_id ?? $e->batch?->semesterPosition?->current_semester_id)->filter()->unique()->values();
+
+        $enrolledSubjectIds = \App\Models\CourseSubjectMap::whereIn('course_id', $courseIds)
+            ->when($semesterIds->isNotEmpty(), function ($q) use ($semesterIds) {
+                $q->where(function ($sq) use ($semesterIds) {
+                    $sq->whereIn('semester_id', $semesterIds)
+                       ->orWhereNull('semester_id');
+                });
+            })
+            ->pluck('subject_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $attendeeExamIds = \App\Models\ExamAttendee::where('student_id', $student->id)->pluck('exam_id')->values();
+
+        if ($courseIds->isEmpty() && $attendeeExamIds->isEmpty()) {
+            return view('student.exams.index', ['exams' => collect(), 'student' => $student]);
+        }
 
         $exams = Exam::with([
                 'subject',
                 'examQuestions',
                 'submissions' => function ($q) use ($student) {
-                    $q->where('student_id', $student?->id);
+                    $q->where('student_id', $student->id);
                 },
                 'appeals' => function ($q) use ($student) {
-                    $q->where('student_id', $student?->id);
+                    $q->where('student_id', $student->id);
                 }
             ])
             ->where('status', '!=', 'CANCELLED')
+            ->where(function ($sub) use ($attendeeExamIds, $enrolledSubjectIds, $semesterIds) {
+                $hasCond = false;
+                if ($attendeeExamIds->isNotEmpty()) {
+                    $sub->whereIn('id', $attendeeExamIds);
+                    $hasCond = true;
+                }
+                if ($enrolledSubjectIds->isNotEmpty()) {
+                    $method = $hasCond ? 'orWhere' : 'where';
+                    $sub->$method(function ($sq) use ($enrolledSubjectIds, $semesterIds) {
+                        $sq->whereIn('subject_id', $enrolledSubjectIds);
+                        if ($semesterIds->isNotEmpty()) {
+                            $sq->where(function ($semQ) use ($semesterIds) {
+                                $semQ->whereIn('semester_id', $semesterIds)
+                                     ->orWhereNull('semester_id');
+                            });
+                        }
+                    });
+                }
+            })
             ->latest()
             ->get();
 
@@ -54,6 +105,32 @@ class ExamController extends Controller
         $student = $this->student();
 
         if ($student) {
+            // Verify exam belongs to student's enrolled courses/subjects/attendees
+            $isAttendee = \App\Models\ExamAttendee::where('exam_id', $exam->id)->where('student_id', $student->id)->exists();
+            if (!$isAttendee) {
+                $enrolledCourseIds = Enrollment::where('student_id', $student->id)
+                    ->where('status', 'ACTIVE')
+                    ->pluck('course_id')
+                    ->merge(
+                        Enrollment::where('student_id', $student->id)
+                            ->where('status', 'ACTIVE')
+                            ->with('batch')
+                            ->get()
+                            ->pluck('batch.course_id')
+                    )
+                    ->filter()
+                    ->unique();
+
+                $isEnrolledSubject = \App\Models\CourseSubjectMap::whereIn('course_id', $enrolledCourseIds)
+                    ->where('subject_id', $exam->subject_id)
+                    ->exists();
+
+                if (!$isEnrolledSubject) {
+                    return redirect()->route('student.exams.index')
+                        ->with('error', 'এই পরীক্ষাটি আপনার এনরোলকৃত কোর্সের অন্তর্ভুক্ত নয়।');
+                }
+            }
+
             $guard = \App\Services\EnforcementService::canTakeExam($student);
             if (!$guard['allowed']) {
                 return redirect()->route('student.exams.index')->with('info', $guard['reason']);

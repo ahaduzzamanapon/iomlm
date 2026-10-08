@@ -293,12 +293,19 @@
                             </div>
                             @endif
                         </div>
-                        @php $studentUser = $admission->student->user; @endphp
-                        @if($studentUser)
+                        @php
+                            $studentUser = $admission->student?->user;
+                            $displayLoginEmail = ($studentUser && !str_contains($studentUser->email, '@iom.student'))
+                                ? $studentUser->email
+                                : ($admission->student?->email ?: ($admission->email ?: ($studentUser?->email ?? '—')));
+                        @endphp
+                        @if($studentUser || $admission->student?->email || $admission->email)
                             <div style="background:#ffffff;border:1px solid #dcfce7;border-radius:8px;padding:12px 14px;font-size:13px;">
                                 <strong style="color:#166534;"><i class="fa-solid fa-user-lock"></i> Student Login Account</strong><br>
-                                <span style="color:#64748b;">Login Email:</span> <code>{{ $studentUser->email }}</code><br>
-                                <span style="color:#64748b;">Role:</span> <span class="badge badge-active no-dot">{{ ucfirst($studentUser->role) }}</span>
+                                <span style="color:#64748b;">Login Email:</span> <code>{{ $displayLoginEmail }}</code><br>
+                                @if($studentUser)
+                                    <span style="color:#64748b;">Role:</span> <span class="badge badge-active no-dot">{{ ucfirst($studentUser->role) }}</span>
+                                @endif
                                 <div style="margin-top:4px;font-size:11px;color:#64748b;">পাসওয়ার্ড শিক্ষার্থীকে এসএমএস ও ইমেইলের মাধ্যমে পৌঁছে দেওয়া হয়েছে।</div>
                             </div>
                         @endif

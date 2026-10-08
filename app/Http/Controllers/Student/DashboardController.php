@@ -20,15 +20,65 @@ class DashboardController extends Controller
         $studentId = $student?->id;
         $today     = Carbon::today();
 
-        $batchIds = Enrollment::where('student_id', $studentId)
-            ->where('status', 'ACTIVE')->pluck('batch_id');
+        $activeEnrollments = Enrollment::where('student_id', $studentId)
+            ->where('status', 'ACTIVE')
+            ->with(['batch.course', 'course'])
+            ->get();
+
+        $courseIds = $activeEnrollments->map(fn($e) => $e->course_id ?? $e->batch?->course_id)->filter()->unique()->values();
+        $batchIds = $activeEnrollments->pluck('batch_id')->filter()->unique()->values();
+        $semesterIds = $activeEnrollments->map(fn($e) => $e->semester_id ?? $e->batch?->semesterPosition?->current_semester_id)->filter()->unique()->values();
+
+        $enrolledSubjectIds = \App\Models\CourseSubjectMap::whereIn('course_id', $courseIds)
+            ->when($semesterIds->isNotEmpty(), function ($q) use ($semesterIds) {
+                $q->where(function ($sq) use ($semesterIds) {
+                    $sq->whereIn('semester_id', $semesterIds)
+                       ->orWhereNull('semester_id');
+                });
+            })
+            ->pluck('subject_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $attendeeExamIds = \App\Models\ExamAttendee::where('student_id', $studentId)->pluck('exam_id')->values();
+
+        $examScopeClosure = function ($sub) use ($attendeeExamIds, $enrolledSubjectIds, $semesterIds) {
+            $hasCond = false;
+            if ($attendeeExamIds->isNotEmpty()) {
+                $sub->whereIn('id', $attendeeExamIds);
+                $hasCond = true;
+            }
+            if ($enrolledSubjectIds->isNotEmpty()) {
+                $method = $hasCond ? 'orWhere' : 'where';
+                $sub->$method(function ($sq) use ($enrolledSubjectIds, $semesterIds) {
+                    $sq->whereIn('subject_id', $enrolledSubjectIds);
+                    if ($semesterIds->isNotEmpty()) {
+                        $sq->where(function ($semQ) use ($semesterIds) {
+                            $semQ->whereIn('semester_id', $semesterIds)
+                                 ->orWhereNull('semester_id');
+                        });
+                    }
+                });
+            }
+        };
+
+        $canAccessExams = ($courseIds->isNotEmpty() || $attendeeExamIds->isNotEmpty());
 
         // Stats
         $stats = [
             'enrolled_courses'   => Enrollment::where('student_id', $studentId)->where('status', 'ACTIVE')->count(),
             'upcoming_classes'   => ClassSession::whereIn('batch_id', $batchIds)->where('status', 'SCHEDULED')->whereDate('session_date', '>=', $today)->count(),
             'attendance_percent' => $this->calcAttendance($studentId),
-            'upcoming_exams'     => Exam::where('status', 'SCHEDULED')->whereHas('attendees', fn($q) => $q->where('student_id', $studentId))->count(),
+            'upcoming_exams'     => $canAccessExams
+                ? Exam::where('status', 'SCHEDULED')
+                    ->where(function($q) use ($today) {
+                        $q->whereDate('exam_date', '>=', $today)
+                          ->orWhere('end_datetime', '>=', now());
+                    })
+                    ->where($examScopeClosure)
+                    ->count()
+                : 0,
         ];
 
         // Recent sessions (replaces timeline-based currentModules)
@@ -54,13 +104,19 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Upcoming exams for this student
-        $upcomingExamsList = Exam::with('subject')
-            ->whereHas('attendees', fn($q) => $q->where('student_id', $studentId))
-            ->where('status', 'SCHEDULED')
-            ->orderBy('exam_date')
-            ->take(5)
-            ->get();
+        // Upcoming exams for this student (strictly isolated to enrolled course/subjects)
+        $upcomingExamsList = $canAccessExams
+            ? Exam::with('subject')
+                ->where('status', 'SCHEDULED')
+                ->where(function($q) use ($today) {
+                    $q->whereDate('exam_date', '>=', $today)
+                      ->orWhere('end_datetime', '>=', now());
+                })
+                ->where($examScopeClosure)
+                ->orderBy('exam_date')
+                ->take(5)
+                ->get()
+            : collect();
 
         // Notices for students
         $notices = \App\Models\Notice::where('is_published', true)
@@ -171,12 +227,78 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Learning Resources for student dashboard (from subject modules & learning resources)
+        $latestResources = collect();
+        if ($enrolledSubjectIds->isNotEmpty()) {
+            $recentModules = \App\Models\SubjectModule::with(['subject', 'learningResources'])
+                ->whereIn('subject_id', $enrolledSubjectIds)
+                ->where('is_hidden', false)
+                ->where(function ($q) {
+                    $q->whereNotNull('file_path')
+                      ->orWhereNotNull('drive_link')
+                      ->orWhereNotNull('recorded_videos')
+                      ->orWhereHas('learningResources');
+                })
+                ->latest()
+                ->take(6)
+                ->get();
+
+            foreach ($recentModules as $mod) {
+                if ($mod->file_path) {
+                    $ext = strtolower(pathinfo($mod->file_path, PATHINFO_EXTENSION));
+                    $latestResources->push([
+                        'id'           => 'mod_file_' . $mod->id,
+                        'title'        => $mod->title,
+                        'subject_name' => $mod->subject?->name ?? '—',
+                        'type'         => $ext === 'pdf' ? 'PDF' : 'ATTACHMENT',
+                        'url'          => asset('storage/' . $mod->file_path),
+                        'created_at'   => $mod->created_at,
+                    ]);
+                }
+                if ($mod->drive_link) {
+                    $latestResources->push([
+                        'id'           => 'mod_drive_' . $mod->id,
+                        'title'        => $mod->title . ' (Google Drive)',
+                        'subject_name' => $mod->subject?->name ?? '—',
+                        'type'         => 'DRIVE',
+                        'url'          => $mod->drive_link,
+                        'created_at'   => $mod->created_at,
+                    ]);
+                }
+                if (!empty($mod->videos)) {
+                    $firstVid = $mod->videos[0] ?? null;
+                    $vUrl = $firstVid['url'] ?? ($firstVid['file_path'] ? asset('storage/' . $firstVid['file_path']) : null);
+                    if ($vUrl) {
+                        $latestResources->push([
+                            'id'           => 'mod_vid_' . $mod->id,
+                            'title'        => $firstVid['title'] ?? ($mod->title . ' - ভিডিও'),
+                            'subject_name' => $mod->subject?->name ?? '—',
+                            'type'         => 'VIDEO',
+                            'url'          => $vUrl,
+                            'created_at'   => $mod->created_at,
+                        ]);
+                    }
+                }
+                foreach ($mod->learningResources as $lr) {
+                    $latestResources->push([
+                        'id'           => 'lr_' . $lr->id,
+                        'title'        => $lr->title,
+                        'subject_name' => $mod->subject?->name ?? '—',
+                        'type'         => $lr->type,
+                        'url'          => $lr->url,
+                        'created_at'   => $lr->created_at,
+                    ]);
+                }
+            }
+            $latestResources = $latestResources->sortByDesc('created_at')->take(5)->values();
+        }
+
         return view('student.dashboard', compact(
             'student', 'stats', 'currentModules', 'upcomingClasses',
             'recentResults', 'upcomingExamsList', 'notices',
             'dashboardMonthly', 'runningSemesterName', 'runningSemDue', 'runningSemPaid',
             'dueInvoices', 'paidInvoices', 'totalOverallDue', 'totalOverallPaid', 'recentVoucherPayments',
-            'studentCourses', 'selectedCourse', 'hasRunningSemesterInvoices'
+            'studentCourses', 'selectedCourse', 'hasRunningSemesterInvoices', 'latestResources'
         ));
     }
 

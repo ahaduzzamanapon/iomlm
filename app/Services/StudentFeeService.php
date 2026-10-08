@@ -14,6 +14,7 @@ use App\Models\Payment;
 use App\Models\ProgramActivity;
 use App\Models\Semester;
 use App\Models\Student;
+use App\Models\User;
 use App\Models\WaiverApplication;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -38,8 +39,8 @@ class StudentFeeService
             $activeEnrollment = $student->enrollments->firstWhere('course_id', $selectedCourseId);
         }
         if (!$activeEnrollment) {
-            $activeEnrollment = $student->enrollments->where('status', 'ACTIVE')->first()
-                ?? $student->enrollments->first();
+            $activeEnrollment = $student->enrollments->where('status', 'ACTIVE')->sortByDesc('id')->first()
+                ?? $student->enrollments->sortByDesc('id')->first();
         }
 
         $studentCourses = $student->enrollments->map(fn($e) => $e->course)->filter()->unique('id');
@@ -64,6 +65,15 @@ class StudentFeeService
         }
 
         $invoices = $invoicesQuery->latest()->get();
+
+        if ($courseType === 'SUBJECT_BASED' && $activeEnrollment && $course) {
+            $hasSemInv = $invoices->where('status', '!=', 'CANCELLED')
+                ->contains(fn($i) => in_array($i->category, ['SEMESTER', 'MANUAL']));
+            if (!$hasSemInv) {
+                \App\Services\AccountingService::createSemesterInvoice($student, $activeEnrollment, null);
+                $invoices = $invoicesQuery->latest()->get();
+            }
+        }
 
         $payments = Payment::with('invoice')
             ->where('student_id', $student->id)
@@ -460,6 +470,10 @@ class StudentFeeService
                 ];
             }
         } else {
+            $admDue = (float) $admissionInvoices->sum('due_amount');
+            $admLabel = 'ভর্তি ফি (Admission Fee)';
+            $admLabel .= ($admDue > 0) ? ' (বকেয়া: ৳' . number_format($admDue, 0) . ')' : ' (পরিশোধিত)';
+
             $semesterDropdownOptions[] = [
                 'id'          => '0',
                 'name'        => 'Full Course',
@@ -468,6 +482,17 @@ class StudentFeeService
                 'isRunning'   => true,
                 'sequence_no' => 1,
             ];
+
+            if ($admissionInvoices->isNotEmpty() || ($course && $course->admission_fee > 0)) {
+                $semesterDropdownOptions[] = [
+                    'id'          => 'admission',
+                    'name'        => 'Admission Fee',
+                    'label'       => $admLabel,
+                    'due'         => $admDue,
+                    'isRunning'   => false,
+                    'sequence_no' => 0,
+                ];
+            }
         }
 
         if (empty($semesterDropdownOptions)) {
@@ -535,22 +560,22 @@ class StudentFeeService
             }
 
             if ($midItem) {
-                if ($midItem->amount_mode === 'PER_SEMESTER' && $midItem->amount_per_unit > 0) {
+                if ($midItem->amount_per_unit > 0) {
                     $midFeeAmt = (float) $midItem->amount_per_unit;
                 } elseif ($totalSemesters > 0 && $midItem->total_amount > 0) {
                     $midFeeAmt = round((float) $midItem->total_amount / $totalSemesters, 2);
                 } else {
-                    $midFeeAmt = (float) ($midItem->amount_per_unit ?? 0);
+                    $midFeeAmt = (float) ($midItem->total_amount ?? 0);
                 }
             }
 
             if ($finalItem) {
-                if ($finalItem->amount_mode === 'PER_SEMESTER' && $finalItem->amount_per_unit > 0) {
+                if ($finalItem->amount_per_unit > 0) {
                     $finalFeeAmt = (float) $finalItem->amount_per_unit;
                 } elseif ($totalSemesters > 0 && $finalItem->total_amount > 0) {
-                    $finalFeeAmt = round((float) $finalItem->total_amount / $totalSemesters, 0);
+                    $finalFeeAmt = round((float) $finalItem->total_amount / $totalSemesters, 2);
                 } else {
-                    $finalFeeAmt = (float) ($finalItem->amount_per_unit ?? 0);
+                    $finalFeeAmt = (float) ($finalItem->total_amount ?? 0);
                 }
             }
         } elseif ($batch?->monthly_fee > 0) {
@@ -577,15 +602,27 @@ class StudentFeeService
             $isPaid = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
             $paidAmt = $isPaid ? ($admPaid > 0 ? $admPaid : $nominalAmt) : $admPaid;
 
+            $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
+            $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
+            $admPaidAt     = $admCustom['paid_at'] ?? ($admPmt?->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : ($admPmt?->created_at ? $admPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null)));
+            $admMethod     = $admCustom['payment_method'] ?? ($admPmt?->payment_method ?? null);
+
             $step1Particulars[] = [
-                'sl'         => 1,
-                'name'       => 'Admission Fee (ভর্তি ফি)',
-                'amount'     => $nominalAmt,
-                'paid_amt'   => $paidAmt,
-                'due'        => $admDue,
-                'is_paid'    => $isPaid,
-                'invoice_id' => $admInv?->id,
-                'invoice_no' => $admInv?->invoice_no,
+                'sl'               => 1,
+                'name'             => 'Admission Fee (ভর্তি ফি)',
+                'amount'           => $nominalAmt,
+                'paid_amt'         => $paidAmt,
+                'due'              => $admDue,
+                'is_paid'          => $isPaid,
+                'is_added'         => false,
+                'invoice_id'       => $admInv?->id,
+                'invoice_no'       => $admInv?->invoice_no,
+                'paid_by_name'     => $admPaidByName,
+                'paid_at'          => $admPaidAt,
+                'payment_method'   => $admMethod,
+                'reverted_by_name' => $admCustom['reverted_by_name'] ?? null,
+                'reverted_at'      => $admCustom['reverted_at'] ?? null,
+                'revert_reason'    => $admCustom['revert_reason'] ?? null,
             ];
             $selectedSemesterInvoice = $admInv;
         } elseif ($courseType === 'SEMESTER_BASED') {
@@ -615,60 +652,7 @@ class StudentFeeService
             $paidPool = max(0, $targetPaid - $customPaidTotal);
             $sl = 1;
 
-            $resolveParticular = function(string $pName, float $defaultAmt, ?int $invId = null, ?string $invNo = null) use (&$sl, &$paidPool, $customOverrides, $selectedSemesterInvoice) {
-                $targetInvId = $invId ?? $selectedSemesterInvoice?->id;
-                $targetInvNo = $invNo ?? $selectedSemesterInvoice?->invoice_no;
-
-                if (isset($customOverrides[$pName])) {
-                    $cData  = $customOverrides[$pName];
-                    $cAmt   = isset($cData['amount']) ? (float)$cData['amount'] : (float)$defaultAmt;
-                    $cDue   = (float)($cData['due'] ?? 0);
-                    $cPaid  = isset($cData['paid_amt']) ? (float)$cData['paid_amt'] : max(0, $cAmt - $cDue);
-                    $isPaid = ($cDue <= 0);
-
-                    return [
-                        'sl'             => $sl++,
-                        'name'           => $pName,
-                        'amount'         => $cAmt,
-                        'paid_amt'       => $cPaid,
-                        'due'            => $cDue,
-                        'is_paid'        => $isPaid,
-                        'is_custom'      => true,
-                        'is_added'       => !empty($cData['is_added']),
-                        'custom_remarks' => $cData['remarks'] ?? null,
-                        'invoice_id'     => $targetInvId,
-                        'invoice_no'     => $targetInvNo,
-                    ];
-                }
-
-                $nominal = (float) $defaultAmt;
-                if ($paidPool >= $nominal) {
-                    $paidAmt  = $nominal;
-                    $dueAmt   = 0;
-                    $isPaid   = true;
-                    $paidPool -= $nominal;
-                } elseif ($paidPool > 0) {
-                    $paidAmt  = $paidPool;
-                    $dueAmt   = max(0, $nominal - $paidPool);
-                    $isPaid   = false;
-                    $paidPool = 0;
-                } else {
-                    $paidAmt  = 0;
-                    $dueAmt   = $nominal;
-                    $isPaid   = false;
-                }
-
-                return [
-                    'sl'         => $sl++,
-                    'name'       => $pName,
-                    'amount'     => $nominal,
-                    'paid_amt'   => $paidAmt,
-                    'due'        => $dueAmt,
-                    'is_paid'    => $isPaid,
-                    'invoice_id' => $targetInvId,
-                    'invoice_no' => $targetInvNo,
-                ];
-            };
+            $templateItems = [];
 
             // Semester 1: Prepend Admission Fee row
             if (($selectedSemester?->sequence_no ?? 1) == 1) {
@@ -689,15 +673,27 @@ class StudentFeeService
                 $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
                 $paidAmt = $isPaid ? ($admPaid > 0 ? $admPaid : $nominalAmt) : $admPaid;
 
-                $step1Particulars[] = [
-                    'sl'         => $sl++,
-                    'name'       => 'Admission Fee (ভর্তি ফি)',
-                    'amount'     => $nominalAmt,
-                    'paid_amt'   => $paidAmt,
-                    'due'        => $admDue,
-                    'is_paid'    => $isPaid,
-                    'invoice_id' => $admInv?->id,
-                    'invoice_no' => $admInv?->invoice_no,
+                $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
+                $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
+                $admPaidAt     = $admCustom['paid_at'] ?? ($admPmt?->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : ($admPmt?->created_at ? $admPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null)));
+                $admMethod     = $admCustom['payment_method'] ?? ($admPmt?->payment_method ?? null);
+
+                $templateItems[] = [
+                    'name'             => 'Admission Fee (ভর্তি ফি)',
+                    'default_amount'   => $nominalAmt,
+                    'is_admission'     => true,
+                    'adm_amount'       => $nominalAmt,
+                    'adm_paid'         => $paidAmt,
+                    'adm_due'          => $admDue,
+                    'adm_is_paid'      => $isPaid,
+                    'invoice_id'       => $admInv?->id,
+                    'invoice_no'       => $admInv?->invoice_no,
+                    'paid_by_name'     => $admPaidByName,
+                    'paid_at'          => $admPaidAt,
+                    'payment_method'   => $admMethod,
+                    'reverted_by_name' => $admCustom['reverted_by_name'] ?? null,
+                    'reverted_at'      => $admCustom['reverted_at'] ?? null,
+                    'revert_reason'    => $admCustom['revert_reason'] ?? null,
                 ];
             }
 
@@ -716,7 +712,12 @@ class StudentFeeService
                 }
 
                 if ($annual1Amount > 0) {
-                    $step1Particulars[] = $resolveParticular('১ম বার্ষিক ফি (1st Annual Fee)', $annual1Amount);
+                    $templateItems[] = [
+                        'name'           => '১ম বার্ষিক ফি (1st Annual Fee)',
+                        'default_amount' => $annual1Amount,
+                        'invoice_id'     => $selectedSemesterInvoice?->id,
+                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
                 }
             }
 
@@ -734,7 +735,12 @@ class StudentFeeService
                 }
 
                 if ($annual2Amount > 0) {
-                    $step1Particulars[] = $resolveParticular('২য় বার্ষিক ফি (2nd Annual Fee)', $annual2Amount);
+                    $templateItems[] = [
+                        'name'           => '২য় বার্ষিক ফি (2nd Annual Fee)',
+                        'default_amount' => $annual2Amount,
+                        'invoice_id'     => $selectedSemesterInvoice?->id,
+                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
                 }
             }
 
@@ -742,45 +748,167 @@ class StudentFeeService
             for ($i = 0; $i < 3; $i++) {
                 $cDate = $startCarbon->copy()->addMonths($i);
                 $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
-                $step1Particulars[] = $resolveParticular($pName, $monthlyTuition);
+                $templateItems[] = [
+                    'name'           => $pName,
+                    'default_amount' => $monthlyTuition,
+                    'invoice_id'     => $selectedSemesterInvoice?->id,
+                    'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                ];
             }
 
             // Mid Term Fee
             if ($midFeeAmt > 0) {
-                $step1Particulars[] = $resolveParticular('Mid Term Fee', $midFeeAmt);
+                $templateItems[] = [
+                    'name'           => 'Mid Term Fee',
+                    'default_amount' => $midFeeAmt,
+                    'invoice_id'     => $selectedSemesterInvoice?->id,
+                    'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                ];
             }
 
             // Months 4 to 6
             for ($i = 3; $i < 6; $i++) {
                 $cDate = $startCarbon->copy()->addMonths($i);
                 $pName = 'Tuition Fee (' . $cDate->format('M-Y') . ')';
-                $step1Particulars[] = $resolveParticular($pName, $monthlyTuition);
+                $templateItems[] = [
+                    'name'           => $pName,
+                    'default_amount' => $monthlyTuition,
+                    'invoice_id'     => $selectedSemesterInvoice?->id,
+                    'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                ];
             }
 
             // Final Term Fee
             if ($finalFeeAmt > 0) {
-                $step1Particulars[] = $resolveParticular('Final Term Fee', $finalFeeAmt);
+                $templateItems[] = [
+                    'name'           => 'Final Term Fee',
+                    'default_amount' => $finalFeeAmt,
+                    'invoice_id'     => $selectedSemesterInvoice?->id,
+                    'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                ];
             }
 
-            // Additional custom-added items not in the template
-            $existingNames = array_column($step1Particulars, 'name');
-            foreach ($customOverrides as $cName => $cData) {
-                if (!in_array($cName, $existingNames, true)) {
-                    $cDue  = (float) ($cData['due'] ?? 0);
-                    $cAmt  = (float) ($cData['amount'] ?? $cDue);
-                    $cPaid = isset($cData['paid_amt']) ? (float)$cData['paid_amt'] : max(0, $cAmt - $cDue);
+            // Additional custom-added items inserted relative to position
+            $semLatestPayment = $selectedSemesterInvoice?->payments()->with('receivedBy')->latest()->first();
+            $semPmtName   = $semLatestPayment?->receivedBy?->name ?? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)');
+            $semPmtAt     = $semLatestPayment?->paid_at ? $semLatestPayment->paid_at->format('d M Y, h:i A') : ($semLatestPayment?->created_at ? $semLatestPayment->created_at->format('d M Y, h:i A') : 'পরিশোধিত');
+            $semPmtMethod = $semLatestPayment?->payment_method ?? 'CASH';
+
+            $orderedItems = $this->insertCustomParticularsIntoList($templateItems, $customOverrides);
+
+            // Sequential resolution of items and paidPool
+            foreach ($orderedItems as $raw) {
+                $pName = $raw['name'];
+
+                if (!empty($raw['is_admission'])) {
+                    $step1Particulars[] = [
+                        'sl'               => $sl++,
+                        'name'             => $pName,
+                        'amount'           => $raw['adm_amount'],
+                        'paid_amt'         => $raw['adm_paid'],
+                        'due'              => $raw['adm_due'],
+                        'is_paid'          => $raw['adm_is_paid'],
+                        'is_added'         => false,
+                        'invoice_id'       => $raw['invoice_id'],
+                        'invoice_no'       => $raw['invoice_no'],
+                        'paid_by_name'     => $raw['paid_by_name'] ?? null,
+                        'paid_at'          => $raw['paid_at'] ?? null,
+                        'payment_method'   => $raw['payment_method'] ?? null,
+                        'reverted_by_name' => $raw['reverted_by_name'] ?? null,
+                        'reverted_at'      => $raw['reverted_at'] ?? null,
+                        'revert_reason'    => $raw['revert_reason'] ?? null,
+                    ];
+                    continue;
+                }
+
+                $targetInvId = $raw['invoice_id'] ?? $selectedSemesterInvoice?->id;
+                $targetInvNo = $raw['invoice_no'] ?? $selectedSemesterInvoice?->invoice_no;
+
+                if (isset($customOverrides[$pName])) {
+                    $cData = $customOverrides[$pName];
+                    $cAmt  = isset($cData['amount']) ? (float)$cData['amount'] : (float)$raw['default_amount'];
+
+                    if (isset($cData['paid_amt'])) {
+                        $cPaid  = (float)$cData['paid_amt'];
+                        $cDue   = isset($cData['due']) ? (float)$cData['due'] : max(0, $cAmt - $cPaid);
+                        $isPaid = ($cDue <= 0);
+                    } elseif (isset($cData['due']) && !empty($cData['is_custom']) && empty($cData['is_added'])) {
+                        $cDue   = (float)$cData['due'];
+                        $cPaid  = max(0, $cAmt - $cDue);
+                        $isPaid = ($cDue <= 0);
+                    } else {
+                        $nominal = (float)($cData['due'] ?? $cAmt);
+                        if ($paidPool >= $nominal) {
+                            $cPaid    = $nominal;
+                            $cDue     = 0;
+                            $isPaid   = true;
+                            $paidPool -= $nominal;
+                        } elseif ($paidPool > 0) {
+                            $cPaid    = $paidPool;
+                            $cDue     = max(0, $nominal - $paidPool);
+                            $isPaid   = false;
+                            $paidPool = 0;
+                        } else {
+                            $cPaid    = 0;
+                            $cDue     = $nominal;
+                            $isPaid   = false;
+                        }
+                    }
+
+                    $step1Particulars[] = [
+                        'sl'               => $sl++,
+                        'name'             => $pName,
+                        'amount'           => $cAmt,
+                        'paid_amt'         => $cPaid,
+                        'due'              => $cDue,
+                        'is_paid'          => $isPaid,
+                        'is_custom'        => true,
+                        'is_added'         => !empty($cData['is_added']) || !empty($raw['is_added']),
+                        'position'         => $cData['position'] ?? ($raw['position'] ?? 'at_bottom'),
+                        'relative_to'      => $cData['relative_to'] ?? ($raw['relative_to'] ?? null),
+                        'custom_remarks'   => $cData['remarks'] ?? ($raw['custom_remarks'] ?? null),
+                        'invoice_id'       => $targetInvId,
+                        'invoice_no'       => $targetInvNo,
+                        'paid_by_name'     => $cData['paid_by_name'] ?? ($isPaid ? ($semPmtName ?? 'অনলাইন / ক্যাশ') : null),
+                        'paid_at'          => $cData['paid_at'] ?? ($isPaid ? ($semPmtAt ?? null) : null),
+                        'payment_method'   => $cData['payment_method'] ?? ($isPaid ? ($semPmtMethod ?? 'CASH') : null),
+                        'reverted_by_name' => $cData['reverted_by_name'] ?? null,
+                        'reverted_at'      => $cData['reverted_at'] ?? null,
+                        'revert_reason'    => $cData['revert_reason'] ?? null,
+                        'created_by_name'  => $cData['created_by_name'] ?? ($raw['created_by_name'] ?? null),
+                        'added_at'         => $cData['added_at'] ?? ($raw['added_at'] ?? null),
+                    ];
+                } else {
+                    $nominal = (float) $raw['default_amount'];
+                    if ($paidPool >= $nominal) {
+                        $paidAmt  = $nominal;
+                        $dueAmt   = 0;
+                        $isPaid   = true;
+                        $paidPool -= $nominal;
+                    } elseif ($paidPool > 0) {
+                        $paidAmt  = $paidPool;
+                        $dueAmt   = max(0, $nominal - $paidPool);
+                        $isPaid   = false;
+                        $paidPool = 0;
+                    } else {
+                        $paidAmt  = 0;
+                        $dueAmt   = $nominal;
+                        $isPaid   = false;
+                    }
+
                     $step1Particulars[] = [
                         'sl'             => $sl++,
-                        'name'           => $cName,
-                        'amount'         => $cAmt,
-                        'paid_amt'       => $cPaid,
-                        'due'            => $cDue,
-                        'is_paid'        => ($cDue <= 0),
-                        'is_custom'      => true,
-                        'is_added'       => true,
-                        'custom_remarks' => $cData['remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি',
-                        'invoice_id'     => $selectedSemesterInvoice?->id,
-                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                        'name'           => $pName,
+                        'amount'         => $nominal,
+                        'paid_amt'       => $paidAmt,
+                        'due'            => $dueAmt,
+                        'is_paid'        => $isPaid,
+                        'is_added'       => false,
+                        'invoice_id'     => $targetInvId,
+                        'invoice_no'     => $targetInvNo,
+                        'paid_by_name'   => $isPaid ? ($semPmtName ?? 'অনলাইন / ক্যাশ') : null,
+                        'paid_at'        => $isPaid ? ($semPmtAt ?? null) : null,
+                        'payment_method' => $isPaid ? ($semPmtMethod ?? 'CASH') : null,
                     ];
                 }
             }
@@ -788,15 +916,18 @@ class StudentFeeService
             // SUBJECT_BASED COURSE
             $courseInvoices = $invoices->where('status', '!=', 'CANCELLED');
             $selectedSemesterInvoice = $courseInvoices->where('category', 'SEMESTER')->first()
-                ?? $courseInvoices->where('category', 'MANUAL')->first()
-                ?? $courseInvoices->first();
+                ?? $courseInvoices->where('category', 'MANUAL')->first();
+
+            if (!$selectedSemesterInvoice && $activeEnrollment && $course) {
+                $selectedSemesterInvoice = \App\Services\AccountingService::createSemesterInvoice($student, $activeEnrollment, null);
+            }
 
             $totalCourseMonths = 1;
             if ($course) {
                 $totalCourseMonths = $course->duration_unit === 'YEAR'
                     ? (int) round($course->duration_value * 12)
                     : (int) round($course->duration_value);
-                $totalCourseMonths = max(1, min(12, $totalCourseMonths));
+                $totalCourseMonths = max(1, min(120, $totalCourseMonths));
             }
 
             $targetPayable = $selectedSemesterInvoice ? (float) $selectedSemesterInvoice->payable_amount : 0.0;
@@ -811,128 +942,288 @@ class StudentFeeService
             $paidPool = max(0, $targetPaid - $customPaidTotal);
             $sl = 1;
 
-            if ($totalCourseMonths > 1 && $targetPayable > 0) {
-                $monthlyRate = round($targetPayable / $totalCourseMonths, 2);
-                $startCarbon = $baseCarbon->copy();
+            $templateItems = [];
 
-                for ($i = 0; $i < $totalCourseMonths; $i++) {
-                    $cDate = $startCarbon->copy()->addMonths($i);
-                    $pName = 'Course Tuition Fee (' . $cDate->format('M-Y') . ')';
+            // 1. Prepend Admission Fee row
+            $admInv = $admissionInvoices->first();
+            $admDue = (float) $admissionInvoices->sum('due_amount');
+            $admPaid = (float) $admissionInvoices->sum('paid_amount');
+            $admPayable = (float) $admissionInvoices->sum('payable_amount');
+            $pkgAdmItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'admission_fee' || str_contains(mb_strtolower($it->label ?? ''), 'admission'));
+            $nominalAmt = (float) ($admInv?->amount > 0 ? $admInv->amount : ($admPayable > 0 ? $admPayable : ($pkgAdmItem?->amount_per_unit ?: ($course?->admission_fee ?: 0))));
 
-                    if (isset($customOverrides[$pName])) {
-                        $cData  = $customOverrides[$pName];
-                        $cAmt   = isset($cData['amount']) ? (float)$cData['amount'] : (float)$monthlyRate;
-                        $cDue   = (float)($cData['due'] ?? 0);
-                        $cPaid  = isset($cData['paid_amt']) ? (float)$cData['paid_amt'] : max(0, $cAmt - $cDue);
-                        $isPaid = ($cDue <= 0);
+            $admCustom = $admInv?->custom_particulars['Admission Fee (ভর্তি ফি)'] ?? null;
+            if ($admCustom) {
+                $nominalAmt = isset($admCustom['amount']) ? (float)$admCustom['amount'] : $nominalAmt;
+                $admDue     = (float) $admCustom['due'];
+                $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
+            }
 
-                        $step1Particulars[] = [
-                            'sl'             => $sl++,
-                            'name'           => $pName,
-                            'amount'         => $cAmt,
-                            'paid_amt'       => $cPaid,
-                            'due'            => $cDue,
-                            'is_paid'        => $isPaid,
-                            'is_custom'      => true,
-                            'is_added'       => !empty($cData['is_added']),
-                            'custom_remarks' => $cData['remarks'] ?? null,
-                            'invoice_id'     => $selectedSemesterInvoice?->id,
-                            'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
-                        ];
-                    } else {
-                        $nominal = $monthlyRate;
-                        if ($paidPool >= $nominal) {
-                            $paidAmt  = $nominal;
-                            $dueAmt   = 0;
-                            $isPaid   = true;
-                            $paidPool -= $nominal;
-                        } elseif ($paidPool > 0) {
-                            $paidAmt  = $paidPool;
-                            $dueAmt   = max(0, $nominal - $paidPool);
-                            $isPaid   = false;
-                            $paidPool = 0;
-                        } else {
-                            $paidAmt  = 0;
-                            $dueAmt   = $nominal;
-                            $isPaid   = false;
-                        }
+            $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
+            $paidAmt = $isPaid ? ($admPaid > 0 ? $admPaid : $nominalAmt) : $admPaid;
 
-                        $step1Particulars[] = [
-                            'sl'         => $sl++,
-                            'name'       => $pName,
-                            'amount'     => $nominal,
-                            'paid_amt'   => $paidAmt,
-                            'due'        => $dueAmt,
-                            'is_paid'    => $isPaid,
-                            'invoice_id' => $selectedSemesterInvoice?->id,
-                            'invoice_no' => $selectedSemesterInvoice?->invoice_no,
-                        ];
-                    }
-                }
-            } elseif ($targetPayable > 0) {
-                $pName = $selectedSemesterInvoice->title ?: 'Course Tuition Fee';
-                if (isset($customOverrides[$pName])) {
-                    $cData  = $customOverrides[$pName];
-                    $cAmt   = isset($cData['amount']) ? (float)$cData['amount'] : (float)$targetPayable;
-                    $cDue   = (float)($cData['due'] ?? 0);
-                    $cPaid  = isset($cData['paid_amt']) ? (float)$cData['paid_amt'] : max(0, $cAmt - $cDue);
-                    $step1Particulars[] = [
-                        'sl'             => $sl++,
-                        'name'           => $pName,
-                        'amount'         => $cAmt,
-                        'paid_amt'       => $cPaid,
-                        'due'            => $cDue,
-                        'is_paid'        => ($cDue <= 0),
-                        'is_custom'      => true,
-                        'is_added'       => !empty($cData['is_added']),
-                        'custom_remarks' => $cData['remarks'] ?? null,
-                        'invoice_id'     => $selectedSemesterInvoice?->id,
-                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
-                    ];
-                } else {
-                    $step1Particulars[] = [
-                        'sl'         => $sl++,
-                        'name'       => $pName,
-                        'amount'     => $targetPayable,
-                        'paid_amt'   => $targetPaid,
-                        'due'        => $targetDue,
-                        'is_paid'    => $targetDue <= 0,
-                        'invoice_id' => $selectedSemesterInvoice?->id,
-                        'invoice_no' => $selectedSemesterInvoice?->invoice_no,
-                    ];
-                }
-            } else {
-                $step1Particulars[] = [
-                    'sl'         => $sl++,
-                    'name'       => $course ? "{$course->name} Tuition Fee" : 'Course Tuition Fee',
-                    'amount'     => 0,
-                    'paid_amt'   => 0,
-                    'due'        => 0,
-                    'is_paid'    => true,
-                    'invoice_id' => null,
-                    'invoice_no' => null,
+            $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
+            $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
+            $admPaidAt     = $admCustom['paid_at'] ?? ($admPmt?->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : ($admPmt?->created_at ? $admPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null)));
+            $admMethod     = $admCustom['payment_method'] ?? ($admPmt?->payment_method ?? null);
+
+            if ($admInv || $nominalAmt > 0) {
+                $templateItems[] = [
+                    'name'             => 'Admission Fee (ভর্তি ফি)',
+                    'default_amount'   => $nominalAmt,
+                    'is_admission'     => true,
+                    'adm_amount'       => $nominalAmt,
+                    'adm_paid'         => $paidAmt,
+                    'adm_due'          => $admDue,
+                    'adm_is_paid'      => $isPaid,
+                    'invoice_id'       => $admInv?->id,
+                    'invoice_no'       => $admInv?->invoice_no,
+                    'paid_by_name'     => $admPaidByName,
+                    'paid_at'          => $admPaidAt,
+                    'payment_method'   => $admMethod,
+                    'reverted_by_name' => $admCustom['reverted_by_name'] ?? null,
+                    'reverted_at'      => $admCustom['reverted_at'] ?? null,
+                    'revert_reason'    => $admCustom['revert_reason'] ?? null,
                 ];
             }
 
-            // Additional custom-added items for subject-based
-            $existingNames = array_column($step1Particulars, 'name');
-            foreach ($customOverrides as $cName => $cData) {
-                if (!in_array($cName, $existingNames, true)) {
-                    $cDue  = (float) ($cData['due'] ?? 0);
-                    $cAmt  = (float) ($cData['amount'] ?? $cDue);
-                    $cPaid = isset($cData['paid_amt']) ? (float)$cData['paid_amt'] : max(0, $cAmt - $cDue);
-                    $step1Particulars[] = [
-                        'sl'             => $sl++,
-                        'name'           => $cName,
-                        'amount'         => $cAmt,
-                        'paid_amt'       => $cPaid,
-                        'due'            => $cDue,
-                        'is_paid'        => ($cDue <= 0),
-                        'is_custom'      => true,
-                        'is_added'       => true,
-                        'custom_remarks' => $cData['remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি',
+            // 2. Resolve Monthly Tuition Rate & Term Fees from Student Fee Package / Course
+            $tuitionItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'tuition_fee' || str_contains(mb_strtolower($it->label ?? ''), 'tuition'));
+            if ($tuitionItem && $tuitionItem->amount_per_unit > 0) {
+                $monthlyTuition = (float) $tuitionItem->amount_per_unit;
+            } elseif ($tuitionItem && $tuitionItem->months_count > 0) {
+                $monthlyTuition = round((float) $tuitionItem->total_amount / $tuitionItem->months_count, 2);
+            } elseif ($tuitionItem && $totalCourseMonths > 0) {
+                $monthlyTuition = round((float) $tuitionItem->total_amount / $totalCourseMonths, 2);
+            } elseif ($batch?->monthly_fee > 0) {
+                $monthlyTuition = (float) $batch->monthly_fee;
+            } elseif ($totalCourseMonths > 0 && $targetPayable > 0) {
+                $monthlyTuition = round($targetPayable / $totalCourseMonths, 2);
+            } else {
+                $monthlyTuition = 500.0;
+            }
+
+            $midItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'mid_term_fee' || str_contains(mb_strtolower($it->label ?? ''), 'mid'));
+            $midFeeAmt = (float) ($midItem?->total_amount > 0 ? $midItem->total_amount : ($midItem?->amount_per_unit ?? 0));
+
+            $finalItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'final_term_fee' || str_contains(mb_strtolower($it->label ?? ''), 'final'));
+            $finalFeeAmt = (float) ($finalItem?->total_amount > 0 ? $finalItem->total_amount : ($finalItem?->amount_per_unit ?? 0));
+
+            $startCarbon = $baseCarbon->copy();
+            $midPoint = (int) ceil($totalCourseMonths / 2);
+
+            if ($totalCourseMonths > 1) {
+                for ($i = 0; $i < $midPoint; $i++) {
+                    $cDate = $startCarbon->copy()->addMonths($i);
+                    $templateItems[] = [
+                        'name'           => 'Course Tuition Fee (' . $cDate->format('M-Y') . ')',
+                        'default_amount' => $monthlyTuition,
                         'invoice_id'     => $selectedSemesterInvoice?->id,
                         'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
+                }
+
+                if ($midFeeAmt > 0) {
+                    $templateItems[] = [
+                        'name'           => 'Mid Term Fee',
+                        'default_amount' => $midFeeAmt,
+                        'invoice_id'     => $selectedSemesterInvoice?->id,
+                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
+                }
+
+                for ($i = $midPoint; $i < $totalCourseMonths; $i++) {
+                    $cDate = $startCarbon->copy()->addMonths($i);
+                    $templateItems[] = [
+                        'name'           => 'Course Tuition Fee (' . $cDate->format('M-Y') . ')',
+                        'default_amount' => $monthlyTuition,
+                        'invoice_id'     => $selectedSemesterInvoice?->id,
+                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
+                }
+
+                if ($finalFeeAmt > 0) {
+                    $templateItems[] = [
+                        'name'           => 'Final Term Fee',
+                        'default_amount' => $finalFeeAmt,
+                        'invoice_id'     => $selectedSemesterInvoice?->id,
+                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
+                }
+            } else {
+                $cDate = $startCarbon->copy();
+                $templateItems[] = [
+                    'name'           => 'Course Tuition Fee (' . $cDate->format('M-Y') . ')',
+                    'default_amount' => $monthlyTuition,
+                    'invoice_id'     => $selectedSemesterInvoice?->id,
+                    'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                ];
+
+                if ($midFeeAmt > 0) {
+                    $templateItems[] = [
+                        'name'           => 'Mid Term Fee',
+                        'default_amount' => $midFeeAmt,
+                        'invoice_id'     => $selectedSemesterInvoice?->id,
+                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
+                }
+
+                if ($finalFeeAmt > 0) {
+                    $templateItems[] = [
+                        'name'           => 'Final Term Fee',
+                        'default_amount' => $finalFeeAmt,
+                        'invoice_id'     => $selectedSemesterInvoice?->id,
+                        'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                    ];
+                }
+            }
+
+            // Other package items (Annual fee, exam fee, etc.) if configured
+            if ($studentFeePackage) {
+                foreach ($studentFeePackage->items as $otherPkgItem) {
+                    $slug = $otherPkgItem->feeHead?->slug ?? '';
+                    $lbl  = mb_strtolower($otherPkgItem->label ?? '');
+                    if (in_array($slug, ['admission_fee', 'tuition_fee', 'mid_term_fee', 'final_term_fee', 'retake_fee'])) {
+                        continue;
+                    }
+                    if (str_contains($lbl, 'admission') || str_contains($lbl, 'ভর্তি') ||
+                        str_contains($lbl, 'tuition') || str_contains($lbl, 'বেতন') ||
+                        str_contains($lbl, 'mid') || str_contains($lbl, 'final') ||
+                        str_contains($lbl, 'retake')) {
+                        continue;
+                    }
+                    $otherAmt = (float) ($otherPkgItem->total_amount > 0 ? $otherPkgItem->total_amount : ($otherPkgItem->amount_per_unit ?? 0));
+                    if ($otherAmt > 0) {
+                        $templateItems[] = [
+                            'name'           => $otherPkgItem->label ?: ($otherPkgItem->feeHead?->name ?? 'Course Fee'),
+                            'default_amount' => $otherAmt,
+                            'invoice_id'     => $selectedSemesterInvoice?->id,
+                            'invoice_no'     => $selectedSemesterInvoice?->invoice_no,
+                        ];
+                    }
+                }
+            }
+
+            // 3. Process ordered items
+            $semLatestPayment = $selectedSemesterInvoice?->payments()->with('receivedBy')->latest()->first();
+            $semPmtName   = $semLatestPayment?->receivedBy?->name ?? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)');
+            $semPmtAt     = $semLatestPayment?->paid_at ? $semLatestPayment->paid_at->format('d M Y, h:i A') : ($semLatestPayment?->created_at ? $semLatestPayment->created_at->format('d M Y, h:i A') : 'পরিশোধিত');
+            $semPmtMethod = $semLatestPayment?->payment_method ?? 'CASH';
+
+            $orderedItems = $this->insertCustomParticularsIntoList($templateItems, $customOverrides);
+
+            foreach ($orderedItems as $raw) {
+                $pName = $raw['name'];
+
+                if (!empty($raw['is_admission'])) {
+                    $step1Particulars[] = [
+                        'sl'               => $sl++,
+                        'name'             => $pName,
+                        'amount'           => $raw['adm_amount'],
+                        'paid_amt'         => $raw['adm_paid'],
+                        'due'              => $raw['adm_due'],
+                        'is_paid'          => $raw['adm_is_paid'],
+                        'is_added'         => false,
+                        'invoice_id'       => $raw['invoice_id'],
+                        'invoice_no'       => $raw['invoice_no'],
+                        'paid_by_name'     => $raw['paid_by_name'] ?? null,
+                        'paid_at'          => $raw['paid_at'] ?? null,
+                        'payment_method'   => $raw['payment_method'] ?? null,
+                        'reverted_by_name' => $raw['reverted_by_name'] ?? null,
+                        'reverted_at'      => $raw['reverted_at'] ?? null,
+                        'revert_reason'    => $raw['revert_reason'] ?? null,
+                    ];
+                    continue;
+                }
+
+                $targetInvId = $raw['invoice_id'] ?? $selectedSemesterInvoice?->id;
+                $targetInvNo = $raw['invoice_no'] ?? $selectedSemesterInvoice?->invoice_no;
+
+                if (isset($customOverrides[$pName])) {
+                    $cData = $customOverrides[$pName];
+                    $cAmt  = isset($cData['amount']) ? (float)$cData['amount'] : (float)$raw['default_amount'];
+
+                    if (isset($cData['paid_amt'])) {
+                        $cPaid  = (float)$cData['paid_amt'];
+                        $cDue   = isset($cData['due']) ? (float)$cData['due'] : max(0, $cAmt - $cPaid);
+                        $isPaid = ($cDue <= 0);
+                    } elseif (isset($cData['due']) && !empty($cData['is_custom']) && empty($cData['is_added'])) {
+                        $cDue   = (float)$cData['due'];
+                        $cPaid  = max(0, $cAmt - $cDue);
+                        $isPaid = ($cDue <= 0);
+                    } else {
+                        $nominal = (float)($cData['due'] ?? $cAmt);
+                        if ($paidPool >= $nominal) {
+                            $cPaid    = $nominal;
+                            $cDue     = 0;
+                            $isPaid   = true;
+                            $paidPool -= $nominal;
+                        } elseif ($paidPool > 0) {
+                            $cPaid    = $paidPool;
+                            $cDue     = max(0, $nominal - $paidPool);
+                            $isPaid   = false;
+                            $paidPool = 0;
+                        } else {
+                            $cPaid    = 0;
+                            $cDue     = $nominal;
+                            $isPaid   = false;
+                        }
+                    }
+
+                    $step1Particulars[] = [
+                        'sl'               => $sl++,
+                        'name'             => $pName,
+                        'amount'           => $cAmt,
+                        'paid_amt'         => $cPaid,
+                        'due'              => $cDue,
+                        'is_paid'          => $isPaid,
+                        'is_custom'        => true,
+                        'is_added'         => !empty($cData['is_added']) || !empty($raw['is_added']),
+                        'position'         => $cData['position'] ?? ($raw['position'] ?? 'at_bottom'),
+                        'relative_to'      => $cData['relative_to'] ?? ($raw['relative_to'] ?? null),
+                        'custom_remarks'   => $cData['remarks'] ?? ($raw['custom_remarks'] ?? null),
+                        'invoice_id'       => $targetInvId,
+                        'invoice_no'       => $targetInvNo,
+                        'paid_by_name'     => $cData['paid_by_name'] ?? ($isPaid ? ($semPmtName ?? 'অনলাইন / ক্যাশ') : null),
+                        'paid_at'          => $cData['paid_at'] ?? ($isPaid ? ($semPmtAt ?? null) : null),
+                        'payment_method'   => $cData['payment_method'] ?? ($isPaid ? ($semPmtMethod ?? 'CASH') : null),
+                        'reverted_by_name' => $cData['reverted_by_name'] ?? null,
+                        'reverted_at'      => $cData['reverted_at'] ?? null,
+                        'revert_reason'    => $cData['revert_reason'] ?? null,
+                        'created_by_name'  => $cData['created_by_name'] ?? ($raw['created_by_name'] ?? null),
+                        'added_at'         => $cData['added_at'] ?? ($raw['added_at'] ?? null),
+                    ];
+                } else {
+                    $nominal = (float) $raw['default_amount'];
+                    if ($paidPool >= $nominal) {
+                        $paidAmt  = $nominal;
+                        $dueAmt   = 0;
+                        $isPaid   = true;
+                        $paidPool -= $nominal;
+                    } elseif ($paidPool > 0) {
+                        $paidAmt  = $paidPool;
+                        $dueAmt   = max(0, $nominal - $paidPool);
+                        $isPaid   = false;
+                        $paidPool = 0;
+                    } else {
+                        $paidAmt  = 0;
+                        $dueAmt   = $nominal;
+                        $isPaid   = false;
+                    }
+
+                    $step1Particulars[] = [
+                        'sl'             => $sl++,
+                        'name'           => $pName,
+                        'amount'         => $nominal,
+                        'paid_amt'       => $paidAmt,
+                        'due'            => $dueAmt,
+                        'is_paid'        => $isPaid,
+                        'is_added'       => false,
+                        'invoice_id'     => $targetInvId,
+                        'invoice_no'     => $targetInvNo,
+                        'paid_by_name'   => $isPaid ? ($semPmtName ?? 'অনলাইন / ক্যাশ') : null,
+                        'paid_at'        => $isPaid ? ($semPmtAt ?? null) : null,
+                        'payment_method' => $isPaid ? ($semPmtMethod ?? 'CASH') : null,
                     ];
                 }
             }
@@ -987,6 +1278,7 @@ class StudentFeeService
                 // If invoice has custom particulars:
                 if (!empty($otherInv->custom_particulars)) {
                     foreach ($otherInv->custom_particulars as $cpName => $cpData) {
+                        if ($cpName === '_history') continue;
                         if (in_array(mb_strtolower($cpName), $existingPartNames, true)) {
                             continue;
                         }
@@ -995,19 +1287,32 @@ class StudentFeeService
                         $cPaid  = isset($cpData['paid_amt']) ? (float)$cpData['paid_amt'] : max(0, $cAmt - $cDue);
                         $isPaid = ($cDue <= 0);
 
+                        $oPmt = $otherInv->payments()->with('receivedBy')->latest()->first();
+                        $oPmtName = $cpData['paid_by_name'] ?? ($oPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'অনলাইন / ক্যাশ') : null));
+                        $oPmtAt = $cpData['paid_at'] ?? ($oPmt?->paid_at ? $oPmt->paid_at->format('d M Y, h:i A') : ($oPmt?->created_at ? $oPmt->created_at->format('d M Y, h:i A') : null));
+                        $oMethod = $cpData['payment_method'] ?? ($oPmt?->payment_method ?? null);
+
                         $step1Particulars[] = [
-                            'sl'             => $sl++,
-                            'name'           => $cpName,
-                            'amount'         => $cAmt,
-                            'paid_amt'       => $cPaid,
-                            'due'            => $cDue,
-                            'is_paid'        => $isPaid,
-                            'is_custom'      => true,
-                            'is_added'       => true,
-                            'custom_remarks' => $cpData['remarks'] ?? $otherInv->notes ?? $otherInv->category,
-                            'invoice_id'     => $otherInv->id,
-                            'invoice_no'     => $otherInv->invoice_no,
-                            'category'       => $otherInv->category,
+                            'sl'               => $sl++,
+                            'name'             => $cpName,
+                            'amount'           => $cAmt,
+                            'paid_amt'         => $cPaid,
+                            'due'              => $cDue,
+                            'is_paid'          => $isPaid,
+                            'is_custom'        => true,
+                            'is_added'         => true,
+                            'custom_remarks'   => $cpData['remarks'] ?? $otherInv->notes ?? $otherInv->category,
+                            'invoice_id'       => $otherInv->id,
+                            'invoice_no'       => $otherInv->invoice_no,
+                            'category'         => $otherInv->category,
+                            'paid_by_name'     => $oPmtName,
+                            'paid_at'          => $oPmtAt,
+                            'payment_method'   => $oMethod,
+                            'reverted_by_name' => $cpData['reverted_by_name'] ?? null,
+                            'reverted_at'      => $cpData['reverted_at'] ?? null,
+                            'revert_reason'    => $cpData['revert_reason'] ?? null,
+                            'created_by_name'  => $cpData['created_by_name'] ?? null,
+                            'added_at'         => $cpData['added_at'] ?? null,
                         ];
                         $existingPartNames[] = mb_strtolower($cpName);
                     }
@@ -1031,24 +1336,96 @@ class StudentFeeService
                     $invPaid    = (float)$otherInv->paid_amount;
                     $isPaid     = ($invDue <= 0 && $otherInv->status === 'PAID');
 
+                    $oPmt = $otherInv->payments()->with('receivedBy')->latest()->first();
+                    $oPmtName = $oPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'অনলাইন / ক্যাশ') : null);
+                    $oPmtAt = $oPmt?->paid_at ? $oPmt->paid_at->format('d M Y, h:i A') : ($oPmt?->created_at ? $oPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null));
+                    $oMethod = $oPmt?->payment_method ?? null;
+
                     $step1Particulars[] = [
-                        'sl'             => $sl++,
-                        'name'           => $invTitle,
-                        'amount'         => $invPayable,
-                        'paid_amt'       => $invPaid,
-                        'due'            => $invDue,
-                        'is_paid'        => $isPaid,
-                        'is_custom'      => true,
-                        'is_added'       => true,
-                        'custom_remarks' => $otherInv->notes ?? ($isActivation ? 'কোর্স এক্টিভিশন ফি' : $otherInv->category),
-                        'invoice_id'     => $otherInv->id,
-                        'invoice_no'     => $otherInv->invoice_no,
-                        'category'       => $otherInv->category,
+                        'sl'               => $sl++,
+                        'name'             => $invTitle,
+                        'amount'           => $invPayable,
+                        'paid_amt'         => $invPaid,
+                        'due'              => $invDue,
+                        'is_paid'          => $isPaid,
+                        'is_custom'        => true,
+                        'is_added'         => true,
+                        'custom_remarks'   => $otherInv->notes ?? ($isActivation ? 'কোর্স এক্টিভিশন ফি' : $otherInv->category),
+                        'invoice_id'       => $otherInv->id,
+                        'invoice_no'       => $otherInv->invoice_no,
+                        'category'         => $otherInv->category,
+                        'paid_by_name'     => $oPmtName,
+                        'paid_at'          => $oPmtAt,
+                        'payment_method'   => $oMethod,
+                        'reverted_by_name' => null,
+                        'reverted_at'      => null,
+                        'revert_reason'    => null,
+                        'created_by_name'  => null,
+                        'added_at'         => $otherInv->created_at ? $otherInv->created_at->format('d M Y, h:i A') : null,
                     ];
                     $existingPartNames[] = mb_strtolower($invTitle);
                 }
             }
         }
+
+        // ── Assemble Chronological History Logs ──
+        $rawHistory = $selectedSemesterInvoice?->custom_particulars['_history'] ?? [];
+        $historyLogs = [];
+        foreach ($rawHistory as $rh) {
+            $historyLogs[] = $rh;
+        }
+
+        if ($selectedSemesterInvoice) {
+            $invPayments = Payment::where('invoice_id', $selectedSemesterInvoice->id)->with('receivedBy')->get();
+            foreach ($invPayments as $pmt) {
+                $historyLogs[] = [
+                    'action'     => 'PAYMENT_COLLECTED',
+                    'particular' => $pmt->remarks ?: 'ইনভয়েস পেমেন্ট (' . ($selectedSemester?->name ?? 'সেমিস্টার ফি') . ')',
+                    'amount'     => (float) $pmt->amount,
+                    'user_id'    => $pmt->received_by,
+                    'user_name'  => $pmt->receivedBy?->name ?? ($student->user?->name ?? 'অনলাইন / শিক্ষার্থী'),
+                    'method'     => $pmt->payment_method,
+                    'date_time'  => $pmt->paid_at ? $pmt->paid_at->format('d M Y, h:i A') : $pmt->created_at->format('d M Y, h:i A'),
+                    'created_at' => $pmt->created_at ? $pmt->created_at->toDateTimeString() : now()->toDateTimeString(),
+                    'remarks'    => "রশিদ নম্বর: {$pmt->payment_no}",
+                ];
+            }
+        }
+
+        if (($selectedSemester?->sequence_no ?? 1) == 1 && $admissionInvoices->isNotEmpty()) {
+            foreach ($admissionInvoices as $admI) {
+                $admHistory = $admI->custom_particulars['_history'] ?? [];
+                foreach ($admHistory as $arh) {
+                    $historyLogs[] = $arh;
+                }
+                foreach ($admI->payments()->with('receivedBy')->get() as $admPmt) {
+                    $historyLogs[] = [
+                        'action'     => 'PAYMENT_COLLECTED',
+                        'particular' => 'Admission Fee (ভর্তি ফি)',
+                        'amount'     => (float) $admPmt->amount,
+                        'user_id'    => $admPmt->received_by,
+                        'user_name'  => $admPmt->receivedBy?->name ?? ($student->user?->name ?? 'অনলাইন / শিক্ষার্থী'),
+                        'method'     => $admPmt->payment_method,
+                        'date_time'  => $admPmt->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : $admPmt->created_at->format('d M Y, h:i A'),
+                        'created_at' => $admPmt->created_at ? $admPmt->created_at->toDateTimeString() : now()->toDateTimeString(),
+                        'remarks'    => "ভর্তি ফি রশিদ নম্বর: {$admPmt->payment_no}",
+                    ];
+                }
+            }
+        }
+
+        foreach ($activeInvoices as $othInv) {
+            if ($selectedSemesterInvoice && $othInv->id === $selectedSemesterInvoice->id) continue;
+            if ($othInv->category === 'ADMISSION') continue;
+            $othHistory = $othInv->custom_particulars['_history'] ?? [];
+            foreach ($othHistory as $orh) {
+                $historyLogs[] = $orh;
+            }
+        }
+
+        usort($historyLogs, function ($a, $b) {
+            return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
+        });
 
         return [
             'student'                 => $student,
@@ -1076,9 +1453,73 @@ class StudentFeeService
             'step1Particulars'        => $step1Particulars,
             'selectedSemesterInvoice' => $selectedSemesterInvoice,
             'monthlyTuition'          => $monthlyTuition,
+            'historyLogs'             => $historyLogs,
             'batch'                   => $batch,
             'academicYear'            => $academicYear,
         ];
+    }
+
+    /**
+     * Helper to insert custom particulars into ordered list of particulars based on position and relative_to.
+     */
+    private function insertCustomParticularsIntoList(array $templateItems, array $customOverrides): array
+    {
+        $ordered = $templateItems;
+        $existingNames = array_column($templateItems, 'name');
+
+        $customAdded = [];
+        foreach ($customOverrides as $cName => $cData) {
+            $pName = is_string($cName) && !is_numeric($cName) ? $cName : ($cData['name'] ?? (string)$cName);
+            if (!in_array($pName, $existingNames, true)) {
+                $customAdded[] = [
+                    'name'           => $pName,
+                    'default_amount' => (float) ($cData['amount'] ?? ($cData['due'] ?? 0)),
+                    'is_added'       => true,
+                    'custom_remarks' => $cData['remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি',
+                    'position'       => $cData['position'] ?? 'at_bottom',
+                    'relative_to'    => $cData['relative_to'] ?? null,
+                ];
+            }
+        }
+
+        foreach ($customAdded as $cItem) {
+            $pos = $cItem['position'] ?? 'at_bottom';
+            $rel = $cItem['relative_to'] ?? null;
+
+            if ($pos === 'at_top') {
+                array_unshift($ordered, $cItem);
+            } elseif ($pos === 'after' && !empty($rel)) {
+                $foundIdx = null;
+                foreach ($ordered as $idx => $it) {
+                    if ($it['name'] === $rel) {
+                        $foundIdx = $idx;
+                        break;
+                    }
+                }
+                if ($foundIdx !== null) {
+                    array_splice($ordered, $foundIdx + 1, 0, [$cItem]);
+                } else {
+                    $ordered[] = $cItem;
+                }
+            } elseif ($pos === 'before' && !empty($rel)) {
+                $foundIdx = null;
+                foreach ($ordered as $idx => $it) {
+                    if ($it['name'] === $rel) {
+                        $foundIdx = $idx;
+                        break;
+                    }
+                }
+                if ($foundIdx !== null) {
+                    array_splice($ordered, $foundIdx, 0, [$cItem]);
+                } else {
+                    $ordered[] = $cItem;
+                }
+            } else {
+                $ordered[] = $cItem;
+            }
+        }
+
+        return $ordered;
     }
 
     /**
@@ -1090,7 +1531,9 @@ class StudentFeeService
         float $newDue,
         ?string $remarks = null,
         ?int $userId = null,
-        ?float $currentDueHint = null
+        ?float $currentDueHint = null,
+        ?string $position = null,
+        ?string $relativeTo = null
     ): array {
         $invoice = Invoice::findOrFail($invoiceId);
         $pName   = trim($particularName);
@@ -1110,6 +1553,9 @@ class StudentFeeService
         $diff = $newDue - $oldDue;
         $newAmount = $newDue + $currentPaid;
 
+        $existingPos = $custom[$pName]['position'] ?? 'at_bottom';
+        $existingRel = $custom[$pName]['relative_to'] ?? null;
+
         $custom[$pName] = [
             'name'        => $pName,
             'amount'      => $newAmount,
@@ -1118,8 +1564,11 @@ class StudentFeeService
             'is_paid'     => ($newDue <= 0),
             'adjusted_at' => now()->toDateTimeString(),
             'adjusted_by' => $userId ?? auth()->id(),
-            'remarks'     => $remarks ?? 'ফি পরিবর্তন',
+            'remarks'     => $remarks ?? ($custom[$pName]['remarks'] ?? 'ফি পরিবর্তন'),
             'is_custom'   => true,
+            'is_added'    => !empty($custom[$pName]['is_added']),
+            'position'    => $position ?? $existingPos,
+            'relative_to' => $relativeTo ?? $existingRel,
         ];
 
         $newPayable     = max(0, $invoice->payable_amount + $diff);
@@ -1160,14 +1609,25 @@ class StudentFeeService
             'is_paid'     => ($newDue <= 0),
             'invoice_due' => $newDueAmt,
             'invoice_id'  => $invoice->id,
+            'position'    => $custom[$pName]['position'],
+            'relative_to' => $custom[$pName]['relative_to'],
         ];
     }
 
     /**
      * Admin adds a new custom fee particular to an invoice.
      */
-    public function storeParticular(?int $invoiceId, ?int $studentId, mixed $semesterId, string $particularName, float $amount, ?string $remarks = null, ?int $userId = null): array
-    {
+    public function storeParticular(
+        ?int $invoiceId,
+        ?int $studentId,
+        mixed $semesterId,
+        string $particularName,
+        float $amount,
+        ?string $remarks = null,
+        ?int $userId = null,
+        string $position = 'at_bottom',
+        ?string $relativeTo = null
+    ): array {
         $pName   = trim($particularName);
         $amount  = round($amount, 2);
         $remarks = $remarks ?? 'অ্যাডমিন কর্তৃক নতুন ফি যুক্ত';
@@ -1222,15 +1682,36 @@ class StudentFeeService
             $newAmt = $amount;
         }
 
+        $user = $userId ? User::find($userId) : auth()->user();
+        $userName = $user?->name ?? 'Admin';
+        $nowFormatted = now()->format('d M Y, h:i A');
+
         $custom[$pName] = [
-            'name'       => $pName,
-            'amount'     => $newAmt,
-            'due'        => $newDue,
-            'created_at' => now()->toDateTimeString(),
-            'created_by' => $userId ?? auth()->id(),
-            'remarks'    => $remarks,
-            'is_added'   => true,
+            'name'            => $pName,
+            'amount'          => $newAmt,
+            'due'             => $newDue,
+            'created_at'      => now()->toDateTimeString(),
+            'created_by'      => $userId ?? auth()->id(),
+            'created_by_name' => $userName,
+            'added_at'        => $nowFormatted,
+            'remarks'         => $remarks,
+            'is_added'        => true,
+            'position'        => $position,
+            'relative_to'     => $relativeTo,
         ];
+
+        $history = $custom['_history'] ?? [];
+        $history[] = [
+            'action'      => 'FEE_ADDED',
+            'particular'  => $pName,
+            'amount'      => $amount,
+            'user_id'     => $userId ?? auth()->id(),
+            'user_name'   => $userName,
+            'date_time'   => $nowFormatted,
+            'created_at'  => now()->toDateTimeString(),
+            'remarks'     => $remarks ?? 'নতুন ফি যুক্ত করা হয়েছে',
+        ];
+        $custom['_history'] = $history;
 
         $newPayable  = max(0, $invoice->payable_amount + $amount);
         $newDueAmt   = max(0, $invoice->due_amount + $amount);
@@ -1271,7 +1752,9 @@ class StudentFeeService
                 'remarks'   => $remarks,
                 'is_paid'   => false,
                 'is_custom' => true,
-                'is_added'  => true,
+                'is_added'    => true,
+                'position'    => $position,
+                'relative_to' => $relativeTo,
             ],
             'invoice_id'  => $invoice->id,
             'invoice_due' => $newDueAmt,
@@ -1287,24 +1770,73 @@ class StudentFeeService
         $pName   = trim($particularName);
 
         $custom = $invoice->custom_particulars ?? [];
-        if (!isset($custom[$pName])) {
-            if ($invoice->paid_amount <= 0 && ($invoice->title === $pName || str_contains($invoice->title, $pName))) {
-                $invoice->delete();
+        if (!isset($custom[$pName]) || empty($custom[$pName]['is_added'])) {
+            // Check if the invoice itself is a standalone extra/fine/manual invoice (not a structural SEMESTER or ADMISSION invoice)
+            if (in_array($invoice->category, ['FINE', 'EXTRA', 'DOCUMENT', 'MANUAL']) && $invoice->paid_amount <= 0) {
+                $user = $userId ? User::find($userId) : auth()->user();
+                $userName = $user?->name ?? 'Admin';
+                $delTime = now()->format('d M Y, h:i A');
+
+                $history = $custom['_history'] ?? [];
+                $history[] = [
+                    'action'      => 'FEE_DELETED',
+                    'particular'  => $invoice->title ?: $pName,
+                    'amount'      => (float) $invoice->due_amount,
+                    'user_id'     => $userId ?? auth()->id(),
+                    'user_name'   => $userName,
+                    'date_time'   => $delTime,
+                    'created_at'  => now()->toDateTimeString(),
+                    'remarks'     => 'অতিরিক্ত ইনভয়েস/ফি মুছে ফেলা হয়েছে',
+                ];
+                $custom['_history'] = $history;
+                $invoice->update([
+                    'status'             => 'CANCELLED',
+                    'custom_particulars' => $custom,
+                ]);
+
+                try {
+                    AuditLog::log(
+                        'fee_particular_deleted',
+                        $invoice,
+                        [],
+                        ['particular' => $pName],
+                        "অ্যাডমিন '{$pName}' ফি বাতিল/মুছে ফেলেছেন।"
+                    );
+                } catch (\Throwable $e) {}
+
                 return [
                     'success'     => true,
                     'message'     => "✓ '{$pName}' ফি সফলভাবে মুছে ফেলা হয়েছে।",
-                    'invoice_id'  => $invoiceId,
+                    'invoice_id'  => $invoice->id,
                     'invoice_due' => 0,
                 ];
             }
+
             return [
                 'success' => false,
-                'message' => 'এই ফি আইটেমটি পাওয়া যায়নি।',
+                'message' => 'শুধুমাত্র অতিরিক্ত যুক্ত করা ফি মুছে ফেলা যাবে। ডিফল্ট স্ট্রাকচারের ফি (যেমন টিউশন ফি, ভর্তি ফি, এক্সাম ফি) ডিলিট করা যাবে না।',
             ];
         }
 
         $dueToDeduct = (float)($custom[$pName]['due'] ?? 0);
         $amtToDeduct = (float)($custom[$pName]['amount'] ?? $dueToDeduct);
+
+        $user = $userId ? User::find($userId) : auth()->user();
+        $userName = $user?->name ?? 'Admin';
+        $delTime = now()->format('d M Y, h:i A');
+
+        $history = $custom['_history'] ?? [];
+        $history[] = [
+            'action'      => 'FEE_DELETED',
+            'particular'  => $pName,
+            'amount'      => $amtToDeduct,
+            'user_id'     => $userId ?? auth()->id(),
+            'user_name'   => $userName,
+            'date_time'   => $delTime,
+            'created_at'  => now()->toDateTimeString(),
+            'remarks'     => 'অতিরিক্ত ফি মুছে ফেলা হয়েছে',
+        ];
+        $custom['_history'] = $history;
 
         unset($custom[$pName]);
 
@@ -1342,6 +1874,99 @@ class StudentFeeService
             'message'     => "✓ '{$pName}' ফি সফলভাবে মুছে ফেলা হয়েছে।",
             'invoice_id'  => $invoice->id,
             'invoice_due' => $newDueAmt,
+        ];
+    }
+
+    /**
+     * Admin reverts/deletes the payment of a specific fee particular, restoring it to UNPAID.
+     */
+    public function revertParticularPayment(
+        int $invoiceId,
+        string $particularName,
+        ?string $reason = null,
+        ?int $userId = null,
+        ?float $paidAmountHint = null
+    ): array {
+        $invoice = Invoice::findOrFail($invoiceId);
+        $pName   = trim($particularName);
+        $user    = $userId ? User::find($userId) : auth()->user();
+        $userName = $user?->name ?? 'Admin';
+        $nowFormatted = now()->format('d M Y, h:i A');
+
+        $custom = $invoice->custom_particulars ?? [];
+        $existing = $custom[$pName] ?? [];
+
+        // Determine paid amount to revert
+        $paidAmtToRevert = 0.0;
+        if ($paidAmountHint !== null && $paidAmountHint > 0) {
+            $paidAmtToRevert = (float) $paidAmountHint;
+        } elseif (isset($existing['paid_amt']) && (float)$existing['paid_amt'] > 0) {
+            $paidAmtToRevert = (float) $existing['paid_amt'];
+        } elseif (isset($existing['amount'])) {
+            $paidAmtToRevert = (float) $existing['amount'];
+        } else {
+            $paidAmtToRevert = (float) ($existing['due'] ?? 500);
+        }
+
+        $fullAmount = isset($existing['amount']) ? (float)$existing['amount'] : $paidAmtToRevert;
+
+        // Mark item as UNPAID in custom particulars
+        $custom[$pName] = array_merge($existing, [
+            'name'             => $pName,
+            'amount'           => $fullAmount,
+            'paid_amt'         => 0.0,
+            'due'              => $fullAmount,
+            'is_paid'          => false,
+            'is_custom'        => true,
+            'reverted_at'      => $nowFormatted,
+            'reverted_by'      => $userId ?? auth()->id(),
+            'reverted_by_name' => $userName,
+            'revert_reason'    => $reason ?? 'এডমিন কর্তৃক পেমেন্ট বাতিল করে আনপেইড করা হয়েছে',
+        ]);
+
+        // Revert payment amount from invoice
+        $actualDeduct = min((float)$invoice->paid_amount, $paidAmtToRevert);
+        $newPaid = max(0, (float)$invoice->paid_amount - $actualDeduct);
+        $newDue  = max(0, (float)$invoice->due_amount + $actualDeduct);
+        $status  = ($newPaid <= 0) ? 'UNPAID' : 'PARTIAL';
+
+        // Add to history
+        $history = $custom['_history'] ?? [];
+        $history[] = [
+            'action'      => 'PAYMENT_REVERTED',
+            'particular'  => $pName,
+            'amount'      => $paidAmtToRevert,
+            'user_id'     => $userId ?? auth()->id(),
+            'user_name'   => $userName,
+            'date_time'   => $nowFormatted,
+            'created_at'  => now()->toDateTimeString(),
+            'remarks'     => $reason ?? 'পেমেন্ট বাতিল করে পুনরায় আনপেইড তালিকায় যুক্ত করা হয়েছে',
+        ];
+        $custom['_history'] = $history;
+
+        $invoice->update([
+            'custom_particulars' => $custom,
+            'paid_amount'        => $newPaid,
+            'due_amount'         => $newDue,
+            'status'             => $status,
+        ]);
+
+        try {
+            AuditLog::log(
+                'particular_payment_reverted',
+                $invoice,
+                ['paid_amount' => $invoice->paid_amount],
+                ['paid_amount' => $newPaid, 'particular' => $pName],
+                "অ্যাডমিন '{$pName}' ফি-এর পেমেন্ট বাতিল করে আনপেইড করেছেন ({$userName})।"
+            );
+        } catch (\Throwable $e) {}
+
+        return [
+            'success'     => true,
+            'message'     => "✓ '{$pName}' ফি-এর পেমেন্ট সফলভাবে বাতিল করা হয়েছে এবং এটি পুনরায় আনপেইড তালিকায় যোগ হয়েছে।",
+            'invoice_id'  => $invoice->id,
+            'invoice_due' => $newDue,
+            'particular'  => $custom[$pName],
         ];
     }
 
@@ -1417,16 +2042,23 @@ class StudentFeeService
             $newDue  = max(0, $itemAmount - $newPaid);
             $isPaid  = ($newDue <= 0);
 
+            $user = $userId ? User::find($userId) : auth()->user();
+            $userName = $user?->name ?? 'Admin';
+            $payTime = now()->format('d M Y, h:i A');
+
             $allocationsByInvoice[$targetInv->id]['allocated'] += $allocated;
             $allocationsByInvoice[$targetInv->id]['items'][$pName] = [
-                'name'        => $pName,
-                'amount'      => $itemAmount,
-                'paid_amt'    => $newPaid,
-                'due'         => $newDue,
-                'is_paid'     => $isPaid,
-                'adjusted_at' => now()->toDateTimeString(),
-                'adjusted_by' => $userId ?? auth()->id(),
-                'remarks'     => $isPaid
+                'name'           => $pName,
+                'amount'         => $itemAmount,
+                'paid_amt'       => $newPaid,
+                'due'            => $newDue,
+                'is_paid'        => $isPaid,
+                'adjusted_at'    => now()->toDateTimeString(),
+                'adjusted_by'    => $userId ?? auth()->id(),
+                'paid_at'        => $payTime,
+                'paid_by_name'   => $userName,
+                'payment_method' => $paymentMethod,
+                'remarks'        => $isPaid
                     ? "পরিশোধ সম্পন্ন ({$paymentMethod})"
                     : "আংশিক পরিশোধ: ৳" . number_format($allocated, 0) . " ({$paymentMethod})",
             ];
@@ -1457,9 +2089,22 @@ class StudentFeeService
             }
 
             $curCustom = $curInv->custom_particulars ?? [];
+            $history = $curCustom['_history'] ?? [];
             foreach ($invData['items'] as $itName => $itVals) {
                 $curCustom[$itName] = $itVals;
+                $history[] = [
+                    'action'      => 'PAYMENT_COLLECTED',
+                    'particular'  => $itName,
+                    'amount'      => (float) ($itVals['paid_amt'] ?? 0),
+                    'user_id'     => $userId ?? auth()->id(),
+                    'user_name'   => $userName,
+                    'method'      => $paymentMethod,
+                    'date_time'   => $payTime,
+                    'created_at'  => now()->toDateTimeString(),
+                    'remarks'     => $itVals['remarks'],
+                ];
             }
+            $curCustom['_history'] = $history;
             $curInv->update([
                 'custom_particulars' => $curCustom,
             ]);

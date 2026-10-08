@@ -366,6 +366,8 @@ class AccountsController extends Controller
             'new_amount'      => 'required|numeric|min:0',
             'current_due'     => 'nullable|numeric|min:0',
             'remarks'         => 'nullable|string|max:255',
+            'position'        => 'nullable|string|in:at_bottom,at_top,after,before',
+            'relative_to'     => 'nullable|string|max:150',
         ]);
 
         $res = app(\App\Services\StudentFeeService::class)->updateParticular(
@@ -374,7 +376,9 @@ class AccountsController extends Controller
             (float) $validated['new_amount'],
             $validated['remarks'] ?? null,
             auth()->id(),
-            isset($validated['current_due']) ? (float)$validated['current_due'] : null
+            isset($validated['current_due']) ? (float)$validated['current_due'] : null,
+            $validated['position'] ?? null,
+            $validated['relative_to'] ?? null
         );
 
         return response()->json($res);
@@ -392,6 +396,8 @@ class AccountsController extends Controller
             'particular_name' => 'required|string|max:150',
             'amount'          => 'required|numeric|min:1',
             'remarks'         => 'nullable|string|max:255',
+            'position'        => 'nullable|string|in:at_bottom,at_top,after,before',
+            'relative_to'     => 'nullable|string|max:150',
         ]);
 
         $res = app(\App\Services\StudentFeeService::class)->storeParticular(
@@ -401,7 +407,9 @@ class AccountsController extends Controller
             $validated['particular_name'],
             (float) $validated['amount'],
             $validated['remarks'] ?? null,
-            auth()->id()
+            auth()->id(),
+            $validated['position'] ?? 'at_bottom',
+            $validated['relative_to'] ?? null
         );
 
         return response()->json($res);
@@ -421,6 +429,29 @@ class AccountsController extends Controller
             (int) $validated['invoice_id'],
             $validated['particular_name'],
             auth()->id()
+        );
+
+        return response()->json($res);
+    }
+
+    /**
+     * Admin reverts/deletes the payment of a specific fee particular, restoring it to UNPAID
+     */
+    public function revertParticularPayment(Request $request)
+    {
+        $validated = $request->validate([
+            'invoice_id'      => 'required|exists:invoices,id',
+            'particular_name' => 'required|string',
+            'paid_amount'     => 'nullable|numeric|min:0',
+            'reason'          => 'nullable|string|max:255',
+        ]);
+
+        $res = app(\App\Services\StudentFeeService::class)->revertParticularPayment(
+            (int) $validated['invoice_id'],
+            $validated['particular_name'],
+            $validated['reason'] ?? null,
+            auth()->id(),
+            isset($validated['paid_amount']) ? (float)$validated['paid_amount'] : null
         );
 
         return response()->json($res);

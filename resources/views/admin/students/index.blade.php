@@ -751,17 +751,48 @@
                 </table>
             </div>
 
-            <!-- Pagination Bar -->
-            @if($students->hasPages())
-                <div style="padding:16px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-                    <div style="font-size:13px;color:#64748b">
-                        মোট <strong>{{ $students->total() }}</strong> জন শিক্ষার্থীর মধ্যে <strong>{{ $students->firstItem() }}</strong> থেকে <strong>{{ $students->lastItem() }}</strong> দেখানো হচ্ছে
+            <!-- Pagination & Per-Page Footer Bar -->
+            <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:'Kalpurush',sans-serif">
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                    <div style="font-size:13px;color:#475569">
+                        মোট <strong>{{ $students->total() }}</strong> জন শিক্ষার্থীর মধ্যে 
+                        @if($students->total() > 0)
+                            <strong>{{ $students->firstItem() }}</strong> থেকে <strong>{{ $students->lastItem() }}</strong> দেখানো হচ্ছে
+                        @else
+                            <strong>০</strong> জন
+                        @endif
                     </div>
-                    <div>
-                        {{ $students->links() }}
-                    </div>
+                    
+                    {{-- Per Page Selector --}}
+                    <form method="GET" action="{{ route('admin.students.index') }}" style="display:inline-flex;align-items:center;gap:6px;margin:0" id="perPageForm">
+                        @foreach(request()->except(['per_page', 'page']) as $k => $v)
+                            @if(is_array($v))
+                                @foreach($v as $arrVal)
+                                    <input type="hidden" name="{{ $k }}[]" value="{{ $arrVal }}">
+                                @endforeach
+                            @elseif($v !== null && $v !== '')
+                                <input type="hidden" name="{{ $k }}" value="{{ $v }}">
+                            @endif
+                        @endforeach
+                        <label for="per_page_select" style="font-size:12.5px;color:#64748b;font-weight:600;margin:0">প্রতি পৃষ্ঠায়:</label>
+                        <select name="per_page" id="per_page_select" onchange="this.form.submit()" style="padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;background:#ffffff;font-size:12.5px;color:#1e293b;font-weight:700;cursor:pointer">
+                            <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>১০ জন</option>
+                            <option value="25" {{ (request('per_page', 25) == 25) ? 'selected' : '' }}>২৫ জন</option>
+                            <option value="50" {{ request('per_page') == 50 ? 'selected' : '' }}>৫০ জন</option>
+                            <option value="100" {{ request('per_page') == 100 ? 'selected' : '' }}>১০০ জন</option>
+                            <option value="200" {{ request('per_page') == 200 ? 'selected' : '' }}>২০০ জন</option>
+                            <option value="all" {{ request('per_page') === 'all' ? 'selected' : '' }}>সকল শিক্ষার্থী (All)</option>
+                        </select>
+                    </form>
                 </div>
-            @endif
+
+                {{-- Pagination Links --}}
+                @if($students->hasPages())
+                    <div style="display:flex;align-items:center">
+                        {{ $students->links('vendor.pagination.custom') }}
+                    </div>
+                @endif
+            </div>
         </div>
     </div>
 

@@ -303,7 +303,7 @@
                 <strong>📌 তথ্য নির্দেশিকা:</strong> প্রয়োজনীয় মৌলিক তথ্য প্রদান করে অনলাইনে পেমেন্ট সম্পন্ন করুন। পেমেন্ট সম্পন্ন হলেই তাৎক্ষণিকভাবে ভর্তি নিশ্চিত হবে ও লগইন তথ্য প্রদর্শিত হবে।
             </div>
 
-            <form method="POST" action="{{ route('apply.store') }}" id="applyForm">
+            <form method="POST" action="{{ route('apply.store') }}" id="applyForm" enctype="multipart/form-data">
                 @csrf
 
                 {{-- Course Selection with Department Grouping --}}
@@ -346,7 +346,6 @@
                                         — ফি: ৳{{ number_format($batch->admission_fee, 0) }}
                                     @endif
                                 </option>
-                            @endif
                         @endforeach
                     </select>
                 </div>
@@ -372,12 +371,19 @@
                     </div>
                     <div class="form-group">
                         <label>লিঙ্গ / শাখা <span class="req">*</span></label>
-                        <select name="gender" required>
-                            <option value="">-- শাখা নির্বাচন করুন --</option>
+                        <select name="gender" id="gender_select" required>
+                            <option value="">-- নির্বাচন করুন --</option>
                             <option value="Male" {{ old('gender') == 'Male' ? 'selected' : '' }}>ভাই শাখা (পুরুষ)</option>
                             <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>বোন শাখা (মহিলা)</option>
                         </select>
                     </div>
+                </div>
+
+                {{-- Optional Photo Upload --}}
+                <div class="form-group" style="margin-top:12px">
+                    <label>আবেদনকারীর ছবি (ঐচ্ছিক)</label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
+                    <small style="color:var(--muted);font-size:11px">পাসপোর্ট সাইজ মার্জিত ছবি আপলোড করুন (সর্বোচ্চ ৩ মেগাবাইট)</small>
                 </div>
 
                 @if(!empty($terms))
@@ -410,6 +416,8 @@
     <p>&copy; {{ date('Y') }} Islamic Online Madrasah (IOM). All Rights Reserved.</p>
 </footer>
 
+
+
 <script>
 function filterBatchesByCourse(courseId) {
     const select = document.getElementById('batch_id');
@@ -433,6 +441,8 @@ function filterBatchesByCourse(courseId) {
 function onCourseChange(courseSelect) {
     filterBatchesByCourse(courseSelect.value);
 }
+
+
 
 document.addEventListener('DOMContentLoaded', function() {
     const courseSelect = document.getElementById('course_id');

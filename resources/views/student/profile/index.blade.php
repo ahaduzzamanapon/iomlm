@@ -168,18 +168,55 @@
                     </div>
                 </div>
 
-                <div class="form-row" style="margin-top:12px;align-items:center">
-                    <div class="form-group">
-                        <label>প্রোফাইল ছবি (Profile Photo) <span class="text-danger">*</span></label>
-                        <input type="file" name="photo" class="form-control" accept="image/*">
-                        <small style="color:var(--text-muted);font-size:11px">পাসপোর্ট সাইজ মার্জিত ছবি আপলোড করুন (সর্বোচ্চ ২ মেগাবাইট)</small>
+                {{-- ── প্রোফাইল ছবি ও ইসলামিক অবতার ব্যবস্থাপনা ── --}}
+                <div class="form-group" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-top:16px">
+                    <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:#064e3b;margin-bottom:4px;font-weight:700">
+                        <i class="fa-solid fa-circle-user" style="color:var(--iom-green);font-size:18px"></i> প্রোফাইল ছবি ও মার্জিত ইসলামিক অবতার (Profile Photo & Islamic Avatar) <span class="text-danger">*</span>
+                    </label>
+                    <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px;line-height:1.5">
+                        আপনি চাইলে পছন্দমতো মার্জিত ইসলামিক অবতার (হিজাব/টুপি) বেছে নিতে পারেন অথবা আপনার নিজস্ব মার্জিত ছবি আপলোড করতে পারেন।
+                    </p>
+
+                    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+                        {{-- Circular Avatar Preview --}}
+                        <div style="position:relative;width:86px;height:86px;border-radius:50%;border:3px solid var(--iom-green);box-shadow:0 4px 14px rgba(4, 120, 87, 0.2);overflow:hidden;background:#fff;flex-shrink:0">
+                            <img id="profile_avatar_preview" 
+                                 src="{{ $student->photo_url ?? \App\Models\Student::defaultAvatarForGender($student->gender) }}" 
+                                 alt="Profile Avatar" 
+                                 style="width:100%;height:100%;object-fit:cover;">
+                        </div>
+
+                        {{-- Details & Action Buttons --}}
+                        <div style="flex:1;min-width:260px">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                                <span id="avatar_status_badge" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:4px 12px;border-radius:20px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-weight:600">
+                                    <i class="fa-solid fa-circle-check"></i> 
+                                    <span id="avatar_status_text">
+                                        @if(str_contains($student->photo_url ?? '', 'avatar') || empty($student->photo_url))
+                                            ডিফল্ট ইসলামিক অবতার সেট করা আছে
+                                        @else
+                                            নিজস্ব ছবি আপলোডকৃত
+                                        @endif
+                                    </span>
+                                </span>
+                                <button type="button" id="avatar_reset_btn" onclick="resetStudentAvatarToDefault()" style="background:none;border:none;color:#dc2626;font-size:12px;cursor:pointer;text-decoration:underline">
+                                    ডিফল্টে ফিরুন
+                                </button>
+                            </div>
+
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openStudentAvatarModal()" style="font-size:12.5px;padding:7px 16px;border-radius:6px;font-family:'Kalpurush',sans-serif">
+                                    <i class="fa-solid fa-icons" style="color:var(--iom-green)"></i> অবতার নির্বাচন করুন
+                                </button>
+                                <label for="profile_photo_file_input" class="btn btn-outline btn-sm" style="font-size:12.5px;padding:7px 16px;cursor:pointer;margin-bottom:0;border-radius:6px;font-family:'Kalpurush',sans-serif">
+                                    <i class="fa-solid fa-cloud-arrow-up" style="color:var(--iom-green)"></i> ছবি আপলোড করুন
+                                </label>
+                                <input type="file" name="photo" id="profile_photo_file_input" accept="image/*" style="display:none" onchange="onStudentCustomPhotoSelected(this)">
+                                <input type="hidden" name="avatar_preset" id="student_avatar_preset" value="{{ old('avatar_preset', $student->photo_url) }}">
+                            </div>
+                            <div id="student_file_name_display" style="font-size:11.5px;color:#047857;margin-top:6px;display:none;font-weight:600"></div>
+                        </div>
                     </div>
-                    @if($student->photo_url)
-                    <div style="display:flex;align-items:center;gap:10px">
-                        <img src="{{ $student->photo_url }}" alt="Photo" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid var(--iom-green)">
-                        <span style="font-size:12px;color:#047857;font-weight:600">ছবি আপলোড করা আছে</span>
-                    </div>
-                    @endif
                 </div>
             </div>
         </div>
@@ -337,6 +374,80 @@
         </div>
     </form>
 
+    {{-- Student Avatar Selection Modal --}}
+    <div id="studentAvatarModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.7);backdrop-filter:blur(4px);z-index:999999;align-items:center;justify-content:center;padding:16px" onclick="handleStudentAvatarBackdropClick(event)">
+        <div style="background:#fff;width:100%;max-width:580px;border-radius:14px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;font-family:'Kalpurush',sans-serif">
+            <div style="padding:16px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+                <div style="font-size:16px;font-weight:700;color:#064e3b;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-sparkles" style="color:#047857"></i>
+                    <span>মার্জিত ইসলামিক অবতার নির্বাচন করুন</span>
+                </div>
+                <button type="button" onclick="closeStudentAvatarModal()" style="background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;padding:4px;line-height:1">&times;</button>
+            </div>
+
+            <div style="display:flex;border-bottom:1.5px solid #e2e8f0;background:#f1f5f9">
+                <button type="button" id="tab_btn_female" onclick="switchStudentAvatarTab('female')" style="flex:1;padding:11px 16px;border:none;background:#fff;color:#047857;font-weight:700;font-size:13.5px;cursor:pointer;border-bottom:3px solid #047857;font-family:inherit">
+                    <i class="fa-solid fa-venus"></i> বোন শাখা (মহিলা অবতার - ৩টি)
+                </button>
+                <button type="button" id="tab_btn_male" onclick="switchStudentAvatarTab('male')" style="flex:1;padding:11px 16px;border:none;background:transparent;color:#475569;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit">
+                    <i class="fa-solid fa-mars"></i> ভাই শাখা (পুরুষ অবতার - ২টি)
+                </button>
+            </div>
+
+            {{-- Female Avatars Panel --}}
+            <div id="panel_female" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:14px;padding:20px;overflow-y:auto;max-height:380px">
+                @php
+                    $femaleAvatars = [
+                        ['url' => '/images/avatars/female_avatar_1.jpg', 'name' => 'মার্জিত হিজাব', 'is_default' => true],
+                        ['url' => '/images/avatars/female_avatar_2.jpg', 'name' => 'গোলাপী হিজাব', 'is_default' => false],
+                        ['url' => '/images/avatars/female_avatar_3.jpg', 'name' => 'লাল হিজাব', 'is_default' => false],
+                    ];
+                @endphp
+                @foreach($femaleAvatars as $av)
+                    <div class="avatar-card-item {{ (($student->photo_url ?? '') === $av['url']) ? 'active' : '' }}"
+                         data-url="{{ $av['url'] }}" 
+                         data-name="{{ $av['name'] }}"
+                         onclick="selectStudentAvatar('{{ $av['url'] }}', '{{ $av['name'] }}', 'female')"
+                         style="border:2px solid {{ (($student->photo_url ?? '') === $av['url']) ? '#047857' : '#e2e8f0' }};border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s ease;background:{{ (($student->photo_url ?? '') === $av['url']) ? '#ecfdf5' : '#fff' }};position:relative">
+                        <img src="{{ asset($av['url']) }}" alt="{{ $av['name'] }}" style="width:68px;height:68px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block;border:2px solid #cbd5e1">
+                        <div style="font-size:12px;font-weight:600;color:#1e293b">{{ $av['name'] }}</div>
+                        @if($av['is_default'])
+                            <span style="font-size:10px;color:#047857;background:#d1fae5;padding:1px 6px;border-radius:8px;display:inline-block;margin-top:3px">ডিফল্ট</span>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Male Avatars Panel --}}
+            <div id="panel_male" style="display:none;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:14px;padding:20px;overflow-y:auto;max-height:380px">
+                @php
+                    $maleAvatars = [
+                        ['url' => '/images/avatars/male_avatar_1.png', 'name' => 'সাদা টুপি', 'is_default' => true],
+                        ['url' => '/images/avatars/male_avatar_2.jpg', 'name' => 'নকশা টুপি', 'is_default' => false],
+                    ];
+                @endphp
+                @foreach($maleAvatars as $av)
+                    <div class="avatar-card-item {{ (($student->photo_url ?? '') === $av['url']) ? 'active' : '' }}"
+                         data-url="{{ $av['url'] }}" 
+                         data-name="{{ $av['name'] }}"
+                         onclick="selectStudentAvatar('{{ $av['url'] }}', '{{ $av['name'] }}', 'male')"
+                         style="border:2px solid {{ (($student->photo_url ?? '') === $av['url']) ? '#047857' : '#e2e8f0' }};border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s ease;background:{{ (($student->photo_url ?? '') === $av['url']) ? '#ecfdf5' : '#fff' }};position:relative">
+                        <img src="{{ asset($av['url']) }}" alt="{{ $av['name'] }}" style="width:68px;height:68px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block;border:2px solid #cbd5e1">
+                        <div style="font-size:12px;font-weight:600;color:#1e293b">{{ $av['name'] }}</div>
+                        @if($av['is_default'])
+                            <span style="font-size:10px;color:#047857;background:#d1fae5;padding:1px 6px;border-radius:8px;display:inline-block;margin-top:3px">ডিফল্ট</span>
+                        @endif
+                    </div>
+                @endforeach
+            </div>
+
+            <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:12px;color:#64748b">যেকোনো অবতারে ক্লিক করলে তাৎক্ষণিকভাবে সেট হবে</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeStudentAvatarModal()">বন্ধ করুন</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     function copyAddress(checkbox) {
         const present = document.getElementById('present_address').value;
@@ -345,5 +456,142 @@
             permanent.value = present;
         }
     }
+
+    // ── Student Avatar Modal & Photo Selection Logic ──
+    const STUDENT_GENDER = @json(strtolower($student->gender ?? 'female'));
+    const DEFAULT_FEMALE_AVATAR = '/images/avatars/female_avatar_1.jpg';
+    const DEFAULT_MALE_AVATAR   = '/images/avatars/male_avatar_1.png';
+
+    function openStudentAvatarModal() {
+        const modal = document.getElementById('studentAvatarModal');
+        if (!modal) return;
+
+        if (STUDENT_GENDER.includes('male') || STUDENT_GENDER.includes('পুরুষ') || STUDENT_GENDER.includes('ভাই')) {
+            switchStudentAvatarTab('male');
+        } else {
+            switchStudentAvatarTab('female');
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function closeStudentAvatarModal() {
+        const modal = document.getElementById('studentAvatarModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function handleStudentAvatarBackdropClick(e) {
+        if (e.target.id === 'studentAvatarModal') {
+            closeStudentAvatarModal();
+        }
+    }
+
+    function switchStudentAvatarTab(tab) {
+        const btnFemale = document.getElementById('tab_btn_female');
+        const btnMale = document.getElementById('tab_btn_male');
+        const panelFemale = document.getElementById('panel_female');
+        const panelMale = document.getElementById('panel_male');
+
+        if (tab === 'male') {
+            btnMale.style.background = '#fff';
+            btnMale.style.color = '#047857';
+            btnMale.style.borderBottom = '3px solid #047857';
+
+            btnFemale.style.background = 'transparent';
+            btnFemale.style.color = '#475569';
+            btnFemale.style.borderBottom = 'none';
+
+            panelMale.style.display = 'grid';
+            panelFemale.style.display = 'none';
+        } else {
+            btnFemale.style.background = '#fff';
+            btnFemale.style.color = '#047857';
+            btnFemale.style.borderBottom = '3px solid #047857';
+
+            btnMale.style.background = 'transparent';
+            btnMale.style.color = '#475569';
+            btnMale.style.borderBottom = 'none';
+
+            panelFemale.style.display = 'grid';
+            panelMale.style.display = 'none';
+        }
+    }
+
+    function selectStudentAvatar(url, name, gender) {
+        const previewImg = document.getElementById('profile_avatar_preview');
+        const presetInput = document.getElementById('student_avatar_preset');
+        if (previewImg) previewImg.src = url;
+        if (presetInput) presetInput.value = url;
+
+        const fileInput = document.getElementById('profile_photo_file_input');
+        if (fileInput) fileInput.value = '';
+        const fileDisp = document.getElementById('student_file_name_display');
+        if (fileDisp) { fileDisp.style.display = 'none'; fileDisp.textContent = ''; }
+
+        document.querySelectorAll('.avatar-card-item').forEach(card => {
+            if (card.getAttribute('data-url') === url) {
+                card.style.borderColor = '#047857';
+                card.style.backgroundColor = '#ecfdf5';
+                card.style.boxShadow = '0 0 0 2px #047857';
+            } else {
+                card.style.borderColor = '#e2e8f0';
+                card.style.backgroundColor = '#fff';
+                card.style.boxShadow = 'none';
+            }
+        });
+
+        const badgeText = document.getElementById('avatar_status_text');
+        if (badgeText) badgeText.textContent = 'নির্বাচিত অবতার: ' + name;
+
+        closeStudentAvatarModal();
+    }
+
+    function onStudentCustomPhotoSelected(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+
+        if (file.size > 3 * 1024 * 1024) {
+            alert('ছবির আকার সর্বোচ্চ ৩ মেগাবাইট হতে পারবে।');
+            input.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('profile_avatar_preview').src = e.target.result;
+            document.getElementById('student_avatar_preset').value = '';
+
+            const badgeText = document.getElementById('avatar_status_text');
+            if (badgeText) badgeText.textContent = '📷 নিজস্ব ছবি আপলোডকৃত';
+
+            const fileDisp = document.getElementById('student_file_name_display');
+            if (fileDisp) {
+                fileDisp.textContent = '✓ ' + file.name + ' (' + Math.round(file.size / 1024) + ' KB)';
+                fileDisp.style.display = 'block';
+            }
+
+            document.querySelectorAll('.avatar-card-item').forEach(card => {
+                card.style.borderColor = '#e2e8f0';
+                card.style.backgroundColor = '#fff';
+                card.style.boxShadow = 'none';
+            });
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function resetStudentAvatarToDefault() {
+        const isMale = STUDENT_GENDER.includes('male') || STUDENT_GENDER.includes('পুরুষ') || STUDENT_GENDER.includes('ভাই');
+        const defaultUrl = isMale ? DEFAULT_MALE_AVATAR : DEFAULT_FEMALE_AVATAR;
+        const defaultName = isMale ? 'সাদা টুপি (ডিফল্ট)' : 'মার্জিত হিজাব (ডিফল্ট)';
+
+        selectStudentAvatar(defaultUrl, defaultName, isMale ? 'male' : 'female');
+
+        const badgeText = document.getElementById('avatar_status_text');
+        if (badgeText) badgeText.textContent = 'ডিফল্ট ইসলামিক অবতার সেট করা আছে';
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeStudentAvatarModal();
+    });
     </script>
 </x-student-layout>

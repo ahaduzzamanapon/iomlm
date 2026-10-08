@@ -337,6 +337,62 @@
                 @endforelse
             </div>
         </div>
+
+        <!-- Learning Resources & Study Materials Widget -->
+        <div class="card" style="font-family:'Kalpurush',sans-serif">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                <span class="card-title" style="display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-book-bookmark" style="color:#047857"></i>
+                    <span>লার্নিং রিসোর্স ও স্টাডি ম্যাটেরিয়াল</span>
+                </span>
+                <a href="{{ route('student.resources.index') }}" class="btn btn-ghost btn-sm" style="font-size:12px;font-weight:700">সকল রিসোর্স দেখুন →</a>
+            </div>
+            <div style="padding:0">
+                @forelse($latestResources ?? [] as $res)
+                    @php
+                        $type = strtoupper($res['type'] ?? 'LINK');
+                        $iconClass = match($type) {
+                            'PDF'        => 'fa-file-pdf',
+                            'SLIDES'     => 'fa-file-powerpoint',
+                            'DRIVE'      => 'fa-google-drive',
+                            'VIDEO'      => 'fa-video',
+                            'ATTACHMENT' => 'fa-paperclip',
+                            default      => 'fa-link',
+                        };
+                        $iconColor = match($type) {
+                            'PDF'        => '#dc2626',
+                            'SLIDES'     => '#ea580c',
+                            'DRIVE'      => '#2563eb',
+                            'VIDEO'      => '#7c3aed',
+                            'ATTACHMENT' => '#059669',
+                            default      => '#475569',
+                        };
+                    @endphp
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-bottom:1px solid var(--card-border)">
+                        <div style="display:flex;align-items:center;gap:12px">
+                            <div style="width:36px;height:36px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:{{ $iconColor }};font-size:16px">
+                                <i class="fa-solid {{ $iconClass }}"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:13.5px;font-weight:700;color:#1e293b">{{ $res['title'] }}</div>
+                                <div style="font-size:11.5px;color:var(--text-muted)">{{ $res['subject_name'] }} · {{ $type }}</div>
+                            </div>
+                        </div>
+                        <div>
+                            @if(!empty($res['url']) && $res['url'] !== '#')
+                                <a href="{{ $res['url'] }}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="border-color:#047857;color:#047857;font-weight:700;padding:4px 10px;font-size:11.5px">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> ওপেন
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="empty-state" style="padding:24px;text-align:center">
+                        <p style="margin:0;font-size:13px;color:#94a3b8">কোনো লার্নিং রিসোর্স পাওয়া যায়নি</p>
+                    </div>
+                @endforelse
+            </div>
+        </div>
     </div>
 
 </x-student-layout>

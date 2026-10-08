@@ -244,6 +244,51 @@ class Student extends Model
     }
 
     /**
+     * Resolve default avatar image by gender
+     */
+    public static function defaultAvatarForGender(?string $gender): string
+    {
+        $g = strtolower($gender ?? '');
+        if (str_contains($g, 'female') || str_contains($g, 'মহিলা') || str_contains($g, 'বোন')) {
+            return '/images/avatars/female_avatar_1.jpg';
+        }
+        if (str_contains($g, 'male') || str_contains($g, 'পুরুষ') || str_contains($g, 'ভাই')) {
+            return '/images/avatars/male_avatar_1.png';
+        }
+        return '/images/avatars/female_avatar_1.jpg';
+    }
+
+    /**
+     * Complete list of predefined gender-based Islamic avatar options
+     */
+    public static function availableAvatars(): array
+    {
+        return [
+            'Female' => [
+                ['path' => '/images/avatars/female_avatar_1.jpg', 'title' => 'মার্জিত হিজাব (Hijab)',   'is_default' => true],
+                ['path' => '/images/avatars/female_avatar_2.jpg', 'title' => 'গোলাপী হিজাব (Pink Hijab)', 'is_default' => false],
+                ['path' => '/images/avatars/female_avatar_3.jpg', 'title' => 'লাল হিজাব (Red Hijab)',     'is_default' => false],
+            ],
+            'Male' => [
+                ['path' => '/images/avatars/male_avatar_1.png', 'title' => 'সাদা টুপি (White Topi)',   'is_default' => true],
+                ['path' => '/images/avatars/male_avatar_2.jpg', 'title' => 'নকশা টুপি (Pattern Topi)', 'is_default' => false],
+            ],
+        ];
+    }
+
+    /**
+     * Get student photo URL with gender default avatar fallback
+     */
+    public function getPhotoUrlAttribute($value): ?string
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+
+        return self::defaultAvatarForGender($this->gender);
+    }
+
+    /**
      * Resolve 2-digit Academic Year code from batch, active session or date (Digits 1-2)
      */
     public static function resolveAcademicYearCode(?Batch $batch = null): string
@@ -475,7 +520,13 @@ class Student extends Model
 
             // Update user email if it was linked to the old student_code
             if ($this->user) {
-                if (str_contains($this->user->email, '@iom.student')) {
+                if ($this->email) {
+                    $existingUserWithEmail = User::where('email', $this->email)->where('id', '!=', $this->user->id)->first();
+                    if (!$existingUserWithEmail) {
+                        $this->user->email = $this->email;
+                        $this->user->save();
+                    }
+                } elseif (str_contains($this->user->email, '@iom.student')) {
                     $this->user->email = "{$newCode}@iom.student";
                     $this->user->save();
                 }

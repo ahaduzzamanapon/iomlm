@@ -45,10 +45,14 @@
                         </div>
                     </div>
 
+                    @php
+                        $displayEmail = $student?->email ?: ($user && !str_ends_with($user->email, '@iom.student') ? $user->email : '');
+                        $studentCode = $student?->student_code ? str_replace('-', '', $student->student_code) : ($student?->student_id ?? '');
+                    @endphp
                     <div class="form-row">
                         <div class="form-group">
-                            <label>ইমেইল এড্রেস</label>
-                            <input type="email" name="email" class="form-control" value="{{ $user->email }}" readonly style="background:#f1f5f9">
+                            <label>ইমেইল এড্রেস <span class="required">*</span></label>
+                            <input type="email" name="email" class="form-control" value="{{ $displayEmail }}" {{ $displayEmail ? 'readonly' : 'required' }} style="{{ $displayEmail ? 'background:#f1f5f9' : '' }}" placeholder="আপনার সচল ইমেইল এড্রেস লিখুন">
                         </div>
                         <div class="form-group">
                             <label>জেন্ডার</label>
@@ -61,7 +65,7 @@
 
                     <div class="form-group">
                         <label>স্টুডেন্ট আইডি (Roll No)</label>
-                        <input type="text" name="student_id" class="form-control" value="{{ $student?->student_id ?? '' }}" readonly style="background:#f1f5f9">
+                        <input type="text" name="student_id" class="form-control" value="{{ $studentCode }}" readonly style="background:#f1f5f9" placeholder="স্টুডেন্ট আইডি">
                     </div>
 
                     <div class="form-group">

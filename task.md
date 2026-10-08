@@ -449,7 +449,178 @@
 
 ---
 
+| 64 | Student List Ascending Roll Sorting & Admission Audit Real Email Sync | Students / Admissions | COMPLETED | `scratch/verify_task64.php` |
+| 65 | Admin Student List Pagination Enhancement & Giant Button Fix | Students / Admin UI | COMPLETED | `scratch/verify_student_pagination.php` |
+| 66 | Student Support Portal - Real Email Display & Student ID Auto-fill | Support / Student Portal | COMPLETED | `scratch/verify_student_support_fields.php` |
+| 67 | Student Online Examinations List & Dashboard Scope Isolation | Exams / Student Portal | COMPLETED | `scratch/verify_student_exam_isolation.php` |
+| 68 | Learning Resources Visibility & Enrolled Course Integration | Classroom / Resources | COMPLETED | `scratch/verify_student_learning_resources.php` |
+| 69 | Course Transfer Display Active Course & Fix Mid/Final Term Fee Calculations | Course Transfers / Fees | COMPLETED | `scratch/verify_course_transfer_fee_and_display.php` |
+| 70 | Admission Gender-Based Default Avatars & Move Avatar Selection to Student Profile | Admissions / Profile | COMPLETED | `scratch/verify_admission_avatars.php` |
+| 71 | Dynamic Semester Consolidated Transcript (একত্রিত ট্রান্সক্রিপ্ট) in Results | Results / Transcripts | COMPLETED | `scratch/verify_dynamic_consolidated_transcript.php` |
+| 72 | Student Fee Manual Payment: 10-Digit TrxID Validation, Duplicate Prevention, Merchant Number Display & Submit Route Fix | Student Fees / Manual Payment | PENDING | `scratch/verify_student_fee_manual_payment.php` |
+| 73 | Academic Session Report: Display Academic Year in Parentheses in Dropdown and Summary Headers | Reports / Sessions | PENDING | `scratch/verify_report_session_academic_year.php` |
+| 74 | Admin/Staff Account Creation: Employee ID Field & Password Visibility Eye Toggle | Admin Users / Authentication | PENDING | `scratch/verify_admin_staff_employee_id_and_eye.php` |
+
+---
+
+### Task 64: Student List Ascending Roll Sorting & Admission Audit Real Email Sync
+- **Objective**: 
+  1. Fix Student List (`/admin/students`) ordering to display students serially from Roll 1 ascending rather than descending (`latest()`).
+  2. Prioritize student's real email when creating login accounts upon admission approval, and display their real email in the admin admission audit view rather than `@iom.student`.
+- **Definition of Done (DoD)**:
+  - `StudentController::index` and `exportCsv` sort by `student_code` natural ascending order (`CASE WHEN student_code IS NULL OR student_code = "" THEN 1 ELSE 0 END, LENGTH(student_code) ASC, student_code ASC, id ASC`).
+  - `AdmissionController`, `PaymentGatewayService`, and `AdmissionFormController` prioritize real student email.
+  - `admin/admissions/show.blade.php` displays real email in "Student Login Account" section.
+  - Verification: `scratch/test_student_sort_and_admission_email.php` passes with Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 65: Admin Student List Pagination Enhancement & Giant Button Fix
+- **Objective**: 
+  1. Fix giant distorted arrow icons / buttons in student list pagination.
+  2. Add clean, professional per-page selector dropdown (`10`, `25`, `50`, `100`, `All` / `সবগুলো`).
+- **Definition of Done (DoD)**:
+  - Pagination links render cleanly with modern CSS without distorted SVG icons.
+  - Per-page dropdown allows switching items per page and persists current search & filters.
+  - Adheres to `'Kalpurush'` font.
+  - Verification: `scratch/verify_student_pagination.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 66: Student Support Portal - Real Email Display & Student ID Auto-fill
+- **Objective**:
+  1. Fix Support Portal ticket submission form so student's real email is shown instead of `@iom.student`.
+  2. Auto-fill student's Roll / Student ID (`student_code`) in the "স্টুডেন্ট আইডি (Roll No)" field.
+- **Definition of Done (DoD)**:
+  - In `student/support/index.blade.php` (or ticket create view), email defaults to student's real email.
+  - Roll No field auto-fills `$student->student_code`.
+  - Verification: `scratch/verify_student_support_fields.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 67: Student Online Examinations List & Dashboard Scope Isolation
+- **Objective**: Ensure that a student ONLY sees online examinations for subjects, courses, and batches they are actively enrolled in, preventing other courses' exams from showing up.
+- **Definition of Done (DoD)**:
+  - In `Student/ExamController.php` and `Student/DashboardController.php`, scope exams to student's enrolled courses/batch/semester.
+  - Exams from un-enrolled courses do not appear in the student dashboard or online examination list.
+  - Verification: `scratch/verify_student_exam_isolation.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 68: Learning Resources Visibility & Enrolled Course Integration
+- **Objective**: Make all uploaded learning resources (attachments, PDFs, Google Drive links, recorded class videos) added via Subject Modules visible to enrolled students in `/student/resources` and student dashboard.
+- **Definition of Done (DoD)**:
+  - In `Student/LearningResourceController.php`, aggregate resources from `SubjectModule` (attachments, drive links) and `LearningResource` for student's enrolled subjects.
+  - Student Dashboard includes accessible learning resources widget.
+  - Verification: `scratch/verify_student_learning_resources.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0)
+
+---
+
+### Task 69: Course Transfer Display Active Course & Fix Mid/Final Term Fee Calculations
+- **Objective**:
+  1. On student's "My Courses" page, properly display the new active course after transfer instead of only the transferred old course.
+  2. Fix fee generation after course transfer so Mid Term Fee and Final Term Fee accurately follow the new course's fee structure.
+- **Definition of Done (DoD)**:
+  - `MyCourseController` displays active enrollments prominently, clearly distinguishing previous transferred courses.
+  - Fee invoice generation after course transfer uses target course/package fee values for Mid Term and Final Term.
+  - Verification: `scratch/verify_course_transfer_fee_and_display.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0, 19 assertions passed)
+
+---
+
+### Task 70: Admission Gender-Based Default Avatars & Avatar Selection Modal / Upload
+- **Objective**:
+  1. Set up gender-based Islamic avatar options (niqab/hijab for female, topi for male) from provided reference images.
+  2. Auto-select default avatar upon gender change.
+  3. Provide an interactive avatar selection modal/picker and file upload option.
+  4. Save chosen avatar/photo to admission form and student profile.
+- **Definition of Done (DoD)**:
+  - Avatars stored in `public/images/avatars/`.
+  - Admission forms (public & admin) have avatar selection grid & custom image upload with live preview.
+  - Verification: `scratch/verify_admission_avatars.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0, 39 assertions passed)
+
+---
+
+### Task 71: Dynamic Semester Consolidated Transcript (একত্রিত ট্রান্সক্রিপ্ট) in Results
+- **Objective**: Dynamically determine number of semesters for the student's enrolled course and display "N-সেমিস্টার একত্রিত ট্রান্সক্রিপ্ট" button only if the course has multiple semesters (>1).
+- **Definition of Done (DoD)**:
+  - In `student/results/index.blade.php`:
+    - If course has >1 semesters, button shows "{N}-সেমিস্টার একত্রিত ট্রান্সক্রিপ্ট (Consolidated Transcript)".
+    - If course has only 1 semester or is subject-based without multiple semesters, hide the multi-semester consolidated transcript button.
+  - Verification: `scratch/verify_dynamic_consolidated_transcript.php` returns Exit Code 0.
+- **Status**: COMPLETED (Exit Code 0, 15 assertions passed)
+
+---
+
+---
+
+### Task 72: Student Fee Manual Payment: 10-Digit TrxID Validation, Duplicate Prevention, Merchant Number Display & Submit Route Fix
+- **Objective**: 
+  1. Fix the bug where clicking "৳X,XXX.00 জমা দিন (ভেরিফিকেশন পেন্ডিং)" in the manual payment modal redirected to the online bKash gateway due to the payment method being passed as `BKASH` instead of manual payment.
+  2. Implement strict 10-character alphanumeric validation for Transaction ID (TrxID) for manual mobile banking submissions.
+  3. Enforce database uniqueness check on Transaction ID to prevent multiple submissions with the same TrxID.
+  4. Display the Madrasah's official merchant/payment number (`01766305059`) and clear instructions inside the manual payment form so students know where to make payments.
+  5. Provide clear guidance on the Admin verification section (`admin/accounts/dashboard` > "অনলাইন পেমেন্ট অনুমোদন (Pending Verifications)").
+- **Definition of Done (DoD)**:
+  - In `resources/views/student/fees/index.blade.php`:
+    - Distinct manual payment values (e.g., `BKASH_MANUAL`, `NAGAD_MANUAL`, `ROCKET_MANUAL`, etc.) preventing redirect collision with online PGW.
+    - Prominently display official Merchant/Send Money numbers with instructions.
+    - Client-side & server-side regex validation ensuring TrxID is exactly 10 characters (`^[A-Za-z0-9]{10}$`).
+  - In `FeeController::payInvoice`:
+    - Strictly differentiate between direct gateway payments (`bkash`, `sslcommerz`) and manual offline methods (`bkash_manual`, etc.).
+    - Validate `transaction_id` format and check uniqueness across `payments` table (where status is not REJECTED) and gateway transactions.
+    - Submit through `AccountingService::submitStudentPayment` with `PENDING` status.
+  - In `admin/accounts/dashboard`:
+    - Verify pending manual transactions list, showing TrxID, sender number, student info, and approve/reject actions.
+  - Verification: `scratch/verify_student_fee_manual_payment.php` passes with Exit Code 0.
+- **Status**: PENDING
+
+---
+
+### Task 73: Academic Session Report: Display Academic Year in Parentheses in Dropdown and Summary Headers
+- **Objective**: 
+  1. In Admin Reports (`admin/reports/index.blade.php`), update the Session dropdown selector so that each session option displays the Academic Year in parentheses alongside the Session name (e.g., `Spring (Jan - Jun) (Academic Year 2026)` or `Fall (Jul - Dec) (2026)`).
+  2. Update the report title and table section headers to consistently include the Academic Year in parentheses next to the Session name.
+- **Definition of Done (DoD)**:
+  - In `resources/views/admin/reports/index.blade.php`:
+    - Dropdown `<option>` items format: `{{ $sess->name }}{{ $sess->academicYear?->name ? ' (' . $sess->academicYear->name . ')' : '' }}{{ $sess->is_active ? ' (Current)' : '' }}`.
+    - Page title `<h1>` format includes Academic Year in parentheses.
+    - Table subheader row displays Session with Academic Year cleanly.
+  - In `ReportController::index`:
+    - Ensure `sessions` are eager loaded with `academicYear` (`AcademicSession::with('academicYear')->orderBy('name')->get()`).
+  - Font styling adheres to `'Kalpurush'` and Bangladeshi format.
+  - Verification: `scratch/verify_report_session_academic_year.php` passes with Exit Code 0.
+- **Status**: PENDING
+
+---
+
+### Task 74: Admin/Staff Account Creation: Employee ID Field & Password Visibility Eye Toggle
+- **Objective**: 
+  1. Add an "Employee ID (ইমপ্লোয়ী আইডি)" field to the Admin / Staff creation form and user management.
+  2. Add an interactive Eye button (show/hide password toggle) to the login password input field.
+  3. Persist `employee_id` in database and display in user lists/details where relevant.
+- **Definition of Done (DoD)**:
+  - Database migration adding `employee_id` (nullable, string) to `users` table.
+  - `User` model updated with `employee_id` in `$fillable`.
+  - In `resources/views/admin/users/create.blade.php`:
+    - "ইমপ্লোয়ী আইডি (Employee ID)" input field added under Account Credentials.
+    - Password field equipped with Eye icon button (`<i class="fa-solid fa-eye"></i>`) that toggles between `type="password"` and `type="text"` with smooth visual feedback.
+  - In `UserController::store` and `update`:
+    - Validate `employee_id` (`nullable|string|max:50`) and save to user record.
+  - In `resources/views/admin/users/index.blade.php` and `edit.blade.php`:
+    - Include `employee_id` display / edit field.
+  - Verification: `scratch/verify_admin_staff_employee_id_and_eye.php` passes with Exit Code 0.
+- **Status**: PENDING
+
+---
+
 ## Pending Tasks
-*All tasks (Tasks 32 through 63) are COMPLETED and verified with Exit Code 0. Zero pending tasks remain.*
-
-
+- **Task 72**: Student Fee Manual Payment: 10-Digit TrxID Validation, Duplicate Prevention, Merchant Number Display & Submit Route Fix (Priority 1)
+- **Task 73**: Academic Session Report: Display Academic Year in Parentheses in Dropdown and Summary Headers (Priority 2)
+- **Task 74**: Admin/Staff Account Creation: Employee ID Field & Password Visibility Eye Toggle (Priority 3)

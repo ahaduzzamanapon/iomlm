@@ -149,8 +149,11 @@
                             </div>
                             <div class="form-group">
                                 <label>Email Address: <span class="required">*</span></label>
+                                @php
+                                    $publicSupportEmail = $student?->email ?: ($user && !str_ends_with($user->email, '@iom.student') ? $user->email : '');
+                                @endphp
                                 <input type="email" name="email" class="form-control" placeholder="Please Enter Your Email Address"
-                                       value="{{ old('email', $user?->email ?? '') }}" required>
+                                       value="{{ old('email', $publicSupportEmail) }}" required>
                             </div>
                         </div>
 

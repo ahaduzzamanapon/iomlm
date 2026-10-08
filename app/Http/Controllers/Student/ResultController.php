@@ -68,6 +68,15 @@ class ResultController extends Controller
 
         $course = $primaryEnrollment?->course ?? $primaryEnrollment?->batch?->course;
 
+        $semestersCount = $course ? $course->semesters->count() : 0;
+        if ($semestersCount <= 1) {
+            return redirect()->route('student.results.index')
+                ->with('info', 'যেসব কোর্সে একাধিক সেমিস্টার রয়েছে শুধুমাত্র তাদের জন্য একত্রিত ট্রান্সক্রিপ্ট প্রযোজ্য।');
+        }
+
+        $bnDigits = ['0'=>'০','1'=>'১','2'=>'২','3'=>'৩','4'=>'৪','5'=>'৫','6'=>'৬','7'=>'৭','8'=>'৮','9'=>'৯'];
+        $bnSemCount = strtr((string)$semestersCount, $bnDigits);
+
         // Fetch all published final marks across all semesters
         $finalMarks = FinalMark::with(['subject', 'semester', 'batch'])
             ->where('student_id', $student->id)
@@ -178,7 +187,8 @@ class ResultController extends Controller
         return view('student.results.transcript', compact(
             'student', 'course', 'primaryEnrollment',
             'semestersData', 'totalCreditsAttempted', 'totalCreditsEarned',
-            'cgpa', 'overallQawmiGrade', 'overallStatus'
+            'cgpa', 'overallQawmiGrade', 'overallStatus',
+            'semestersCount', 'bnSemCount'
         ));
     }
 }

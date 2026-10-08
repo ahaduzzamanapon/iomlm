@@ -28,7 +28,7 @@ class CourseTransferService
             // 1. Deactivate old course active enrollment(s) -> set status to TRANSFERRED
             $oldEnrollments = Enrollment::where('student_id', $student->id)
                 ->where('course_id', $transfer->from_course_id)
-                ->where('status', 'ACTIVE')
+                ->whereIn('status', ['ACTIVE', 'PENDING'])
                 ->get();
 
             foreach ($oldEnrollments as $old) {
@@ -38,7 +38,6 @@ class CourseTransferService
             // Fallback: If from_enrollment_id is set, ensure it is also marked TRANSFERRED
             if ($transfer->from_enrollment_id) {
                 Enrollment::where('id', $transfer->from_enrollment_id)
-                    ->where('status', 'ACTIVE')
                     ->update(['status' => 'TRANSFERRED']);
             }
 
@@ -64,7 +63,8 @@ class CourseTransferService
             // 5. Update Fee Structure & Package for the target course
             $toCourse = $transfer->toCourse ?? Course::find($transfer->to_course_id);
             $newFeePackage = $toCourse?->feePackages()->where('is_default', true)->where('is_active', true)->first()
-                ?? $toCourse?->feePackages()->where('is_active', true)->first();
+                ?? $toCourse?->feePackages()->where('is_active', true)->first()
+                ?? $toCourse?->feePackages()->first();
 
             $oldFeePackageId = $student->fee_package_id;
             $student->fee_package_id = $newFeePackage?->id;

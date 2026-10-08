@@ -24,7 +24,7 @@
         <i class="fa-solid fa-circle-info"></i> <strong>ভর্তি আবেদন সংরক্ষণ:</strong> প্রাথমিক আবেদনটি সংরক্ষণ করার পর আপনি আবেদন তালিকা থেকে বিস্তারিত যাচাই করে <strong>ভর্তি নিশ্চিত/অনুমোদন (Approve)</strong> করতে পারবেন। ভর্তি নিশ্চিত করলেই শিক্ষার্থীর অফিসিয়াল <strong>স্টুডেন্ট আইডি (YYBBCCGRRRR)</strong> এবং স্টুডেন্ট পোর্টালের <strong>পাসওয়ার্ড</strong> জেনারেট হবে।
     </div>
 
-    <form method="POST" action="{{ route('admin.admissions.store') }}">
+    <form method="POST" action="{{ route('admin.admissions.store') }}" enctype="multipart/form-data">
         @csrf
 
         {{-- ── 1. Course & Admission Setup ── --}}
@@ -120,7 +120,7 @@
 
                     <div class="form-group">
                         <label>লিঙ্গ / শাখা <span class="required">*</span></label>
-                        <select name="gender" class="form-control" required>
+                        <select name="gender" id="admin_gender_select" class="form-control" required onchange="onGenderChange(this.value)">
                             <option value="">-- শাখা নির্বাচন করুন --</option>
                             <option value="Male" {{ old('gender') == 'Male' ? 'selected' : '' }}>ভাই শাখা (পুরুষ)</option>
                             <option value="Female" {{ old('gender') == 'Female' ? 'selected' : '' }}>বোন শাখা (মহিলা)</option>
@@ -130,10 +130,18 @@
 
                 <div class="form-row" style="margin-top:12px">
                     <div class="form-group">
+                        <label>শিক্ষার্থীর ছবি (Photo) (ঐচ্ছিক)</label>
+                        <input type="file" name="photo" class="form-control" accept="image/*">
+                        <small style="color:var(--text-muted);font-size:11px">পাসপোর্ট সাইজ মার্জিত ছবি আপলোড করুন (সর্বোচ্চ ৩ মেগাবাইট)</small>
+                    </div>
+
+                    <div class="form-group">
                         <label>জন্ম তারিখ (ঐচ্ছিক)</label>
                         <input type="date" name="date_of_birth" class="form-control" value="{{ old('date_of_birth') }}">
                     </div>
+                </div>
 
+                <div class="form-row" style="margin-top:12px">
                     <div class="form-group">
                         <label>ভর্তি সংক্রান্ত মন্তব্য / নোট (ঐচ্ছিক)</label>
                         <input type="text" name="notes" class="form-control" value="{{ old('notes') }}" placeholder="প্রয়োজনীয় কোনো মন্তব্য থাকলে লিখুন">

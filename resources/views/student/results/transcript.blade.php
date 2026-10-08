@@ -2,7 +2,7 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <title>৬-সেমিস্টার একত্রিত একাডেমিক ট্রান্সক্রিপ্ট — {{ $student->name }}</title>
+    <title>{{ $bnSemCount ?? 'একত্রিত' }}-সেমিস্টার একত্রিত একাডেমিক ট্রান্সক্রিপ্ট — {{ $student->name }}</title>
     <style>
         @font-face {
             font-family: 'Kalpurush';
@@ -206,7 +206,7 @@
         <div class="transcript-header">
             <h1 class="inst-title">ইসলামিক অনলাইন মাদরাসা (Islamic Online Madrasah)</h1>
             <div class="inst-sub">দারুল উলুম দেওবন্দ সিলেবাস ও আধুনিক প্রযুক্তি ভিত্তিক অনলাইন উচ্চতর ইসলামিক শিক্ষালয়</div>
-            <div class="doc-title">৬-সেমিস্টার একত্রিত একাডেমিক ট্রান্সক্রিপ্ট (CONSOLIDATED TRANSCRIPT)</div>
+            <div class="doc-title">{{ $bnSemCount ?? 'একত্রিত' }}-সেমিস্টার একত্রিত একাডেমিক ট্রান্সক্রিপ্ট (CONSOLIDATED TRANSCRIPT)</div>
             <div style="font-size:12px; color:#64748b; margin-top:8px">
                 ইস্যুর তারিখ: {{ date('d F Y') }} | ট্র্যাকিং আইডি: IOM-TR-{{ $student->id }}-{{ date('Ymd') }}
             </div>
@@ -251,7 +251,7 @@
                 <div class="sem-title-bar">
                     <span>
                         @php
-                            $semNames = [1 => '১ম সেমিস্টার', 2 => '২য় সেমিস্টার', 3 => '৩য় সেমিস্টার', 4 => '৪র্থ সেমিস্টার', 5 => '৫ম সেমিস্টার', 6 => '৬ষ্ঠ সেমিস্টার'];
+                            $semNames = [1 => '১ম সেমিস্টার', 2 => '২য় সেমিস্টার', 3 => '৩য় সেমিস্টার', 4 => '৪র্থ সেমিস্টার', 5 => '৫ম সেমিস্টার', 6 => '৬ষ্ঠ সেমিস্টার', 7 => '৭ম সেমিস্টার', 8 => '৮ম সেমিস্টার'];
                             $bnSemName = $semNames[$sd['sequence_no']] ?? $sd['name'];
                         @endphp
                         {{ $bnSemName }}

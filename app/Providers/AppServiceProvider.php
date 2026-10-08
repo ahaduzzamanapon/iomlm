@@ -25,5 +25,7 @@ class AppServiceProvider extends ServiceProvider
             || str_starts_with(config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        \Illuminate\Pagination\Paginator::defaultView('vendor.pagination.custom');
     }
 }

@@ -83,6 +83,8 @@ class AdmissionFormController extends Controller
             'email' => 'required|email|max:150',
             'gender' => 'required|in:Male,Female,Other,male,female,other',
             'terms_agreed' => 'required',
+            'photo' => 'nullable|image|max:3072',
+            'avatar_preset' => 'nullable|string|max:255',
         ], [
             'terms_agreed.required' => 'মাদ্রাসার নিয়ম ও ভর্তির শর্তাবলীতে সম্মতি প্রদান করা আবশ্যক।'
         ]);
@@ -135,6 +137,17 @@ class AdmissionFormController extends Controller
                 ? (int) $validated['academic_session_id']
                 : (AcademicSession::getActiveSession()?->id ?? AcademicSession::where('is_active', true)->latest('id')->value('id') ?? AcademicSession::latest('id')->value('id'));
 
+            // Resolve student photo or avatar preset
+            $photoUrl = null;
+            if ($request->hasFile('photo')) {
+                $path = $request->file('photo')->store('photos/students', 'public');
+                $photoUrl = '/storage/' . $path;
+            } elseif (!empty($validated['avatar_preset'])) {
+                $photoUrl = $validated['avatar_preset'];
+            } else {
+                $photoUrl = Student::defaultAvatarForGender($validated['gender'] ?? null);
+            }
+
             // 1. Find or Create Student as LEAD for this specific course
             $targetCourseId = (int) $validated['course_id'];
             $student = Student::where(function ($q) use ($validated) {
@@ -150,11 +163,15 @@ class AdmissionFormController extends Controller
             })->first();
 
             if ($student) {
-                $student->update([
+                $updateData = [
                     'name'   => $validated['applicant_name'],
                     'phone'  => $validated['phone'] ?: $student->phone,
                     'gender' => $validated['gender'] ?: $student->gender,
-                ]);
+                ];
+                if ($photoUrl) {
+                    $updateData['photo_url'] = $photoUrl;
+                }
+                $student->update($updateData);
             } else {
                 // If applicant had an earlier student record (for another course), inherit their profile info
                 $prevStudent = Student::where(function ($q) use ($validated) {
@@ -167,11 +184,12 @@ class AdmissionFormController extends Controller
                 })->latest('id')->first();
 
                 $studentData = [
-                    'name'   => $validated['applicant_name'],
-                    'phone'  => $validated['phone'],
-                    'email'  => $validated['email'] ?? null,
-                    'gender' => $validated['gender'] ?? null,
-                    'status' => 'LEAD',
+                    'name'      => $validated['applicant_name'],
+                    'phone'     => $validated['phone'],
+                    'email'     => $validated['email'] ?? null,
+                    'gender'    => $validated['gender'] ?? null,
+                    'photo_url' => $photoUrl,
+                    'status'    => 'LEAD',
                 ];
 
                 if ($prevStudent) {
@@ -179,6 +197,9 @@ class AdmissionFormController extends Controller
                         if (empty($studentData[$fld]) && !empty($prevStudent->{$fld})) {
                             $studentData[$fld] = $prevStudent->{$fld};
                         }
+                    }
+                    if (empty($studentData['photo_url']) && !empty($prevStudent->photo_url)) {
+                        $studentData['photo_url'] = $prevStudent->photo_url;
                     }
                 }
 
@@ -544,15 +565,34 @@ class AdmissionFormController extends Controller
                     $newStudent->save();
 
                     $rawPassword = $student->getOrGenerateNumericPassword();
-                    $loginEmail = $newStudent->student_code . '@iom.student';
-                    $user = User::where('email', $loginEmail)->first();
-                    if (!$user) {
-                        $user = User::create([
+                    $realEmail = $newStudent->email ?: ($form->email ?: null);
+                    $existingUserWithRealEmail = $realEmail ? User::where('email', $realEmail)->first() : null;
+                    $canUseRealEmail = $realEmail && (!$existingUserWithRealEmail || !Student::where('user_id', $existingUserWithRealEmail->id)->where('id', '!=', $newStudent->id)->exists());
+
+                    if ($canUseRealEmail) {
+                        $loginEmail = $realEmail;
+                        $user = $existingUserWithRealEmail ?: User::create([
                             'name'     => $newStudent->name,
                             'email'    => $loginEmail,
                             'password' => Hash::make($rawPassword),
                             'role'     => 'student',
                         ]);
+                        if ($existingUserWithRealEmail) {
+                            $user->password = Hash::make($rawPassword);
+                            $user->save();
+                        }
+                    } else {
+                        $loginEmail = $newStudent->student_code . '@iom.student';
+                        $user = User::firstOrCreate(
+                            ['email' => $loginEmail],
+                            [
+                                'name'     => $newStudent->name,
+                                'password' => Hash::make($rawPassword),
+                                'role'     => 'student',
+                            ]
+                        );
+                        $user->password = Hash::make($rawPassword);
+                        $user->save();
                     }
                     $newStudent->user_id = $user->id;
                     $newStudent->temporary_password = $rawPassword;
@@ -572,8 +612,16 @@ class AdmissionFormController extends Controller
                     $student->save();
 
                     if ($student->user) {
-                        $loginEmail = $student->student_code . '@iom.student';
-                        $student->user->update(['email' => $loginEmail]);
+                        $realEmail = $student->email ?: ($form->email ?: null);
+                        if ($realEmail) {
+                            $existingUserWithEmail = User::where('email', $realEmail)->where('id', '!=', $student->user->id)->first();
+                            if (!$existingUserWithEmail) {
+                                $student->user->update(['email' => $realEmail]);
+                            }
+                        } elseif (str_contains($student->user->email, '@iom.student')) {
+                            $loginEmail = $student->student_code . '@iom.student';
+                            $student->user->update(['email' => $loginEmail]);
+                        }
                     }
                     $form->update(['gender' => $effectiveGender]);
                 }

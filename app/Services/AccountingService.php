@@ -410,69 +410,50 @@ class AccountingService
             }
         }
 
-        if ($approvedPackage) {
-            $semesterItems = $approvedPackage->items()
-                ->whereDoesntHave('feeHead', function ($q) {
-                    $q->whereIn('slug', ['admission_fee', 'retake_fee']);
-                })
-                ->where(function ($q) {
-                    $q->whereNull('label')
-                      ->orWhere(function ($q2) {
-                          $q2->where('label', 'not like', '%admission%')
-                             ->where('label', 'not like', '%ভর্তি%')
-                             ->where('label', 'not like', '%retake%')
-                             ->where('label', 'not like', '%annual%')
-                             ->where('label', 'not like', '%বার্ষিক%');
-                      });
-                });
-            $semesterTotal  = (float) $semesterItems->sum('total_amount');
-            $feeRate        = round($semesterTotal / $totalSemesters, 2);
-            if ($semester && $semester->sequence_no == 3) {
-                $annual1 = (float) ($approvedPackage->items()
-                    ->where(function($q) {
-                        $q->whereHas('feeHead', fn($h) => $h->where('slug', '1st_annual_fee'))
-                          ->orWhere('label', 'like', '%1st%annual%')
-                          ->orWhere('label', 'like', '%১ম%বার্ষিক%');
-                    })->value('total_amount') ?? 0);
-                $feeRate += $annual1;
-            } elseif ($semester && $semester->sequence_no == 5) {
-                $annual2 = (float) ($approvedPackage->items()
-                    ->where(function($q) {
-                        $q->whereHas('feeHead', fn($h) => $h->where('slug', '2nd_annual_fee'))
-                          ->orWhere('label', 'like', '%2nd%annual%')
-                          ->orWhere('label', 'like', '%২য়%বার্ষিক%');
-                    })->value('total_amount') ?? 0);
-                $feeRate += $annual2;
-            }
-            $feeLabel       = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
-            $feeTitle       = "{$feeLabel} — {$course?->name} ({$approvedPackage->name})";
-            $discountAmount = 0.00;
-        } else {
-            // Check if course has default fee package
-            $defaultPackage = $course?->feePackages()->where('is_default', true)->first()
-                ?? $course?->feePackages()->first();
+        $targetPackage = $approvedPackage ?: ($course?->feePackages()->where('is_default', true)->first() ?? $course?->feePackages()->first());
 
-            $semesterItems = $defaultPackage ? $defaultPackage->items()
-                ->whereDoesntHave('feeHead', function ($q) {
-                    $q->whereIn('slug', ['admission_fee', 'retake_fee']);
-                })
-                ->where(function ($q) {
-                    $q->whereNull('label')
-                      ->orWhere(function ($q2) {
-                          $q2->where('label', 'not like', '%admission%')
-                             ->where('label', 'not like', '%ভর্তি%')
-                             ->where('label', 'not like', '%retake%')
-                             ->where('label', 'not like', '%annual%')
-                             ->where('label', 'not like', '%বার্ষিক%');
-                      });
-                }) : null;
-            $packageTotal = $semesterItems ? (float) $semesterItems->sum('total_amount') : 0;
-            $feeLabel     = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
+        if ($targetPackage) {
+            $tuitionItem = $targetPackage->items->first(fn($it) => $it->feeHead?->slug === 'tuition_fee' || str_contains(mb_strtolower($it->label ?? ''), 'tuition'));
+            $midItem     = $targetPackage->items->first(fn($it) => $it->feeHead?->slug === 'mid_term_fee' || str_contains(mb_strtolower($it->label ?? ''), 'mid'));
+            $finalItem   = $targetPackage->items->first(fn($it) => $it->feeHead?->slug === 'final_term_fee' || str_contains(mb_strtolower($it->label ?? ''), 'final'));
 
-            if ($defaultPackage && $packageTotal > 0) {
-                $feeRate  = round($packageTotal / $totalSemesters, 2);
+            if ($courseType === 'SUBJECT_BASED') {
+                $monthlyTuition = (float) ($tuitionItem?->total_amount ?: ($tuitionItem?->amount_per_unit ?: 0));
+                $midFee         = (float) ($midItem?->total_amount ?: ($midItem?->amount_per_unit ?: 0));
+                $finalFee       = (float) ($finalItem?->total_amount ?: ($finalItem?->amount_per_unit ?: 0));
+                $feeRate        = round($monthlyTuition + $midFee + $finalFee, 2);
+            } else {
+                // Per Semester calculation: 6 months tuition + 1 Mid Term + 1 Final Term
+                $monthlyTuition = 0.0;
+                if ($tuitionItem && $tuitionItem->amount_per_unit > 0) {
+                    $monthlyTuition = (float) $tuitionItem->amount_per_unit;
+                } elseif ($tuitionItem && $totalSemesters > 0 && $tuitionItem->total_amount > 0) {
+                    $monthlyTuition = round((float) $tuitionItem->total_amount / ($totalSemesters * 6), 2);
+                }
+
+                $midFee = 0.0;
+                if ($midItem && $midItem->amount_per_unit > 0) {
+                    $midFee = (float) $midItem->amount_per_unit;
+                } elseif ($midItem && $totalSemesters > 0 && $midItem->total_amount > 0) {
+                    $midFee = round((float) $midItem->total_amount / $totalSemesters, 2);
+                }
+
+                $finalFee = 0.0;
+                if ($finalItem && $finalItem->amount_per_unit > 0) {
+                    $finalFee = (float) $finalItem->amount_per_unit;
+                } elseif ($finalItem && $totalSemesters > 0 && $finalItem->total_amount > 0) {
+                    $finalFee = round((float) $finalItem->total_amount / $totalSemesters, 2);
+                }
+
+                $feeRate = round(($monthlyTuition * 6) + $midFee + $finalFee, 2);
+
                 if ($semester && $semester->sequence_no == 3) {
-                    $annual1 = (float) ($defaultPackage->items()
+                    $annual1 = (float) ($targetPackage->items()
+                        ->where(function($q) {
+                            $q->whereHas('feeHead', fn($h) => $h->where('slug', '1st_annual_fee'))
+                              ->orWhere('label', 'like', '%1st%annual%')
+                              ->orWhere('label', 'like', '%১ম%বার্ষিক%');
+                        })->value('amount_per_unit') ?: $targetPackage->items()
                         ->where(function($q) {
                             $q->whereHas('feeHead', fn($h) => $h->where('slug', '1st_annual_fee'))
                               ->orWhere('label', 'like', '%1st%annual%')
@@ -480,7 +461,12 @@ class AccountingService
                         })->value('total_amount') ?? 0);
                     $feeRate += $annual1;
                 } elseif ($semester && $semester->sequence_no == 5) {
-                    $annual2 = (float) ($defaultPackage->items()
+                    $annual2 = (float) ($targetPackage->items()
+                        ->where(function($q) {
+                            $q->whereHas('feeHead', fn($h) => $h->where('slug', '2nd_annual_fee'))
+                              ->orWhere('label', 'like', '%2nd%annual%')
+                              ->orWhere('label', 'like', '%২য়%বার্ষিক%');
+                        })->value('amount_per_unit') ?: $targetPackage->items()
                         ->where(function($q) {
                             $q->whereHas('feeHead', fn($h) => $h->where('slug', '2nd_annual_fee'))
                               ->orWhere('label', 'like', '%2nd%annual%')
@@ -488,9 +474,11 @@ class AccountingService
                         })->value('total_amount') ?? 0);
                     $feeRate += $annual2;
                 }
-                $feeTitle = "{$feeLabel} — " . ($course ? $course->name : '') . " ({$defaultPackage->name})";
-                $discountAmount = 0.00;
-            } else {
+            }
+            $feeLabel       = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
+            $feeTitle       = "{$feeLabel} — " . ($course ? $course->name : '') . " ({$targetPackage->name})";
+            $discountAmount = 0.00;
+        } else {
                 // Fallback: FeeStructure lookup
                 $feeRate  = (float)(FeeStructure::where('category', 'SEMESTER')
                     ->where(function ($q) use ($enrollment) {
@@ -501,7 +489,6 @@ class AccountingService
                     ->value('amount') ?? 7000.00);
                 $feeTitle       = "{$feeLabel} — {$course?->name}";
                 $discountAmount = 0.00;
-            }
         }
 
         $semName = $semester?->name ?? 'Current Period';

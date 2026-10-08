@@ -62,7 +62,8 @@ class ProfileController extends Controller
             'national_id'             => 'nullable|string|max:50',
             'nationality'             => 'nullable|string|max:50',
             'religion'                => 'nullable|string|max:50',
-            'photo'                   => 'nullable|image|max:2048',
+            'photo'                   => 'nullable|image|max:3072',
+            'avatar_preset'           => 'nullable|string|max:255',
 
             // Guardian
             'father_name'             => 'nullable|string|max:200',
@@ -90,13 +91,15 @@ class ProfileController extends Controller
             'department_name'         => 'nullable|string|max:100',
         ]);
 
-        // Handle photo upload
+        // Handle photo upload or preset avatar
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('photos/students', 'public');
             $validated['photo_url'] = '/storage/' . $path;
+        } elseif (!empty($validated['avatar_preset'])) {
+            $validated['photo_url'] = $validated['avatar_preset'];
         }
 
-        unset($validated['photo']);
+        unset($validated['photo'], $validated['avatar_preset']);
 
         $student->update($validated);
 

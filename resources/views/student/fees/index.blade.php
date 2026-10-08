@@ -259,6 +259,11 @@
                                 <th
                                     style="padding:10px 14px;width:100px;text-align:center;font-weight:700;color:#334155">
                                     Pay</th>
+                                @if($isAdminSession)
+                                    <th
+                                        style="padding:10px 14px;width:130px;text-align:center;font-weight:700;color:#334155">
+                                        অ্যাকশন</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -268,23 +273,58 @@
                                     <td style="padding:9px 14px;text-align:center;color:#64748b;font-weight:600">
                                         {{ $p['sl'] }}</td>
                                     <td style="padding:9px 14px;font-weight:600;color:#1e293b">
-                                        <span>{{ $p['name'] }}</span>
-                                        @if(!empty($p['category']) && $p['category'] === 'FINE')
-                                            <span style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'বিলম্ব / জরিমানা' }}">
-                                                {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'জরিমানা' }}
-                                            </span>
-                                        @elseif(!empty($p['category']) && $p['category'] === 'DOCUMENT')
-                                            <span style="font-size:10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'ডকুমেন্ট ফি' }}">
-                                                ডকুমেন্ট ফি
-                                            </span>
-                                        @elseif(!empty($p['category']) && $p['category'] === 'EXTRA')
-                                            <span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অতিরিক্ত ফি' }}">
-                                                অতিরিক্ত ফি
-                                            </span>
-                                        @elseif(!empty($p['is_added']))
-                                            <span style="font-size:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;margin-left:4px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">
-                                                {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'নতুন যুক্ত' }}
-                                            </span>
+                                        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                                            <span>{{ $p['name'] }}</span>
+                                            @if(!empty($p['category']) && $p['category'] === 'FINE')
+                                                <span style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'বিলম্ব / জরিমানা' }}">
+                                                    {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'জরিমানা' }}
+                                                </span>
+                                            @elseif(!empty($p['category']) && $p['category'] === 'DOCUMENT')
+                                                <span style="font-size:10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'ডকুমেন্ট ফি' }}">
+                                                    ডকুমেন্ট ফি
+                                                </span>
+                                            @elseif(!empty($p['category']) && $p['category'] === 'EXTRA')
+                                                <span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অতিরিক্ত ফি' }}">
+                                                    অতিরিক্ত ফি
+                                                </span>
+                                            @elseif(!empty($p['is_added']))
+                                                <span style="font-size:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">
+                                                    {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'নতুন যুক্ত' }}
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        {{-- History & Metadata Subtitle --}}
+                                        @if($p['is_paid'] && (!empty($p['paid_by_name']) || !empty($p['paid_at'])))
+                                            <div style="font-size:10.5px;color:#15803d;margin-top:2px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                                                <i class="fa-solid fa-circle-check" style="font-size:10px"></i>
+                                                <span>পরিশোধকারী: <strong>{{ $p['paid_by_name'] ?? 'অনলাইন / শিক্ষার্থী' }}</strong></span>
+                                                @if(!empty($p['paid_at']))
+                                                    <span style="color:#64748b">• {{ $p['paid_at'] }}</span>
+                                                @endif
+                                                @if(!empty($p['payment_method']))
+                                                    <span style="background:#dcfce7;color:#166534;padding:0 5px;border-radius:4px;font-size:9.5px;font-weight:700">({{ $p['payment_method'] }})</span>
+                                                @endif
+                                            </div>
+                                        @elseif(!empty($p['reverted_by_name']))
+                                            <div style="font-size:10.5px;color:#b91c1c;margin-top:2px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                                                <i class="fa-solid fa-rotate-left" style="font-size:10px"></i>
+                                                <span>আনপেইড করেছেন: <strong>{{ $p['reverted_by_name'] }}</strong></span>
+                                                @if(!empty($p['reverted_at']))
+                                                    <span style="color:#64748b">• {{ $p['reverted_at'] }}</span>
+                                                @endif
+                                                @if(!empty($p['revert_reason']))
+                                                    <span style="color:#64748b;font-style:italic">({{ $p['revert_reason'] }})</span>
+                                                @endif
+                                            </div>
+                                        @elseif(!empty($p['is_added']) && (!empty($p['created_by_name']) || !empty($p['added_at'])))
+                                            <div style="font-size:10.5px;color:#0369a1;margin-top:2px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                                                <i class="fa-solid fa-plus-circle" style="font-size:10px"></i>
+                                                <span>যুক্ত করেছেন: <strong>{{ $p['created_by_name'] ?? 'অ্যাডমিন' }}</strong></span>
+                                                @if(!empty($p['added_at']))
+                                                    <span style="color:#64748b">• {{ $p['added_at'] }}</span>
+                                                @endif
+                                            </div>
                                         @endif
                                     </td>
                                     <td style="padding:9px 14px;text-align:center" id="particularDueCell_{{ $p['sl'] }}">
@@ -295,7 +335,7 @@
                                                     ({{ number_format($p['amount'], 0) }})</span>
                                                 @if($isAdminSession && ($p['invoice_id'] ?? $selectedSemesterInvoice?->id))
                                                     <button type="button"
-                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
+                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}')"
                                                         title="টাকার পরিমাণ এডিট করুন (Admin Edit)"
                                                         style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:2px">
                                                         <i class="fa-solid fa-pencil"></i>
@@ -313,7 +353,7 @@
                                                 @endif
                                                 @if($isAdminSession && ($p['invoice_id'] ?? $selectedSemesterInvoice?->id))
                                                     <button type="button"
-                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }})"
+                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}')"
                                                         title="টাকার পরিমাণ এডিট বা সমন্বয় করুন (Admin Edit: Increase/Decrease Taka)"
                                                         style="background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:all .15s"
                                                         onmouseover="this.style.background='#dbeafe'"
@@ -352,10 +392,92 @@
                                             @endif
                                         @endif
                                     </td>
+                                    @if($isAdminSession)
+                                        <td style="padding:9px 14px;text-align:center">
+                                            @if($p['is_paid'])
+                                                <button type="button" class="btn btn-sm"
+                                                    onclick="confirmStudentRevertPayment('{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}', '{{ addslashes($p['name']) }}', {{ $p['paid_amt'] ?? $p['amount'] }})"
+                                                    title="পেমেন্ট বাতিল করে পুনরায় আনপেইড তালিকায় যুক্ত করুন"
+                                                    style="padding:2px 7px;font-size:11px;font-family:'Kalpurush',sans-serif;background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-weight:700">
+                                                    <i class="fa-solid fa-rotate-left"></i> আনপেইড করুন
+                                                </button>
+                                            @elseif(!empty($p['is_added']))
+                                                <button type="button" class="btn btn-sm"
+                                                    onclick="confirmStudentDeleteAddedFee('{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}', '{{ addslashes($p['name']) }}')"
+                                                    title="এই অতিরিক্ত ফি সম্পূর্ণ মুছে ফেলুন"
+                                                    style="padding:2px 7px;font-size:11px;font-family:'Kalpurush',sans-serif;background:#fff;border:1px solid #ef4444;color:#ef4444;border-radius:4px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-weight:700">
+                                                    <i class="fa-solid fa-trash-can"></i> মুছুন
+                                                </button>
+                                            @else
+                                                <span style="color:#94a3b8;font-size:11px">—</span>
+                                            @endif
+                                        </td>
+                                    @endif
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+
+                {{-- ── 📜 বিল ও পেমেন্ট হিস্ট্রি (Billing & Payment History Log) ── --}}
+                <div style="max-width:750px;margin:20px auto 0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);font-family:'Kalpurush',sans-serif">
+                    <div style="background:#f8fafc;padding:9px 14px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+                        <span style="font-weight:700;color:#1e293b;font-size:13px;display:flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-clock-rotate-left" style="color:#0284c7"></i> বিল ও পেমেন্ট হিস্ট্রি (History Log)
+                        </span>
+                        <span style="font-size:11px;color:#64748b">
+                            পেমেন্ট ও বিল পরিবর্তনের বিস্তারিত বিবরণ
+                        </span>
+                    </div>
+                    <div style="max-height:200px;overflow-y:auto">
+                        <table style="width:100%;border-collapse:collapse;font-size:11.5px">
+                            <thead style="position:sticky;top:0;background:#f1f5f9;border-bottom:1px solid #cbd5e1">
+                                <tr>
+                                    <th style="padding:6px 10px;text-align:left;color:#475569">তারিখ ও সময়</th>
+                                    <th style="padding:6px 10px;text-align:left;color:#475569">ফি / বিল বিবরণ</th>
+                                    <th style="padding:6px 10px;text-align:center;color:#475569">কার্যক্রম</th>
+                                    <th style="padding:6px 10px;text-align:right;color:#475569">টাকা</th>
+                                    <th style="padding:6px 10px;text-align:left;color:#475569">ব্যবহারকারী / অ্যাডমিন</th>
+                                    <th style="padding:6px 10px;text-align:left;color:#475569">মন্তব্য / মাধ্যম</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($historyLogs ?? [] as $hLog)
+                                    @php
+                                        $actBadge = match($hLog['action'] ?? '') {
+                                            'PAYMENT_COLLECTED' => ['bg' => '#dcfce7', 'color' => '#166534', 'text' => 'পেমেন্ট জমা'],
+                                            'PAYMENT_REVERTED'  => ['bg' => '#fee2e2', 'color' => '#991b1b', 'text' => 'পেমেন্ট বাতিল / আনপেইড'],
+                                            'FEE_ADDED'         => ['bg' => '#e0f2fe', 'color' => '#0369a1', 'text' => 'নতুন ফি যুক্ত'],
+                                            'FEE_DELETED'       => ['bg' => '#fef2f2', 'color' => '#b91c1c', 'text' => 'ফি মোছা হয়েছে'],
+                                            default             => ['bg' => '#f1f5f9', 'color' => '#475569', 'text' => $hLog['action'] ?? 'হিস্ট্রি'],
+                                        };
+                                    @endphp
+                                    <tr style="border-bottom:1px solid #f8fafc">
+                                        <td style="padding:6px 10px;color:#64748b;white-space:nowrap">{{ $hLog['date_time'] ?? '—' }}</td>
+                                        <td style="padding:6px 10px;font-weight:600;color:#1e293b">{{ $hLog['particular'] ?? '—' }}</td>
+                                        <td style="padding:6px 10px;text-align:center">
+                                            <span style="font-size:10px;padding:2px 6px;border-radius:10px;font-weight:700;background:{{ $actBadge['bg'] }};color:{{ $actBadge['color'] }}">
+                                                {{ $actBadge['text'] }}
+                                            </span>
+                                        </td>
+                                        <td style="padding:6px 10px;text-align:right;font-weight:700;color:#0f172a">
+                                            {{ isset($hLog['amount']) ? '৳' . number_format($hLog['amount'], 2) : '—' }}
+                                        </td>
+                                        <td style="padding:6px 10px;color:#334155;font-weight:600">
+                                            {{ $hLog['user_name'] ?? 'অ্যাডমিন' }}
+                                        </td>
+                                        <td style="padding:6px 10px;color:#64748b">
+                                            {{ $hLog['remarks'] ?? ($hLog['method'] ?? '—') }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="6" style="padding:12px;text-align:center;color:#94a3b8">এখনও কোনো হিস্ট্রি লগ সংরক্ষিত নেই।</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 {{-- Selected Summary Bar --}}
@@ -829,6 +951,31 @@
                         style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;box-sizing:border-box;outline:none">
                 </div>
 
+                <div id="ape_position_wrapper" style="display:none;margin-bottom:16px">
+                    <label for="ape_position" style="display:block;font-size:12.5px;font-weight:700;color:#1e293b;margin-bottom:6px">
+                        তালিকায় অবস্থান (Position in List):
+                    </label>
+                    <select id="ape_position" onchange="onAdminParticularEditPositionChange(this.value)"
+                        style="width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;color:#0f172a;outline:none;background:#fff;box-sizing:border-box">
+                        <option value="at_bottom">তালিকার সবার নিচে (At the End - ডিফল্ট)</option>
+                        <option value="after">নির্দিষ্ট আইটেমের পরে (After Specific Item)</option>
+                        <option value="before">নির্দিষ্ট আইটেমের আগে (Before Specific Item)</option>
+                        <option value="at_top">তালিকার সবার উপরে (At the Top)</option>
+                    </select>
+
+                    <div id="ape_relative_group" style="display:none;margin-top:10px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0">
+                        <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:5px">
+                            <span id="ape_relative_label">কোন আইটেমের পরে যুক্ত হবে?</span> <span style="color:#dc2626">*</span>:
+                        </label>
+                        <select id="ape_relative_to"
+                            style="width:100%;padding:8px 12px;border:1.5px solid #2563eb;border-radius:8px;font-size:13px;color:#0f172a;outline:none;background:#fff;box-sizing:border-box">
+                            @foreach($step1Particulars as $item)
+                                <option value="{{ $item['name'] }}">{{ $item['sl'] }}. {{ $item['name'] }} (৳{{ number_format($item['amount'], 0) }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
                 <div
                     style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f1f5f9;padding-top:14px">
                     <button type="button" id="ape_delete_btn" onclick="submitAdminParticularDelete()" class="btn btn-outline"
@@ -908,6 +1055,31 @@
                         <input type="number" step="1" min="1" id="aaf_amount" name="amount" required placeholder="0"
                             style="width:100%;padding:10px 12px 10px 32px;border:1.5px solid #16a34a;border-radius:8px;font-size:16px;font-weight:800;color:#0f172a;outline:none;box-sizing:border-box">
                     </div>
+                </div>
+
+                <div style="margin-bottom:16px">
+                    <label for="aaf_position" style="display:block;font-size:12.5px;font-weight:700;color:#1e293b;margin-bottom:6px">
+                        তালিকায় অবস্থান (Position in List):
+                    </label>
+                    <select id="aaf_position" onchange="onAdminAddFeePositionChange(this.value)"
+                        style="width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;color:#0f172a;outline:none;background:#fff;box-sizing:border-box">
+                        <option value="at_bottom" selected>তালিকার সবার নিচে (At the End - ডিফল্ট)</option>
+                        <option value="after">নির্দিষ্ট আইটেমের পরে (After Specific Item)</option>
+                        <option value="before">নির্দিষ্ট আইটেমের আগে (Before Specific Item)</option>
+                        <option value="at_top">তালিকার সবার উপরে (At the Top)</option>
+                    </select>
+                </div>
+
+                <div id="aaf_relative_group" style="display:none;margin-bottom:14px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0">
+                    <label style="display:block;font-size:12px;font-weight:700;color:#334155;margin-bottom:5px">
+                        <span id="aaf_relative_label">কোন আইটেমের পরে যুক্ত হবে?</span> <span style="color:#dc2626">*</span>:
+                    </label>
+                    <select id="aaf_relative_to"
+                        style="width:100%;padding:8px 12px;border:1.5px solid #16a34a;border-radius:8px;font-size:13px;color:#0f172a;outline:none;background:#fff;box-sizing:border-box">
+                        @foreach($step1Particulars as $item)
+                            <option value="{{ $item['name'] }}">{{ $item['sl'] }}. {{ $item['name'] }} (৳{{ number_format($item['amount'], 0) }})</option>
+                        @endforeach
+                    </select>
                 </div>
 
                 <div style="margin-bottom:18px">
@@ -1337,7 +1509,22 @@
                 });
             }
 
-            function openAdminParticularEditModal(invoiceId, pName, currentDue, sl, isAdded = false) {
+            function onAdminParticularEditPositionChange(val) {
+                const group = document.getElementById('ape_relative_group');
+                const label = document.getElementById('ape_relative_label');
+                if (!group) return;
+                if (val === 'after') {
+                    group.style.display = 'block';
+                    if (label) label.innerText = 'কোন আইটেমের পরে যুক্ত হবে? (Insert After)';
+                } else if (val === 'before') {
+                    group.style.display = 'block';
+                    if (label) label.innerText = 'কোন আইটেমের আগে যুক্ত হবে? (Insert Before)';
+                } else {
+                    group.style.display = 'none';
+                }
+            }
+
+            function openAdminParticularEditModal(invoiceId, pName, currentDue, sl, isAdded = false, position = 'at_bottom', relativeTo = '') {
                 document.getElementById('ape_invoice_id').value = invoiceId;
                 document.getElementById('ape_particular_name').value = pName;
                 document.getElementById('ape_current_due').value = currentDue;
@@ -1347,6 +1534,16 @@
                 document.getElementById('ape_display_current_due').innerText = '৳' + Number(currentDue).toLocaleString('en-BD');
                 document.getElementById('ape_new_amount').value = currentDue;
                 document.getElementById('ape_remarks').value = '';
+
+                const posWrapper = document.getElementById('ape_position_wrapper');
+                if (posWrapper) {
+                    posWrapper.style.display = isAdded ? 'block' : 'none';
+                    const posSelect = document.getElementById('ape_position');
+                    if (posSelect) posSelect.value = position || 'at_bottom';
+                    const relSelect = document.getElementById('ape_relative_to');
+                    if (relSelect && relativeTo) relSelect.value = relativeTo;
+                    onAdminParticularEditPositionChange(position || 'at_bottom');
+                }
 
                 const delBtn = document.getElementById('ape_delete_btn');
                 if (delBtn) {
@@ -1410,10 +1607,28 @@
                 });
             }
 
+            function onAdminAddFeePositionChange(val) {
+                const group = document.getElementById('aaf_relative_group');
+                const label = document.getElementById('aaf_relative_label');
+                if (!group) return;
+                if (val === 'after') {
+                    group.style.display = 'block';
+                    if (label) label.innerText = 'কোন আইটেমের পরে যুক্ত হবে? (Insert After)';
+                } else if (val === 'before') {
+                    group.style.display = 'block';
+                    if (label) label.innerText = 'কোন আইটেমের আগে যুক্ত হবে? (Insert Before)';
+                } else {
+                    group.style.display = 'none';
+                }
+            }
+
             function openAdminAddFeeModal() {
                 document.getElementById('aaf_particular_name').value = '';
                 document.getElementById('aaf_amount').value = '';
                 document.getElementById('aaf_remarks').value = '';
+                const posSelect = document.getElementById('aaf_position');
+                if (posSelect) posSelect.value = 'at_bottom';
+                onAdminAddFeePositionChange('at_bottom');
                 const modal = document.getElementById('adminAddFeeModal');
                 if (modal) {
                     modal.style.display = 'flex';
@@ -1454,6 +1669,11 @@
                 const amount = document.getElementById('aaf_amount').value;
                 const remarks = document.getElementById('aaf_remarks').value;
 
+                const posEl = document.getElementById('aaf_position');
+                const position = posEl ? posEl.value : 'at_bottom';
+                const relEl = document.getElementById('aaf_relative_to');
+                const relativeTo = (position === 'after' || position === 'before') && relEl ? relEl.value : null;
+
                 fetch("{{ route('student.fees.particular.store') }}", {
                     method: 'POST',
                     headers: {
@@ -1467,7 +1687,9 @@
                         semester_id: semesterId,
                         particular_name: pName,
                         amount: amount,
-                        remarks: remarks
+                        remarks: remarks,
+                        position: position,
+                        relative_to: relativeTo
                     })
                 })
                 .then(r => r.json())
@@ -1510,6 +1732,13 @@
                 const remarks = document.getElementById('ape_remarks').value;
                 const sl = document.getElementById('ape_row_sl').value;
 
+                const posWrapper = document.getElementById('ape_position_wrapper');
+                const isPosVisible = posWrapper && posWrapper.style.display !== 'none';
+                const posEl = document.getElementById('ape_position');
+                const position = (isPosVisible && posEl) ? posEl.value : null;
+                const relEl = document.getElementById('ape_relative_to');
+                const relativeTo = (isPosVisible && (position === 'after' || position === 'before') && relEl) ? relEl.value : null;
+
                 fetch("{{ route('student.fees.particular.update') }}", {
                     method: 'POST',
                     headers: {
@@ -1522,7 +1751,9 @@
                         particular_name: pName,
                         current_due: currentDue,
                         new_amount: newAmount,
-                        remarks: remarks
+                        remarks: remarks,
+                        position: position,
+                        relative_to: relativeTo
                     })
                 })
                     .then(r => r.json())
@@ -1530,6 +1761,11 @@
                         btn.disabled = false;
                         btn.innerHTML = originalText;
                         if (data.success) {
+                            if (position) {
+                                alert(data.message);
+                                location.reload();
+                                return;
+                            }
                             closeAdminParticularEditModal();
                             // Update UI elements
                             const cell = document.getElementById('particularDueCell_' + sl);
@@ -1600,6 +1836,77 @@
                     } else if (type === 'paid') {
                         r.style.display = (status === 'paid') ? '' : 'none';
                     }
+                });
+            }
+
+            function confirmStudentRevertPayment(invoiceId, particularName, amount) {
+                if (!invoiceId) {
+                    alert('ইনভয়েস আইডি পাওয়া যায়নি।');
+                    return;
+                }
+                const reason = prompt('আপনি কি এই বিলটির পরিশোধিত অবস্থা বাতিল করে পুনরায় বকেয়া/আনপেইড তালিকায় ফেরত আনতে চান?\n\nবাতিলের কারণ/মন্তব্য লিখুন (ঐচ্ছিক):', 'এডমিন কর্তৃক আনপেইড করা হলো');
+                if (reason === null) return;
+
+                fetch("{{ route('student.fees.particular.revert_payment') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        invoice_id: invoiceId,
+                        particular_name: particularName,
+                        reason: reason,
+                        paid_amount_hint: amount
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message || 'পেমেন্ট বাতিল করে সফলভাবে আনপেইড করা হয়েছে।');
+                        location.reload();
+                    } else {
+                        alert(data.message || 'ব্যর্থ হয়েছে।');
+                    }
+                })
+                .catch(err => {
+                    alert('সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে।');
+                });
+            }
+
+            function confirmStudentDeleteAddedFee(invoiceId, particularName) {
+                if (!invoiceId) {
+                    alert('ইনভয়েস আইডি পাওয়া যায়নি।');
+                    return;
+                }
+                if (!confirm('আপনি কি নিশ্চিত যে "' + particularName + '" অতিরিক্ত ফিটি সম্পূর্ণ ডিলিট করতে চান?')) {
+                    return;
+                }
+
+                fetch("{{ route('student.fees.particular.delete') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        invoice_id: invoiceId,
+                        particular_name: particularName
+                    })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message || 'ফি সফলভাবে মুছে ফেলা হয়েছে।');
+                        location.reload();
+                    } else {
+                        alert(data.message || 'ফি মুছে ফেলা সম্ভব হয়নি।');
+                    }
+                })
+                .catch(err => {
+                    alert('সার্ভারে যোগাযোগ করতে সমস্যা হয়েছে।');
                 });
             }
 

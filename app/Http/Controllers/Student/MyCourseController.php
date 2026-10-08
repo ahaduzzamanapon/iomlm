@@ -28,7 +28,7 @@ class MyCourseController extends Controller
             'semester',
         ])
         ->where('student_id', $student->id)
-        ->orderByDesc('enrolled_at')
+        ->orderByRaw("CASE WHEN status = 'ACTIVE' THEN 0 WHEN status = 'PENDING' THEN 1 ELSE 2 END, id DESC")
         ->get()
         ->map(function ($enrollment) use ($student) {
             $batchId   = $enrollment->batch_id;

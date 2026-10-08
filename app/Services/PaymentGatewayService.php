@@ -575,23 +575,53 @@ class PaymentGatewayService
 
         // 2. Create Student User Account if not exists
         $rawPassword = $student->getOrGenerateNumericPassword();
+        $realEmail = $student->email ?: ($form->email ?: null);
         if (empty($student->user_id)) {
-            $loginEmail = $student->student_code ? ($student->student_code . '@iom.student') : ($student->email ?: uniqid() . '@iom.student');
+            $existingUserWithRealEmail = $realEmail ? User::where('email', $realEmail)->first() : null;
+            $canUseRealEmail = $realEmail && (!$existingUserWithRealEmail || !Student::where('user_id', $existingUserWithRealEmail->id)->where('id', '!=', $student->id)->exists());
 
-            $user = User::where('email', $loginEmail)->first();
-            if (!$user) {
-                $user = User::create([
+            if ($canUseRealEmail) {
+                $loginEmail = $realEmail;
+                $user = $existingUserWithRealEmail ?: User::create([
                     'name'     => $student->name,
                     'email'    => $loginEmail,
                     'password' => Hash::make($rawPassword),
                     'role'     => 'student',
                 ]);
+                if ($existingUserWithRealEmail) {
+                    $user->password = Hash::make($rawPassword);
+                    $user->save();
+                }
+            } else {
+                $loginEmail = $student->student_code ? ($student->student_code . '@iom.student') : (uniqid() . '@iom.student');
+                $user = User::firstOrCreate(
+                    ['email' => $loginEmail],
+                    [
+                        'name'     => $student->name,
+                        'password' => Hash::make($rawPassword),
+                        'role'     => 'student',
+                    ]
+                );
+                $user->password = Hash::make($rawPassword);
+                $user->save();
             }
+
             $student->user_id = $user->id;
             $student->temporary_password = $rawPassword;
             $student->save();
         } else {
             $user = $student->user;
+            if ($user) {
+                if ($realEmail && str_contains($user->email, '@iom.student')) {
+                    $existingUserWithEmail = User::where('email', $realEmail)->where('id', '!=', $user->id)->first();
+                    if (!$existingUserWithEmail) {
+                        $user->email = $realEmail;
+                    }
+                }
+                $user->password = Hash::make($rawPassword);
+                $user->save();
+            }
+            $student->save();
         }
 
         // 3. Mark Admission Form as APPROVED
@@ -623,7 +653,7 @@ class PaymentGatewayService
 
             // Generate invoices
             $admissionInv = AccountingService::createAdmissionInvoice($student, $form, $enrollment);
-            if ($initialSemester) {
+            if ($initialSemester || $batch->course?->type === 'SUBJECT_BASED') {
                 AccountingService::createSemesterInvoice($student, $enrollment, $initialSemester);
             }
 
@@ -659,13 +689,15 @@ class PaymentGatewayService
                 $loginUrl = url('/login');
 
                 $replaceVars = [
-                    '{name}'       => $student->name,
-                    '{student_id}' => $student->student_code,
-                    '{roll}'       => $student->student_code,
-                    '{password}'   => $displayPassword,
-                    '{course}'     => $courseName,
-                    '{batch}'      => $batchName,
-                    '{login_url}'  => $loginUrl,
+                    '{name}'        => $student->name,
+                    '{student_id}'  => $student->student_code,
+                    '{roll}'        => $student->student_code,
+                    '{email}'       => $targetEmail,
+                    '{login_email}' => $targetEmail,
+                    '{password}'    => $displayPassword,
+                    '{course}'      => $courseName,
+                    '{batch}'       => $batchName,
+                    '{login_url}'   => $loginUrl,
                 ];
 
                 $template = \App\Models\EmailTemplate::resolveAdmissionTemplate($courseId, $batchId, $gender);

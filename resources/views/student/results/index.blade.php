@@ -31,12 +31,19 @@
                     সেমিস্টারভিত্তিক বিষয়ভিত্তিক মার্কস, কওমি মাদরাসা গ্রেড মানদণ্ড ও মেধা স্থান
                 </p>
             </div>
+            @php
+                $semCount = ($course && $course->semesters) ? $course->semesters->count() : 0;
+                $bnDigits = ['0'=>'০','1'=>'১','2'=>'২','3'=>'৩','4'=>'৪','5'=>'৫','6'=>'৬','7'=>'৭','8'=>'৮','9'=>'৯'];
+                $bnSemCount = strtr((string)$semCount, $bnDigits);
+            @endphp
+            @if($semCount > 1)
             <div>
                 <a href="{{ route('student.results.transcript') }}" 
                    style="background:#ffffff; color:#065f46; border:none; padding:10px 20px; border-radius:10px; font-weight:800; font-size:13.5px; text-decoration:none; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 10px rgba(0,0,0,0.15)">
-                    <i class="fa-solid fa-file-invoice"></i> ৬-সেমিস্টার একত্রিত ট্রান্সক্রিপ্ট (Consolidated Transcript)
+                    <i class="fa-solid fa-file-invoice"></i> {{ $bnSemCount }}-সেমিস্টার একত্রিত ট্রান্সক্রিপ্ট (Consolidated Transcript)
                 </a>
             </div>
+            @endif
         </div>
 
         {{-- Section 1: Semester Final Marks & Merit Rank --}}

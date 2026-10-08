@@ -120,7 +120,16 @@ class StudentController extends Controller
         $pendingCount   = Student::whereIn('status', ['PENDING', 'LEAD'])->count();
         $graduatedCount = Student::where('status', 'GRADUATED')->count();
 
-        $students = $query->latest()->paginate(25)->appends($request->query());
+        $rawPerPage = $request->input('per_page', 25);
+        if ($rawPerPage === 'all' || (int)$rawPerPage === -1) {
+            $perPage = max(1000, $query->count());
+        } else {
+            $perPage = in_array((int)$rawPerPage, [10, 25, 50, 100, 200]) ? (int)$rawPerPage : 25;
+        }
+
+        $students = $query->orderByRaw('CASE WHEN student_code IS NULL OR student_code = "" THEN 1 ELSE 0 END, LENGTH(student_code) ASC, student_code ASC, id ASC')
+            ->paginate($perPage)
+            ->appends($request->query());
 
         $hasFilters = $request->anyFilled([
             'search', 'name', 'student_code', 'phone', 'email',
@@ -131,7 +140,7 @@ class StudentController extends Controller
 
         return view('admin.students.index', compact(
             'students', 'courses', 'batches', 'semesters', 'bloodGroups',
-            'status', 'totalCount', 'activeCount', 'pendingCount', 'graduatedCount', 'hasFilters'
+            'status', 'totalCount', 'activeCount', 'pendingCount', 'graduatedCount', 'hasFilters', 'perPage'
         ));
     }
 
@@ -157,7 +166,8 @@ class StudentController extends Controller
     public function exportCsv(Request $request)
     {
         $query = $this->buildFilteredQuery($request);
-        $students = $query->latest()->get();
+        $students = $query->orderByRaw('CASE WHEN student_code IS NULL OR student_code = "" THEN 1 ELSE 0 END, LENGTH(student_code) ASC, student_code ASC, id ASC')
+            ->get();
 
         $filename = 'students_export_' . now()->format('Y_m_d_His') . '.csv';
 
@@ -312,14 +322,24 @@ class StudentController extends Controller
             'occupation'              => 'nullable|string|max:200',
             'is_common_account'       => 'nullable|boolean',
             'status'                  => 'required|in:LEAD,PENDING,ACTIVE,ABSENT,DROPPED,CANCELLED,TRANSFERRED,COMPLETED,GRADUATED',
+            'photo'                   => 'nullable|image|max:3072',
+            'avatar_preset'           => 'nullable|string|max:255',
         ]);
 
         $validated['is_common_account'] = $request->boolean('is_common_account');
 
+        if ($request->hasFile('photo')) {
+            $path = $request->file('photo')->store('photos/students', 'public');
+            $validated['photo_url'] = '/storage/' . $path;
+        } elseif (!empty($validated['avatar_preset'])) {
+            $validated['photo_url'] = $validated['avatar_preset'];
+        }
+        unset($validated['photo'], $validated['avatar_preset']);
+
         $trackedFields = [
             'name', 'phone', 'email', 'gender', 'date_of_birth', 'blood_group', 
             'national_id', 'address', 'permanent_address', 'father_name', 
-            'mother_name', 'guardian_name', 'guardian_phone', 'education_qualification', 'is_common_account', 'status'
+            'mother_name', 'guardian_name', 'guardian_phone', 'education_qualification', 'is_common_account', 'status', 'photo_url'
         ];
 
         $oldValues = [];
