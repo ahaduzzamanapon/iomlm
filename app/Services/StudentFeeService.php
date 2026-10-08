@@ -1305,6 +1305,8 @@ class StudentFeeService
                             'is_paid'          => $isPaid,
                             'is_custom'        => true,
                             'is_added'         => true,
+                            'position'         => $cpData['position'] ?? 'at_bottom',
+                            'relative_to'      => $cpData['relative_to'] ?? null,
                             'custom_remarks'   => $cpData['remarks'] ?? $otherInv->notes ?? $otherInv->category,
                             'invoice_id'       => $otherInv->id,
                             'invoice_no'       => $otherInv->invoice_no,
@@ -1354,6 +1356,8 @@ class StudentFeeService
                         'is_paid'          => $isPaid,
                         'is_custom'        => true,
                         'is_added'         => true,
+                        'position'         => $otherInv->custom_particulars[$invTitle]['position'] ?? 'at_bottom',
+                        'relative_to'      => $otherInv->custom_particulars[$invTitle]['relative_to'] ?? null,
                         'custom_remarks'   => $otherInv->notes ?? ($isActivation ? 'কোর্স এক্টিভিশন ফি' : $otherInv->category),
                         'invoice_id'       => $otherInv->id,
                         'invoice_no'       => $otherInv->invoice_no,
@@ -1371,6 +1375,9 @@ class StudentFeeService
                 }
             }
         }
+
+        // Apply unified ordering pass across all particulars (template items + semester custom + extra invoices)
+        $step1Particulars = $this->reorderStep1Particulars($step1Particulars);
 
         // ── Assemble Chronological History Logs ──
         $rawHistory = $selectedSemesterInvoice?->custom_particulars['_history'] ?? [];
@@ -1461,6 +1468,72 @@ class StudentFeeService
             'batch'                   => $batch,
             'academicYear'            => $academicYear,
         ];
+    }
+
+    /**
+     * Unified reordering of step 1 particulars based on position and relative_to.
+     */
+    private function reorderStep1Particulars(array $items): array
+    {
+        $baseItems = [];
+        $customItems = [];
+
+        foreach ($items as $item) {
+            $pos = $item['position'] ?? 'default';
+            if (!empty($item['is_added']) || in_array($pos, ['at_top', 'after', 'before', 'at_bottom'], true)) {
+                $customItems[] = $item;
+            } else {
+                $baseItems[] = $item;
+            }
+        }
+
+        $ordered = $baseItems;
+
+        // 1. at_top
+        $atTopItems = array_values(array_filter($customItems, fn($i) => ($i['position'] ?? '') === 'at_top'));
+        foreach (array_reverse($atTopItems) as $item) {
+            array_unshift($ordered, $item);
+        }
+
+        // 2. after and before
+        $relItems = array_values(array_filter($customItems, fn($i) => in_array($i['position'] ?? '', ['after', 'before'], true)));
+        foreach ($relItems as $item) {
+            $pos = $item['position'];
+            $rel = $item['relative_to'] ?? null;
+            $targetIdx = null;
+            if ($rel) {
+                foreach ($ordered as $idx => $it) {
+                    if ($it['name'] === $rel) {
+                        $targetIdx = $idx;
+                        break;
+                    }
+                }
+            }
+
+            if ($targetIdx !== null) {
+                if ($pos === 'after') {
+                    array_splice($ordered, $targetIdx + 1, 0, [$item]);
+                } else {
+                    array_splice($ordered, $targetIdx, 0, [$item]);
+                }
+            } else {
+                $ordered[] = $item;
+            }
+        }
+
+        // 3. at_bottom & others
+        $bottomItems = array_values(array_filter($customItems, fn($i) => !in_array($i['position'] ?? '', ['at_top', 'after', 'before'], true)));
+        foreach ($bottomItems as $item) {
+            $ordered[] = $item;
+        }
+
+        $sl = 1;
+        foreach ($ordered as &$o) {
+            $o['sl'] = $sl++;
+        }
+        unset($o);
+
+        return $ordered;
     }
 
     /**
@@ -1566,19 +1639,27 @@ class StudentFeeService
         $existingPos = $custom[$pName]['position'] ?? 'at_bottom';
         $existingRel = $custom[$pName]['relative_to'] ?? null;
 
+        $resolvedPos = ($position !== null && $position !== '') ? $position : $existingPos;
+        $resolvedRel = in_array($resolvedPos, ['after', 'before'], true)
+            ? (($relativeTo !== null && $relativeTo !== '') ? $relativeTo : $existingRel)
+            : null;
+
         $custom[$pName] = [
-            'name'        => $pName,
-            'amount'      => $newAmount,
-            'paid_amt'    => $currentPaid,
-            'due'         => $newDue,
-            'is_paid'     => ($newDue <= 0),
-            'adjusted_at' => now()->toDateTimeString(),
-            'adjusted_by' => $userId ?? auth()->id(),
-            'remarks'     => $remarks ?? ($custom[$pName]['remarks'] ?? 'ফি পরিবর্তন'),
-            'is_custom'   => true,
-            'is_added'    => !empty($custom[$pName]['is_added']),
-            'position'    => $position ?? $existingPos,
-            'relative_to' => $relativeTo ?? $existingRel,
+            'name'            => $pName,
+            'amount'          => $newAmount,
+            'paid_amt'        => $currentPaid,
+            'due'             => $newDue,
+            'is_paid'         => ($newDue <= 0),
+            'adjusted_at'     => now()->toDateTimeString(),
+            'adjusted_by'     => $userId ?? auth()->id(),
+            'remarks'         => $remarks ?? ($custom[$pName]['remarks'] ?? 'ফি পরিবর্তন'),
+            'is_custom'       => true,
+            'is_added'        => isset($custom[$pName]['is_added']) ? !empty($custom[$pName]['is_added']) : true,
+            'position'        => $resolvedPos,
+            'relative_to'     => $resolvedRel,
+            'created_by'      => $custom[$pName]['created_by'] ?? ($userId ?? auth()->id()),
+            'created_by_name' => $custom[$pName]['created_by_name'] ?? (auth()->user()?->name ?? null),
+            'added_at'        => $custom[$pName]['added_at'] ?? now()->format('d M Y, h:i A'),
         ];
 
         $newPayable     = max(0, $invoice->payable_amount + $diff);

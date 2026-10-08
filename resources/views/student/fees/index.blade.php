@@ -790,7 +790,59 @@
                         <span style="font-size:11px; color:#64748b; font-weight:500">(আংশিক বা সম্পূর্ণ প্রদেয়)</span>
                     </label>
                     <input type="number" step="0.01" id="payAmountInput" name="amount" class="form-control" required
-                        style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:16px; font-weight:700; color:#1e                    {{-- Manual Fields (Hidden by default) --}}
+                        style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:16px; font-weight:700; color:#1e293b; box-sizing:border-box"
+                        oninput="updateModalButtonAmount()">
+                </div>
+
+                {{-- Payment Gateway Selection --}}
+                <div style="margin-bottom:16px">
+                    <label style="display:block; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:8px">
+                        পেমেন্ট মাধ্যম নির্বাচন করুন <span style="color:#dc2626">*</span>
+                    </label>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px" id="modalGatewayGrid">
+                        {{-- SSLCommerz Card --}}
+                        <label class="modal-gateway-card selected" id="card_sslcommerz"
+                            onclick="selectModalGateway('sslcommerz')">
+                            <input type="radio" name="payment_method" value="sslcommerz" checked style="display:none">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                                <img src="{{ asset('images/gateways/sslcommerz.png') }}" alt="SSLCommerz"
+                                    style="height:22px; max-width:115px; object-fit:contain">
+                                <span
+                                    style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; background:#e0f2fe; color:#0369a1">সব
+                                    মাধ্যম</span>
+                            </div>
+                            <div style="font-size:11px; color:#64748b; line-height:1.3">
+                                কার্ড, ইন্টারনেট ব্যাংকিং, মোবাইল ওয়ালেট
+                            </div>
+                        </label>
+
+                        {{-- bKash Card --}}
+                        <label class="modal-gateway-card" id="card_bkash" onclick="selectModalGateway('bkash')">
+                            <input type="radio" name="payment_method" value="bkash" style="display:none">
+                            <div
+                                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">
+                                <img src="{{ asset('images/gateways/bkash.png') }}" alt="bKash"
+                                    style="height:24px; max-width:85px; object-fit:contain">
+                                <span
+                                    style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:10px; background:#fce7f3; color:#be185d">বিকাশ</span>
+                            </div>
+                            <div style="font-size:11px; color:#64748b; line-height:1.3">
+                                সরাসরি বিকাশ ওয়ালেট ও পিন
+                            </div>
+                        </label>
+                    </div>
+
+                    {{-- Manual / Offline Payment Toggle --}}
+                    <div style="margin-top:10px; text-align:right">
+                        <button type="button" onclick="toggleManualPayment()" id="toggleManualBtn"
+                            style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:600; cursor:pointer; text-decoration:underline">
+                            অথবা ম্যানুয়াল ব্যাংক / ক্যাশ ভাউচার জমা দিন
+                        </button>
+                    </div>
+
+                    {{-- Manual Fields (Hidden by default) --}}
                     <div id="manualPaymentFields"
                         style="display:none; background:#f8fafc; border:1.5px dashed #059669; border-radius:10px; padding:16px; margin-top:10px; font-family:'Kalpurush',sans-serif">
                         
@@ -849,53 +901,6 @@
                             <div id="trxHelperText" style="font-size:11px; color:#64748b; margin-top:4px">
                                 বিকাশ/নগদ এর এসএমএস বা অ্যাপে প্রদর্শিত ১০ অক্ষরের TrxID লিখুন। এক TrxID একাধিকবার ব্যবহার করা যাবে না।
                             </div>
-                        </div>
-                    </div>ওয়ালেট ও পিন
-                            </div>
-                        </label>
-                    </div>
-
-                    {{-- Manual / Offline Payment Toggle --}}
-                    <div style="margin-top:10px; text-align:right">
-                        <button type="button" onclick="toggleManualPayment()" id="toggleManualBtn"
-                            style="background:none; border:none; color:#2563eb; font-size:11.5px; font-weight:600; cursor:pointer; text-decoration:underline">
-                            অথবা ম্যানুয়াল ব্যাংক / ক্যাশ ভাউচার জমা দিন
-                        </button>
-                    </div>
-
-                    {{-- Manual Fields (Hidden by default) --}}
-                    <div id="manualPaymentFields"
-                        style="display:none; background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:10px; padding:14px; margin-top:10px">
-                        <div style="margin-bottom:10px">
-                            <label
-                                style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">ম্যানুয়াল
-                                মাধ্যম নির্বাচন করুন</label>
-                            <select id="manualMethodSelect" class="form-control"
-                                style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px"
-                                onchange="onManualMethodChange(this.value)">
-                                <option value="BKASH" selected>ম্যানুয়াল বিকাশ ট্রানজেকশন (bKash Manual Send Money /
-                                    Payment)</option>
-                                <option value="NAGAD">নগদ ম্যানুয়াল ট্রানজেকশন (Nagad TrxID)</option>
-                                <option value="ROCKET">রকেট ম্যানুয়াল ট্রানজেকশন (Rocket TrxID)</option>
-                                <option value="BANK_TRANSFER">ব্যাংক ডিপোজিট / স্লিপ (Bank Transfer)</option>
-                                <option value="CASH">সরাসরি অফিস ক্যাশ (Cash at Office)</option>
-                            </select>
-                        </div>
-                        <div style="margin-bottom:10px">
-                            <label
-                                style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">বিকাশ
-                                / প্রেরক মোবাইল নম্বর (Sender Mobile No)</label>
-                            <input type="text" name="sender_number" id="manualSenderInput"
-                                placeholder="যেমন: 01712345678 বা আপনার বিকাশ নম্বর" class="form-control"
-                                style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; box-sizing:border-box">
-                        </div>
-                        <div>
-                            <label
-                                style="font-size:11.5px; font-weight:700; color:#475569; display:block; margin-bottom:4px">Transaction
-                                ID / রেফারেন্স ট্রানজেকশন আইডি (TrxID)</label>
-                            <input type="text" name="transaction_id" id="manualTrxInput"
-                                placeholder="যেমন: 8N7A6B5C4D (বিকাশ TrxID)" class="form-control"
-                                style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid #cbd5e1; font-size:12.5px; box-sizing:border-box">
                         </div>
                     </div>
                 </div>
