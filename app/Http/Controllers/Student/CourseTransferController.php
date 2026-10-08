@@ -98,6 +98,7 @@ class CourseTransferController extends Controller
             'reason' => 'required|string|min:10|max:1000',
         ], [
             'to_course_id.required' => 'স্থানান্তর হতে ইচ্ছুক কোর্স নির্বাচন করুন।',
+            'to_course_id.exists'   => 'নির্বাচিত কোর্সটি সঠিক নয়।',
             'reason.required'       => 'কোর্স পরিবর্তনের কারণ উল্লেখ করুন।',
             'reason.min'            => 'কোর্স পরিবর্তনের কারণ ন্যূনতম ১০ অক্ষরের হতে হবে।',
         ]);

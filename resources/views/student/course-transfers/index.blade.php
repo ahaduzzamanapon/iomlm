@@ -45,6 +45,18 @@
             <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
         </div>
     @endif
+    @if($errors->any())
+        <div class="alert alert-danger" style="margin-bottom:18px;font-family:'Kalpurush',sans-serif;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:14px 18px">
+            <div style="font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <i class="fa-solid fa-circle-exclamation"></i> অনুগ্রহ করে নিচের তথ্যগুলো সঠিকভাবে পূরণ করুন:
+            </div>
+            <ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.6">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     {{-- ── Active Request Tracker (if any) ── --}}
     @if($activeRequest)
@@ -201,13 +213,13 @@
                     কোর্স পরিবর্তন আবেদনের জন্য একটি সক্রিয় কোর্স থাকা বাধ্যতামূলক।
                 </div>
             @else
-                <form method="POST" action="{{ route('student.course-transfers.store') }}">
+                <form method="POST" action="{{ route('student.course-transfers.store') }}" id="studentCourseTransferForm" onsubmit="return validateTransferForm(event)">
                     @csrf
                     <div class="form-group" style="margin-bottom:16px">
                         <label style="display:block;font-size:13px;font-weight:700;color:#334155;margin-bottom:6px">
                             যে কোর্সে যেতে চান (Desired Target Course) <span style="color:#dc2626">*</span>
                         </label>
-                        <select name="to_course_id" class="form-control" required style="width:100%;height:42px;border-radius:8px;border:1px solid #cbd5e1;padding:0 12px;font-size:13px">
+                        <select name="to_course_id" id="toCourseSelect" class="form-control" required style="width:100%;height:42px;border-radius:8px;border:1px solid {{ $errors->has('to_course_id') ? '#ef4444' : '#cbd5e1' }};padding:0 12px;font-size:13px;background:{{ $errors->has('to_course_id') ? '#fef2f2' : '#ffffff' }}">
                             <option value="">-- কোর্স নির্বাচন করুন --</option>
                             @foreach($availableCourses as $c)
                                 <option value="{{ $c->id }}" {{ old('to_course_id') == $c->id ? 'selected' : '' }}>
@@ -215,17 +227,38 @@
                                 </option>
                             @endforeach
                         </select>
+                        @error('to_course_id')
+                            <div style="color:#dc2626;font-size:12px;margin-top:5px;font-weight:600">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
+                            </div>
+                        @enderror
                     </div>
 
                     <div class="form-group" style="margin-bottom:16px">
                         <label style="display:block;font-size:13px;font-weight:700;color:#334155;margin-bottom:6px">
                             কোর্স পরিবর্তনের কারণ (Reason for Transfer) <span style="color:#dc2626">*</span>
                         </label>
-                        <textarea name="reason" class="form-control" rows="4" required placeholder="আপনি কেন এই কোর্সটি পরিবর্তন করে নতুন কোর্সে যেতে চান তা বিস্তারিত লিখুন..." style="width:100%;border-radius:8px;border:1px solid #cbd5e1;padding:10px 12px;font-size:13px">{{ old('reason') }}</textarea>
-                        <small style="color:#64748b;font-size:11px">ন্যূনতম ১০ অক্ষরে আপনার কারণ ব্যক্ত করুন।</small>
+                        <textarea name="reason" id="transferReasonInput" class="form-control" rows="4" minlength="10" required placeholder="আপনি কেন এই কোর্সটি পরিবর্তন করে নতুন কোর্সে যেতে চান তা বিস্তারিত লিখুন..." style="width:100%;border-radius:8px;border:1px solid {{ $errors->has('reason') ? '#ef4444' : '#cbd5e1' }};padding:10px 12px;font-size:13px;background:{{ $errors->has('reason') ? '#fef2f2' : '#ffffff' }}">{{ old('reason') }}</textarea>
+                        
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">
+                            <span id="charCountHint" style="font-size:11px;color:#64748b">
+                                <i class="fa-solid fa-circle-info"></i> ন্যূনতম ১০ অক্ষরে আপনার কারণ ব্যক্ত করুন।
+                            </span>
+                            <span id="charCountDisplay" style="font-size:11px;font-weight:700;color:#94a3b8">০/১০ অক্ষর</span>
+                        </div>
+
+                        <div id="clientValidationAlert" style="display:none;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:8px 12px;border-radius:6px;font-size:12px;margin-top:8px;font-weight:600">
+                            <i class="fa-solid fa-circle-exclamation"></i> <span id="clientValidationAlertMsg"></span>
+                        </div>
+
+                        @error('reason')
+                            <div style="color:#dc2626;font-size:12px;margin-top:5px;font-weight:600">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ $message }}
+                            </div>
+                        @enderror
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;font-weight:700">
+                    <button type="submit" id="submitTransferBtn" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
                         <i class="fa-solid fa-paper-plane"></i> আবেদন জমা দিন (Submit Application)
                     </button>
                 </form>
@@ -301,4 +334,83 @@
             </table>
         </div>
     </div>
+    @push('scripts')
+    <script>
+    (function() {
+        const reasonInput  = document.getElementById('transferReasonInput');
+        const charDisplay  = document.getElementById('charCountDisplay');
+        const charHint     = document.getElementById('charCountHint');
+        const alertBox     = document.getElementById('clientValidationAlert');
+        const alertMsg     = document.getElementById('clientValidationAlertMsg');
+        const courseSelect = document.getElementById('toCourseSelect');
+
+        function updateCount() {
+            if (!reasonInput || !charDisplay) return;
+            const len = reasonInput.value.trim().length;
+            charDisplay.textContent = len + '/১০ অক্ষর';
+
+            if (len >= 10) {
+                charDisplay.style.color = '#16a34a';
+                if (charHint) {
+                    charHint.style.color = '#16a34a';
+                    charHint.innerHTML = '<i class="fa-solid fa-check"></i> কারণের দৈর্ঘ্য সঠিক আছে।';
+                }
+                if (alertBox) alertBox.style.display = 'none';
+                reasonInput.style.borderColor = '#cbd5e1';
+            } else {
+                charDisplay.style.color = len > 0 ? '#d97706' : '#94a3b8';
+                if (charHint) {
+                    charHint.style.color = '#64748b';
+                    charHint.innerHTML = '<i class="fa-solid fa-circle-info"></i> ন্যূনতম ১০ অক্ষরে আপনার কারণ ব্যক্ত করুন।';
+                }
+            }
+        }
+
+        if (reasonInput) {
+            reasonInput.addEventListener('input', updateCount);
+            updateCount();
+        }
+
+        window.validateTransferForm = function(e) {
+            if (!courseSelect || !courseSelect.value) {
+                if (e) e.preventDefault();
+                if (alertBox && alertMsg) {
+                    alertMsg.textContent = 'স্থানান্তর হতে ইচ্ছুক কোর্স নির্বাচন করুন।';
+                    alertBox.style.display = 'block';
+                } else {
+                    alert('স্থানান্তর হতে ইচ্ছুক কোর্স নির্বাচন করুন।');
+                }
+                if (courseSelect) courseSelect.focus();
+                return false;
+            }
+
+            const val = reasonInput ? reasonInput.value.trim() : '';
+            if (val.length < 10) {
+                if (e) e.preventDefault();
+                const msg = 'কোর্স পরিবর্তনের কারণ ন্যূনতম ১০ অক্ষরের হতে হবে। আপনি লিখেছেন মাত্র ' + val.length + ' টি অক্ষর।';
+                if (alertBox && alertMsg) {
+                    alertMsg.textContent = msg;
+                    alertBox.style.display = 'block';
+                } else {
+                    alert(msg);
+                }
+                if (reasonInput) {
+                    reasonInput.style.borderColor = '#ef4444';
+                    reasonInput.focus();
+                }
+                return false;
+            }
+
+            if (alertBox) alertBox.style.display = 'none';
+
+            const btn = document.getElementById('submitTransferBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> আবেদন জমা হচ্ছে...';
+            }
+            return true;
+        };
+    })();
+    </script>
+    @endpush
 </x-student-layout>

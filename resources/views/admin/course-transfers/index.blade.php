@@ -68,6 +68,18 @@
             <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
         </div>
     @endif
+    @if($errors->any())
+        <div class="alert alert-danger" style="margin-bottom:18px;font-family:'Kalpurush',sans-serif;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:14px 18px">
+            <div style="font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <i class="fa-solid fa-circle-exclamation"></i> অনুগ্রহ করে নিচের ত্রুটিগুলো সংশোধন করুন:
+            </div>
+            <ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.6">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     {{-- Stat Cards --}}
     <div class="stat-grid-ct">

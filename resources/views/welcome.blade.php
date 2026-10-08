@@ -390,7 +390,7 @@
         <div class="card-grid">
             
             {{-- Card 1: Poor Fund / Waiver Application --}}
-            <div class="action-card">
+            {{-- <div class="action-card">
                 <div class="card-top">
                     <h3 class="card-title">দরিদ্র তহবিল ও ফি মওকুফ আবেদন</h3>
                     <p class="card-desc">
@@ -400,7 +400,7 @@
                 <a href="{{ route('poor_fund.show') }}" class="card-btn btn-green">
                     আবেদন করুন (Apply Poor Fund) ↗
                 </a>
-            </div>
+            </div> --}}
 
             {{-- Card 2: Online Support & Helpdesk --}}
             <div class="action-card">
