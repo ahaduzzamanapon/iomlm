@@ -45,6 +45,16 @@
         font-style: normal;
     }
 
+    /* Disable native Edge / IE password reveal icons to prevent duplicate or conflicting buttons */
+    input[type="password"]::-ms-reveal,
+    input[type="password"]::-ms-clear,
+    input[type="text"]::-ms-reveal,
+    input[type="text"]::-ms-clear {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
     /* ─── Admin Sidebar: IOM Deep Forest Green Gradient ────────── */
     .sidebar {
         background: linear-gradient(180deg, #022c22 0%, #064e3b 50%, #032b21 100%) !important;

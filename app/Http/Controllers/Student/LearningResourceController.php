@@ -26,24 +26,69 @@ class LearningResourceController extends Controller
 
         $activeEnrollments = Enrollment::where('student_id', $student?->id)
             ->where('status', 'ACTIVE')
-            ->with('batch.course')
+            ->with(['batch.course.semesters', 'course.semesters', 'batch.semesterPosition.currentSemester', 'semester'])
             ->get();
 
         if ($activeEnrollments->isEmpty()) {
-            $activeEnrollments = Enrollment::where('student_id', $student?->id)->with('batch.course')->get();
+            $activeEnrollments = Enrollment::where('student_id', $student?->id)
+                ->whereNotIn('status', ['TRANSFERRED', 'CANCELLED', 'DROPPED'])
+                ->with(['batch.course.semesters', 'course.semesters', 'batch.semesterPosition.currentSemester', 'semester'])
+                ->get();
         }
 
-        $courseIds = $activeEnrollments->map(fn($e) => $e->course_id ?? $e->batch?->course_id)->filter()->unique()->values();
+        $enrolledSubjectIds = collect();
+        $runningSemesterNames = collect();
 
-        $enrolledSubjectIds = CourseSubjectMap::whereIn('course_id', $courseIds)
-            ->pluck('subject_id')
-            ->filter()
-            ->unique()
-            ->values();
+        foreach ($activeEnrollments as $enrollment) {
+            $course = $enrollment->course ?? $enrollment->batch?->course;
+            if (!$course) {
+                continue;
+            }
+
+            if ($course->type === 'SEMESTER_BASED') {
+                $runningSemester = $enrollment->semester
+                    ?? $enrollment->batch?->semesterPosition?->currentSemester
+                    ?? $course->semesters->sortBy('sequence_no')->first();
+
+                $runningSemesterId = $runningSemester?->id;
+
+                if ($runningSemester && !empty($runningSemester->name)) {
+                    $runningSemesterNames->push($runningSemester->name);
+                }
+
+                if ($runningSemesterId) {
+                    $subIds = CourseSubjectMap::where('course_id', $course->id)
+                        ->where('semester_id', $runningSemesterId)
+                        ->pluck('subject_id');
+                    $enrolledSubjectIds = $enrolledSubjectIds->merge($subIds);
+                }
+            } else {
+                $subIds = CourseSubjectMap::where('course_id', $course->id)
+                    ->pluck('subject_id');
+                $enrolledSubjectIds = $enrolledSubjectIds->merge($subIds);
+            }
+        }
+
+        $enrolledSubjectIds = $enrolledSubjectIds->filter()->unique()->values();
+        $runningSemesterNames = $runningSemesterNames->unique()->values();
 
         $subjects = Subject::whereIn('id', $enrolledSubjectIds)->orderBy('name')->get();
 
-        $targetSubjectIds = $selectedSubjectId ? collect([(int)$selectedSubjectId]) : $enrolledSubjectIds;
+        if ($selectedSubjectId && $enrolledSubjectIds->contains((int)$selectedSubjectId)) {
+            $targetSubjectIds = collect([(int)$selectedSubjectId]);
+        } else {
+            $targetSubjectIds = $enrolledSubjectIds;
+            $selectedSubjectId = null;
+        }
+
+        if ($targetSubjectIds->isEmpty()) {
+            return view('student.resources.index', [
+                'resources'            => collect(),
+                'subjects'             => collect(),
+                'selectedSubjectId'    => null,
+                'runningSemesterNames' => $runningSemesterNames,
+            ]);
+        }
 
         // Fetch subject modules with attachments, drive links, or videos
         $modules = SubjectModule::with(['subject', 'learningResources'])
@@ -151,6 +196,6 @@ class LearningResourceController extends Controller
 
         $resources = $resources->sortByDesc('created_at')->values();
 
-        return view('student.resources.index', compact('resources', 'subjects', 'selectedSubjectId'));
+        return view('student.resources.index', compact('resources', 'subjects', 'selectedSubjectId', 'runningSemesterNames'));
     }
 }

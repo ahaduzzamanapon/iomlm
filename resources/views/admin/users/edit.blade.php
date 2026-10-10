@@ -25,6 +25,38 @@
         .module-box-um input[type="checkbox"] { width: 18px; height: 18px; accent-color: #6366f1; cursor: pointer; margin-top: 2px; }
 
         .support-box { background: #fdf2f8; border: 1.5px solid #fbcfe8; border-radius: 10px; padding: 18px 20px; }
+
+        /* Hide native Edge / IE password reveal icons */
+        input::-ms-reveal,
+        input::-ms-clear {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+        .password-toggle-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #64748b;
+            padding: 8px 10px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            line-height: 1;
+            border-radius: 6px;
+            transition: color 0.15s, background-color 0.15s;
+        }
+        .password-toggle-btn:hover {
+            color: #4f46e5;
+            background: #f1f5f9;
+        }
     </style>
 
     <div class="um-form-wrap">
@@ -90,9 +122,10 @@
                     <div class="form-group-um">
                         <label class="form-label-um">পাসওয়ার্ড পরিবর্তন (Password)</label>
                         <div style="position:relative">
-                            <input type="password" id="adminEditPasswordInput" name="password" class="form-input-um" style="padding-right:42px" placeholder="পাসওয়ার্ড অপরিবর্তিত রাখতে ফাঁকা রাখুন">
-                            <button type="button" onclick="togglePasswordVisibility('adminEditPasswordInput', 'editPasswordEyeIcon')" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#64748b;padding:6px;font-size:15px;display:flex;align-items:center;justify-content:center" title="পাসওয়ার্ড দেখুন / লুকান">
-                                <i id="editPasswordEyeIcon" class="fa-solid fa-eye"></i>
+                            <input type="password" id="adminEditPasswordInput" name="password" class="form-input-um" style="padding-right:44px" placeholder="পাসওয়ার্ড অপরিবর্তিত রাখতে ফাঁকা রাখুন" autocomplete="new-password">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('adminEditPasswordInput', this)" title="পাসওয়ার্ড দেখুন / লুকান" aria-label="পাসওয়ার্ড দেখুন / লুকান">
+                                <i class="fa-solid fa-eye eye-show"></i>
+                                <i class="fa-solid fa-eye-slash eye-hide" style="display:none"></i>
                             </button>
                         </div>
                         <small style="color:#64748b;font-size:11px">যদি পাসওয়ার্ড পরিবর্তন করতে চান তবেই লিখুন</small>
@@ -270,19 +303,40 @@
         });
     }
 
-    function togglePasswordVisibility(inputId, iconId) {
+    function togglePasswordVisibility(inputId, trigger) {
         const input = document.getElementById(inputId);
-        const icon = document.getElementById(iconId);
-        if (input && icon) {
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
+        if (!input) return;
+
+        let eyeShow = null;
+        let eyeHide = null;
+
+        if (typeof trigger === 'string') {
+            const icon = document.getElementById(trigger);
+            if (icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+                return;
             }
+        } else if (trigger && trigger.querySelector) {
+            eyeShow = trigger.querySelector('.eye-show');
+            eyeHide = trigger.querySelector('.eye-hide');
+        }
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (eyeShow) eyeShow.style.display = 'none';
+            if (eyeHide) eyeHide.style.display = 'inline-block';
+        } else {
+            input.type = 'password';
+            if (eyeShow) eyeShow.style.display = 'inline-block';
+            if (eyeHide) eyeHide.style.display = 'none';
         }
     }
 

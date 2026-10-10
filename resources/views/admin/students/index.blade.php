@@ -647,10 +647,10 @@
                                 @php
                                     $activeEnr = null;
                                     if (request('batch_id')) {
-                                        $activeEnr = $st->enrollments->firstWhere('batch_id', request('batch_id'));
+                                        $activeEnr = $st->enrollments->where('status', 'ACTIVE')->firstWhere('batch_id', request('batch_id'));
                                     }
                                     if (!$activeEnr && request('course_id')) {
-                                        $activeEnr = $st->enrollments->first(function($e) {
+                                        $activeEnr = $st->enrollments->where('status', 'ACTIVE')->first(function($e) {
                                             return $e->course_id == request('course_id') || $e->batch?->course_id == request('course_id');
                                         });
                                     }

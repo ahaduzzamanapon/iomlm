@@ -25,7 +25,7 @@ class StudentController extends Controller
             $students = Student::with(['enrollments.batch.course'])
                 ->where('status', 'ACTIVE')
                 ->whereHas('enrollments', function($q) use ($assignedBatchIds) {
-                    $q->whereIn('batch_id', $assignedBatchIds);
+                    $q->whereIn('batch_id', $assignedBatchIds)->where('status', 'ACTIVE');
                 })
                 ->paginate(25);
         } else {

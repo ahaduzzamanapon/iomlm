@@ -265,9 +265,7 @@ class Student extends Model
     {
         return [
             'Female' => [
-                ['path' => '/images/avatars/female_avatar_1.jpg', 'title' => 'মার্জিত হিজাব (Hijab)',   'is_default' => true],
-                ['path' => '/images/avatars/female_avatar_2.jpg', 'title' => 'গোলাপী হিজাব (Pink Hijab)', 'is_default' => false],
-                ['path' => '/images/avatars/female_avatar_3.jpg', 'title' => 'লাল হিজাব (Red Hijab)',     'is_default' => false],
+                ['path' => '/images/avatars/female_avatar_1.jpg', 'title' => 'মার্জিত হিজাব ও নিকাব (Hijab & Niqab)', 'is_default' => true],
             ],
             'Male' => [
                 ['path' => '/images/avatars/male_avatar_1.png', 'title' => 'সাদা টুপি (White Topi)',   'is_default' => true],
@@ -302,6 +300,9 @@ class Student extends Model
                 if (preg_match('/\b(20\d{2})\b/', $ay->name, $ym)) {
                     return substr($ym[1], -2);
                 }
+            }
+            if (!empty($batch->batch_code) && preg_match('/-(\d{2})\d{2}(?:-\d+)?$/', $batch->batch_code, $bm)) {
+                return $bm[1];
             }
             if (!empty($batch->start_date)) {
                 return date('y', strtotime($batch->start_date));
@@ -354,8 +355,11 @@ class Student extends Model
             }
         }
 
-        // 3. Fallback to batch_code (e.g. "ALI-2026-11" -> 11, or "16" -> 16)
+        // 3. Fallback to batch_code (e.g. "APC-2701" -> 01, "SMN-2712" -> 12, or "ALI-2026-11" -> 11)
         if (!empty($code)) {
+            if (preg_match('/-(\d{2})(\d{2})(?:-\d+)?$/', $code, $cm)) {
+                return $cm[2];
+            }
             if (str_contains($code, '-')) {
                 $parts = explode('-', $code);
                 $lastPart = end($parts);
@@ -462,6 +466,13 @@ class Student extends Model
     public function updateCodeForTransferOrReadmission(?Batch $newBatch = null, ?Course $newCourse = null): string
     {
         $currentCode = preg_replace('/\D/', '', (string)$this->student_code);
+
+        if (!$newBatch) {
+            $newBatch = $this->enrollments()->where('status', 'ACTIVE')->latest('id')->first()?->batch;
+        }
+        if (!$newCourse) {
+            $newCourse = $newBatch?->course ?: $this->enrollments()->where('status', 'ACTIVE')->latest('id')->first()?->course;
+        }
 
         // Digits 1-2: Year
         if ($newBatch) {

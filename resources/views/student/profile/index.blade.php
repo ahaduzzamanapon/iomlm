@@ -387,7 +387,7 @@
 
             <div style="display:flex;border-bottom:1.5px solid #e2e8f0;background:#f1f5f9">
                 <button type="button" id="tab_btn_female" onclick="switchStudentAvatarTab('female')" style="flex:1;padding:11px 16px;border:none;background:#fff;color:#047857;font-weight:700;font-size:13.5px;cursor:pointer;border-bottom:3px solid #047857;font-family:inherit">
-                    <i class="fa-solid fa-venus"></i> বোন শাখা (মহিলা অবতার - ৩টি)
+                    <i class="fa-solid fa-venus"></i> বোন শাখা (মহিলা অবতার - ১টি)
                 </button>
                 <button type="button" id="tab_btn_male" onclick="switchStudentAvatarTab('male')" style="flex:1;padding:11px 16px;border:none;background:transparent;color:#475569;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit">
                     <i class="fa-solid fa-mars"></i> ভাই শাখা (পুরুষ অবতার - ২টি)
@@ -398,9 +398,7 @@
             <div id="panel_female" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(130px, 1fr));gap:14px;padding:20px;overflow-y:auto;max-height:380px">
                 @php
                     $femaleAvatars = [
-                        ['url' => '/images/avatars/female_avatar_1.jpg', 'name' => 'মার্জিত হিজাব', 'is_default' => true],
-                        ['url' => '/images/avatars/female_avatar_2.jpg', 'name' => 'গোলাপী হিজাব', 'is_default' => false],
-                        ['url' => '/images/avatars/female_avatar_3.jpg', 'name' => 'লাল হিজাব', 'is_default' => false],
+                        ['url' => '/images/avatars/female_avatar_1.jpg', 'name' => 'মার্জিত হিজাব ও নিকাব', 'is_default' => true],
                     ];
                 @endphp
                 @foreach($femaleAvatars as $av)

@@ -61,6 +61,7 @@ class BatchController extends Controller
                 'required', 'string', 'max:150',
                 \Illuminate\Validation\Rule::unique('batches', 'name')->where('course_id', $request->input('course_id'))
             ],
+            'batch_code'       => 'nullable|string|max:50',
             'course_id'        => 'required|exists:courses,id',
             'academic_year_id' => 'nullable|exists:academic_years,id',
             'start_date'       => 'required|date',
@@ -110,34 +111,22 @@ class BatchController extends Controller
             ]);
         }
 
-        // Bulletproof unique batch_code generation
-        $rawPrefix = preg_replace('/[^A-Za-z0-9]/', '', $course->code ?: $course->name);
-        $prefix = strtoupper(substr($rawPrefix, 0, 3));
-        if (strlen($prefix) < 2) {
-            $prefix = 'BAT';
-        }
-
-        $year = date('Y', strtotime($startDate));
-        $baseCode = $prefix . '-' . $year . '-';
-
-        $existingCodes = Batch::where('batch_code', 'like', $baseCode . '%')->pluck('batch_code');
-        $maxSeq = 0;
-        foreach ($existingCodes as $c) {
-            $parts = explode('-', $c);
-            $lastPart = end($parts);
-            if (is_numeric($lastPart)) {
-                $num = (int) $lastPart;
-                if ($num > $maxSeq) {
-                    $maxSeq = $num;
-                }
+        // Standard batch_code generation ([Course Acronym]-[YY][BatchNumber])
+        $customBatchCode = trim((string) $request->input('batch_code'));
+        if (!empty($customBatchCode)) {
+            $nextCode = strtoupper($customBatchCode);
+            if (Batch::where('batch_code', $nextCode)->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'batch_code' => ["ব্যাচ কোড '{$nextCode}' ইতিমধ্যে অন্য একটি ব্যাচে ব্যবহৃত হচ্ছে।"],
+                ]);
             }
-        }
-
-        $seq = $maxSeq + 1;
-        $nextCode = $baseCode . str_pad($seq, 2, '0', STR_PAD_LEFT);
-        while (Batch::where('batch_code', $nextCode)->exists()) {
-            $seq++;
-            $nextCode = $baseCode . str_pad($seq, 2, '0', STR_PAD_LEFT);
+        } else {
+            $nextCode = Batch::generateBatchCode(
+                $course,
+                $validated['academic_year_id'] ?? null,
+                $validated['name'],
+                $validated['start_date']
+            );
         }
 
         $startDateMonth = date('F', strtotime($validated['start_date']));
@@ -176,6 +165,7 @@ class BatchController extends Controller
                     ->where('course_id', $request->input('course_id') ?: $batch->course_id)
                     ->ignore($batch->id)
             ],
+            'batch_code'        => 'nullable|string|max:50',
             'course_id'         => 'required|exists:courses,id',
             'academic_year_id'  => 'nullable|exists:academic_years,id',
             'start_date'        => 'required|date',
@@ -230,7 +220,37 @@ class BatchController extends Controller
         $startDateMonth = date('F', strtotime($validated['start_date']));
         $endDateMonth = !empty($validated['expected_end_date']) ? date('F', strtotime($validated['expected_end_date'])) : null;
 
+        $batchCode = null;
+        if ($request->has('batch_code')) {
+            $rawCode = trim((string) $request->input('batch_code'));
+            if (!empty($rawCode)) {
+                $batchCode = strtoupper($rawCode);
+                if (Batch::where('batch_code', $batchCode)->where('id', '!=', $batch->id)->exists()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'batch_code' => ["ব্যাচ কোড '{$batchCode}' ইতিমধ্যে অন্য একটি ব্যাচে ব্যবহৃত হচ্ছে।"],
+                    ]);
+                }
+            } else {
+                $batchCode = Batch::generateBatchCode(
+                    $course,
+                    $validated['academic_year_id'] ?? null,
+                    $validated['name'],
+                    $validated['start_date'],
+                    $batch->id
+                );
+            }
+        } else {
+            $batchCode = $batch->batch_code ?: Batch::generateBatchCode(
+                $course,
+                $validated['academic_year_id'] ?? null,
+                $validated['name'],
+                $validated['start_date'],
+                $batch->id
+            );
+        }
+
         $batch->update(array_merge($validated, [
+            'batch_code'        => $batchCode,
             'expected_end_date' => $validated['expected_end_date'] ?? null,
             'start_month'       => $validated['start_month'] ?? $startDateMonth,
             'end_month'         => $validated['end_month'] ?? $endDateMonth,

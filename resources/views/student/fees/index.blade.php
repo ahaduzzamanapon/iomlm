@@ -861,7 +861,7 @@
                                 </div>
                             </div>
                             <div id="merchantInstructions" style="margin-top:6px; font-size:11.5px; color:#166534; line-height:1.4">
-                                📌 আপনার বিকাশ অ্যাপ থেকে <strong>Payment</strong> অথবা <strong>Send Money</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং আপনার প্রেরক নম্বরটি নিচে দিন।
+                                📌 আপনার বিকাশ অ্যাপ থেকে <strong>Payment</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং আপনার প্রেরক নম্বরটি নিচে দিন।
                             </div>
                         </div>
 
@@ -872,7 +872,7 @@
                             <select id="manualMethodSelect" class="form-control"
                                 style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px"
                                 onchange="onManualMethodChange(this.value)">
-                                <option value="BKASH_MANUAL" selected>ম্যানুয়াল বিকাশ ট্রানজেকশন (bKash Manual Send Money / Payment)</option>
+                                <option value="BKASH_MANUAL" selected>ম্যানুয়াল বিকাশ ট্রানজেকশন (bKash Payment)</option>
                                 <option value="NAGAD_MANUAL">নগদ ম্যানুয়াল ট্রানজেকশন (Nagad TrxID)</option>
                                 <option value="ROCKET_MANUAL">রকেট ম্যানুয়াল ট্রানজেকশন (Rocket TrxID)</option>
                                 <option value="BANK_TRANSFER">ব্যাংক ডিপোজিট / স্লিপ (Bank Transfer)</option>
@@ -1228,7 +1228,7 @@
                     if (typeLabel) typeLabel.innerText = 'বিকাশ মার্চেন্ট / পেমেন্ট নম্বর:';
                     if (numCode) { numCode.innerText = '01766305059'; numCode.style.display = 'inline'; }
                     if (copyBtn) copyBtn.style.display = 'inline-flex';
-                    if (instText) instText.innerHTML = '📌 আপনার বিকাশ অ্যাপ থেকে <strong>Payment</strong> অথবা <strong>Send Money</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং প্রেরক নম্বরটি নিচে দিন।';
+                    if (instText) instText.innerHTML = '📌 আপনার বিকাশ অ্যাপ থেকে <strong>Payment</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং প্রেরক নম্বরটি নিচে দিন।';
                     if (senderLabel) senderLabel.innerHTML = 'বিকাশ / প্রেরক মোবাইল নম্বর (Sender Mobile No) <span style="color:#dc2626">*</span>';
                     if (senderInput) senderInput.placeholder = 'যেমন: 01712345678 বা আপনার বিকাশ নম্বর';
                     if (trxLabel) trxLabel.innerHTML = 'Transaction ID / রেফারেন্স ট্রানজেকশন আইডি (TrxID) <span style="color:#dc2626">*</span>';
@@ -1239,7 +1239,7 @@
                     if (typeLabel) typeLabel.innerText = 'নগদ পেমেন্ট / মার্চেন্ট নম্বর:';
                     if (numCode) { numCode.innerText = '01766305059'; numCode.style.display = 'inline'; }
                     if (copyBtn) copyBtn.style.display = 'inline-flex';
-                    if (instText) instText.innerHTML = '📌 আপনার নগদ একাউন্ট থেকে <strong>Merchant Pay</strong> অথবা <strong>Send Money</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং প্রেরক নম্বর দিন।';
+                    if (instText) instText.innerHTML = '📌 আপনার নগদ একাউন্ট থেকে <strong>Merchant Pay</strong> করে প্রাপ্ত <strong>১০ ডিজিটের TrxID</strong> এবং প্রেরক নম্বর দিন।';
                     if (senderLabel) senderLabel.innerHTML = 'নগদ / প্রেরক মোবাইল নম্বর (Sender Mobile No) <span style="color:#dc2626">*</span>';
                     if (senderInput) senderInput.placeholder = 'যেমন: 01812345678 বা আপনার নগদ নম্বর';
                     if (trxLabel) trxLabel.innerHTML = 'নগদ ট্রানজেকশন আইডি (Nagad TrxID) <span style="color:#dc2626">*</span>';

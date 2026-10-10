@@ -71,6 +71,9 @@ class StudentController extends Controller
         // Course, Batch & Semester filters combined on enrollments
         if ($request->filled('course_id') || $request->filled('batch_id') || $request->filled('semester_id')) {
             $query->whereHas('enrollments', function ($q) use ($request) {
+                // Only consider active/current enrollments — exclude transferred/cancelled enrollments
+                $q->whereIn('status', ['ACTIVE', 'PENDING']);
+
                 if ($request->filled('course_id')) {
                     $courseId = $request->course_id;
                     $q->where(function ($subQ) use ($courseId) {
@@ -196,10 +199,10 @@ class StudentController extends Controller
             foreach ($students as $index => $st) {
                 $enr = null;
                 if ($request->filled('batch_id')) {
-                    $enr = $st->enrollments->firstWhere('batch_id', $request->batch_id);
+                    $enr = $st->enrollments->where('status', 'ACTIVE')->firstWhere('batch_id', $request->batch_id);
                 }
                 if (!$enr && $request->filled('course_id')) {
-                    $enr = $st->enrollments->first(function ($e) use ($request) {
+                    $enr = $st->enrollments->where('status', 'ACTIVE')->first(function ($e) use ($request) {
                         return $e->course_id == $request->course_id || $e->batch?->course_id == $request->course_id;
                     });
                 }

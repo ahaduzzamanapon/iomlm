@@ -27,7 +27,11 @@ class CourseTransferService
 
             // 1. Deactivate old course active enrollment(s) -> set status to TRANSFERRED
             $oldEnrollments = Enrollment::where('student_id', $student->id)
-                ->where('course_id', $transfer->from_course_id)
+                ->where(function ($q) use ($transfer) {
+                    $q->where('course_id', $transfer->from_course_id)
+                      ->orWhere('batch_id', $transfer->from_batch_id)
+                      ->orWhereHas('batch', fn($bq) => $bq->where('course_id', $transfer->from_course_id));
+                })
                 ->whereIn('status', ['ACTIVE', 'PENDING'])
                 ->get();
 
@@ -58,10 +62,11 @@ class CourseTransferService
             ]);
 
             // 4. Update Student ID (Course code at digits 5 & 6, Batch at digits 3 & 4)
-            $student->updateCodeForTransferOrReadmission($transfer->toBatch, $transfer->toCourse);
+            $toCourse = $transfer->toCourse ?: Course::find($transfer->to_course_id);
+            $toBatch  = $transfer->toBatch ?: Batch::find($transfer->to_batch_id);
+            $student->updateCodeForTransferOrReadmission($toBatch, $toCourse);
 
             // 5. Update Fee Structure & Package for the target course
-            $toCourse = $transfer->toCourse ?? Course::find($transfer->to_course_id);
             $newFeePackage = $toCourse?->feePackages()->where('is_default', true)->where('is_active', true)->first()
                 ?? $toCourse?->feePackages()->where('is_active', true)->first()
                 ?? $toCourse?->feePackages()->first();

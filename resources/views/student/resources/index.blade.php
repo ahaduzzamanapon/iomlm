@@ -3,8 +3,15 @@
 
     <div class="page-header" style="font-family:'Kalpurush',sans-serif">
         <div class="page-header-left">
-            <h1 style="font-family:'Kalpurush',sans-serif">লার্নিং রিসোর্স ও স্টাডি ম্যাটেরিয়াল (Learning Resources)</h1>
-            <p style="font-family:'Kalpurush',sans-serif">ক্লাস লেকচার নোটস, পিডিএফ বই, ড্রাইভ লিংক ও সম্পূরক শিক্ষাসামগ্রী</p>
+            <h1 style="font-family:'Kalpurush',sans-serif">লার্নিং রিসোর্স ও স্টাডি ম্যাটেরিয়াল (Learning Resources)</h1>
+            <p style="font-family:'Kalpurush',sans-serif;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                <span>ক্লাস লেকচার নোটস, পিডিএফ বই, ড্রাইভ লিংক ও সম্পূরক শিক্ষাসামগ্রী</span>
+                @if(isset($runningSemesterNames) && $runningSemesterNames->isNotEmpty())
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 12px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:20px;font-size:12px;font-weight:700">
+                        <i class="fa-solid fa-graduation-cap"></i> চলতি সেমিস্টার: {{ $runningSemesterNames->implode(', ') }}
+                    </span>
+                @endif
+            </p>
         </div>
     </div>
 
@@ -13,10 +20,10 @@
         <div class="card" style="margin-bottom:18px;padding:14px 20px;font-family:'Kalpurush',sans-serif">
             <form method="GET" action="{{ route('student.resources.index') }}" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0">
                 <label for="subject_filter" style="font-weight:700;color:#334155;font-size:13px;display:flex;align-items:center;gap:6px">
-                    <i class="fa-solid fa-filter" style="color:#047857"></i> বিষয় অনুযায়ী ফিল্টার:
+                    <i class="fa-solid fa-filter" style="color:#047857"></i> চলতি সেমিস্টারের বিষয় অনুযায়ী ফিল্টার:
                 </label>
                 <select name="subject_id" id="subject_filter" onchange="this.form.submit()" style="padding:6px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;background:#fff;font-family:'Kalpurush',sans-serif;cursor:pointer">
-                    <option value="">-- সকল বিষয় (All Subjects) --</option>
+                    <option value="">-- চলতি সেমিস্টারের সকল বিষয় (All Current Subjects) --</option>
                     @foreach($subjects as $sub)
                         <option value="{{ $sub->id }}" {{ ($selectedSubjectId == $sub->id) ? 'selected' : '' }}>
                             {{ $sub->name }} ({{ $sub->code }})

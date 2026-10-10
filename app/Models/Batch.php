@@ -120,4 +120,156 @@ class Batch extends Model
         }
         return "প্রতি মাস";
     }
+
+    /**
+     * Resolve Course Prefix / Acronym from course name or code.
+     * Extracts first letter of each word in the course name.
+     * E.g. "Alim Preparatory Course" -> "APC"
+     * E.g. "School Maktab Nazera (Bangla)" -> "SMN"
+     * E.g. "School Maktab" -> "SM"
+     * E.g. "Ruqyah Nazera Course" -> "RNC"
+     */
+    public static function resolveCoursePrefix($course): string
+    {
+        if (is_numeric($course)) {
+            $course = Course::find($course);
+        }
+        $name = is_string($course) ? $course : ($course->name ?? '');
+
+        // Strip text in parentheses, e.g. "(Bangla)", "(Semester Based)"
+        $cleaned = preg_replace('/\([^)]*\)/u', '', $name);
+
+        // Transliterate common Bengali course words if needed
+        $bnToEnWords = [
+            'আলিম' => 'Alim',
+            'কোর্স' => 'Course',
+            'নাজেরা' => 'Nazera',
+            'দুয়া' => 'Dua',
+            'সুন্নাহ' => 'Sunnah',
+            'মক্তব' => 'Maktab',
+            'স্কুল' => 'School',
+        ];
+        foreach ($bnToEnWords as $bnWord => $enWord) {
+            $cleaned = str_replace($bnWord, $enWord, $cleaned);
+        }
+
+        $cleaned = preg_replace('/[^A-Za-z0-9\s]/u', ' ', $cleaned);
+        $words = preg_split('/\s+/u', trim($cleaned), -1, PREG_SPLIT_NO_EMPTY);
+
+        $prefix = '';
+        if (count($words) === 1) {
+            $prefix = strtoupper(substr($words[0], 0, 3));
+        } else {
+            foreach ($words as $w) {
+                $prefix .= strtoupper(substr($w, 0, 1));
+            }
+        }
+
+        if (strlen($prefix) < 2 && is_object($course) && !empty($course->code)) {
+            $raw = preg_replace('/[^A-Za-z0-9]/', '', $course->code);
+            if (!empty($raw)) {
+                $prefix = strtoupper(substr($raw, 0, 3));
+            }
+        }
+
+        if (strlen($prefix) < 2) {
+            $prefix = 'BAT';
+        }
+
+        // Limit prefix to max 4 chars
+        if (strlen($prefix) > 4) {
+            $prefix = substr($prefix, 0, 4);
+        }
+
+        return $prefix;
+    }
+
+    /**
+     * Resolve 2-digit Academic Year (e.g. 2027 -> "27")
+     */
+    public static function resolveAcademicYearDigits($academicYear = null, $startDate = null): string
+    {
+        if ($academicYear) {
+            if (is_numeric($academicYear)) {
+                $academicYear = AcademicYear::find($academicYear);
+            }
+            if (is_object($academicYear)) {
+                if (!empty($academicYear->year) && preg_match('/(20\d{2})/', (string)$academicYear->year, $ym)) {
+                    return substr($ym[1], -2);
+                }
+                if (preg_match('/\b(20\d{2})\b/', (string)$academicYear->name, $ym)) {
+                    return substr($ym[1], -2);
+                }
+                if (!empty($academicYear->start_date)) {
+                    return date('y', strtotime($academicYear->start_date));
+                }
+            }
+        }
+        if (!empty($startDate)) {
+            return date('y', strtotime($startDate));
+        }
+        return date('y');
+    }
+
+    /**
+     * Resolve 2-digit Batch Number (e.g. "01" -> "01", "12" -> "12", "Alim 2717" -> "17")
+     */
+    public static function resolveBatchNumberDigits(?string $batchName = null, ?int $batchId = null): string
+    {
+        $bn = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+        $en = ['0','1','2','3','4','5','6','7','8','9'];
+        $name = str_replace($bn, $en, trim((string)$batchName));
+
+        // 1. If purely numeric (e.g. "01", "1", "12")
+        if (is_numeric($name)) {
+            return str_pad(((int)$name) % 100, 2, '0', STR_PAD_LEFT);
+        }
+
+        // 2. If name contains numbers
+        if (preg_match_all('/\d+/', $name, $matches)) {
+            $numbers = $matches[0];
+            foreach ($numbers as $numStr) {
+                if (strlen($numStr) === 4) {
+                    if (in_array(substr($numStr, 0, 2), ['25', '26', '27', '28', '29', '30'])) {
+                        return substr($numStr, 2, 2);
+                    }
+                }
+                if (strlen($numStr) <= 2) {
+                    return str_pad(((int)$numStr) % 100, 2, '0', STR_PAD_LEFT);
+                }
+            }
+            $lastNum = end($numbers);
+            return str_pad(((int)$lastNum) % 100, 2, '0', STR_PAD_LEFT);
+        }
+
+        if ($batchId) {
+            return str_pad(($batchId % 100), 2, '0', STR_PAD_LEFT);
+        }
+
+        return '01';
+    }
+
+    /**
+     * Generate collision-free batch code: [Course Acronym]-[YY][BatchNumber]
+     * E.g. APC-2701, SMN-2712
+     */
+    public static function generateBatchCode($course, $academicYear = null, ?string $batchName = null, $startDate = null, ?int $excludeBatchId = null): string
+    {
+        $prefix = self::resolveCoursePrefix($course);
+        $yearDigits = self::resolveAcademicYearDigits($academicYear, $startDate);
+        $batchDigits = self::resolveBatchNumberDigits($batchName, $excludeBatchId);
+
+        $baseCode = "{$prefix}-{$yearDigits}{$batchDigits}";
+
+        $candidate = $baseCode;
+        $counter = 1;
+        while (self::where('batch_code', $candidate)
+            ->when($excludeBatchId, fn($q) => $q->where('id', '!=', $excludeBatchId))
+            ->exists()) {
+            $counter++;
+            $candidate = "{$baseCode}-{$counter}";
+        }
+
+        return $candidate;
+    }
 }

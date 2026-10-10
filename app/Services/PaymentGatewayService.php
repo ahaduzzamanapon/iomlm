@@ -25,23 +25,24 @@ class PaymentGatewayService
      */
     public static function getSslcommerzConfig(): array
     {
-        $enabled = Setting::where('key', 'sslcommerz_enabled')->value('value') === '1';
-        $mode = Setting::where('key', 'sslcommerz_mode')->value('value') ?: 'sandbox';
+        $enabled = Setting::where('key', 'sslcommerz_enabled')->value('value') === '1'
+            || env('SSLCOMMERZ_ENABLED') === true || env('SSLCOMMERZ_ENABLED') === '1';
+        $mode = Setting::where('key', 'sslcommerz_mode')->value('value') ?: env('SSLCOMMERZ_MODE', 'sandbox');
         $isSandbox = ($mode === 'sandbox');
 
         $storeId = $isSandbox
-            ? (Setting::where('key', 'sslcommerz_sandbox_store_id')->value('value') ?: '')
-            : (Setting::where('key', 'sslcommerz_live_store_id')->value('value') ?: '');
+            ? (Setting::where('key', 'sslcommerz_sandbox_store_id')->value('value') ?: env('SSLCOMMERZ_STORE_ID', ''))
+            : (Setting::where('key', 'sslcommerz_live_store_id')->value('value') ?: env('SSLCOMMERZ_STORE_ID', ''));
 
         $storePasswd = $isSandbox
-            ? (Setting::where('key', 'sslcommerz_sandbox_store_passwd')->value('value') ?: '')
-            : (Setting::where('key', 'sslcommerz_live_store_passwd')->value('value') ?: '');
+            ? (Setting::where('key', 'sslcommerz_sandbox_store_passwd')->value('value') ?: env('SSLCOMMERZ_STORE_PASSWORD', ''))
+            : (Setting::where('key', 'sslcommerz_live_store_passwd')->value('value') ?: env('SSLCOMMERZ_STORE_PASSWORD', ''));
 
         $baseUrl = $isSandbox
-            ? (Setting::where('key', 'sslcommerz_sandbox_url')->value('value') ?: 'https://sandbox.sslcommerz.com')
-            : (Setting::where('key', 'sslcommerz_live_url')->value('value') ?: 'https://securepay.sslcommerz.com');
+            ? (Setting::where('key', 'sslcommerz_sandbox_url')->value('value') ?: env('SSLCOMMERZ_SANDBOX_URL', 'https://sandbox.sslcommerz.com'))
+            : (Setting::where('key', 'sslcommerz_live_url')->value('value') ?: env('SSLCOMMERZ_LIVE_URL', 'https://securepay.sslcommerz.com'));
 
-        $currency = Setting::where('key', 'sslcommerz_currency')->value('value') ?: 'BDT';
+        $currency = Setting::where('key', 'sslcommerz_currency')->value('value') ?: env('SSLCOMMERZ_CURRENCY', 'BDT');
 
         return [
             'enabled' => $enabled,
@@ -59,31 +60,32 @@ class PaymentGatewayService
      */
     public static function getBkashConfig(): array
     {
-        $enabled = Setting::where('key', 'bkash_enabled')->value('value') === '1';
-        $mode = Setting::where('key', 'bkash_mode')->value('value') ?: 'sandbox';
+        $enabled = Setting::where('key', 'bkash_enabled')->value('value') === '1'
+            || env('BKASH_ENABLED') === true || env('BKASH_ENABLED') === '1';
+        $mode = Setting::where('key', 'bkash_mode')->value('value') ?: env('BKASH_MODE', 'sandbox');
         $isSandbox = ($mode === 'sandbox');
 
         $appKey = $isSandbox
-            ? (Setting::where('key', 'bkash_sandbox_app_key')->value('value') ?: '')
-            : (Setting::where('key', 'bkash_live_app_key')->value('value') ?: '');
+            ? (Setting::where('key', 'bkash_sandbox_app_key')->value('value') ?: env('BKASH_APP_KEY', ''))
+            : (Setting::where('key', 'bkash_live_app_key')->value('value') ?: env('BKASH_APP_KEY', ''));
 
         $appSecret = $isSandbox
-            ? (Setting::where('key', 'bkash_sandbox_app_secret')->value('value') ?: '')
-            : (Setting::where('key', 'bkash_live_app_secret')->value('value') ?: '');
+            ? (Setting::where('key', 'bkash_sandbox_app_secret')->value('value') ?: env('BKASH_APP_SECRET', ''))
+            : (Setting::where('key', 'bkash_live_app_secret')->value('value') ?: env('BKASH_APP_SECRET', ''));
 
         $username = $isSandbox
-            ? (Setting::where('key', 'bkash_sandbox_username')->value('value') ?: '')
-            : (Setting::where('key', 'bkash_live_username')->value('value') ?: '');
+            ? (Setting::where('key', 'bkash_sandbox_username')->value('value') ?: env('BKASH_USERNAME', ''))
+            : (Setting::where('key', 'bkash_live_username')->value('value') ?: env('BKASH_USERNAME', ''));
 
         $password = $isSandbox
-            ? (Setting::where('key', 'bkash_sandbox_password')->value('value') ?: '')
-            : (Setting::where('key', 'bkash_live_password')->value('value') ?: '');
+            ? (Setting::where('key', 'bkash_sandbox_password')->value('value') ?: env('BKASH_PASSWORD', ''))
+            : (Setting::where('key', 'bkash_live_password')->value('value') ?: env('BKASH_PASSWORD', ''));
 
         $baseUrl = $isSandbox
-            ? (Setting::where('key', 'bkash_sandbox_base_url')->value('value') ?: 'https://tokenized.sandbox.bka.sh/v1.2.0-beta')
-            : (Setting::where('key', 'bkash_live_base_url')->value('value') ?: 'https://tokenized.pay.bka.sh/v1.2.0-beta');
+            ? (Setting::where('key', 'bkash_sandbox_base_url')->value('value') ?: env('BKASH_BASE_URL', 'https://tokenized.sandbox.bka.sh/v1.2.0-beta'))
+            : (Setting::where('key', 'bkash_live_base_url')->value('value') ?: env('BKASH_BASE_URL', 'https://checkout.pay.bka.sh/v1.2.0-beta'));
 
-        $currency = Setting::where('key', 'bkash_currency')->value('value') ?: 'BDT';
+        $currency = Setting::where('key', 'bkash_currency')->value('value') ?: env('BKASH_CURRENCY', 'BDT');
 
         return [
             'enabled' => $enabled,
@@ -269,7 +271,11 @@ class PaymentGatewayService
         }
 
         try {
-            $endpoint = $config['base_url'] . '/tokenized/checkout/token/grant';
+            $isCheckoutPgw = !str_contains($config['base_url'], 'tokenized');
+            $endpoint = $isCheckoutPgw
+                ? $config['base_url'] . '/checkout/token/grant'
+                : $config['base_url'] . '/tokenized/checkout/token/grant';
+
             $response = Http::withHeaders([
                 'username' => $config['username'],
                 'password' => $config['password'],
@@ -321,7 +327,11 @@ class PaymentGatewayService
             $callbackUrl = str_replace(['http://learning-plus.test', 'https://learning-plus.test'], 'https://iom.mysoftheaven.com', $callbackUrl);
         }
 
-        $endpoint = $config['base_url'] . '/tokenized/checkout/create';
+        $isCheckoutPgw = !str_contains($config['base_url'], 'tokenized');
+        $endpoint = $isCheckoutPgw
+            ? $config['base_url'] . '/checkout/payment/create'
+            : $config['base_url'] . '/tokenized/checkout/create';
+
         $postData = [
             'mode' => '0011',
             'payerReference' => $customerPhone ?: ($form?->student?->phone ?? $transaction->customer_phone ?? '01700000000'),
@@ -336,6 +346,7 @@ class PaymentGatewayService
             $response = Http::withHeaders([
                 'Authorization' => $token,
                 'X-APP-Key' => $config['app_key'],
+                'Content-Type' => 'application/json',
             ])->timeout(15)->post($endpoint, $postData);
 
             if (!$response->successful()) {
@@ -358,7 +369,22 @@ class PaymentGatewayService
                 ];
             }
 
-            $error = $data['statusMessage'] ?? 'বিকাশ পেমেন্ট শুরু করতে ব্যর্থ হয়েছে।';
+            // Support bKash PGW Checkout format
+            if (!empty($data['paymentID']) && in_array($data['transactionStatus'] ?? '', ['Initiated', '0000', 'Success'])) {
+                $transaction->update([
+                    'status' => 'PENDING',
+                    'payment_id' => $data['paymentID'],
+                    'raw_response' => $data,
+                ]);
+
+                return [
+                    'success' => true,
+                    'redirect_url' => $data['bkashURL'] ?? null,
+                    'payment_id' => $data['paymentID'],
+                ];
+            }
+
+            $error = $data['statusMessage'] ?? $data['errorMessage'] ?? 'বিকাশ পেমেন্ট শুরু করতে ব্যর্থ হয়েছে।';
             $transaction->update([
                 'status' => 'FAILED',
                 'error_message' => $error,
@@ -383,15 +409,21 @@ class PaymentGatewayService
             return [];
         }
 
-        $endpoint = $config['base_url'] . '/tokenized/checkout/execute';
+        $isCheckoutPgw = !str_contains($config['base_url'], 'tokenized');
+        $endpoint = $isCheckoutPgw
+            ? $config['base_url'] . '/checkout/payment/execute/' . $paymentId
+            : $config['base_url'] . '/tokenized/checkout/execute';
 
         try {
-            $response = Http::withHeaders([
+            $req = Http::withHeaders([
                 'Authorization' => $token,
                 'X-APP-Key' => $config['app_key'],
-            ])->timeout(20)->post($endpoint, [
-                        'paymentID' => $paymentId,
-                    ]);
+                'Content-Type' => 'application/json',
+            ])->timeout(20);
+
+            $response = $isCheckoutPgw
+                ? $req->post($endpoint)
+                : $req->post($endpoint, ['paymentID' => $paymentId]);
 
             if ($response->successful()) {
                 return $response->json();
@@ -415,15 +447,21 @@ class PaymentGatewayService
             return [];
         }
 
-        $endpoint = $config['base_url'] . '/tokenized/checkout/payment/query';
+        $isCheckoutPgw = !str_contains($config['base_url'], 'tokenized');
+        $endpoint = $isCheckoutPgw
+            ? $config['base_url'] . '/checkout/payment/query/' . $paymentId
+            : $config['base_url'] . '/tokenized/checkout/payment/query';
 
         try {
-            $response = Http::withHeaders([
+            $req = Http::withHeaders([
                 'Authorization' => $token,
                 'X-APP-Key' => $config['app_key'],
-            ])->timeout(15)->post($endpoint, [
-                        'paymentID' => $paymentId,
-                    ]);
+                'Content-Type' => 'application/json',
+            ])->timeout(15);
+
+            $response = $isCheckoutPgw
+                ? $req->get($endpoint)
+                : $req->post($endpoint, ['paymentID' => $paymentId]);
 
             if ($response->successful()) {
                 return $response->json();

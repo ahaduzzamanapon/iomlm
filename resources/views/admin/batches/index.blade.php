@@ -238,6 +238,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Batch Code <span style="font-weight:400;color:#64748b;font-size:12px">(ঐচ্ছিক - খালি রাখলে স্বয়ংক্রিয়ভাবে তৈরি হবে, যেমন: APC-2701)</span></label>
+                        <input type="text" name="batch_code" id="cb_batch_code" class="form-control" placeholder="স্বয়ংক্রিয়ভাবে তৈরি হবে (যেমন: APC-2701)" value="{{ old('batch_code') }}" style="text-transform:uppercase">
+                    </div>
+
+                    <div class="form-group">
                         <label>Select Course <span class="required">*</span></label>
                         <select name="course_id" class="form-control" required>
                             <option value="">-- Choose Course --</option>
@@ -302,6 +307,11 @@
                     </div>
 
                     <div class="form-group">
+                        <label>Batch Code <span style="font-weight:400;color:#64748b;font-size:12px">(যেমন: APC-2701 - খালি রাখলে নতুন নিয়মে তৈরি হবে)</span></label>
+                        <input type="text" name="batch_code" id="eb_batch_code" class="form-control" placeholder="যেমন: APC-2701" style="text-transform:uppercase">
+                    </div>
+
+                    <div class="form-group">
                         <label>Select Course <span class="required">*</span></label>
                         <select name="course_id" id="eb_course_id" class="form-control" required>
                             <option value="">-- Choose Course --</option>
@@ -360,6 +370,7 @@
         @foreach($batches as $b)
         {{ $b->id }}: {
             name: @json($b->name),
+            batch_code: @json($b->batch_code),
             course_id: {{ $b->course_id }},
             academic_year_id: @json($b->academic_year_id),
             start_date: @json(\Carbon\Carbon::parse($b->start_date)->format('Y-m-d')),
@@ -376,6 +387,7 @@
         document.getElementById('editBatchForm').action = '/admin/batches/' + id;
         document.getElementById('editBatchTitle').innerText = 'Edit Batch: ' + b.name;
         document.getElementById('eb_name').value = b.name;
+        document.getElementById('eb_batch_code').value = b.batch_code || '';
         document.getElementById('eb_course_id').value = b.course_id;
         document.getElementById('eb_academic_year_id').value = b.academic_year_id || '';
         document.getElementById('eb_start_date').value = b.start_date;

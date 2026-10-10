@@ -22,24 +22,41 @@ class DashboardController extends Controller
 
         $activeEnrollments = Enrollment::where('student_id', $studentId)
             ->where('status', 'ACTIVE')
-            ->with(['batch.course', 'course'])
+            ->with(['batch.course.semesters', 'course.semesters', 'batch.semesterPosition.currentSemester', 'semester'])
             ->get();
 
         $courseIds = $activeEnrollments->map(fn($e) => $e->course_id ?? $e->batch?->course_id)->filter()->unique()->values();
         $batchIds = $activeEnrollments->pluck('batch_id')->filter()->unique()->values();
-        $semesterIds = $activeEnrollments->map(fn($e) => $e->semester_id ?? $e->batch?->semesterPosition?->current_semester_id)->filter()->unique()->values();
 
-        $enrolledSubjectIds = \App\Models\CourseSubjectMap::whereIn('course_id', $courseIds)
-            ->when($semesterIds->isNotEmpty(), function ($q) use ($semesterIds) {
-                $q->where(function ($sq) use ($semesterIds) {
-                    $sq->whereIn('semester_id', $semesterIds)
-                       ->orWhereNull('semester_id');
-                });
-            })
-            ->pluck('subject_id')
-            ->filter()
-            ->unique()
-            ->values();
+        $enrolledSubjectIds = collect();
+        $semesterIds = collect();
+
+        foreach ($activeEnrollments as $e) {
+            $c = $e->course ?? $e->batch?->course;
+            if (!$c) continue;
+
+            if ($c->type === 'SEMESTER_BASED') {
+                $runningSemester = $e->semester
+                    ?? $e->batch?->semesterPosition?->currentSemester
+                    ?? $c->semesters->sortBy('sequence_no')->first();
+
+                $semId = $runningSemester?->id;
+                if ($semId) {
+                    $semesterIds->push($semId);
+                    $subIds = \App\Models\CourseSubjectMap::where('course_id', $c->id)
+                        ->where('semester_id', $semId)
+                        ->pluck('subject_id');
+                    $enrolledSubjectIds = $enrolledSubjectIds->merge($subIds);
+                }
+            } else {
+                $subIds = \App\Models\CourseSubjectMap::where('course_id', $c->id)
+                    ->pluck('subject_id');
+                $enrolledSubjectIds = $enrolledSubjectIds->merge($subIds);
+            }
+        }
+
+        $enrolledSubjectIds = $enrolledSubjectIds->filter()->unique()->values();
+        $semesterIds = $semesterIds->filter()->unique()->values();
 
         $attendeeExamIds = \App\Models\ExamAttendee::where('student_id', $studentId)->pluck('exam_id')->values();
 
