@@ -195,8 +195,6 @@
                                 <option value="ALL">যৌথ / উভয় শাখা (All)</option>
                                 <option value="MALE">ভাই শাখা (Male)</option>
                                 <option value="FEMALE">বোন শাখা (Female)</option>
-                                <option value="GROUP_A">গ্রুপ ক (Group A)</option>
-                                <option value="GROUP_B">গ্রুপ খ (Group B)</option>
                             </select>
                         </div>
                     </div>

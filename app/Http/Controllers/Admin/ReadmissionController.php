@@ -70,11 +70,16 @@ class ReadmissionController extends Controller
         $retakeCount   = Readmission::where('status', 'CONTINUED_WITH_RETAKE')->count();
 
         // Reference Data for Modals & Filters
-        $courses   = Course::where('is_active', true)->with(['semesters', 'batches'])->orderBy('name')->get();
-        $batches   = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
-        $semesters = Semester::orderBy('course_id')->orderBy('sequence_no')->get();
-        $subjects  = Subject::where('is_active', true)->orderBy('name')->get();
-        $students  = Student::where('status', 'ACTIVE')->orderBy('name')->get();
+        $courses    = Course::where('is_active', true)->with(['semesters', 'batches'])->orderBy('name')->get();
+        $allBatches = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
+        $batches    = Batch::where('status', 'ACTIVE')
+            ->with('course')
+            ->when($courseFilter, fn($q) => $q->where('course_id', $courseFilter))
+            ->orderBy('name')
+            ->get();
+        $semesters  = Semester::orderBy('course_id')->orderBy('sequence_no')->get();
+        $subjects   = Subject::where('is_active', true)->orderBy('name')->get();
+        $students   = Student::where('status', 'ACTIVE')->orderBy('name')->get();
 
         return view('admin.readmissions.index', compact(
             'readmissions',
@@ -84,6 +89,7 @@ class ReadmissionController extends Controller
             'retakeCount',
             'courses',
             'batches',
+            'allBatches',
             'semesters',
             'subjects',
             'students',

@@ -22,7 +22,25 @@
     {{-- Filter Bar --}}
     <div class="card" style="margin-bottom:16px;padding:14px">
         <form method="GET" action="{{ route('admin.assignments.index') }}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <div style="flex:1;min-width:200px">
+            <div style="flex:1;min-width:180px">
+                <select name="course_id" id="assignment_filter_course" class="form-control" onchange="filterAssignmentBatches(this.value)">
+                    <option value="">সকল কোর্স (All Courses)</option>
+                    @foreach($courses as $c)
+                        <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div style="width:200px">
+                <select name="batch_id" id="assignment_filter_batch" class="form-control">
+                    <option value="">সকল ব্যাচ (All Batches)</option>
+                    @foreach($batches as $b)
+                        <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div style="flex:1;min-width:180px">
                 <select name="subject_id" class="form-control">
                     <option value="">সকল বিষয় (All Subjects)</option>
                     @foreach($subjects as $s)
@@ -30,18 +48,10 @@
                     @endforeach
                 </select>
             </div>
-            <div style="width:220px">
-                <select name="batch_id" class="form-control">
-                    <option value="">সকল ব্যাচ (All Batches)</option>
-                    @foreach($batches as $b)
-                        <option value="{{ $b->id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
-                    @endforeach
-                </select>
-            </div>
             <button type="submit" class="btn btn-primary" style="padding:8px 16px">
                 <i class="fa-solid fa-filter"></i> ফিল্টার
             </button>
-            @if(!empty($subjectId) || !empty($batchId))
+            @if(!empty($courseId) || !empty($subjectId) || !empty($batchId))
                 <a href="{{ route('admin.assignments.index') }}" class="btn btn-outline" style="padding:8px 14px">
                     <i class="fa-solid fa-rotate-left"></i> রিসেট
                 </a>
@@ -215,4 +225,34 @@
             </form>
         </div>
     </div>
+    @push('scripts')
+    <script>
+    window.filterAssignmentBatches = function(courseId) {
+        const batchSelect = document.getElementById('assignment_filter_batch');
+        if (!batchSelect) return;
+        let hasSelected = false;
+        batchSelect.querySelectorAll('option').forEach(opt => {
+            if (!opt.value) { opt.style.display = ''; return; }
+            const cId = opt.getAttribute('data-course-id');
+            if (!courseId || cId == courseId) {
+                opt.style.display = '';
+                if (opt.selected) hasSelected = true;
+            } else {
+                opt.style.display = 'none';
+                if (opt.selected) opt.selected = false;
+            }
+        });
+        if (!hasSelected && courseId) {
+            batchSelect.value = '';
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const cSelect = document.getElementById('assignment_filter_course');
+        if (cSelect && cSelect.value) {
+            filterAssignmentBatches(cSelect.value);
+        }
+    });
+    </script>
+    @endpush
 </x-admin-layout>

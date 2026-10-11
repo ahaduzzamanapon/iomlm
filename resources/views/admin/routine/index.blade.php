@@ -178,14 +178,23 @@
         </div>
     @endif
 
-    {{-- Batch Filter + Group Filter + Auto-Generate --}}
+    {{-- Course & Batch Filter + Group Filter + Auto-Generate --}}
     <div class="card" style="margin-bottom:16px;padding:14px 16px">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <form method="GET" action="{{ route('admin.routine.index') }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <select name="batch_id" class="form-control" style="min-width:220px" onchange="this.form.submit()">
+            <form method="GET" action="{{ route('admin.routine.index') }}" id="routineFilterForm" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <select name="course_id" id="routine_filter_course" class="form-control" style="min-width:200px" onchange="onRoutineCourseFilterChange(this.value)">
+                    <option value="">সকল কোর্স (All Courses)</option>
+                    @foreach($courses as $c)
+                        <option value="{{ $c->id }}" {{ ($selectedCourseId ?? null) == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                    @endforeach
+                </select>
+
+                <select name="batch_id" id="routine_filter_batch" class="form-control" style="min-width:220px" onchange="this.form.submit()">
                     <option value="">সকল সক্রিয় ব্যাচ (All Batches)</option>
                     @foreach($batches as $b)
-                        <option value="{{ $b->id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                        <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                        </option>
                     @endforeach
                 </select>
 
@@ -194,8 +203,6 @@
                     <option value="ALL" {{ ($selectedGroup ?? null) === 'ALL' ? 'selected' : '' }}>যৌথ / সাধারণ (Common / All)</option>
                     <option value="MALE" {{ ($selectedGroup ?? null) === 'MALE' ? 'selected' : '' }}>ভাই শাখা (Male)</option>
                     <option value="FEMALE" {{ ($selectedGroup ?? null) === 'FEMALE' ? 'selected' : '' }}>বোন শাখা (Female)</option>
-                    <option value="GROUP_A" {{ ($selectedGroup ?? null) === 'GROUP_A' ? 'selected' : '' }}>গ্রুপ ক (Group A)</option>
-                    <option value="GROUP_B" {{ ($selectedGroup ?? null) === 'GROUP_B' ? 'selected' : '' }}>গ্রুপ খ (Group B)</option>
                 </select>
             </form>
             @if(!empty($selectedBatchId))
@@ -213,8 +220,6 @@
         <span style="color:#64748b">শাখা ও সূচক:</span>
         <span style="background:#0284c7;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">ভাই শাখা (Brothers)</span>
         <span style="background:#ec4899;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">বোন শাখা (Sisters)</span>
-        <span style="background:#8b5cf6;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">গ্রুপ ক (A)</span>
-        <span style="background:#f59e0b;color:#fff;border-radius:4px;padding:2px 8px;font-size:11px">গ্রুপ খ (B)</span>
         <span style="background:#ef4444;color:#fff;border-radius:4px;padding:2px 8px;outline:2px solid #ef4444;font-size:11px">কনফ্লিক্ট (Overlap)</span>
         <span style="background:repeating-linear-gradient(45deg,#fef9c3,#fef9c3 4px,#fefce8 4px,#fefce8 8px);padding:2px 8px;border-radius:4px;border:1px solid #f59e0b;font-size:11px">ছুটির দিন (Weekend)</span>
     </div>
@@ -370,8 +375,6 @@
                             <option value="ALL">যৌথ / সকল শিক্ষার্থী (Common / All)</option>
                             <option value="MALE">ভাই শাখা (Brothers / Male)</option>
                             <option value="FEMALE">বোন শাখা (Sisters / Female)</option>
-                            <option value="GROUP_A">গ্রুপ ক (Group A)</option>
-                            <option value="GROUP_B">গ্রুপ খ (Group B)</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -448,8 +451,6 @@
                             <option value="ALL">যৌথ / সকল শিক্ষার্থী (Common / All)</option>
                             <option value="MALE">ভাই শাখা (Brothers / Male)</option>
                             <option value="FEMALE">বোন শাখা (Sisters / Female)</option>
-                            <option value="GROUP_A">গ্রুপ ক (Group A)</option>
-                            <option value="GROUP_B">গ্রুপ খ (Group B)</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1129,7 +1130,113 @@
         openModal('editSlotModal');
     }
 
+    const routineBatchConfig = @json($batchData ?? []);
+
+    function onRoutineCourseFilterChange(courseId) {
+        const batchSelect = document.getElementById('routine_filter_batch');
+        if (!batchSelect) return;
+        const currentBatch = batchSelect.value;
+        let hasSelectedValid = false;
+
+        Array.from(batchSelect.options).forEach(opt => {
+            if (!opt.value) {
+                opt.hidden = false;
+                return;
+            }
+            const bCourseId = opt.getAttribute('data-course-id');
+            if (!courseId || bCourseId === courseId) {
+                opt.hidden = false;
+                if (opt.value === currentBatch) hasSelectedValid = true;
+            } else {
+                opt.hidden = true;
+            }
+        });
+
+        if (!hasSelectedValid && currentBatch) {
+            batchSelect.value = '';
+        }
+
+        document.getElementById('routineFilterForm').submit();
+    }
+
+    function filterExtraClassBatches(courseId) {
+        const batchSelect = document.getElementById('extra_batch_id');
+        if (!batchSelect) return;
+        const currentBatch = batchSelect.value;
+        let hasSelectedValid = false;
+
+        Array.from(batchSelect.options).forEach(opt => {
+            if (!opt.value) {
+                opt.hidden = false;
+                opt.text = courseId ? '-- ব্যাচ নির্বাচন করুন --' : '-- প্রথমে কোর্স নির্বাচন করুন --';
+                return;
+            }
+            const bCourseId = opt.getAttribute('data-course-id');
+            if (!courseId || bCourseId === courseId) {
+                opt.hidden = false;
+                if (opt.value === currentBatch) hasSelectedValid = true;
+            } else {
+                opt.hidden = true;
+            }
+        });
+
+        if (!hasSelectedValid) {
+            batchSelect.value = '';
+        }
+        filterExtraClassSubjectsByBatch(batchSelect.value);
+    }
+
+    function filterExtraClassSubjectsByBatch(batchId) {
+        const subjectSelect = document.getElementById('extra_subject_id');
+        if (!subjectSelect) return;
+        const bData = routineBatchConfig && routineBatchConfig[batchId] ? routineBatchConfig[batchId] : null;
+
+        if (bData && bData.subject_maps && bData.subject_maps.length > 0) {
+            const validSubjectIds = bData.subject_maps.map(m => String(m.subject_id));
+            Array.from(subjectSelect.options).forEach(opt => {
+                if (!opt.value) {
+                    opt.hidden = false;
+                    return;
+                }
+                opt.hidden = !validSubjectIds.includes(String(opt.value));
+            });
+            if (!validSubjectIds.includes(String(subjectSelect.value))) {
+                subjectSelect.value = '';
+            }
+        } else {
+            Array.from(subjectSelect.options).forEach(opt => opt.hidden = false);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const cFilter = document.getElementById('routine_filter_course');
+        if (cFilter && cFilter.value) {
+            const batchSelect = document.getElementById('routine_filter_batch');
+            if (batchSelect) {
+                Array.from(batchSelect.options).forEach(opt => {
+                    if (!opt.value) return;
+                    opt.hidden = (opt.getAttribute('data-course-id') !== cFilter.value);
+                });
+            }
+        }
+    });
+
     function openAddExtraClassModal() {
+        const cFilter = document.getElementById('routine_filter_course');
+        const bFilter = document.getElementById('routine_filter_batch');
+        const extraCourse = document.getElementById('extra_course_id');
+        const extraBatch = document.getElementById('extra_batch_id');
+
+        if (extraCourse && cFilter && cFilter.value) {
+            extraCourse.value = cFilter.value;
+            filterExtraClassBatches(cFilter.value);
+            if (extraBatch && bFilter && bFilter.value) {
+                extraBatch.value = bFilter.value;
+                filterExtraClassSubjectsByBatch(bFilter.value);
+            }
+        } else if (extraCourse && extraCourse.value) {
+            filterExtraClassBatches(extraCourse.value);
+        }
         openModal('addExtraClassModal');
     }
     </script>
@@ -1153,26 +1260,37 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>টার্গেট ব্যাচ <span class="required" style="color:#e11d48">*</span></label>
-                            <select name="batch_id" class="form-control" required>
-                                <option value="">-- ব্যাচ নির্বাচন করুন --</option>
-                                @foreach($batches as $b)
-                                    <option value="{{ $b->id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                            <label>টার্গেট কোর্স <span class="required" style="color:#e11d48">*</span></label>
+                            <select id="extra_course_id" class="form-control" required onchange="filterExtraClassBatches(this.value)">
+                                <option value="">-- কোর্স নির্বাচন করুন --</option>
+                                @foreach($courses as $c)
+                                    <option value="{{ $c->id }}" {{ ($selectedCourseId ?? null) == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>বিষয় (Subject) <span class="required" style="color:#e11d48">*</span></label>
-                            <select name="subject_id" class="form-control" required>
-                                <option value="">-- বিষয় নির্বাচন করুন --</option>
-                                @foreach($subjects as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->code }})</option>
+                            <label>টার্গেট ব্যাচ <span class="required" style="color:#e11d48">*</span></label>
+                            <select name="batch_id" id="extra_batch_id" class="form-control" required onchange="filterExtraClassSubjectsByBatch(this.value)">
+                                <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>
+                                        {{ $b->name }} ({{ $b->batch_code ?? '' }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
 
                     <div class="form-row">
+                        <div class="form-group">
+                            <label>বিষয় (Subject) <span class="required" style="color:#e11d48">*</span></label>
+                            <select name="subject_id" id="extra_subject_id" class="form-control" required>
+                                <option value="">-- বিষয় নির্বাচন করুন --</option>
+                                @foreach($subjects as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label>ক্লাস শিক্ষক (Teacher)</label>
                             <select name="teacher_id" class="form-control">
@@ -1182,14 +1300,13 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
                         <div class="form-group">
                             <label>শাখা / গ্রুপ (Branch / Group)</label>
                             <select name="group_tag" class="form-control">
                                 <option value="ALL">যৌথ / উভয় শাখা (All)</option>
                                 <option value="MALE">ভাই শাখা (Male)</option>
                                 <option value="FEMALE">বোন শাখা (Female)</option>
-                                <option value="GROUP_A">গ্রুপ ক (Group A)</option>
-                                <option value="GROUP_B">গ্রুপ খ (Group B)</option>
                             </select>
                         </div>
                     </div>

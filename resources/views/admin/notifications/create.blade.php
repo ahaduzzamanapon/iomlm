@@ -81,14 +81,27 @@
 
                         {{-- DYNAMIC FILTER: BATCH WISE --}}
                         <div id="filter_batch_wise" style="display:none">
-                            <div class="form-group">
-                                <label>Select Batch <span class="required">*</span></label>
-                                <select name="batch_id" class="form-control">
-                                    <option value="">— Choose Batch —</option>
-                                    @foreach($batches as $b)
-                                        <option value="{{ $b->id }}">{{ $b->name }}</option>
-                                    @endforeach
-                                </select>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                                <div class="form-group">
+                                    <label>Select Course (কোর্স নির্বাচন করুন)</label>
+                                    <select id="broadcast_course_select" class="form-control" onchange="filterBroadcastBatches(this.value)">
+                                        <option value="">— Choose Course (সকল কোর্স) —</option>
+                                        @foreach($courses as $c)
+                                            <option value="{{ $c->id }}">{{ $c->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Select Batch <span class="required">*</span></label>
+                                    <select name="batch_id" id="broadcast_batch_select" class="form-control">
+                                        <option value="">— Choose Batch —</option>
+                                        @foreach($batches as $b)
+                                            <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">
+                                                {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -438,6 +451,32 @@
         document.getElementById('filter_specific_student').style.display = val === 'SPECIFIC_STUDENT' ? 'block' : 'none';
         document.getElementById('filter_batch_wise').style.display       = val === 'BATCH_WISE'        ? 'block' : 'none';
         document.getElementById('filter_semester_wise').style.display    = val === 'SEMESTER_WISE'     ? 'block' : 'none';
+    }
+
+    function filterBroadcastBatches(courseId) {
+        const batchSelect = document.getElementById('broadcast_batch_select');
+        if (!batchSelect) return;
+        const currentBatch = batchSelect.value;
+        let hasSelectedValid = false;
+
+        Array.from(batchSelect.options).forEach(opt => {
+            if (!opt.value) {
+                opt.hidden = false;
+                opt.text = courseId ? '— Choose Batch —' : '— Choose Batch (বা কোর্স নির্বাচন করুন) —';
+                return;
+            }
+            const bCourseId = opt.getAttribute('data-course-id');
+            if (!courseId || bCourseId === courseId) {
+                opt.hidden = false;
+                if (opt.value === currentBatch) hasSelectedValid = true;
+            } else {
+                opt.hidden = true;
+            }
+        });
+
+        if (!hasSelectedValid) {
+            batchSelect.value = '';
+        }
     }
 
     function updateLivePreview() {

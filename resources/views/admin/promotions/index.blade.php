@@ -276,7 +276,7 @@
                 <a href="{{ route('admin.readmissions.index') }}" class="btn btn-outline" style="font-weight:700; font-size:13px">
                     <i class="fa-solid fa-user-clock"></i> রি-এডমিশন তালিকা
                 </a>
-                <button class="btn btn-primary" onclick="openModal('addPromotionModal')" style="font-weight:700; font-size:13px">
+                <button class="btn btn-primary" onclick="openManualPromotionModal('', '', '')" style="font-weight:700; font-size:13px">
                     <i class="fa-solid fa-plus"></i> ম্যানুয়াল প্রমোশন রেকর্ড
                 </button>
             </div>
@@ -303,25 +303,40 @@
         <div class="promo-filter-card">
             <form method="GET" action="{{ route('admin.promotions.index') }}" id="promoFilterForm" style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end">
                 
-                {{-- 1. Batch Selection --}}
+                {{-- 1. Course Selection --}}
+                <div style="flex:1.5; min-width:220px">
+                    <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
+                        ১. কোর্স নির্বাচন করুন (Select Course)
+                    </label>
+                    <select name="course_id" id="courseSelect" class="form-control" style="height:44px; border-radius:10px" onchange="filterPromotionBatches(this.value)">
+                        <option value="">-- সকল কোর্স (All Courses) --</option>
+                        @foreach($courses as $c)
+                            <option value="{{ $c->id }}" {{ ($selectedCourseId == $c->id) ? 'selected' : '' }}>
+                                {{ $c->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- 2. Batch Selection --}}
                 <div style="flex:2; min-width:240px">
                     <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
-                        ১. ব্যাচ নির্বাচন করুন (Select Batch) *
+                        ২. ব্যাচ নির্বাচন করুন (Select Batch) *
                     </label>
                     <select name="batch_id" id="batchSelect" class="form-control" style="height:44px; border-radius:10px" required onchange="handleBatchChange(this.value)">
                         <option value="">-- ব্যাচ নির্বাচন করুন --</option>
                         @foreach($batches as $b)
-                            <option value="{{ $b->id }}" {{ (request('batch_id') == $b->id || ($selectedBatch?->id == $b->id)) ? 'selected' : '' }}>
+                            <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ (request('batch_id') == $b->id || ($selectedBatch?->id == $b->id)) ? 'selected' : '' }}>
                                 {{ $b->name }} ({{ $b->course->title ?? $b->course->name ?? 'কোর্স' }})
                             </option>
                         @endforeach
                     </select>
                 </div>
 
-                {{-- 2. Semester Selection (Auto-hides if course is SUBJECT_BASED) --}}
+                {{-- 3. Semester Selection (Auto-hides if course is SUBJECT_BASED) --}}
                 <div id="semesterSelectContainer" style="flex:1.5; min-width:210px; display: {{ ($isSemesterBased ?? false) ? 'block' : 'none' }};">
                     <label class="form-label" style="font-weight:700; font-size:13px; color:#1e293b; margin-bottom:6px; display:block">
-                        ২. সেমিস্টার (Semester)
+                        ৩. সেমিস্টার (Semester)
                     </label>
                     <select name="semester_id" id="semesterSelect" class="form-control" style="height:44px; border-radius:10px">
                         <option value="">-- সকল সেমিস্টার --</option>
@@ -652,7 +667,7 @@
                                                     </button>
                                                 </form>
                                             @else
-                                                <button type="button" class="btn btn-sm btn-outline" onclick="openManualPromotionModal({{ $st['student']->id }}, '{{ addslashes($st['student']->name) }}', '{{ $st['student']->student_code }}')">
+                                                <button type="button" class="btn btn-sm btn-outline" onclick="openManualPromotionModal({{ $st['student']->id }}, '{{ addslashes($st['student']->name) }}', '{{ $st['student']->student_code }}', {{ $st['student']->enrollments->first()?->course_id ?? 'null' }}, {{ $selectedSemesterId ?? 'null' }}, {{ $nextSemester?->id ?? 'null' }})">
                                                     ম্যানুয়াল প্রমোশন
                                                 </button>
                                             @endif
@@ -766,17 +781,99 @@
                 </span>
                 <button type="button" class="modal-close" onclick="closeModal('addPromotionModal')" style="background:none; border:none; font-size:20px; cursor:pointer">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.promotions.store') }}">
+            <form method="POST" action="{{ route('admin.promotions.store') }}" id="manualPromotionForm">
                 @csrf
                 <div class="modal-body" style="padding:20px">
-                    <div class="form-group" style="margin-bottom:16px">
-                        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">শিক্ষার্থী নির্বাচন করুন *</label>
-                        <select name="student_id" id="modalStudentSelect" class="form-control" style="height:42px; border-radius:8px" required>
+                    <div class="form-group" style="margin-bottom:16px; position:relative;" id="studentSearchDropdownContainer">
+                        <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">
+                            শিক্ষার্থী নির্বাচন করুন <span class="required" style="color:#e11d48">*</span>
+                        </label>
+                        
+                        {{-- Hidden real select for form submission --}}
+                        <select name="student_id" id="modalStudentSelect" style="position:absolute; opacity:0; pointer-events:none; height:0; width:0;">
                             <option value="">-- শিক্ষার্থী বাছাই করুন --</option>
                             @foreach($students as $st)
-                                <option value="{{ $st->id }}">{{ $st->student_code ?? 'N/A' }} — {{ $st->name }}</option>
+                                @php
+                                    $activeEnr = $st->enrollments->first();
+                                    $studentCourseId = $activeEnr?->course_id ?? '';
+                                    $studentSemesterId = $activeEnr?->semester_id ?? '';
+                                @endphp
+                                <option value="{{ $st->id }}" 
+                                        data-code="{{ $st->student_code ?? '' }}" 
+                                        data-name="{{ $st->name }}"
+                                        data-course-id="{{ $studentCourseId }}"
+                                        data-semester-id="{{ $studentSemesterId }}">
+                                    {{ $st->student_code ?? 'N/A' }} — {{ $st->name }}
+                                </option>
                             @endforeach
                         </select>
+
+                        {{-- Searchable Trigger Box --}}
+                        <div id="studentSelectTrigger" 
+                             style="height:44px; border-radius:10px; border:1.5px solid #cbd5e1; background:#fff; padding:0 14px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-family:'Kalpurush',sans-serif; font-size:14px; color:#1e293b; transition:all 0.2s ease;">
+                            <span id="studentSelectDisplay" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500;">
+                                -- শিক্ষার্থী বাছাই করুন --
+                            </span>
+                            <div style="display:flex; align-items:center; gap:8px">
+                                <i class="fa-solid fa-magnifying-glass" style="color:#94a3b8; font-size:12px;"></i>
+                                <i class="fa-solid fa-chevron-down" style="color:#64748b; font-size:11px; transition:transform 0.2s" id="studentChevronIcon"></i>
+                            </div>
+                        </div>
+
+                        {{-- Dropdown Search and Options Panel --}}
+                        <div id="studentDropdownPanel" 
+                             style="display:none; position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:999999; background:#fff; border:1.5px solid #059669; border-radius:10px; box-shadow:0 12px 30px rgba(0,0,0,0.18); overflow:hidden; font-family:'Kalpurush',sans-serif;">
+                            
+                            {{-- Search input inside dropdown --}}
+                            <div style="padding:10px 12px; background:#f8fafc; border-bottom:1px solid #e2e8f0; position:relative;">
+                                <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:22px; top:50%; transform:translateY(-50%); color:#059669; font-size:13px;"></i>
+                                <input type="text" id="studentDropdownSearchInput" 
+                                       placeholder="শিক্ষার্থীর নাম, আইডি বা কোড লিখে খুঁজুন..." 
+                                       style="width:100%; height:38px; padding:0 12px 0 34px; border-radius:8px; border:1.5px solid #cbd5e1; font-size:13px; font-family:'Kalpurush',sans-serif; outline:none; transition:border-color 0.2s;"
+                                       autocomplete="off">
+                            </div>
+
+                            {{-- Scrollable List of Students --}}
+                            <div id="studentOptionsContainer" style="max-height:220px; overflow-y:auto; padding:4px 0;">
+                                <div class="student-select-opt" data-value="" data-text="-- শিক্ষার্থী বাছাই করুন --"
+                                     data-course-id="" data-semester-id=""
+                                     style="padding:10px 14px; cursor:pointer; font-size:13px; color:#64748b; border-bottom:1px solid #f1f5f9;">
+                                    -- শিক্ষার্থী বাছাই করুন --
+                                </div>
+                                @foreach($students as $st)
+                                    @php
+                                        $activeEnr = $st->enrollments->first();
+                                        $studentCourseId = $activeEnr?->course_id ?? '';
+                                        $studentSemesterId = $activeEnr?->semester_id ?? '';
+                                        $studentCourseName = $activeEnr?->course?->name ?? '';
+                                    @endphp
+                                    <div class="student-select-opt" 
+                                         data-value="{{ $st->id }}" 
+                                         data-text="{{ $st->student_code ?? 'N/A' }} — {{ $st->name }}"
+                                         data-course-id="{{ $studentCourseId }}"
+                                         data-semester-id="{{ $studentSemesterId }}"
+                                         data-search="{{ strtolower(($st->student_code ?? '') . ' ' . $st->name . ' ' . ($st->phone ?? '') . ' ' . $studentCourseName) }}"
+                                         style="padding:9px 14px; cursor:pointer; font-size:13.5px; color:#1e293b; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #f8fafc; transition:background 0.15s;">
+                                        <div>
+                                            <strong style="color:#059669; font-family:monospace; font-size:13px">{{ $st->student_code ?? 'N/A' }}</strong> 
+                                            <span style="color:#94a3b8; margin:0 4px">—</span> 
+                                            <span style="font-weight:600">{{ $st->name }}</span>
+                                            @if($studentCourseName)
+                                                <div style="font-size:11.5px; color:#64748b; margin-top:2px">
+                                                    <i class="fa-solid fa-graduation-cap" style="font-size:10px; color:#059669"></i> {{ $studentCourseName }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                        @if($st->phone)
+                                            <span style="font-size:11px; color:#94a3b8">{{ $st->phone }}</span>
+                                        @endif
+                                    </div>
+                                @endforeach
+                                <div id="studentDropdownNoResults" style="display:none; padding:18px; text-align:center; color:#94a3b8; font-size:13px;">
+                                    <i class="fa-solid fa-circle-question" style="margin-right:6px; color:#f59e0b"></i> কোনো শিক্ষার্থী পাওয়া যায়নি
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-row" style="display:flex; gap:12px; margin-bottom:16px">
@@ -784,8 +881,16 @@
                             <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">বর্তমান / পূর্বের সেমিস্টার</label>
                             <select name="from_semester_id" id="modalFromSemester" class="form-control" style="height:42px; border-radius:8px">
                                 <option value="">-- বর্তমান সেমিস্টার --</option>
-                                @foreach($semesters as $sem)
-                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
+                                    <optgroup label="{{ $courseName }}" data-course-id="{{ $courseSemesters->first()?->course_id }}">
+                                        @foreach($courseSemesters as $sem)
+                                            <option value="{{ $sem->id }}" 
+                                                    data-course-id="{{ $sem->course_id }}" 
+                                                    data-sequence="{{ $sem->sequence_no }}">
+                                                {{ $sem->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
                                 @endforeach
                             </select>
                         </div>
@@ -793,8 +898,16 @@
                             <label style="font-weight:700; font-size:13px; display:block; margin-bottom:6px">পরবর্তী সেমিস্টার</label>
                             <select name="to_semester_id" id="modalToSemester" class="form-control" style="height:42px; border-radius:8px">
                                 <option value="">-- পরবর্তী সেমিস্টার --</option>
-                                @foreach($semesters as $sem)
-                                    <option value="{{ $sem->id }}">{{ $sem->name }}</option>
+                                @foreach($semesters->groupBy(fn($s) => $s->course?->name ?? 'অন্যান্য কোর্স') as $courseName => $courseSemesters)
+                                    <optgroup label="{{ $courseName }}" data-course-id="{{ $courseSemesters->first()?->course_id }}">
+                                        @foreach($courseSemesters as $sem)
+                                            <option value="{{ $sem->id }}" 
+                                                    data-course-id="{{ $sem->course_id }}" 
+                                                    data-sequence="{{ $sem->sequence_no }}">
+                                                {{ $sem->name }}
+                                            </option>
+                                        @endforeach
+                                    </optgroup>
                                 @endforeach
                             </select>
                         </div>
@@ -824,6 +937,38 @@
 
     {{-- Client-side Dynamic Scripts --}}
     <script>
+        // ── 0. Course -> Batch Cascading Filter ──
+        window.filterPromotionBatches = function(courseId) {
+            const batchSelect = document.getElementById('batchSelect');
+            if (!batchSelect) return;
+            const options = batchSelect.querySelectorAll('option');
+            let hasSelected = false;
+            options.forEach(opt => {
+                if (!opt.value) {
+                    opt.style.display = '';
+                    return;
+                }
+                const optCourseId = opt.getAttribute('data-course-id');
+                if (!courseId || optCourseId == courseId) {
+                    opt.style.display = '';
+                    if (opt.selected) hasSelected = true;
+                } else {
+                    opt.style.display = 'none';
+                    if (opt.selected) opt.selected = false;
+                }
+            });
+            if (!hasSelected && courseId) {
+                batchSelect.value = '';
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const courseSelect = document.getElementById('courseSelect');
+            if (courseSelect && courseSelect.value) {
+                filterPromotionBatches(courseSelect.value);
+            }
+        });
+
         // ── 1. Batch Change & Dynamic Semester Handling ──
         window.handleBatchChange = function(batchId) {
             const semContainer = document.getElementById('semesterSelectContainer');
@@ -875,14 +1020,238 @@
                 });
         };
 
-        // ── 2. Modal Helper ──
-        window.openManualPromotionModal = function(studentId, studentName, studentCode) {
+        // ── 2. Modal Helper & Searchable Dropdown ──
+        window.syncPromotionSemesters = function(courseId, fromSemId, toSemId) {
+            const fromSelect = document.getElementById('modalFromSemester');
+            const toSelect = document.getElementById('modalToSemester');
+            if (!fromSelect || !toSelect) return;
+
+            [fromSelect, toSelect].forEach(select => {
+                const optgroups = select.querySelectorAll('optgroup');
+                optgroups.forEach(group => {
+                    const groupCourseId = group.getAttribute('data-course-id');
+                    const match = !courseId || groupCourseId == courseId;
+                    group.style.display = match ? '' : 'none';
+                    group.hidden = !match;
+                    group.disabled = !match;
+                    group.querySelectorAll('option').forEach(opt => {
+                        opt.style.display = match ? '' : 'none';
+                        opt.hidden = !match;
+                        opt.disabled = !match;
+                    });
+                });
+            });
+
+            if (fromSemId !== undefined && fromSemId !== null) {
+                fromSelect.value = fromSemId || '';
+            }
+
+            if (toSemId !== undefined && toSemId !== null) {
+                toSelect.value = toSemId || '';
+            } else if (fromSemId && courseId) {
+                // Auto calculate next semester in sequence
+                const selectedOpt = fromSelect.querySelector(`option[value="${fromSemId}"]`);
+                if (selectedOpt) {
+                    const currentSeq = parseInt(selectedOpt.getAttribute('data-sequence')) || 0;
+                    const nextOpt = toSelect.querySelector(`option[data-course-id="${courseId}"][data-sequence="${currentSeq + 1}"]`);
+                    if (nextOpt) {
+                        toSelect.value = nextOpt.value;
+                    } else {
+                        toSelect.value = '';
+                    }
+                }
+            } else if (!courseId) {
+                if (!fromSemId) fromSelect.value = '';
+                if (!toSemId) toSelect.value = '';
+            }
+        };
+
+        window.openManualPromotionModal = function(studentId, studentName, studentCode, courseId, currentSemesterId, nextSemesterId) {
             const select = document.getElementById('modalStudentSelect');
             if (select) {
-                select.value = studentId;
+                select.value = studentId || '';
             }
+            const display = document.getElementById('studentSelectDisplay');
+            if (display) {
+                display.innerText = (studentCode ? studentCode + ' — ' : '') + (studentName || '-- শিক্ষার্থী বাছাই করুন --');
+            }
+            const trigger = document.getElementById('studentSelectTrigger');
+            if (trigger) {
+                trigger.style.borderColor = '#cbd5e1';
+                trigger.style.boxShadow = 'none';
+            }
+            const searchInput = document.getElementById('studentDropdownSearchInput');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+
+            // Sync course & semesters
+            if (!studentId) {
+                syncPromotionSemesters('', '', '');
+            } else {
+                if (!courseId && select) {
+                    const opt = select.querySelector(`option[value="${studentId}"]`);
+                    if (opt) {
+                        courseId = opt.getAttribute('data-course-id');
+                        currentSemesterId = opt.getAttribute('data-semester-id');
+                    }
+                }
+                syncPromotionSemesters(courseId, currentSemesterId, nextSemesterId);
+            }
+
             openModal('addPromotionModal');
         };
+
+        // Initialize searchable student select in promotion modal
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('studentSearchDropdownContainer');
+            if (!container) return;
+
+            const trigger = document.getElementById('studentSelectTrigger');
+            const display = document.getElementById('studentSelectDisplay');
+            const chevron = document.getElementById('studentChevronIcon');
+            const panel = document.getElementById('studentDropdownPanel');
+            const searchInput = document.getElementById('studentDropdownSearchInput');
+            const optionsContainer = document.getElementById('studentOptionsContainer');
+            const hiddenSelect = document.getElementById('modalStudentSelect');
+            const noResults = document.getElementById('studentDropdownNoResults');
+            const optionItems = optionsContainer.querySelectorAll('.student-select-opt');
+            const form = document.getElementById('manualPromotionForm');
+            const fromSemesterSelect = document.getElementById('modalFromSemester');
+            const toSemesterSelect = document.getElementById('modalToSemester');
+
+            function openDropdown() {
+                panel.style.display = 'block';
+                trigger.style.borderColor = '#059669';
+                trigger.style.boxShadow = '0 0 0 3px rgba(5,150,105,0.15)';
+                chevron.style.transform = 'rotate(180deg)';
+                searchInput.value = '';
+                filterOptions('');
+                setTimeout(() => searchInput.focus(), 60);
+            }
+
+            function closeDropdown() {
+                panel.style.display = 'none';
+                if (!hiddenSelect.value && formSubmitted) {
+                    trigger.style.borderColor = '#ef4444';
+                    trigger.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.15)';
+                } else {
+                    trigger.style.borderColor = '#cbd5e1';
+                    trigger.style.boxShadow = 'none';
+                }
+                chevron.style.transform = 'rotate(0deg)';
+            }
+
+            let formSubmitted = false;
+
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (panel.style.display === 'block') {
+                    closeDropdown();
+                } else {
+                    openDropdown();
+                }
+            });
+
+            panel.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!container.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+
+            function filterOptions(term) {
+                let visibleCount = 0;
+                term = term.toLowerCase().trim();
+                optionItems.forEach(opt => {
+                    const searchData = opt.getAttribute('data-search') || '';
+                    if (!term) {
+                        opt.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        if (!opt.getAttribute('data-value')) {
+                            opt.style.display = 'none';
+                        } else if (searchData.includes(term)) {
+                            opt.style.display = 'flex';
+                            visibleCount++;
+                        } else {
+                            opt.style.display = 'none';
+                        }
+                    }
+                });
+                if (noResults) {
+                    noResults.style.display = (visibleCount === 0) ? 'block' : 'none';
+                }
+            }
+
+            searchInput.addEventListener('input', function() {
+                filterOptions(this.value);
+            });
+
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const firstVisible = Array.from(optionItems).find(opt => opt.getAttribute('data-value') && opt.style.display !== 'none');
+                    if (firstVisible) {
+                        firstVisible.click();
+                    }
+                }
+            });
+
+            optionItems.forEach(opt => {
+                opt.addEventListener('mouseenter', function() {
+                    this.style.background = '#f0fdf4';
+                });
+                opt.addEventListener('mouseleave', function() {
+                    this.style.background = '';
+                });
+                opt.addEventListener('click', function() {
+                    const val = this.getAttribute('data-value');
+                    const text = this.getAttribute('data-text');
+                    const courseId = this.getAttribute('data-course-id');
+                    const semId = this.getAttribute('data-semester-id');
+                    hiddenSelect.value = val;
+                    display.innerText = text;
+                    trigger.style.borderColor = '#cbd5e1';
+                    trigger.style.boxShadow = 'none';
+                    formSubmitted = false;
+                    closeDropdown();
+
+                    // Filter semesters by student's enrolled course and auto-select
+                    syncPromotionSemesters(courseId, semId);
+                });
+            });
+
+            // When from-semester is manually changed, suggest next semester
+            if (fromSemesterSelect && toSemesterSelect) {
+                fromSemesterSelect.addEventListener('change', function() {
+                    const selectedOpt = this.options[this.selectedIndex];
+                    if (selectedOpt && selectedOpt.value) {
+                        const courseId = selectedOpt.getAttribute('data-course-id');
+                        const currentSeq = parseInt(selectedOpt.getAttribute('data-sequence')) || 0;
+                        const nextOpt = toSemesterSelect.querySelector(`option[data-course-id="${courseId}"][data-sequence="${currentSeq + 1}"]`);
+                        if (nextOpt) {
+                            toSemesterSelect.value = nextOpt.value;
+                        }
+                    }
+                });
+            }
+
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    if (!hiddenSelect.value) {
+                        e.preventDefault();
+                        formSubmitted = true;
+                        trigger.style.borderColor = '#ef4444';
+                        trigger.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.2)';
+                        openDropdown();
+                    }
+                });
+            }
+        });
 
         window.openModal = function(id) {
             const el = document.getElementById(id);

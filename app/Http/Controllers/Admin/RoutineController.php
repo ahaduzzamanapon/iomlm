@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\ClassSession;
+use App\Models\Course;
 use App\Models\HolidayCalendar;
 use App\Models\RoutineEntry;
 use App\Models\RoutineSlot;
@@ -48,8 +49,13 @@ class RoutineController extends Controller
         $days    = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
         $weekends = $this->weekends();
 
-        $selectedBatchId = $request->query('batch_id');
-        $selectedGroup   = $request->query('group'); // 'ALL', 'MALE', 'FEMALE', 'GROUP_A', 'GROUP_B'
+        $selectedCourseId = $request->query('course_id');
+        $selectedBatchId  = $request->query('batch_id');
+        $selectedGroup    = $request->query('group'); // 'ALL', 'MALE', 'FEMALE', 'GROUP_A', 'GROUP_B'
+
+        if ($selectedBatchId && !$selectedCourseId) {
+            $selectedCourseId = $batches->firstWhere('id', $selectedBatchId)?->course_id;
+        }
 
         // Load all entries to accurately detect conflicts (Batch overlap & Teacher overlap)
         $allEntries = RoutineEntry::with(['batch.course', 'slot', 'subject', 'teacher', 'classSession'])->get();
@@ -92,7 +98,10 @@ class RoutineController extends Controller
         $filteredEntries = $allEntries;
         if ($selectedBatchId) {
             $filteredEntries = $filteredEntries->where('batch_id', $selectedBatchId);
+        } elseif ($selectedCourseId) {
+            $filteredEntries = $filteredEntries->filter(fn($e) => $e->batch?->course_id == $selectedCourseId);
         }
+
         if ($selectedGroup) {
             $filteredEntries = $filteredEntries->filter(function($e) use ($selectedGroup) {
                 $gt = $e->group_tag ?: 'ALL';
@@ -108,6 +117,7 @@ class RoutineController extends Controller
             $batchColors[$b->id] = RoutineEntry::BATCH_COLORS[$i % count(RoutineEntry::BATCH_COLORS)];
         }
 
+        $courses   = Course::where('is_active', true)->orderBy('name')->get();
         $subjects  = Subject::where('is_active', true)->orderBy('name')->get();
         $teachers  = Teacher::where('is_active', true)->orderBy('name')->get();
         $holidays  = HolidayCalendar::pluck('date')->toArray();
@@ -160,12 +170,14 @@ class RoutineController extends Controller
 
         if ($selectedBatchId) {
             $extraQuery->where('batch_id', $selectedBatchId);
+        } elseif ($selectedCourseId) {
+            $extraQuery->whereHas('batch', fn($q) => $q->where('course_id', $selectedCourseId));
         }
         $upcomingExtraClasses = $extraQuery->limit(10)->get();
 
         return view('admin.routine.index', compact(
             'slots', 'batches', 'batchData', 'days', 'entries', 'weekends',
-            'batchColors', 'subjects', 'teachers', 'selectedBatchId', 'selectedGroup', 'holidays', 'subjectTeachers', 'upcomingExtraClasses'
+            'batchColors', 'courses', 'subjects', 'teachers', 'selectedCourseId', 'selectedBatchId', 'selectedGroup', 'holidays', 'subjectTeachers', 'upcomingExtraClasses'
         ));
     }
 
@@ -571,8 +583,10 @@ class RoutineController extends Controller
      */
     public function unassigned(Request $request)
     {
-        $batchId = $request->query('batch_id');
-        $batches = Batch::where('status', 'ACTIVE')->get();
+        $courseId = $request->query('course_id');
+        $batchId  = $request->query('batch_id');
+        $courses  = Course::where('is_active', true)->orderBy('name')->get();
+        $batches  = Batch::where('status', 'ACTIVE')->with('course')->get();
 
         $unassigned = collect();
         if ($batchId) {
@@ -588,6 +602,6 @@ class RoutineController extends Controller
         $slots = RoutineSlot::orderBy('sort_order')->get();
         $days  = ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'];
 
-        return view('admin.routine.unassigned', compact('batches', 'unassigned', 'batchId', 'slots', 'days'));
+        return view('admin.routine.unassigned', compact('courses', 'courseId', 'batches', 'unassigned', 'batchId', 'slots', 'days'));
     }
 }

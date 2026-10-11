@@ -172,10 +172,12 @@
                 @endforeach
             </select>
 
-            <select name="batch_id" class="form-control" style="width:180px;font-size:13px" onchange="this.form.submit()">
+            <select name="batch_id" id="ct_filter_batch" class="form-control" style="width:180px;font-size:13px" onchange="this.form.submit()">
                 <option value="">সকল ব্যাচ (Batch)</option>
                 @foreach($batches as $b)
-                    <option value="{{ $b->id }}" {{ ($batchFilter ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchFilter ?? '') == $b->id ? 'selected' : '' }}>
+                        {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                    </option>
                 @endforeach
             </select>
 

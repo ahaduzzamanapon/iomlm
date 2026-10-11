@@ -342,6 +342,170 @@
         -webkit-overflow-scrolling: touch !important;
         box-sizing: border-box !important;
     }
+
+    /* ════ UNIVERSAL ADMIN MOBILE RESPONSIVE ENGINE ════ */
+    @media (max-width: 768px) {
+        html, body {
+            max-width: 100vw !important;
+            overflow-x: hidden !important;
+            width: 100% !important;
+        }
+        .app-wrapper {
+            max-width: 100vw !important;
+            overflow-x: hidden !important;
+            width: 100% !important;
+        }
+        .sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            bottom: 0 !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            width: 280px !important;
+            max-width: 85vw !important;
+            z-index: 10000 !important;
+            transform: translateX(-100%) !important;
+            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.25) !important;
+        }
+        .sidebar.open {
+            transform: translateX(0) !important;
+        }
+        .sidebar-overlay {
+            position: fixed !important;
+            inset: 0 !important;
+            background: rgba(15, 23, 42, 0.6) !important;
+            backdrop-filter: blur(4px) !important;
+            -webkit-backdrop-filter: blur(4px) !important;
+            z-index: 9999 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transition: opacity 0.25s ease !important;
+        }
+        .sidebar-overlay.active {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        .main-area {
+            margin-left: 0 !important;
+            max-width: 100vw !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+            overflow-x: hidden !important;
+        }
+        .page-content {
+            padding: 14px 12px !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            box-sizing: border-box !important;
+        }
+        .topbar {
+            padding: 0 14px !important;
+            height: 58px !important;
+            max-width: 100vw !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .topbar-left {
+            gap: 10px !important;
+        }
+        .topbar-right {
+            gap: 10px !important;
+        }
+        .topbar-breadcrumb {
+            display: none !important;
+        }
+        .user-menu {
+            padding: 4px 8px !important;
+            gap: 6px !important;
+            border-radius: 10px !important;
+        }
+        .user-menu > div:not(.dropdown-menu) {
+            display: none !important;
+        }
+        .user-menu .user-avatar {
+            width: 30px !important;
+            height: 30px !important;
+        }
+        .dashboard-banner {
+            padding: 16px 14px !important;
+            border-radius: 14px !important;
+            margin-bottom: 16px !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+        }
+        .banner-title {
+            font-size: 16px !important;
+        }
+        .banner-sub {
+            font-size: 12px !important;
+        }
+        .page-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+            margin-bottom: 16px !important;
+        }
+        .page-header-actions {
+            width: 100% !important;
+        }
+        .page-header-actions .btn {
+            width: 100% !important;
+            justify-content: center !important;
+            text-align: center !important;
+        }
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            margin-bottom: 16px !important;
+        }
+        .stat-card {
+            padding: 12px 12px !important;
+            border-radius: 12px !important;
+            gap: 10px !important;
+        }
+        .stat-value {
+            font-size: 20px !important;
+        }
+        .stat-label {
+            font-size: 11px !important;
+        }
+        .grid-2 {
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+        }
+        .dropdown-menu,
+        #adminNotif,
+        #adminUserMenu {
+            min-width: auto !important;
+            max-width: calc(100vw - 20px) !important;
+            width: calc(100vw - 20px) !important;
+            right: -8px !important;
+        }
+        .card {
+            max-width: 100% !important;
+            border-radius: 12px !important;
+            box-sizing: border-box !important;
+        }
+        .card-header {
+            padding: 12px 14px !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+        }
+        .table-wrapper {
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        .form-row {
+            flex-direction: column !important;
+            gap: 10px !important;
+        }
+    }
     </style>
     @stack('styles')
 </head>

@@ -79,7 +79,7 @@ class CourseTransferController extends Controller
             ->orderBy('name')
             ->get();
 
-        $batches = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+        $batches = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
 
         return view('admin.course-transfers.index', compact(
             'transfers',

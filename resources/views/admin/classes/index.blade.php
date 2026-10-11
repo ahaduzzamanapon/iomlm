@@ -17,15 +17,24 @@
     <div class="card" style="padding:14px 16px;margin-bottom:16px;font-family:'Kalpurush',sans-serif">
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between">
             <form method="GET" action="{{ route('admin.classes.index') }}" id="filterForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                <select name="batch_id" class="form-control" style="min-width:200px" onchange="document.getElementById('filterForm').submit()">
+                <select name="course_id" id="classes_filter_course" class="form-control" style="min-width:200px" onchange="onClassesCourseFilterChange(this.value)">
+                    <option value="">সকল কোর্স (All Courses)</option>
+                    @foreach($courses as $c)
+                        <option value="{{ $c->id }}" {{ ($courseId ?? null) == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                    @endforeach
+                </select>
+
+                <select name="batch_id" id="classes_filter_batch" class="form-control" style="min-width:200px" onchange="document.getElementById('filterForm').submit()">
                     <option value="">সকল ব্যাচ (All Batches)</option>
                     @foreach($batches as $b)
-                        <option value="{{ $b->id }}" {{ $batchId == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                        <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ $batchId == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                        </option>
                     @endforeach
                 </select>
                 <input type="date" name="date" class="form-control" value="{{ $dateFilter }}" style="min-width:150px" onchange="document.getElementById('filterForm').submit()" title="Filter by date">
-                @if($dateFilter)
-                    <a href="{{ route('admin.classes.index', array_filter(['status' => $status ?: null, 'batch_id' => $batchId ?: null, 'type' => $type ?: null])) }}" class="btn btn-sm btn-ghost" title="Clear date">তারিখ মুছুন</a>
+                @if($dateFilter || $courseId || $batchId)
+                    <a href="{{ route('admin.classes.index', array_filter(['status' => $status ?: null, 'type' => $type ?: null])) }}" class="btn btn-sm btn-ghost" title="Reset filters">রিসেট ফিল্টার</a>
                 @endif
                 <input type="hidden" name="status" value="{{ $status }}">
                 <input type="hidden" name="type" value="{{ $type }}">
@@ -214,26 +223,37 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label>টার্গেট ব্যাচ <span class="required" style="color:#e11d48">*</span></label>
-                            <select name="batch_id" class="form-control" required>
-                                <option value="">-- ব্যাচ নির্বাচন করুন --</option>
-                                @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                            <label>টার্গেট কোর্স <span class="required" style="color:#e11d48">*</span></label>
+                            <select id="extra_classes_course_id" class="form-control" required onchange="filterClassesExtraBatches(this.value)">
+                                <option value="">-- কোর্স নির্বাচন করুন --</option>
+                                @foreach($courses as $c)
+                                    <option value="{{ $c->id }}" {{ ($courseId ?? null) == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>বিষয় (Subject) <span class="required" style="color:#e11d48">*</span></label>
-                            <select name="subject_id" class="form-control" required>
-                                <option value="">-- বিষয় নির্বাচন করুন --</option>
-                                @foreach($subjects as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->code }})</option>
+                            <label>টার্গেট ব্যাচ <span class="required" style="color:#e11d48">*</span></label>
+                            <select name="batch_id" id="extra_classes_batch_id" class="form-control" required onchange="filterClassesExtraSubjectsByBatch(this.value)">
+                                <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ $batchId == $b->id ? 'selected' : '' }}>
+                                        {{ $b->name }} ({{ $b->batch_code ?? '' }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
 
                     <div class="form-row">
+                        <div class="form-group">
+                            <label>বিষয় (Subject) <span class="required" style="color:#e11d48">*</span></label>
+                            <select name="subject_id" id="extra_classes_subject_id" class="form-control" required>
+                                <option value="">-- বিষয় নির্বাচন করুন --</option>
+                                @foreach($subjects as $s)
+                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->code }})</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label>ক্লাস শিক্ষক (Teacher)</label>
                             <select name="teacher_id" class="form-control">
@@ -243,14 +263,13 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
                         <div class="form-group">
                             <label>শাখা / গ্রুপ (Branch / Group)</label>
                             <select name="group_tag" class="form-control">
                                 <option value="ALL">যৌথ / উভয় শাখা (All)</option>
                                 <option value="MALE">ভাই শাখা (Male)</option>
                                 <option value="FEMALE">বোন শাখা (Female)</option>
-                                <option value="GROUP_A">গ্রুপ ক (Group A)</option>
-                                <option value="GROUP_B">গ্রুপ খ (Group B)</option>
                             </select>
                         </div>
                     </div>
@@ -303,7 +322,91 @@
 
     @push('scripts')
     <script>
+    function onClassesCourseFilterChange(courseId) {
+        const batchSelect = document.getElementById('classes_filter_batch');
+        if (!batchSelect) return;
+        const currentBatch = batchSelect.value;
+        let hasSelectedValid = false;
+
+        Array.from(batchSelect.options).forEach(opt => {
+            if (!opt.value) {
+                opt.hidden = false;
+                return;
+            }
+            const bCourseId = opt.getAttribute('data-course-id');
+            if (!courseId || bCourseId === courseId) {
+                opt.hidden = false;
+                if (opt.value === currentBatch) hasSelectedValid = true;
+            } else {
+                opt.hidden = true;
+            }
+        });
+
+        if (!hasSelectedValid && currentBatch) {
+            batchSelect.value = '';
+        }
+
+        document.getElementById('filterForm').submit();
+    }
+
+    function filterClassesExtraBatches(courseId) {
+        const batchSelect = document.getElementById('extra_classes_batch_id');
+        if (!batchSelect) return;
+        const currentBatch = batchSelect.value;
+        let hasSelectedValid = false;
+
+        Array.from(batchSelect.options).forEach(opt => {
+            if (!opt.value) {
+                opt.hidden = false;
+                opt.text = courseId ? '-- ব্যাচ নির্বাচন করুন --' : '-- প্রথমে কোর্স নির্বাচন করুন --';
+                return;
+            }
+            const bCourseId = opt.getAttribute('data-course-id');
+            if (!courseId || bCourseId === courseId) {
+                opt.hidden = false;
+                if (opt.value === currentBatch) hasSelectedValid = true;
+            } else {
+                opt.hidden = true;
+            }
+        });
+
+        if (!hasSelectedValid) {
+            batchSelect.value = '';
+        }
+    }
+
+    function filterClassesExtraSubjectsByBatch(batchId) {
+        // Option to filter subjects if batch chosen
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const cFilter = document.getElementById('classes_filter_course');
+        if (cFilter && cFilter.value) {
+            const batchSelect = document.getElementById('classes_filter_batch');
+            if (batchSelect) {
+                Array.from(batchSelect.options).forEach(opt => {
+                    if (!opt.value) return;
+                    opt.hidden = (opt.getAttribute('data-course-id') !== cFilter.value);
+                });
+            }
+        }
+    });
+
     function openExtraClassModal() {
+        const cFilter = document.getElementById('classes_filter_course');
+        const bFilter = document.getElementById('classes_filter_batch');
+        const extraCourse = document.getElementById('extra_classes_course_id');
+        const extraBatch = document.getElementById('extra_classes_batch_id');
+
+        if (extraCourse && cFilter && cFilter.value) {
+            extraCourse.value = cFilter.value;
+            filterClassesExtraBatches(cFilter.value);
+            if (extraBatch && bFilter && bFilter.value) {
+                extraBatch.value = bFilter.value;
+            }
+        } else if (extraCourse && extraCourse.value) {
+            filterClassesExtraBatches(extraCourse.value);
+        }
         openModal('addExtraClassModal');
     }
     </script>

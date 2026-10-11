@@ -139,17 +139,19 @@
             <input type="text" name="search" placeholder="শিক্ষার্থীর নাম, রোল বা মোবাইল দিয়ে খুঁজুন..." value="{{ $search }}">
         </div>
 
-        <select name="course_id" class="form-control" style="width:200px;height:40px;border-radius:8px;font-size:13px" onchange="this.form.submit()">
+        <select name="course_id" id="readmission_filter_course" class="form-control" style="width:200px;height:40px;border-radius:8px;font-size:13px">
             <option value="">সকল কোর্স (Course)</option>
             @foreach($courses as $c)
                 <option value="{{ $c->id }}" {{ $courseFilter == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
             @endforeach
         </select>
 
-        <select name="batch_id" class="form-control" style="width:200px;height:40px;border-radius:8px;font-size:13px" onchange="this.form.submit()">
+        <select name="batch_id" id="readmission_filter_batch" class="form-control" style="width:200px;height:40px;border-radius:8px;font-size:13px" onchange="this.form.submit()">
             <option value="">সকল ব্যাচ (Batch)</option>
             @foreach($batches as $b)
-                <option value="{{ $b->id }}" {{ ($batchFilter ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchFilter ?? '') == $b->id ? 'selected' : '' }}>
+                    {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                </option>
             @endforeach
         </select>
 
@@ -408,7 +410,7 @@
                         <label>নতুন যে ব্যাচে রি-এডমিশন পাবে <span class="required">*</span></label>
                         <select name="to_batch_id" id="appr_to_batch_select" class="form-control" required>
                             <option value="">-- নতুন ব্যাচ নির্বাচন করুন --</option>
-                            @foreach($batches as $b)
+                            @foreach(($allBatches ?? $batches) as $b)
                                 <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }} ({{ $b->course->name ?? '' }})</option>
                             @endforeach
                         </select>
@@ -542,6 +544,19 @@
 
         openModal('continueRetakeModal');
     }
+
+    // Cascading filter for course -> batch
+    document.addEventListener('DOMContentLoaded', function() {
+        const cSelect = document.getElementById('readmission_filter_course');
+        const bSelect = document.getElementById('readmission_filter_batch');
+        if (!cSelect || !bSelect) return;
+
+        cSelect.addEventListener('change', function() {
+            // When course changes, clear batch selection to prevent mismatched filters
+            bSelect.value = '';
+            this.form.submit();
+        });
+    });
     </script>
     @endpush
 </x-admin-layout>

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Notice;
 use App\Models\Batch;
+use App\Models\Course;
 use App\Models\Semester;
 use Illuminate\Http\Request;
 
@@ -12,10 +13,11 @@ class NoticeController extends Controller
 {
     public function index()
     {
-        $notices   = Notice::with(['batch', 'semester', 'creator'])->latest()->paginate(20);
-        $batches   = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
-        $semesters = Semester::orderBy('sequence_no')->orderBy('name')->get();
-        return view('admin.notices.index', compact('notices', 'batches', 'semesters'));
+        $notices   = Notice::with(['batch.course', 'semester.course', 'creator'])->latest()->paginate(20);
+        $courses   = Course::where('is_active', true)->orderBy('name')->get();
+        $batches   = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
+        $semesters = Semester::with('course')->orderBy('sequence_no')->orderBy('name')->get();
+        return view('admin.notices.index', compact('notices', 'courses', 'batches', 'semesters'));
     }
 
     public function store(Request $request)

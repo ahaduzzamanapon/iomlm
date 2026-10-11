@@ -23,13 +23,18 @@ class PromotionController extends Controller
      */
     public function index(Request $request)
     {
+        $courses = Course::where('is_active', true)->orderBy('name')->get();
+        $selectedCourseId = $request->input('course_id');
+
         $batches = Batch::with(['course.semesters' => function ($q) {
             $q->orderBy('sequence_no');
         }, 'course.subjects'])->orderByDesc('id')->get();
 
         $promotions = PromotionRecord::with(['student', 'fromSemester', 'toSemester', 'decidedBy'])->latest()->get();
-        $students   = Student::where('status', 'ACTIVE')->orderBy('name')->get();
-        $semesters  = Semester::orderBy('course_id')->orderBy('sequence_no')->get();
+        $students   = Student::with(['enrollments' => function ($q) {
+            $q->where('status', 'ACTIVE')->with(['course', 'semester']);
+        }])->where('status', 'ACTIVE')->orderBy('name')->get();
+        $semesters  = Semester::with('course')->orderBy('course_id')->orderBy('sequence_no')->get();
 
         $selectedBatch = null;
         $isSemesterBased = false;
@@ -239,8 +244,12 @@ class PromotionController extends Controller
             }
         }
 
+        if (!$selectedCourseId && $selectedBatch?->course_id) {
+            $selectedCourseId = $selectedBatch->course_id;
+        }
+
         return view('admin.promotions.index', compact(
-            'batches', 'promotions', 'students', 'semesters',
+            'courses', 'selectedCourseId', 'batches', 'promotions', 'students', 'semesters',
             'selectedBatch', 'isSemesterBased', 'courseSemesters',
             'runningSemesterId', 'selectedSemesterId', 'nextSemester',
             'examAudit', 'studentEvaluations'

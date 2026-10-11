@@ -7,6 +7,7 @@ use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use App\Models\Subject;
 use App\Models\Batch;
+use App\Models\Course;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,10 +15,15 @@ class AssignmentController extends Controller
 {
     public function index(Request $request)
     {
+        $courseId  = $request->query('course_id');
         $subjectId = $request->query('subject_id');
         $batchId   = $request->query('batch_id');
 
         $query = Assignment::with(['subject', 'batch', 'teacher', 'submissions.student'])->latest();
+
+        if ($courseId) {
+            $query->whereHas('batch', fn($q) => $q->where('course_id', $courseId));
+        }
 
         if ($subjectId) {
             $query->where('subject_id', $subjectId);
@@ -28,10 +34,11 @@ class AssignmentController extends Controller
         }
 
         $assignments = $query->paginate(20);
+        $courses     = Course::where('is_active', true)->orderBy('name')->get();
         $subjects    = Subject::where('is_active', true)->orderBy('name')->get();
-        $batches     = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+        $batches     = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
 
-        return view('admin.assignments.index', compact('assignments', 'subjects', 'batches', 'subjectId', 'batchId'));
+        return view('admin.assignments.index', compact('assignments', 'courses', 'courseId', 'subjects', 'batches', 'subjectId', 'batchId'));
     }
 
     public function store(Request $request)

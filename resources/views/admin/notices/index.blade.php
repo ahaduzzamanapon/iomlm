@@ -118,23 +118,35 @@
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
-                            <label>Specific Batch (ঐচ্ছিক)</label>
-                            <select name="batch_id" class="form-control">
-                                <option value="">All Batches (সকল ব্যাচ)</option>
-                                @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                            <label>Specific Course (কোর্স - ঐচ্ছিক)</label>
+                            <select id="create_notice_course" class="form-control" onchange="filterNoticeBatches(this.value, 'create')">
+                                <option value="">All Courses (সকল কোর্স)</option>
+                                @foreach($courses as $c)
+                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Specific Semester (সেমিস্টার)</label>
-                            <select name="semester_id" class="form-control">
-                                <option value="">All Semesters (সকল সেমিস্টার)</option>
-                                @foreach($semesters as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                            <label>Specific Batch (ব্যাচ - ঐচ্ছিক)</label>
+                            <select name="batch_id" id="create_notice_batch" class="form-control">
+                                <option value="">All Batches (সকল ব্যাচ)</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif</option>
                                 @endforeach
                             </select>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Specific Semester (সেমিস্টার - ঐচ্ছিক)</label>
+                        <select name="semester_id" id="create_notice_semester" class="form-control">
+                            <option value="">All Semesters (সকল সেমিস্টার)</option>
+                            @foreach($semesters as $s)
+                                <option value="{{ $s->id }}" data-course-id="{{ $s->course_id }}">
+                                    {{ $s->name }} @if($s->course) ({{ $s->course->name }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div class="form-group">
@@ -188,23 +200,35 @@
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                         <div class="form-group">
-                            <label>নির্দিষ্ট ব্যাচ (Specific Batch - ঐচ্ছিক)</label>
-                            <select name="batch_id" id="edit_notice_batch" class="form-control">
-                                <option value="">All Batches (সকল ব্যাচ)</option>
-                                @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                            <label>নির্দিষ্ট কোর্স (Specific Course - ঐচ্ছিক)</label>
+                            <select id="edit_notice_course" class="form-control" onchange="filterNoticeBatches(this.value, 'edit')">
+                                <option value="">All Courses (সকল কোর্স)</option>
+                                @foreach($courses as $c)
+                                    <option value="{{ $c->id }}">{{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>নির্দিষ্ট সেমিস্টার (Specific Semester - ঐচ্ছিক)</label>
-                            <select name="semester_id" id="edit_notice_semester" class="form-control">
-                                <option value="">All Semesters (সকল সেমিস্টার)</option>
-                                @foreach($semesters as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }}</option>
+                            <label>নির্দিষ্ট ব্যাচ (Specific Batch - ঐচ্ছিক)</label>
+                            <select name="batch_id" id="edit_notice_batch" class="form-control">
+                                <option value="">All Batches (সকল ব্যাচ)</option>
+                                @foreach($batches as $b)
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif</option>
                                 @endforeach
                             </select>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>নির্দিষ্ট সেমিস্টার (Specific Semester - ঐচ্ছিক)</label>
+                        <select name="semester_id" id="edit_notice_semester" class="form-control">
+                            <option value="">All Semesters (সকল সেমিস্টার)</option>
+                            @foreach($semesters as $s)
+                                <option value="{{ $s->id }}" data-course-id="{{ $s->course_id }}">
+                                    {{ $s->name }} @if($s->course) ({{ $s->course->name }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div class="form-group">
@@ -222,11 +246,56 @@
 
     @push('scripts')
     <script>
+    function filterNoticeBatches(courseId, mode) {
+        const batchSelect = document.getElementById(mode === 'create' ? 'create_notice_batch' : 'edit_notice_batch');
+        const semesterSelect = document.getElementById(mode === 'create' ? 'create_notice_semester' : 'edit_notice_semester');
+
+        if (batchSelect) {
+            const currentVal = batchSelect.value;
+            let hasValid = false;
+            Array.from(batchSelect.options).forEach(opt => {
+                if (!opt.value) { opt.hidden = false; return; }
+                const bCourseId = opt.getAttribute('data-course-id');
+                if (!courseId || bCourseId === courseId) {
+                    opt.hidden = false;
+                    if (opt.value === currentVal) hasValid = true;
+                } else {
+                    opt.hidden = true;
+                }
+            });
+            if (!hasValid && currentVal) batchSelect.value = '';
+        }
+
+        if (semesterSelect) {
+            const currentVal = semesterSelect.value;
+            let hasValid = false;
+            Array.from(semesterSelect.options).forEach(opt => {
+                if (!opt.value) { opt.hidden = false; return; }
+                const sCourseId = opt.getAttribute('data-course-id');
+                if (!courseId || sCourseId === courseId) {
+                    opt.hidden = false;
+                    if (opt.value === currentVal) hasValid = true;
+                } else {
+                    opt.hidden = true;
+                }
+            });
+            if (!hasValid && currentVal) semesterSelect.value = '';
+        }
+    }
+
     function openEditNotice(notice) {
         document.getElementById('editNoticeForm').action = '/admin/notices/' + notice.id;
         document.getElementById('edit_notice_title').value = notice.title || '';
         document.getElementById('edit_notice_audience').value = notice.target_audience || 'ALL';
         document.getElementById('edit_notice_priority').value = notice.priority || 'NORMAL';
+        
+        const courseId = notice.batch?.course_id || notice.semester?.course_id || '';
+        const editCourseSelect = document.getElementById('edit_notice_course');
+        if (editCourseSelect) {
+            editCourseSelect.value = courseId;
+            filterNoticeBatches(courseId, 'edit');
+        }
+
         document.getElementById('edit_notice_batch').value = notice.batch_id || '';
         document.getElementById('edit_notice_semester').value = notice.semester_id || '';
         document.getElementById('edit_notice_content').value = notice.content || '';

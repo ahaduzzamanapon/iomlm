@@ -28,7 +28,7 @@ class BroadcastNotificationController extends Controller
         \App\Models\EmailTemplate::seedDefaultTemplates();
         $emailTemplates = \App\Models\EmailTemplate::orderBy('is_system', 'desc')->orderBy('name')->get();
         $students       = Student::with('user')->orderBy('name')->get();
-        $batches        = Batch::orderBy('name')->get();
+        $batches        = Batch::with('course')->orderBy('name')->get();
         $courses        = Course::with('semesters')->orderBy('name')->get();
 
         return view('admin.notifications.create', compact('students', 'batches', 'courses', 'emailTemplates'));

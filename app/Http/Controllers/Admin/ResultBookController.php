@@ -24,6 +24,9 @@ class ResultBookController extends Controller
     {
         $tab = $request->input('tab', 'tabulation'); // tabulation, manual_marking, batch_merit
 
+        $courses = Course::where('is_active', true)->orderBy('name')->get();
+        $selectedCourseId = $request->input('course_id');
+
         $batches = Batch::with(['course.semesters' => function ($q) {
             $q->orderBy('sequence_no');
         }])->orderByDesc('id')->get();
@@ -483,7 +486,12 @@ class ResultBookController extends Controller
             'highest_score' => $highestScore,
         ];
 
+        if (!$selectedCourseId && $selectedBatch?->course_id) {
+            $selectedCourseId = $selectedBatch->course_id;
+        }
+
         return view('admin.result-book.index', compact(
+            'courses', 'selectedCourseId',
             'tab', 'batches', 'selectedBatch', 'semesters', 'selectedSemester',
             'selectedSubject', 'examType', 'search', 'subjects', 'rankedStudents',
             'manualMarkingList', 'batchMeritList', 'isSemesterBased',

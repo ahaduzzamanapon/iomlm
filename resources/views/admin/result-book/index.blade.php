@@ -297,24 +297,32 @@
                 <form method="GET" action="{{ route('admin.result-book.index') }}" id="resultFilterForm" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end">
                     <input type="hidden" name="tab" value="tabulation">
 
-                    {{-- Batch Select --}}
-                    <div style="flex:1; min-width:260px">
+                    {{-- Course Select --}}
+                    <div style="flex:1; min-width:220px">
                         <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
-                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> কোর্স ও ব্যাচ নির্বাচন করুন (Course & Batch)
+                            <i class="fa-solid fa-book-open" style="color:#059669"></i> কোর্স নির্বাচন করুন (Course)
                         </label>
-                        <select name="batch_id" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
-                            <option value="">-- কোর্স ও ব্যাচ নির্বাচন করুন --</option>
-                            @php
-                                $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য / সাধারণ কোর্স');
-                            @endphp
-                            @foreach($batchesByCourse as $courseName => $courseBatches)
-                                <optgroup label="🎓 কোর্স: {{ $courseName }}">
-                                    @foreach($courseBatches as $b)
-                                        <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
-                                            {{ $b->name }} — [কোর্স: {{ $courseName }}]
-                                        </option>
-                                    @endforeach
-                                </optgroup>
+                        <select name="course_id" class="form-control rb-course-select" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="filterResultBookBatches(this)">
+                            <option value="">-- সকল কোর্স (All Courses) --</option>
+                            @foreach($courses as $c)
+                                <option value="{{ $c->id }}" {{ ($selectedCourseId == $c->id) ? 'selected' : '' }}>
+                                    {{ $c->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Batch Select --}}
+                    <div style="flex:1; min-width:240px">
+                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
+                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> ব্যাচ নির্বাচন করুন (Batch)
+                        </label>
+                        <select name="batch_id" class="form-control rb-batch-select" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
+                            <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                            @foreach($batches as $b)
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
+                                    {{ $b->name }} ({{ $b->course?->name ?? 'কোর্স' }})
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -636,24 +644,32 @@
                 <form method="GET" action="{{ route('admin.result-book.index') }}" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end">
                     <input type="hidden" name="tab" value="manual_marking">
 
-                    {{-- Batch --}}
-                    <div style="flex:1; min-width:260px">
+                    {{-- Course Select --}}
+                    <div style="flex:1; min-width:220px">
                         <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
-                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> কোর্স ও ব্যাচ নির্বাচন করুন (Course & Batch)
+                            <i class="fa-solid fa-book-open" style="color:#059669"></i> কোর্স নির্বাচন করুন (Course)
                         </label>
-                        <select name="batch_id" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
-                            <option value="">-- কোর্স ও ব্যাচ নির্বাচন করুন --</option>
-                            @php
-                                $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য / সাধারণ কোর্স');
-                            @endphp
-                            @foreach($batchesByCourse as $courseName => $courseBatches)
-                                <optgroup label="🎓 কোর্স: {{ $courseName }}">
-                                    @foreach($courseBatches as $b)
-                                        <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
-                                            {{ $b->name }} — [কোর্স: {{ $courseName }}]
-                                        </option>
-                                    @endforeach
-                                </optgroup>
+                        <select name="course_id" class="form-control rb-course-select" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="filterResultBookBatches(this)">
+                            <option value="">-- সকল কোর্স (All Courses) --</option>
+                            @foreach($courses as $c)
+                                <option value="{{ $c->id }}" {{ ($selectedCourseId == $c->id) ? 'selected' : '' }}>
+                                    {{ $c->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Batch --}}
+                    <div style="flex:1; min-width:240px">
+                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
+                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> ব্যাচ নির্বাচন করুন (Batch)
+                        </label>
+                        <select name="batch_id" class="form-control rb-batch-select" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
+                            <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                            @foreach($batches as $b)
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
+                                    {{ $b->name }} ({{ $b->course?->name ?? 'কোর্স' }})
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -921,23 +937,31 @@
             <div class="filter-card no-print">
                 <form method="GET" action="{{ route('admin.result-book.index') }}" style="display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end">
                     <input type="hidden" name="tab" value="batch_merit">
-                    <div style="flex:1; min-width:260px">
+                    {{-- Course Select --}}
+                    <div style="flex:1; min-width:220px">
                         <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
-                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> কোর্স ও ব্যাচ নির্বাচন করুন (Course & Batch)
+                            <i class="fa-solid fa-book-open" style="color:#059669"></i> কোর্স নির্বাচন করুন (Course)
                         </label>
-                        <select name="batch_id" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
-                            <option value="">-- কোর্স ও ব্যাচ নির্বাচন করুন --</option>
-                            @php
-                                $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য / সাধারণ কোর্স');
-                            @endphp
-                            @foreach($batchesByCourse as $courseName => $courseBatches)
-                                <optgroup label="🎓 কোর্স: {{ $courseName }}">
-                                    @foreach($courseBatches as $b)
-                                        <option value="{{ $b->id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
-                                            {{ $b->name }} — [কোর্স: {{ $courseName }}]
-                                        </option>
-                                    @endforeach
-                                </optgroup>
+                        <select name="course_id" class="form-control rb-course-select" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="filterResultBookBatches(this)">
+                            <option value="">-- সকল কোর্স (All Courses) --</option>
+                            @foreach($courses as $c)
+                                <option value="{{ $c->id }}" {{ ($selectedCourseId == $c->id) ? 'selected' : '' }}>
+                                    {{ $c->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div style="flex:1; min-width:240px">
+                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
+                            <i class="fa-solid fa-graduation-cap" style="color:#059669"></i> ব্যাচ নির্বাচন করুন (Batch)
+                        </label>
+                        <select name="batch_id" class="form-control rb-batch-select" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
+                            <option value="">-- ব্যাচ নির্বাচন করুন --</option>
+                            @foreach($batches as $b)
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($selectedBatch && $selectedBatch->id == $b->id) ? 'selected' : '' }}>
+                                    {{ $b->name }} ({{ $b->course?->name ?? 'কোর্স' }})
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -1424,11 +1448,37 @@
             }
         };
 
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                window.closeStudentMarksheet();
-                window.closeEditMarkModal();
+        window.filterResultBookBatches = function(courseSelect) {
+            const form = courseSelect.closest('form');
+            if (!form) return;
+            const batchSelect = form.querySelector('.rb-batch-select');
+            if (!batchSelect) return;
+            const courseId = courseSelect.value;
+            const options = batchSelect.querySelectorAll('option');
+            let hasSelected = false;
+            options.forEach(opt => {
+                if (!opt.value) {
+                    opt.style.display = '';
+                    return;
+                }
+                const optCourseId = opt.getAttribute('data-course-id');
+                if (!courseId || optCourseId == courseId) {
+                    opt.style.display = '';
+                    if (opt.selected) hasSelected = true;
+                } else {
+                    opt.style.display = 'none';
+                    if (opt.selected) opt.selected = false;
+                }
+            });
+            if (!hasSelected && courseId) {
+                batchSelect.value = '';
             }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.rb-course-select').forEach(cs => {
+                if (cs.value) filterResultBookBatches(cs);
+            });
         });
     </script>
 </x-admin-layout>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Question;
 use App\Models\Subject;
 use App\Models\Batch;
+use App\Models\Course;
 use App\Models\Semester;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,6 +16,7 @@ class QuestionController extends Controller
     public function index(Request $request)
     {
         $search     = $request->query('search');
+        $courseId   = $request->query('course_id');
         $subjectId  = $request->query('subject_id');
         $batchId    = $request->query('batch_id');
         $semesterId = $request->query('semester_id');
@@ -24,6 +26,10 @@ class QuestionController extends Controller
         $typeFilter = $request->query('type'); // MCQ or WRITTEN
 
         $query = Question::with(['subject', 'batch', 'semester'])->latest();
+
+        if ($courseId) {
+            $query->whereHas('batch', fn($q) => $q->where('course_id', $courseId));
+        }
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -61,14 +67,15 @@ class QuestionController extends Controller
         }
 
         $questions  = $query->paginate(20)->withQueryString();
+        $courses    = Course::where('is_active', true)->orderBy('name')->get();
         $subjects   = Subject::where('is_active', true)->orderBy('name')->get();
-        $batches    = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+        $batches    = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
         $semesters  = Semester::with('course')->orderBy('course_id')->orderBy('sequence_no')->get();
         $sourceTags = Question::whereNotNull('source_tag')->where('source_tag', '!=', '')->distinct()->pluck('source_tag')->filter()->values();
         $examTypes  = ['CT', 'MID', 'FINAL', 'QUIZ', 'PRACTICE'];
 
         return view('admin.questions.index', compact(
-            'questions', 'subjects', 'batches', 'semesters',
+            'questions', 'courses', 'courseId', 'subjects', 'batches', 'semesters',
             'search', 'subjectId', 'batchId', 'semesterId', 'difficulty', 'examType', 'sourceTag', 'typeFilter', 'sourceTags', 'examTypes'
         ));
     }

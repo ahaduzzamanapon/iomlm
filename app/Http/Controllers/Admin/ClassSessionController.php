@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\ClassSession;
+use App\Models\Course;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\SubjectModule;
@@ -17,16 +18,26 @@ class ClassSessionController extends Controller
     public function index(Request $request)
     {
         $status     = $request->query('status');
+        $courseId   = $request->query('course_id');
         $batchId    = $request->query('batch_id');
         $dateFilter = $request->query('date');
         $type       = $request->query('type'); // 'all', 'extra', 'regular'
 
-        $query = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot', 'moduleCovered', 'attendances'])
+        $batches  = Batch::with(['course.courseSubjectMaps.subject'])->orderBy('name')->get();
+        if ($batchId && !$courseId) {
+            $courseId = $batches->firstWhere('id', $batchId)?->course_id;
+        }
+
+        $query = ClassSession::with(['subject', 'batch.course', 'teacher', 'routineEntry.slot', 'moduleCovered', 'attendances'])
             ->orderBy('session_date', 'desc')
             ->orderBy('start_time', 'asc');
 
         if ($status)     $query->where('status', $status);
-        if ($batchId)    $query->where('batch_id', $batchId);
+        if ($batchId) {
+            $query->where('batch_id', $batchId);
+        } elseif ($courseId) {
+            $query->whereHas('batch', fn($q) => $q->where('course_id', $courseId));
+        }
         if ($dateFilter) $query->whereDate('session_date', $dateFilter);
 
         if ($type === 'extra') {
@@ -37,11 +48,11 @@ class ClassSessionController extends Controller
 
         $classes  = $query->get();
         $teachers = Teacher::where('is_active', true)->orderBy('name')->get();
-        $batches  = Batch::with('course')->orderBy('name')->get();
+        $courses  = Course::where('is_active', true)->orderBy('name')->get();
         $subjects = Subject::where('is_active', true)->orderBy('name')->get();
 
         return view('admin.classes.index', compact(
-            'classes', 'teachers', 'status', 'batches', 'batchId', 'dateFilter', 'type', 'subjects'
+            'classes', 'teachers', 'status', 'courses', 'courseId', 'batches', 'batchId', 'dateFilter', 'type', 'subjects'
         ));
     }
 

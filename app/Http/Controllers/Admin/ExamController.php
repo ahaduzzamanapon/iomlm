@@ -10,6 +10,7 @@ use App\Models\Question;
 use App\Models\ExamQuestion;
 use App\Models\ExamAppeal;
 use App\Models\Batch;
+use App\Models\Course;
 use App\Models\Semester;
 use Illuminate\Http\Request;
 
@@ -18,6 +19,7 @@ class ExamController extends Controller
     public function index(Request $request)
     {
         $status     = $request->query('status');
+        $courseId   = $request->query('course_id');
         $subjectId  = $request->query('subject_id');
         $search     = $request->query('search');
         $examType   = $request->query('type');
@@ -25,6 +27,18 @@ class ExamController extends Controller
         $semesterId = $request->query('semester_id');
 
         $query = Exam::with(['subject', 'semester', 'attendees.student']);
+
+        if ($courseId) {
+            $course = Course::with('subjects', 'semesters')->find($courseId);
+            if ($course) {
+                $cSubIds = $course->subjects->pluck('id');
+                $cSemIds = $course->semesters->pluck('id');
+                $query->where(function ($q) use ($cSubIds, $cSemIds) {
+                    $q->whereIn('subject_id', $cSubIds)
+                      ->orWhereIn('semester_id', $cSemIds);
+                });
+            }
+        }
 
         if ($status && in_array(strtoupper($status), ['SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELLED'])) {
             $query->where('status', strtoupper($status));
@@ -65,6 +79,7 @@ class ExamController extends Controller
         }
 
         $exams     = $query->latest()->get();
+        $courses   = Course::where('is_active', true)->orderBy('name')->get();
         $subjects  = Subject::where('is_active', true)->orderBy('name')->get();
         $batches   = Batch::with('course.semesters')->orderByDesc('id')->get();
         $semesters = Semester::orderBy('sequence_no')->get();
@@ -78,7 +93,7 @@ class ExamController extends Controller
         ];
 
         return view('admin.exams.index', compact(
-            'exams', 'subjects', 'batches', 'semesters',
+            'exams', 'courses', 'courseId', 'subjects', 'batches', 'semesters',
             'status', 'subjectId', 'search', 'examType', 'batchId', 'semesterId', 'statusCounts'
         ));
     }

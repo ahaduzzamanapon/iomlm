@@ -120,10 +120,19 @@
             @endforeach
         </select>
 
-        <select name="batch_id" id="qb_filter_batch" class="form-control" style="width:130px;height:40px;border-radius:8px;font-size:13px">
+        <select name="course_id" id="qb_filter_course" class="form-control" style="width:140px;height:40px;border-radius:8px;font-size:13px" onchange="filterQbBatches(this.value)">
+            <option value="">সকল কোর্স</option>
+            @foreach($courses as $c)
+                <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+            @endforeach
+        </select>
+
+        <select name="batch_id" id="qb_filter_batch" class="form-control" style="width:140px;height:40px;border-radius:8px;font-size:13px">
             <option value="" data-course-id="">সকল ব্যাচ</option>
             @foreach($batches as $b)
-                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>
+                    {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                </option>
             @endforeach
         </select>
 
@@ -1001,5 +1010,41 @@ ANSWER: A</pre>
 
             openModal('editQuestionModal');
         }
+
+        window.filterQbBatches = function(courseId) {
+            const batchSelect = document.getElementById('qb_filter_batch');
+            const semSelect = document.getElementById('qb_filter_semester');
+            if (batchSelect) {
+                batchSelect.querySelectorAll('option').forEach(opt => {
+                    if (!opt.value) { opt.style.display = ''; return; }
+                    const cId = opt.getAttribute('data-course-id');
+                    if (!courseId || cId == courseId) {
+                        opt.style.display = '';
+                    } else {
+                        opt.style.display = 'none';
+                        if (opt.selected) { opt.selected = false; batchSelect.value = ''; }
+                    }
+                });
+            }
+            if (semSelect) {
+                semSelect.querySelectorAll('option').forEach(opt => {
+                    if (!opt.value) { opt.style.display = ''; return; }
+                    const cId = opt.getAttribute('data-course-id');
+                    if (!courseId || cId == courseId) {
+                        opt.style.display = '';
+                    } else {
+                        opt.style.display = 'none';
+                        if (opt.selected) { opt.selected = false; semSelect.value = ''; }
+                    }
+                });
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const cSelect = document.getElementById('qb_filter_course');
+            if (cSelect && cSelect.value) {
+                filterQbBatches(cSelect.value);
+            }
+        });
     </script>
 </x-admin-layout>

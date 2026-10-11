@@ -118,32 +118,35 @@
                 @if($currStatus || $currSubject || $currSearch)
                     <a href="{{ route('admin.exams.index') }}" 
                        style="font-size:12px;color:#ef4444;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:4px">
-                        <i class="fa-solid fa-rotate-left"></i> ফিল্টার রিসেট করুন
-                    </a>
-                @endif
-            </div>
-
-            {{-- Row 2: Dropdowns & Search Filter Controls --}}
+                     {{-- Row 2: Dropdowns & Search Filter Controls --}}
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                {{-- Batch Select --}}
-                <div style="min-width:220px">
-                    <select name="batch_id" id="exam_filter_batch" class="form-control" onchange="this.form.submit()"
+                {{-- Course Select --}}
+                <div style="min-width:180px">
+                    <select name="course_id" id="exam_filter_course" class="form-control" onchange="filterExamBatches(this.value); this.form.submit()"
                             style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
-                        <option value="">-- সকল কোর্স ও ব্যাচ (All Batches) --</option>
-                        @php
-                            $batchesByCourse = $batches->groupBy(fn($b) => $b->course ? $b->course->name : 'অন্যান্য কোর্স');
-                        @endphp
-                        @foreach($batchesByCourse as $courseName => $courseBatches)
-                            <optgroup label="🎓 কোর্স: {{ $courseName }}">
-                                @foreach($courseBatches as $b)
-                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>
-                                        {{ $b->name }} — [কোর্স: {{ $courseName }}]
-                                    </option>
-                                @endforeach
-                            </optgroup>
+                        <option value="">-- সকল কোর্স (All Courses) --</option>
+                        @foreach($courses as $c)
+                            <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>
+                                {{ $c->name }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
+
+                {{-- Batch Select --}}
+                <div style="min-width:200px">
+                    <select name="batch_id" id="exam_filter_batch" class="form-control" onchange="this.form.submit()"
+                            style="height:38px;border-radius:8px;font-size:13px;border:1px solid #cbd5e1;background:#fff;padding:0 10px;cursor:pointer">
+                        <option value="">-- সকল ব্যাচ (All Batches) --</option>
+                        @foreach($batches as $b)
+                            <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($batchId ?? '') == $b->id ? 'selected' : '' }}>
+                                {{ $b->name }} ({{ $b->course?->name ?? 'কোর্স' }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                
 
                 {{-- Semester Select --}}
                 <div style="min-width:170px">
@@ -728,7 +731,31 @@
         update();
     }
 
+    window.filterExamBatches = function(courseId) {
+        const batchSelect = document.getElementById('exam_filter_batch');
+        if (!batchSelect) return;
+        let hasSelected = false;
+        batchSelect.querySelectorAll('option').forEach(opt => {
+            if (!opt.value) { opt.style.display = ''; return; }
+            const cId = opt.getAttribute('data-course-id');
+            if (!courseId || cId == courseId) {
+                opt.style.display = '';
+                if (opt.selected) hasSelected = true;
+            } else {
+                opt.style.display = 'none';
+                if (opt.selected) opt.selected = false;
+            }
+        });
+        if (!hasSelected && courseId) {
+            batchSelect.value = '';
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', function() {
+        const cSelect = document.getElementById('exam_filter_course');
+        if (cSelect && cSelect.value) {
+            filterExamBatches(cSelect.value);
+        }
         setupBatchSemesterCascading('exam_filter_batch', 'exam_filter_semester', '-- সকল সেমিস্টার (All Semesters) --');
     });
     </script>
