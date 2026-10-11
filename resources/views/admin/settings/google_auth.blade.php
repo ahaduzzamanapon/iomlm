@@ -63,20 +63,27 @@
 
             <!-- Redirect URI -->
             <div class="form-group">
-                <label for="google_redirect_uri">Authorized Redirect URI <span class="required">*</span></label>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                    <label for="google_redirect_uri" style="margin-bottom:0">Authorized Redirect URI <span class="required">*</span></label>
+                    <span style="font-size:12px;font-weight:600;color:#047857;background:#ecfdf5;border:1px solid #a7f3d0;padding:2px 8px;border-radius:12px;display:inline-flex;align-items:center;gap:4px">
+                        <i class="fa-solid fa-bolt"></i> Auto-Generated (Dynamic)
+                    </span>
+                </div>
                 <div style="display:flex;gap:8px">
                     <input
                         type="text"
                         id="google_redirect_uri"
                         name="google_redirect_uri"
                         class="form-control"
-                        value="{{ old('google_redirect_uri', $settings['google_redirect_uri'] ?? url('/auth/google/callback')) }}"
+                        value="{{ url('/auth/google/callback') }}"
                         readonly
-                        style="background:#f1f5f9;cursor:not-allowed"
+                        style="background:#f8fafc;cursor:default;font-family:monospace;font-weight:600;color:#0f172a"
                     >
-                    <button type="button" class="btn btn-outline" onclick="copyRedirectUri()">Copy</button>
+                    <button type="button" id="copyBtn" class="btn btn-outline" onclick="copyRedirectUri()" style="white-space:nowrap;padding:0 18px">
+                        <i class="fa-regular fa-copy"></i> Copy
+                    </button>
                 </div>
-                <div class="form-help">Copy this Redirect URI and add it under <b>Authorized redirect URIs</b> in Google Cloud Console.</div>
+                <div class="form-help">Copy this Redirect URI and add it under <b>Authorized redirect URIs</b> in Google Cloud Console. It automatically matches your active domain.</div>
             </div>
 
             <!-- Help Box -->
@@ -102,8 +109,21 @@
     function copyRedirectUri() {
         const input = document.getElementById('google_redirect_uri');
         input.select();
-        navigator.clipboard.writeText(input.value);
-        alert('Redirect URI copied to clipboard!');
+        navigator.clipboard.writeText(input.value).then(() => {
+            const btn = document.getElementById('copyBtn');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check" style="color:#047857"></i> Copied!';
+            btn.style.borderColor = '#047857';
+            btn.style.color = '#047857';
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }, 2000);
+        }).catch(() => {
+            document.execCommand('copy');
+            alert('Redirect URI copied to clipboard!');
+        });
     }
     </script>
     @endpush

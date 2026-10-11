@@ -16,7 +16,7 @@ class GoogleAuthController extends Controller
     {
         $enabled = Setting::get('google_auth_enabled', '0');
         $clientId = Setting::get('google_client_id');
-        $redirectUri = Setting::get('google_redirect_uri', url('/auth/google/callback'));
+        $redirectUri = url('/auth/google/callback');
 
         if ($enabled !== '1' || !$clientId) {
             return redirect()->route('login')->with('error', 'Google Sign-In is currently disabled or unconfigured.');
@@ -47,7 +47,7 @@ class GoogleAuthController extends Controller
 
         $clientId = Setting::get('google_client_id');
         $clientSecret = Setting::get('google_client_secret');
-        $redirectUri = Setting::get('google_redirect_uri', url('/auth/google/callback'));
+        $redirectUri = url('/auth/google/callback');
 
         try {
             // Exchange code for token
