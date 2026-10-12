@@ -241,8 +241,7 @@
                     </div>
                     <div class="card-body">
                         <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-bottom:20px;font-size:13px;color:#166534">
-                            <strong><i class="fa-solid fa-circle-info"></i> MiM SMS Gateway Details:</strong>
-                            MiM SMS (<a href="https://sms.mimsms.com" target="_blank" style="color:#059669;font-weight:700">sms.mimsms.com</a>) বাংলাদেশের একটি বাল্ক এসএমএস সার্ভিস প্রোভাইডার।<br>
+                           
                             <span style="color:#b91c1c;font-weight:700"><i class="fa-solid fa-triangle-exclamation"></i> গুরুত্বপূর্ণ:</span> লাইভ API ব্যবহারের জন্য আপনার সার্ভারের IP address / Domain (<code style="background:#fee2e2;padding:2px 6px;border-radius:4px">iom.edu.bd</code> অথবা সার্ভার পাবলিক আইপি) MiM SMS প্যানেলের <strong>Developer Option &rarr; Whitelist</strong>-এ যুক্ত থাকতে হবে।
                         </div>
 

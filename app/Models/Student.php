@@ -308,7 +308,10 @@ class Student extends Model
     {
         return [
             'Female' => [
-                ['path' => '/images/avatars/female_avatar_1.jpg', 'title' => 'মার্জিত হিজাব ও নিকাব (Hijab & Niqab)', 'is_default' => true],
+                ['path' => '/images/avatars/female_avatar_1.jpg', 'title' => 'মার্জিত হিজাব ও নিকাব (ডিফল্ট)', 'is_default' => true],
+                ['path' => '/images/avatars/female_avatar_2.jpg', 'title' => 'মার্জিত নিকাব (স্টাইল ২)', 'is_default' => false],
+                ['path' => '/images/avatars/female_avatar_3.jpg', 'title' => 'মার্জিত নিকাব (স্টাইল ৩)', 'is_default' => false],
+                ['path' => '/images/avatars/female_avatar_4.jpg', 'title' => 'মার্জিত নিকাব (অফিসিয়াল)', 'is_default' => false],
             ],
             'Male' => [
                 ['path' => '/images/avatars/male_avatar_1.png', 'title' => 'সাদা টুপি (White Topi)',   'is_default' => true],
