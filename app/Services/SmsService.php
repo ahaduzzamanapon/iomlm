@@ -47,11 +47,11 @@ class SmsService
         $apiUrl     = $apiUrl     ?: env('MIMSMS_API_URL', 'https://api.mimsms.com/api/V2/SMS');
         $apiKey     = $apiKey     ?: env('MIMSMS_API_KEY', 'RZW30XSQHWPQVIH');
         $userName   = $userName   ?: env('MIMSMS_USERNAME', 'kmarsus@gmail.com');
-        $senderName = $senderName ?: env('MIMSMS_SENDER_NAME', '');
+        $senderName = $senderName ?: env('MIMSMS_SENDER_NAME', 'IOM');
 
-        if (empty($apiKey) || empty($userName)) {
-            Log::error("MiMSMS API credentials missing. Please configure them in Settings.");
-            return ['success' => false, 'message' => 'SMS Gateway credentials not configured.'];
+        if (empty($apiKey) || empty($userName) || empty($senderName)) {
+            Log::error("MiMSMS API credentials or senderName missing. Please configure them in Settings.");
+            return ['success' => false, 'message' => 'SMS Gateway credentials or Sender Name not configured.'];
         }
 
         $payload = [
@@ -74,9 +74,41 @@ class SmsService
                 ->post($apiUrl, $payload);
 
             $responseData = $response->json() ?? $response->body();
-            $statusCode = $response->status();
+            $httpStatus = $response->status();
 
-            Log::info("MiMSMS Response [Status {$statusCode}]: " . json_encode($responseData));
+            Log::info("MiMSMS Response [HTTP {$httpStatus}]: " . json_encode($responseData));
+
+            // MiMSMS returns HTTP 200 even for internal errors like 401 Unauthorized / IP Black List
+            if (is_array($responseData)) {
+                $mCode   = $responseData['statusCode'] ?? null;
+                $mStatus = $responseData['status'] ?? null;
+                $mResult = $responseData['responseResult'] ?? '';
+
+                if ($mCode == '200' || strtolower((string)$mStatus) === 'success') {
+                    return [
+                        'success'  => true,
+                        'message'  => 'SMS sent successfully.',
+                        'response' => $responseData,
+                    ];
+                }
+
+                $errDetail = '';
+                if (!empty($responseData['error_Data']) && is_array($responseData['error_Data'])) {
+                    $firstErr = $responseData['error_Data'][0] ?? [];
+                    $errDetail = trim(($firstErr['error'] ?? '') . ' ' . ($firstErr['errorParm'] ?? ''));
+                }
+
+                $errMsg = trim($mResult . ' ' . $errDetail);
+                if (empty($errMsg)) {
+                    $errMsg = $responseData['title'] ?? ($mStatus ?? 'SMS gateway returned error');
+                }
+
+                return [
+                    'success'  => false,
+                    'message'  => "MiM SMS: {$errMsg}",
+                    'response' => $responseData,
+                ];
+            }
 
             if ($response->successful()) {
                 return [
@@ -88,7 +120,7 @@ class SmsService
 
             return [
                 'success'  => false,
-                'message'  => 'SMS Gateway responded with error code ' . $statusCode,
+                'message'  => 'SMS Gateway responded with error code ' . $httpStatus,
                 'response' => $responseData,
             ];
         } catch (\Exception $e) {
