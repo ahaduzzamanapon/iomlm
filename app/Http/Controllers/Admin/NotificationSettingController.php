@@ -18,7 +18,9 @@ class NotificationSettingController extends Controller
             'firebase_server_key', 'firebase_vapid_key', 'firebase_service_account_json', 'firebase_enabled',
             // SMTP
             'smtp_driver', 'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password',
-            'smtp_encryption', 'smtp_from_address', 'smtp_from_name', 'smtp_enabled'
+            'smtp_encryption', 'smtp_from_address', 'smtp_from_name', 'smtp_enabled',
+            // SMS Gateway (MiM SMS)
+            'sms_provider', 'sms_api_url', 'sms_api_key', 'sms_username', 'sms_sender_name', 'sms_enabled'
         ])->pluck('value', 'key');
 
         return view('admin.settings.notifications', compact('settings'));
@@ -72,6 +74,36 @@ class NotificationSettingController extends Controller
     {
         $request->validate(['test_email' => 'required|email']);
         $result = $mailService->testConnection($request->input('test_email'));
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json($result);
+        }
+
+        return back()->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    public function updateSms(Request $request)
+    {
+        $keys = [
+            'sms_provider', 'sms_api_url', 'sms_api_key', 'sms_username', 'sms_sender_name'
+        ];
+
+        foreach ($keys as $k) {
+            Setting::updateOrCreate(['key' => $k], ['value' => $request->input($k, '')]);
+        }
+
+        Setting::updateOrCreate(
+            ['key' => 'sms_enabled'],
+            ['value' => $request->boolean('sms_enabled') ? '1' : '0']
+        );
+
+        return back()->with('success', 'SMS Gateway (MiM SMS) settings updated successfully.');
+    }
+
+    public function sendTestSms(Request $request, \App\Services\SmsService $smsService)
+    {
+        $request->validate(['test_phone' => 'required|string']);
+        $result = $smsService->testConnection($request->input('test_phone'));
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json($result);

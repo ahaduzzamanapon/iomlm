@@ -248,7 +248,7 @@
             {{ $form->student->student_code }}
         </div>
         <p style="font-size:12px;color:#475569;margin:0">
-            লগইন পাসওয়ার্ড: আপনার মোবাইল নম্বর <strong>{{ $form->student->phone }}</strong> (অথবা এসএমএস/ইমেইলে প্রেরিত পাসওয়ার্ড)।
+            লগইন পাসওয়ার্ড: এসএমএস ও ইমেইলে প্রেরিত পাসওয়ার্ড।
         </p>
     </div>
     @endif

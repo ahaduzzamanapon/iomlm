@@ -718,10 +718,10 @@ class PaymentGatewayService
         if (!empty($targetEmail) && filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
             try {
                 $mailService = app(\App\Services\DynamicMailService::class);
-                $courseName = $form->interestedCourse->name ?? 'Course';
+                $courseName = $form->interestedCourse->name ?? ($batch?->course?->name ?? 'Course');
                 $batchName = $batch ? $batch->name : 'Target Batch';
-                $courseId = $form->course_id ?? $student->course_id;
-                $batchId = $batch?->id ?? $form->batch_id ?? $student->batch_id;
+                $courseId = $form->interested_course_id ?? $batch?->course_id ?? ($form->course_id ?? null);
+                $batchId = $batch?->id ?? $form->batch_id ?? null;
                 $gender = $student->gender ?? $form->gender ?? 'Male';
                 $displayPassword = $rawPassword ?: $student->getOrGenerateNumericPassword();
                 $loginUrl = url('/login');
@@ -730,6 +730,8 @@ class PaymentGatewayService
                     '{name}'        => $student->name,
                     '{student_id}'  => $student->student_code,
                     '{roll}'        => $student->student_code,
+                    'অফিসিয়াল রোল'  => $student->student_code,
+                    '[অফিসিয়াল রোল]'=> $student->student_code,
                     '{email}'       => $targetEmail,
                     '{login_email}' => $targetEmail,
                     '{password}'    => $displayPassword,
@@ -770,6 +772,20 @@ class PaymentGatewayService
                 );
             } catch (\Exception $e) {
                 Log::error('Admission Approval Email Error: ' . $e->getMessage());
+            }
+        }
+
+        // 6. Send admission confirmation SMS to student phone
+        if (!empty($student->phone)) {
+            try {
+                $smsMessage = $batch ? $batch->getEffectiveSmsTemplate() : '';
+                if (empty($smsMessage)) {
+                    $smsMessage = "আলহামদুলিল্লাহ! IOM-এ আপনার ভর্তি নিশ্চিত হয়েছে। স্টুডেন্ট আইডি: {student_id}, পাসওয়ার্ড: {password}। লগইন: {login_url}";
+                }
+                $compiledSms = str_replace(array_keys($replaceVars), array_values($replaceVars), $smsMessage);
+                app(\App\Services\SmsService::class)->send($student->phone, $compiledSms);
+            } catch (\Exception $e) {
+                Log::error('Admission Payment Auto-Approval SMS Error: ' . $e->getMessage());
             }
         }
     }

@@ -36,6 +36,9 @@
         <div class="nav-tab-item" onclick="switchTab('smtpTab', this)">
             <i class="fa-solid fa-envelope text-blue"></i> SMTP Mail Configuration Tab
         </div>
+        <div class="nav-tab-item" onclick="switchTab('smsTab', this)">
+            <i class="fa-solid fa-comment-sms text-green"></i> SMS Gateway (MiM SMS) Tab
+        </div>
     </div>
 
     {{-- TAB 1: FIREBASE NOTIFICATION --}}
@@ -222,12 +225,83 @@
         </form>
     </div>
 
+    {{-- TAB 3: SMS GATEWAY (MiM SMS) --}}
+    <div id="smsTab" class="tab-content-panel">
+        <form method="POST" action="{{ route('admin.settings.notifications.sms') }}">
+            @csrf
+            <div style="display:flex;flex-direction:column;gap:20px;max-width:960px">
+                <div class="card">
+                    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+                        <span class="card-title">MiM SMS Gateway Configuration (sms.mimsms.com)</span>
+                        <label class="form-check" style="margin:0;font-weight:700;color:#059669">
+                            <input type="checkbox" name="sms_enabled" value="1"
+                                {{ ($settings['sms_enabled'] ?? '1') == '1' ? 'checked' : '' }}>
+                            Enable SMS Gateway
+                        </label>
+                    </div>
+                    <div class="card-body">
+                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-bottom:20px;font-size:13px;color:#166534">
+                            <strong><i class="fa-solid fa-circle-info"></i> MiM SMS Gateway Details:</strong>
+                            MiM SMS (<a href="https://sms.mimsms.com" target="_blank" style="color:#059669;font-weight:700">sms.mimsms.com</a>) বাংলাদেশের একটি বাল্ক এসএমএস সার্ভিস প্রোভাইডার।<br>
+                            <span style="color:#b91c1c;font-weight:700"><i class="fa-solid fa-triangle-exclamation"></i> গুরুত্বপূর্ণ:</span> লাইভ API ব্যবহারের জন্য আপনার সার্ভারের IP address / Domain (<code style="background:#fee2e2;padding:2px 6px;border-radius:4px">iom.edu.bd</code> অথবা সার্ভার পাবলিক আইপি) MiM SMS প্যানেলের <strong>Developer Option &rarr; Whitelist</strong>-এ যুক্ত থাকতে হবে।
+                        </div>
+
+                        <input type="hidden" name="sms_provider" value="mimsms">
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>API URL <span class="required">*</span></label>
+                                <input type="text" name="sms_api_url" class="form-control"
+                                    placeholder="https://api.mimsms.com/api/V2/SMS"
+                                    value="{{ $settings['sms_api_url'] ?? 'https://api.mimsms.com/api/V2/SMS' }}" required>
+                                <small style="color:#64748b">ডিফল্ট: https://api.mimsms.com/api/V2/SMS</small>
+                            </div>
+                            <div class="form-group">
+                                <label>API UserName <span class="required">*</span></label>
+                                <input type="text" name="sms_username" class="form-control"
+                                    placeholder="kmarsus@gmail.com"
+                                    value="{{ $settings['sms_username'] ?? 'kmarsus@gmail.com' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>API Key <span class="required">*</span></label>
+                                <input type="text" name="sms_api_key" class="form-control"
+                                    placeholder="RZW30XSQHWPQVIH"
+                                    value="{{ $settings['sms_api_key'] ?? 'RZW30XSQHWPQVIH' }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Sender Name (Sender ID / Masking)</label>
+                                <input type="text" name="sms_sender_name" class="form-control"
+                                    placeholder="e.g. IOM or leave empty for default non-masking"
+                                    value="{{ $settings['sms_sender_name'] ?? '' }}">
+                                <small style="color:#64748b">MiM SMS প্যানেল থেকে অনুমোদিত Sender ID (Utility &rarr; Sender ID)। খালি রাখলে ডিফল্ট নন-মাস্কিং ব্যবহৃত হবে।</small>
+                            </div>
+                        </div>
+
+                        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-top:8px;font-size:13px;color:#475569">
+                            <strong><i class="fa-solid fa-bell"></i> স্বয়ংক্রিয় এসএমএস পাঠানোর সুযোগ:</strong>
+                            ভর্তি কনফার্মেশন (অনলাইন পেমেন্ট অথবা অ্যাডমিন অ্যাপ্রুভাল)-এর সময় শিক্ষার্থীর ফোন নম্বরে স্বয়ংক্রিয়ভাবে Student ID ও Password সহ এসএমএস এবং ইমেইল দুটোই পৌঁছে যাবে।
+                        </div>
+                    </div>
+                    <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center">
+                        <button type="button" class="btn btn-outline" onclick="openTestSmsModal()">
+                            <i class="fa-solid fa-paper-plane"></i> Send Test SMS
+                        </button>
+                        <button type="submit" class="btn btn-primary">Save SMS Settings</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
     {{-- TEST MAIL MODAL --}}
     <div class="modal-overlay" id="testMailModal">
         <div class="modal" style="max-width:480px">
             <div class="modal-header">
                 <span class="modal-title"><i class="fa-solid fa-envelope"></i> Send Test Email</span>
-                <button class="modal-close" onclick="closeModal('testMailModal')">&times;</button>
+                <button type="button" class="modal-close" onclick="closeModal('testMailModal')">&times;</button>
             </div>
             <form id="testMailForm" onsubmit="handleSendTestMail(event)">
                 @csrf
@@ -251,7 +325,51 @@
         </div>
     </div>
 
+    {{-- TEST SMS MODAL --}}
+    <div class="modal-overlay" id="testSmsModal">
+        <div class="modal" style="max-width:480px">
+            <div class="modal-header">
+                <span class="modal-title"><i class="fa-solid fa-comment-sms text-green"></i> Send Test SMS</span>
+                <button type="button" class="modal-close" onclick="closeModal('testSmsModal')">&times;</button>
+            </div>
+            <form id="testSmsForm" onsubmit="handleSendTestSms(event)">
+                @csrf
+                <div class="modal-body">
+                    <p style="font-size:13px;color:#64748b;margin-bottom:16px">
+                        Enter a Bangladeshi phone number (e.g. <code>01712345678</code> or <code>8801712345678</code>) to test your MiM SMS Gateway configuration.
+                    </p>
+                    <div class="form-group">
+                        <label>Recipient Phone Number <span class="required">*</span></label>
+                        <input type="text" id="test_recipient_phone" class="form-control"
+                            placeholder="e.g. 017XXXXXXXX" required>
+                    </div>
+                    <div id="testSmsAlert" style="display:none;padding:12px;border-radius:8px;font-size:13px;font-weight:600;margin-top:12px"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('testSmsModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="testSmsSubmitBtn">Send Test SMS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+    function openModal(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('active', 'open');
+            el.style.display = 'flex';
+        }
+    }
+
+    function closeModal(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.remove('active', 'open');
+            el.style.display = 'none';
+        }
+    }
+
     function switchTab(tabId, el) {
         document.querySelectorAll('.tab-content-panel').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.nav-tab-item').forEach(t => t.classList.remove('active'));
@@ -262,6 +380,11 @@
     function openTestMailModal() {
         document.getElementById('testMailAlert').style.display = 'none';
         openModal('testMailModal');
+    }
+
+    function openTestSmsModal() {
+        document.getElementById('testSmsAlert').style.display = 'none';
+        openModal('testSmsModal');
     }
 
     async function handleSendTestMail(e) {
@@ -307,6 +430,52 @@
         } finally {
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Test Mail';
+        }
+    }
+
+    async function handleSendTestSms(e) {
+        e.preventDefault();
+        const phone = document.getElementById('test_recipient_phone').value;
+        const btn = document.getElementById('testSmsSubmitBtn');
+        const alert = document.getElementById('testSmsAlert');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+        alert.style.display = 'none';
+
+        try {
+            const res = await fetch('{{ route("admin.settings.notifications.test-sms", [], false) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ test_phone: phone })
+            });
+
+            const data = await res.json();
+            alert.style.display = 'block';
+            if (data.success) {
+                alert.style.background = '#f0fdf4';
+                alert.style.color = '#15803d';
+                alert.style.border = '1px solid #bbf7d0';
+                alert.textContent = data.message;
+            } else {
+                alert.style.background = '#fef2f2';
+                alert.style.color = '#b91c1c';
+                alert.style.border = '1px solid #fecaca';
+                alert.textContent = data.message || 'Failed to send SMS.';
+            }
+        } catch (err) {
+            alert.style.display = 'block';
+            alert.style.background = '#fef2f2';
+            alert.style.color = '#b91c1c';
+            alert.style.border = '1px solid #fecaca';
+            alert.textContent = 'Error connecting to server: ' + err.message;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Test SMS';
         }
     }
     </script>

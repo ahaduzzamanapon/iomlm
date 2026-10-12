@@ -23,6 +23,11 @@ class Subject extends Model
         return $this->hasMany(CourseSubjectMap::class, 'subject_id');
     }
 
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class, 'course_subject_maps', 'subject_id', 'course_id')->distinct();
+    }
+
     public function teacherAssignments()
     {
         return $this->hasMany(SubjectTeacherAssignment::class, 'subject_id');

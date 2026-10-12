@@ -430,7 +430,7 @@ class AdmissionController extends Controller
             ->get();
 
         $suggestedTemplate = \App\Models\EmailTemplate::resolveAdmissionTemplate(
-            $admission->course_id,
+            $admission->interested_course_id ?? $admission->batch?->course_id,
             $admission->batch_id,
             $admission->student?->gender ?? $admission->gender
         );
@@ -668,20 +668,27 @@ class AdmissionController extends Controller
             $loginUrl   = url('/login');
 
             $replaceVars = [
-                '{name}'        => $student->name,
-                '{roll}'        => $student->student_code,
-                '{student_id}'  => $student->student_code,
-                '{email}'       => $user->email,
-                '{login_email}' => $user->email,
-                '{password}'    => $rawPassword,
-                '{course}'      => $courseName,
-                '{batch}'       => $batch->name,
-                '{login_url}'   => $loginUrl,
+                '{name}'             => $student->name,
+                '{roll}'             => $student->student_code,
+                '{student_id}'       => $student->student_code,
+                'অফিসিয়াল রোল'       => $student->student_code,
+                '[অফিসিয়াল রোল]'     => $student->student_code,
+                'অফিসিয়াল রোল নম্বর' => $student->student_code,
+                '{email}'            => $user->email,
+                '{login_email}'      => $user->email,
+                '{password}'         => $rawPassword,
+                '{course}'           => $courseName,
+                '{batch}'            => $batch->name,
+                '{login_url}'        => $loginUrl,
             ];
 
             $selectedTemplate = $request->filled('email_template_id')
                 ? \App\Models\EmailTemplate::find($request->input('email_template_id'))
-                : null;
+                : \App\Models\EmailTemplate::resolveAdmissionTemplate(
+                    $admission->interested_course_id ?? $batch->course_id,
+                    $batch->id,
+                    $student->gender ?? $admission->gender
+                );
 
             // Use customized content from request or selected template or fallback to batch defaults
             $rawEmailBody = $request->filled('email_body')
@@ -726,9 +733,13 @@ class AdmissionController extends Controller
                 $batch->save();
             }
 
-            // Log / Send SMS dispatch
-            if ($request->boolean('send_sms', true)) {
-                \Illuminate\Support\Facades\Log::info("ADMISSION_CONFIRMATION_SMS to {$student->phone}: {$compiledSmsBody}");
+            // Log & Send SMS dispatch
+            if ($request->boolean('send_sms', true) && !empty($student->phone)) {
+                try {
+                    app(\App\Services\SmsService::class)->send($student->phone, $compiledSmsBody);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Admission Approval SMS Error: " . $e->getMessage());
+                }
             }
 
             // Dispatch Email
@@ -765,8 +776,8 @@ class AdmissionController extends Controller
         }
 
         $courseName = $admission->interestedCourse->name ?? 'Course';
-        $paymentUrl = route('apply.payment', $admission->application_no);
-        $studentName = $admission->student?->name ?? 'সম্মানিত শিক্ষার্থী';
+        $paymentUrl = url('/apply/payment/' . $admission->application_no);
+        $studentName = $admission->student?->name ?? $admission->applicant_name ?? 'সম্মানিত শিক্ষার্থী';
 
         $subject = "ভর্তি ফি পরিশোধের রিমাইন্ডার — ইসলামিক অনলাইন মাদ্রাসা ({$admission->application_no})";
         $body = "আসসালামু আলাইকুম {$studentName},\n\n"
@@ -774,7 +785,12 @@ class AdmissionController extends Controller
             . "ভর্তি নিশ্চিতকরণের জন্য অনুগ্রহ করে নির্ধারিত ভর্তি ফি পরিশোধ করুন।\n\n"
             . "নিচের লিংকে ক্লিক করে আপনি সরাসরি বিকাশ অথবা অন্যান্য কার্ড/মোবাইল ব্যাংকিংয়ের মাধ্যমে নিরাপদে ফি পরিশোধ করতে পারবেন:\n"
             . "পেমেন্ট লিংক: {$paymentUrl}\n\n"
-            . "ফি পরিশোধ সম্পন্ন হলেই আপনার ভর্তি প্রক্রিয়া চূড়ান্তভাবে সম্পন্ন হবে।";
+            . "ফি পরিশোধ সম্পন্ন হলেই আপনার ভর্তি প্রক্রিয়া চূড়ান্তভাবে সম্পন্ন হবে।\n\n"
+            . "----------------------------------------\n"
+            . "আপনি যদি ইতোমধ্যে আমাদের বিকাশ মার্চেন্ট নাম্বারে পেমেন্ট করে থাকেন, তাহলে আপনার পেমেন্ট এর স্ক্রিনশটসহ আমাদের অফিসিয়াল ফেইসবুক অথবা হোয়াটস এপে যোগাযোগ করুন।\n\n"
+            . "ফেইসবুক পেইজ লিংক: https://www.facebook.com/iomedu.org\n"
+            . "হোয়াটস এপ নাম্বার: +8801856399000\n"
+            . "----------------------------------------";
 
         try {
             $mailService = app(\App\Services\DynamicMailService::class);

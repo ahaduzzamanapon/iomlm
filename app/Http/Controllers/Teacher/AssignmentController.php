@@ -44,10 +44,11 @@ class AssignmentController extends Controller
         }
 
         $assignments = $query->paginate(20);
-        $subjects    = Subject::whereIn('id', $assignedSubjectIds)->orderBy('name')->get();
-        $batches     = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+        $courses     = \App\Models\Course::where('is_active', true)->orderBy('name')->get();
+        $subjects    = Subject::whereIn('id', $assignedSubjectIds)->with('courseSubjectMaps')->orderBy('name')->get();
+        $batches     = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
 
-        return view('teacher.assignments.index', compact('assignments', 'subjects', 'batches', 'subjectId', 'batchId'));
+        return view('teacher.assignments.index', compact('assignments', 'courses', 'subjects', 'batches', 'subjectId', 'batchId'));
     }
 
     public function store(Request $request)

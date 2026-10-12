@@ -250,6 +250,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('settings/notifications/firebase', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'updateFirebase'])->name('settings.notifications.firebase');
         Route::post('settings/notifications/smtp', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'updateSmtp'])->name('settings.notifications.smtp');
         Route::post('settings/notifications/test-mail', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'sendTestMail'])->name('settings.notifications.test-mail');
+        Route::post('settings/notifications/sms', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'updateSms'])->name('settings.notifications.sms');
+        Route::post('settings/notifications/test-sms', [\App\Http\Controllers\Admin\NotificationSettingController::class, 'sendTestSms'])->name('settings.notifications.test-sms');
 
         // Payment Gateway Settings
         Route::get('settings/payment-gateways', [\App\Http\Controllers\Admin\PaymentGatewaySettingController::class, 'index'])->name('settings.payment-gateways.index');

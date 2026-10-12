@@ -13,9 +13,7 @@ class ProfileController extends Controller
 {
     private function student(): ?Student
     {
-        return Student::where('user_id', auth()->id())
-            ->orWhere('email', auth()->user()->email)
-            ->first();
+        return auth()->user()?->resolveStudent();
     }
 
     public function index()
@@ -31,8 +29,10 @@ class ProfileController extends Controller
         $missing = $student->getMissingProfileFields();
 
         $bloodGroups = class_exists(BloodGroup::class) ? BloodGroup::where('is_active', true)->get() : collect();
+        $divisions = \App\Models\Division::with('districts')->orderBy('name')->get();
+        $districts = \App\Models\District::orderBy('name')->get();
 
-        return view('student.profile.index', compact('student', 'percent', 'missing', 'bloodGroups'));
+        return view('student.profile.index', compact('student', 'percent', 'missing', 'bloodGroups', 'divisions', 'districts'));
     }
 
     public function update(Request $request)
@@ -65,6 +65,10 @@ class ProfileController extends Controller
             'photo'                   => 'nullable|image|max:3072',
             'avatar_preset'           => 'nullable|string|max:255',
 
+            // Expatriate
+            'is_expatriate'           => 'nullable',
+            'country_of_residence'    => 'nullable|string|max:100',
+
             // Guardian
             'father_name'             => 'nullable|string|max:200',
             'mother_name'             => 'nullable|string|max:200',
@@ -73,7 +77,11 @@ class ProfileController extends Controller
             'guardian_relation'       => 'nullable|string|max:50',
 
             // Address
+            'present_division_id'     => 'nullable|integer',
+            'present_district_id'     => 'nullable|integer',
             'address'                 => 'nullable|string|max:500',
+            'permanent_division_id'   => 'nullable|integer',
+            'permanent_district_id'   => 'nullable|integer',
             'permanent_address'       => 'nullable|string|max:500',
 
             // Education
@@ -91,12 +99,19 @@ class ProfileController extends Controller
             'department_name'         => 'nullable|string|max:100',
         ]);
 
+        $validated['is_expatriate'] = $request->boolean('is_expatriate');
+        if (!$validated['is_expatriate']) {
+            $validated['country_of_residence'] = null;
+        }
+
         // Handle photo upload or preset avatar
         if ($request->hasFile('photo')) {
             $path = $request->file('photo')->store('photos/students', 'public');
             $validated['photo_url'] = '/storage/' . $path;
         } elseif (!empty($validated['avatar_preset'])) {
             $validated['photo_url'] = $validated['avatar_preset'];
+        } elseif (empty($student->photo_url)) {
+            $validated['photo_url'] = Student::defaultAvatarForGender($student->gender);
         }
 
         unset($validated['photo'], $validated['avatar_preset']);

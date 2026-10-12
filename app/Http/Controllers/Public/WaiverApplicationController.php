@@ -136,6 +136,34 @@ class WaiverApplicationController extends Controller
             'ip_address'                     => $request->ip(),
         ]);
 
+        // Dispatch Confirmation Email with Tracking Link
+        if (!empty($app->email) && filter_var($app->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                $trackingUrl = route('pf.status', ['app_no' => $app->application_no]);
+                $mailService = app(\App\Services\DynamicMailService::class);
+
+                $mailSubject = "আপনার পুওর ফান্ড আবেদন গ্রহণ করা হয়েছে — আবেদন নং: {$app->application_no}";
+                $mailBody = "আসসালামু আলাইকুম {$app->full_name},\n\n"
+                    . "ইসলামিক অনলাইন মাদ্রাসায় (IOM) আপনার বিশেষ ছাড় / পুওর ফান্ড আবেদনটি (আবেদন নং: {$app->application_no}) সফলভাবে গ্রহণ করা হয়েছে।\n\n"
+                    . "আপনার আবেদনটি বর্তমানে কমিটি কর্তৃক পর্যালোচনায় রয়েছে। আবেদনটি অনুমোদিত হলে আপনি ফিরতি অ্যাপ্রুভাল ইমেইল এবং কুপন কোড পাবেন।\n\n"
+                    . "নিচের ট্র্যাকিং লিংকে ক্লিক করে আপনি যেকোনো সময় আপনার আবেদনের বর্তমান স্ট্যাটাস দেখতে পারবেন:\n"
+                    . "আবেদন স্ট্যাটাস লিংক: {$trackingUrl}\n\n"
+                    . "বিনীত,\n"
+                    . "পুওর ফান্ড ও স্কলারশিপ কমিটি,\n"
+                    . "ইসলামিক অনলাইন মাদ্রাসা (IOM)";
+
+                $mailService->sendHtmlNotification(
+                    $app->email,
+                    $mailSubject,
+                    $mailBody,
+                    null,
+                    $trackingUrl
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Poor Fund Submission Email Error: ' . $e->getMessage());
+            }
+        }
+
         return redirect()->route('poor_fund.success', $app->application_no);
     }
 

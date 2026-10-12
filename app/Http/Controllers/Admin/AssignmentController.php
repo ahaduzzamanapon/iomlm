@@ -35,7 +35,7 @@ class AssignmentController extends Controller
 
         $assignments = $query->paginate(20);
         $courses     = Course::where('is_active', true)->orderBy('name')->get();
-        $subjects    = Subject::where('is_active', true)->orderBy('name')->get();
+        $subjects    = Subject::where('is_active', true)->with('courseSubjectMaps')->orderBy('name')->get();
         $batches     = Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
 
         return view('admin.assignments.index', compact('assignments', 'courses', 'courseId', 'subjects', 'batches', 'subjectId', 'batchId'));

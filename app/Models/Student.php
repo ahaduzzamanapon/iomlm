@@ -9,11 +9,16 @@ class Student extends Model
     protected $guarded = [];
 
     protected $casts = [
-        'date_of_birth'     => 'date',
-        'has_course_access' => 'boolean',
-        'is_common_account' => 'boolean',
-        'monthly_discount'  => 'float',
-        'fee_package_id'    => 'integer',
+        'date_of_birth'           => 'date',
+        'has_course_access'       => 'boolean',
+        'is_common_account'       => 'boolean',
+        'is_expatriate'           => 'boolean',
+        'present_division_id'     => 'integer',
+        'present_district_id'     => 'integer',
+        'permanent_division_id'   => 'integer',
+        'permanent_district_id'   => 'integer',
+        'monthly_discount'        => 'float',
+        'fee_package_id'          => 'integer',
     ];
 
     protected static function booted()
@@ -59,6 +64,26 @@ class Student extends Model
     public function feePackage()
     {
         return $this->belongsTo(\App\Models\CourseFeePackage::class, 'fee_package_id');
+    }
+
+    public function presentDivision()
+    {
+        return $this->belongsTo(Division::class, 'present_division_id');
+    }
+
+    public function presentDistrict()
+    {
+        return $this->belongsTo(District::class, 'present_district_id');
+    }
+
+    public function permanentDivision()
+    {
+        return $this->belongsTo(Division::class, 'permanent_division_id');
+    }
+
+    public function permanentDistrict()
+    {
+        return $this->belongsTo(District::class, 'permanent_district_id');
     }
 
     public function auditLogs()
@@ -225,7 +250,23 @@ class Student extends Model
 
     public function calculateProfileCompletion(): int
     {
+        if ($this->is_common_account) {
+            $this->profile_completed_percent = 100;
+            if ($this->exists) {
+                $this->saveQuietly();
+            }
+            return 100;
+        }
+
+        if (empty($this->photo_url) && !empty($this->gender)) {
+            $this->photo_url = self::defaultAvatarForGender($this->gender);
+        }
+
         $fields = self::profileFieldsDefinition();
+        if ($this->is_expatriate) {
+            $fields['country_of_residence'] = 'বসবাসরত দেশ';
+        }
+
         $totalFields = count($fields);
         $completedCount = 0;
 
@@ -238,7 +279,9 @@ class Student extends Model
 
         $percent = (int) round(($completedCount / $totalFields) * 100);
         $this->profile_completed_percent = $percent;
-        $this->saveQuietly();
+        if ($this->exists) {
+            $this->saveQuietly();
+        }
 
         return $percent;
     }
@@ -565,6 +608,9 @@ class Student extends Model
     public function getMissingProfileFields(): array
     {
         $fields = self::profileFieldsDefinition();
+        if ($this->is_expatriate) {
+            $fields['country_of_residence'] = 'বসবাসরত দেশ';
+        }
         $missing = [];
 
         foreach ($fields as $field => $label) {

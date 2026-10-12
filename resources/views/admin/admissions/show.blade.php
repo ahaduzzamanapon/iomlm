@@ -737,16 +737,19 @@
 
         const courseName = b ? b.course_name : @json($admission->interestedCourse?->name ?? 'কোর্স');
         const batchName = b ? b.name : @json($admission->batch?->name ?? 'ব্যাচ');
-        const rollVal = @json($admission->student?->student_code ?? 'অফিসিয়াল রোল');
+        const rollVal = @json($admission->student?->student_code ?? null);
 
         const replaceMap = {
             '{name}': STUDENT_NAME,
-            '{student_id}': rollVal,
-            '{roll}': rollVal,
             '{course}': courseName,
             '{batch}': batchName,
             '{login_url}': LOGIN_URL,
         };
+
+        if (rollVal) {
+            replaceMap['{student_id}'] = rollVal;
+            replaceMap['{roll}'] = rollVal;
+        }
 
         let subject = tpl.subject || `🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — ${STUDENT_NAME} (${courseName})`;
         let content = tpl.content || '';
@@ -892,6 +895,20 @@
     }
 
     function onApproveBatchChange() {
+        const batchSelect = document.getElementById('approve_batch_id');
+        const batchId = batchSelect ? batchSelect.value : null;
+        const b = batchId && BATCH_TEMPLATES[batchId] ? BATCH_TEMPLATES[batchId] : null;
+
+        if (batchId) {
+            const matchedTpl = ADMISSION_TEMPLATES.find(t => t.batch_id == batchId)
+                || ADMISSION_TEMPLATES.find(t => t.course_id == (b ? b.course_id : null));
+            if (matchedTpl) {
+                const tplSelect = document.getElementById('approve_email_template_id');
+                if (tplSelect) tplSelect.value = matchedTpl.id;
+                onEmailTemplateSelect(matchedTpl.id);
+                return;
+            }
+        }
         populateTemplateForSelectedBatch(false);
     }
 
@@ -1014,7 +1031,7 @@
         } else {
             batchSelect.value = '';
         }
-        populateTemplateForSelectedBatch(false);
+        onApproveBatchChange();
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -1023,6 +1040,8 @@
             onApproveCourseChange(courseSelect);
         }
         if (SUGGESTED_TEMPLATE_ID) {
+            const tplSelect = document.getElementById('approve_email_template_id');
+            if (tplSelect) tplSelect.value = SUGGESTED_TEMPLATE_ID;
             onEmailTemplateSelect(SUGGESTED_TEMPLATE_ID);
         } else {
             populateTemplateForSelectedBatch(false);

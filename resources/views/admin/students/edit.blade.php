@@ -112,14 +112,69 @@
                     <input type="text" name="education_qualification" class="form-control" value="{{ old('education_qualification', $student->education_qualification) }}">
                 </div>
 
-                <div class="form-group" style="margin-bottom:14px">
-                    <label style="font-weight:600">বর্তমান ঠিকানা</label>
-                    <textarea name="address" class="form-control" rows="2">{{ old('address', $student->address) }}</textarea>
+                {{-- Expatriate Information --}}
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px">
+                    <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#065f46;cursor:pointer;margin:0">
+                        <input type="checkbox" name="is_expatriate" id="admin_is_expatriate" value="1" onchange="document.getElementById('admin_country_wrapper').style.display = this.checked ? 'block' : 'none'" {{ old('is_expatriate', $student->is_expatriate) ? 'checked' : '' }} style="accent-color:#047857;cursor:pointer">
+                        <span>প্রবাসী শিক্ষার্থী (Expatriate Student)</span>
+                    </label>
+                    <div id="admin_country_wrapper" style="margin-top:10px;{{ old('is_expatriate', $student->is_expatriate) ? '' : 'display:none;' }}">
+                        <label style="font-size:12px;font-weight:600;color:#065f46;display:block;margin-bottom:3px">বসবাসরত দেশ (Country of Residence)</label>
+                        <input type="text" name="country_of_residence" class="form-control" value="{{ old('country_of_residence', $student->country_of_residence) }}" placeholder="যেমন: সৌদি আরব, মালয়েশিয়া, কাতার">
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label style="font-weight:600">স্থায়ী ঠিকানা</label>
-                    <textarea name="permanent_address" class="form-control" rows="2">{{ old('permanent_address', $student->permanent_address) }}</textarea>
+                {{-- Present Address with Division and District --}}
+                <div style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px">
+                    <div style="font-weight:700;font-size:13px;color:#047857;margin-bottom:8px">বর্তমান ঠিকানা (Present Address)</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+                        <div>
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">বিভাগ</label>
+                            <select name="present_division_id" id="admin_present_division" class="form-control" onchange="adminLoadDistricts('present', this.value)">
+                                <option value="">-- বিভাগ নির্বাচন --</option>
+                                @foreach($divisions ?? [] as $div)
+                                    <option value="{{ $div?->id }}" {{ old('present_division_id', $student->present_division_id) == ($div?->id) ? 'selected' : '' }}>{{ $div?->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">জেলা</label>
+                            <select name="present_district_id" id="admin_present_district" class="form-control">
+                                <option value="">-- জেলা নির্বাচন --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label style="font-weight:600;font-size:12px;display:block;margin-bottom:3px">বিস্তারিত বর্তমান ঠিকানা</label>
+                    <textarea name="address" id="admin_present_address" class="form-control" rows="2">{{ old('address', $student->address) }}</textarea>
+                </div>
+
+                {{-- Permanent Address with Division and District --}}
+                <div style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                        <div style="font-weight:700;font-size:13px;color:#047857">স্থায়ী ঠিকানা (Permanent Address)</div>
+                        <button type="button" onclick="adminCopyAddress()" style="background:none;border:none;color:#047857;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">
+                            বর্তমান ঠিকানার অনুরূপ কপি করুন
+                        </button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+                        <div>
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">বিভাগ</label>
+                            <select name="permanent_division_id" id="admin_permanent_division" class="form-control" onchange="adminLoadDistricts('permanent', this.value)">
+                                <option value="">-- বিভাগ নির্বাচন --</option>
+                                @foreach($divisions ?? [] as $div)
+                                    <option value="{{ $div?->id }}" {{ old('permanent_division_id', $student->permanent_division_id) == ($div?->id) ? 'selected' : '' }}>{{ $div?->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">জেলা</label>
+                            <select name="permanent_district_id" id="admin_permanent_district" class="form-control">
+                                <option value="">-- জেলা নির্বাচন --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <label style="font-weight:600;font-size:12px;display:block;margin-bottom:3px">বিস্তারিত স্থায়ী ঠিকানা</label>
+                    <textarea name="permanent_address" id="admin_permanent_address" class="form-control" rows="2">{{ old('permanent_address', $student->permanent_address) }}</textarea>
                 </div>
             </div>
             <div class="card-footer" style="text-align:right;background:#f8fafc;padding:14px 20px;border-top:1px solid #e2e8f0">
@@ -128,4 +183,65 @@
             </div>
         </div>
     </form>
+
+    <script>
+        const ADMIN_DIVISIONS = @json($divisions ?? []);
+        function adminLoadDistricts(type, divisionId, selectedDistrictId = null) {
+            const sel = document.getElementById(type === 'present' ? 'admin_present_district' : 'admin_permanent_district');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">-- জেলা নির্বাচন --</option>';
+            if (!divisionId) return;
+
+            const divObj = ADMIN_DIVISIONS.find(d => String(d.id) === String(divisionId));
+            const districts = divObj ? (divObj.districts || []) : [];
+            if (districts.length > 0) {
+                districts.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.id;
+                    opt.textContent = d.name;
+                    if (selectedDistrictId && String(d.id) === String(selectedDistrictId)) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            } else {
+                fetch('/api/districts?division_id=' + divisionId)
+                    .then(r => r.json())
+                    .then(data => {
+                        data.forEach(d => {
+                            const opt = document.createElement('option');
+                            opt.value = d.id;
+                            opt.textContent = d.name;
+                            if (selectedDistrictId && String(d.id) === String(selectedDistrictId)) opt.selected = true;
+                            sel.appendChild(opt);
+                        });
+                    }).catch(() => {});
+            }
+        }
+
+        function adminCopyAddress() {
+            const presDiv = document.getElementById('admin_present_division');
+            const permDiv = document.getElementById('admin_permanent_division');
+            const presDist = document.getElementById('admin_present_district');
+            const presAddr = document.getElementById('admin_present_address');
+            const permAddr = document.getElementById('admin_permanent_address');
+
+            if (presDiv && permDiv) {
+                permDiv.value = presDiv.value;
+                adminLoadDistricts('permanent', presDiv.value, presDist ? presDist.value : null);
+            }
+            if (presAddr && permAddr) {
+                permAddr.value = presAddr.value;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const presDiv = document.getElementById('admin_present_division');
+            if (presDiv && presDiv.value) {
+                adminLoadDistricts('present', presDiv.value, '{{ old('present_district_id', $student->present_district_id) }}');
+            }
+            const permDiv = document.getElementById('admin_permanent_division');
+            if (permDiv && permDiv.value) {
+                adminLoadDistricts('permanent', permDiv.value, '{{ old('permanent_district_id', $student->permanent_district_id) }}');
+            }
+        });
+    </script>
 </x-admin-layout>

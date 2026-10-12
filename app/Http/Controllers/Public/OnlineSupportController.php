@@ -83,6 +83,37 @@ class OnlineSupportController extends Controller
             'message'     => "আপনার সাপোর্ট টিকিটটি (#{$ticket->ticket_no}) সফলভাবে জমা হয়েছে। আপনার সমস্যার সমাধান করে ২৪ ঘণ্টার মধ্যে রিপ্লাই দেওয়া হবে। অনুগ্রহ করে অপেক্ষা করুন।",
         ]);
 
+        // Dispatch Confirmation Email with Live Chat / Tracking Link
+        if (!empty($ticket->email) && filter_var($ticket->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                $chatUrl = route('online-support.chat', $ticket->uuid);
+                $mailService = app(\App\Services\DynamicMailService::class);
+                $deptName = $ticket->department?->name ?? 'সাধারণ হেল্পডেস্ক';
+
+                $mailSubject = "আপনার সাপোর্ট অনুরোধ গ্রহণ করা হয়েছে — টিকিট নম্বর #{$ticket->ticket_no}";
+                $mailBody = "আসসালামু আলাইকুম {$ticket->name},\n\n"
+                    . "ইসলামিক অনলাইন মাদ্রাসায় (IOM) আপনার সাপোর্ট অনুরোধটি (টিকিট নং: #{$ticket->ticket_no}) সফলভাবে গ্রহণ করা হয়েছে।\n\n"
+                    . "বিভাগ: {$deptName}\n"
+                    . "বিষয়: {$ticket->subject}\n\n"
+                    . "আমাদের সাপোর্ট প্রতিনিধি দ্রুত আপনার সমস্যা পর্যালোচনা করে সমাধান করবেন।\n\n"
+                    . "আপনি নিচের ট্র্যাকিং লিংকে ক্লিক করে সরাসরি সাপোর্ট চ্যাটবক্স ওপেন করতে পারবেন এবং আমাদের সাথে চ্যাট করতে পারবেন:\n"
+                    . "লাইভ চ্যাট ও ট্র্যাকিং লিংক: {$chatUrl}\n\n"
+                    . "বিনীত,\n"
+                    . "সাপোর্ট ও হেল্পডেস্ক বিভাগ,\n"
+                    . "ইসলামিক অনলাইন মাদ্রাসা (IOM)";
+
+                $mailService->sendHtmlNotification(
+                    $ticket->email,
+                    $mailSubject,
+                    $mailBody,
+                    null,
+                    $chatUrl
+                );
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Support Ticket Creation Email Error: ' . $e->getMessage());
+            }
+        }
+
         return redirect()->route('online-support.chat', $ticket->uuid)
             ->with('success', "সাপোর্ট অনুরোধ নম্বর #{$ticket->ticket_no} তৈরি হয়েছে। আপনার সমস্যার সমাধান করে ২৪ ঘণ্টার মধ্যে রিপ্লাই দেওয়া হবে।");
     }

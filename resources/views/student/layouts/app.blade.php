@@ -174,8 +174,17 @@
                 Dashboard
             </a>
             @php
-                $sidebarStudent = \App\Models\Student::where('email', auth()->user()?->email)->first();
-                $sidebarPct = $sidebarStudent ? ($sidebarStudent->profile_completed_percent ?? 0) : 0;
+                $sidebarStudent = auth()->user()?->resolveStudent();
+                $isCommon = $sidebarStudent?->is_common_account || (auth()->user() && auth()->user()->is_common_account);
+                if ($sidebarStudent && !$isCommon) {
+                    if ($sidebarStudent->profile_completed_percent === null || (int)$sidebarStudent->profile_completed_percent === 0) {
+                        $sidebarPct = $sidebarStudent->calculateProfileCompletion();
+                    } else {
+                        $sidebarPct = (int)$sidebarStudent->profile_completed_percent;
+                    }
+                } else {
+                    $sidebarPct = $isCommon ? 100 : 0;
+                }
             @endphp
             <a href="{{ route('student.profile.index') }}" class="nav-item {{ request()->routeIs('student.profile.*') ? 'active' : '' }}" style="{{ $sidebarPct < 95 ? 'border-left:3px solid #fbbf24' : '' }}">
                 <i class="fa-solid fa-user-check"></i>
@@ -206,7 +215,7 @@
                 Today's Classes
                 @php
                     try {
-                        $student = \App\Models\Student::where('email', auth()->user()->email)->first();
+                        $student = auth()->user()?->resolveStudent();
                         $batchIds = $student ? \App\Models\Enrollment::where('student_id', $student->id)->where('status','ACTIVE')->pluck('batch_id') : collect();
                         $todayClassCount = \App\Models\ClassSession::whereIn('batch_id', $batchIds)->whereDate('session_date', today())->count();
                     } catch (\Exception) { $todayClassCount = 0; }
@@ -500,7 +509,10 @@ if(window.fetch){
 </script>
 
 @php
-    $portalStudent = \App\Models\Student::where('email', auth()->user()?->email)->first();
+    $portalStudent = auth()->user()?->resolveStudent();
+    if ($portalStudent && ($portalStudent->profile_completed_percent === null || (int)$portalStudent->profile_completed_percent === 0)) {
+        $portalStudent->calculateProfileCompletion();
+    }
     $isProfileIncomplete = $portalStudent && !$portalStudent->isProfileCompleted();
 @endphp
 

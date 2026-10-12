@@ -512,16 +512,26 @@
                         </select>
                     </div>
 
-                    <!-- Blood Group Filter -->
+                    <!-- District Filter -->
                     <div class="filter-field">
-                        <label><i class="fa-solid fa-droplet" style="color:#e11d48"></i> রক্তের গ্রুপ (Blood Group)</label>
-                        <select name="blood_group">
-                            <option value="">-- সকল রক্তের গ্রুপ --</option>
-                            @foreach($bloodGroups as $bg)
-                                <option value="{{ $bg }}" {{ request('blood_group') === $bg ? 'selected' : '' }}>
-                                    {{ $bg }}
+                        <label><i class="fa-solid fa-location-dot" style="color:#047857"></i> জেলা (District)</label>
+                        <select name="district_id">
+                            <option value="">-- সকল জেলা (All Districts) --</option>
+                            @foreach($districts as $d)
+                                <option value="{{ $d->id }}" {{ request('district_id') == $d->id ? 'selected' : '' }}>
+                                    {{ $d->name }} @if($d->division) ({{ $d->division->name }}) @endif
                                 </option>
                             @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Expatriate Filter -->
+                    <div class="filter-field">
+                        <label><i class="fa-solid fa-plane-departure" style="color:#047857"></i> প্রবাস/আবাসিক (Residence)</label>
+                        <select name="is_expatriate">
+                            <option value="">-- সকল শিক্ষার্থী (All) --</option>
+                            <option value="1" {{ request('is_expatriate') === '1' ? 'selected' : '' }}>✈️ প্রবাসী শিক্ষার্থী (Expatriate)</option>
+                            <option value="0" {{ request('is_expatriate') === '0' ? 'selected' : '' }}>🇧🇩 দেশীয় শিক্ষার্থী (Domestic)</option>
                         </select>
                     </div>
                 </div>
@@ -566,6 +576,12 @@
                 @endif
                 @if(request('blood_group'))
                     <span class="active-filter-badge">রক্তের গ্রুপ: {{ request('blood_group') }}</span>
+                @endif
+                @if(request('district_id') && ($matchedDist = $districts->firstWhere('id', request('district_id'))))
+                    <span class="active-filter-badge">জেলা: {{ $matchedDist->name }}</span>
+                @endif
+                @if(request('is_expatriate') !== null && request('is_expatriate') !== '')
+                    <span class="active-filter-badge">আবাসন: {{ request('is_expatriate') == '1' ? 'প্রবাসী শিক্ষার্থী' : 'দেশীয় শিক্ষার্থী' }}</span>
                 @endif
                 <a href="{{ route('admin.students.index', $status ? ['status' => $status] : []) }}" style="margin-left:auto;color:#b91c1c;font-weight:700;font-size:12px;text-decoration:none">
                     <i class="fa-solid fa-xmark"></i> ফিল্টার মুছুন
@@ -627,10 +643,16 @@
                                     @elseif($st->gender)
                                         <span class="gender-badge gender-other">{{ $st->gender }}</span>
                                     @endif
+
+                                    @if($st->is_expatriate)
+                                        <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;padding:2px 8px;border-radius:12px;margin-left:4px" title="বসবাসরত দেশ: {{ $st->country_of_residence }}">
+                                            <i class="fa-solid fa-plane"></i> প্রবাসী ({{ $st->country_of_residence ?: 'বিদেশ' }})
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
 
-                            <!-- Phone / Email -->
+                            <!-- Phone / Email & District -->
                             <td style="padding:14px 16px">
                                 <div style="font-weight:600;color:#1e293b;font-size:13px;display:flex;align-items:center;gap:6px">
                                     <i class="fa-solid fa-phone" style="font-size:11px;color:#047857"></i>
@@ -640,6 +662,15 @@
                                     <i class="fa-regular fa-envelope" style="font-size:11px;color:#94a3b8"></i>
                                     <span>{{ $st->email ?? '—' }}</span>
                                 </div>
+                                @php
+                                    $distName = $st->presentDistrict?->name ?? $st->permanentDistrict?->name;
+                                @endphp
+                                @if($distName)
+                                    <div style="font-size:11.5px;color:#047857;margin-top:4px;display:flex;align-items:center;gap:4px">
+                                        <i class="fa-solid fa-location-dot" style="font-size:10px"></i>
+                                        <span>জেলা: {{ $distName }}</span>
+                                    </div>
+                                @endif
                             </td>
 
                             <!-- Active Course, Batch & Semester -->

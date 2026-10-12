@@ -55,6 +55,42 @@ class User extends Authenticatable
         return $this->hasOne(Student::class, 'user_id');
     }
 
+    /**
+     * Reliably resolve associated Student record regardless of whether login was email or student_code
+     */
+    public function resolveStudent(): ?Student
+    {
+        $student = $this->student ?: Student::where('user_id', $this->id)->first();
+        if ($student) {
+            return $student;
+        }
+
+        if (!empty($this->email)) {
+            $student = Student::where('email', $this->email)->first();
+            if ($student) {
+                if (empty($student->user_id) && $this->id) {
+                    $student->user_id = $this->id;
+                    $student->saveQuietly();
+                }
+                return $student;
+            }
+
+            if (str_ends_with($this->email, '@iom.student')) {
+                $code = explode('@', $this->email)[0];
+                $student = Student::where('student_code', $code)->first();
+                if ($student) {
+                    if (empty($student->user_id) && $this->id) {
+                        $student->user_id = $this->id;
+                        $student->saveQuietly();
+                    }
+                    return $student;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public function supportDepartments()
     {
         return $this->belongsToMany(SupportDepartment::class, 'support_department_user', 'user_id', 'support_department_id');

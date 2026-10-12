@@ -260,27 +260,94 @@
             </div>
         </div>
 
-        {{-- ── ৩. ঠিকানা ── --}}
+        {{-- ── ৩. ঠিকানা ও প্রবাস তথ্য ── --}}
         <div class="card" style="margin-bottom:20px">
             <div class="card-header" style="background:#f8fafc">
-                <span class="card-title" style="font-family:'Kalpurush',sans-serif"><i class="fa-solid fa-location-dot" style="color:var(--iom-green)"></i> ৩. যোগাযোগের ঠিকানা (Address)</span>
+                <span class="card-title" style="font-family:'Kalpurush',sans-serif"><i class="fa-solid fa-location-dot" style="color:var(--iom-green)"></i> ৩. যোগাযোগের ঠিকানা ও আবাসিক তথ্য (Address & Residence)</span>
             </div>
             <div class="card-body">
-                <div class="form-group">
-                    <label>বর্তমান ঠিকানা (বাড়ি/গ্রাম, ডাকঘর, থানা, জেলা) <span class="text-danger">*</span></label>
-                    <textarea name="address" id="present_address" class="form-control" rows="2" placeholder="বর্তমান বসবাসের বিস্তারিত ঠিকানা" required>{{ old('address', $student->address) }}</textarea>
+                {{-- ── প্রবাসী সংক্রান্ত অপশন ── --}}
+                <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:16px 18px;margin-bottom:20px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                        <label style="display:flex;align-items:center;gap:10px;font-size:14.5px;font-weight:700;color:#065f46;cursor:pointer;margin:0;font-family:'Kalpurush',sans-serif">
+                            <input type="checkbox" name="is_expatriate" id="is_expatriate" value="1" onchange="toggleExpatriate(this)" {{ old('is_expatriate', $student->is_expatriate) ? 'checked' : '' }} style="width:18px;height:18px;accent-color:var(--iom-green);cursor:pointer">
+                            <span><i class="fa-solid fa-plane-departure" style="color:var(--iom-green);margin-right:4px"></i> আপনি কি প্রবাসী? (Are you an Expatriate / Living Abroad?)</span>
+                        </label>
+                        <span style="font-size:12px;color:#047857;background:#dcfce7;padding:3px 12px;border-radius:12px;font-weight:600;font-family:'Kalpurush',sans-serif">
+                            প্রবাসীদের জন্য বিশেষ কারিকুলাম ও ফি কাঠামো প্রযোজ্য
+                        </span>
+                    </div>
+                    <div id="country_residence_wrapper" style="margin-top:14px;{{ old('is_expatriate', $student->is_expatriate) ? '' : 'display:none;' }}">
+                        <label style="font-size:13.5px;font-weight:700;color:#065f46;margin-bottom:6px;display:block;font-family:'Kalpurush',sans-serif">
+                            বসবাসরত দেশের নাম (Country of Residence) <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="country_of_residence" id="country_of_residence" class="form-control" value="{{ old('country_of_residence', $student->country_of_residence) }}" placeholder="যেমন: সৌদি আরব, কাতার, কুয়েত, সংযুক্ত আরব আমিরাত, মালয়েশিয়া, যুক্তরাজ্য, যুক্তরাষ্ট্র ইত্যাদি" style="border-color:#86efac;background:#fff;font-family:'Kalpurush',sans-serif">
+                        <small style="color:#047857;font-size:12px;margin-top:4px;display:block;font-family:'Kalpurush',sans-serif">
+                            <i class="fa-solid fa-circle-info"></i> আপনি বর্তমানে যে দেশে অবস্থান করছেন তার নাম লিখুন।
+                        </small>
+                    </div>
                 </div>
 
-                <div style="margin:8px 0 12px">
-                    <label style="display:flex;align-items:center;gap:6px;font-weight:normal;font-size:13px;cursor:pointer">
-                        <input type="checkbox" id="same_address_check" onchange="copyAddress(this)" style="width:16px;height:16px;accent-color:var(--iom-green)">
-                        <span>স্থায়ী ঠিকানা বর্তমান ঠিকানার অনুরূপ</span>
+                {{-- ── বর্তমান ঠিকানা ── --}}
+                <div style="font-size:13.5px;font-weight:700;color:#047857;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid #e2e8f0;font-family:'Kalpurush',sans-serif">
+                    <i class="fa-solid fa-house-user"></i> বর্তমান ঠিকানা (Present Address)
+                </div>
+                <div class="form-row" style="margin-bottom:12px">
+                    <div class="form-group">
+                        <label style="font-family:'Kalpurush',sans-serif">বিভাগ (Present Division) <span class="text-danger">*</span></label>
+                        <select name="present_division_id" id="present_division_id" class="form-control" onchange="loadDistricts('present', this.value)" style="font-family:'Kalpurush',sans-serif" required>
+                            <option value="">-- বিভাগ নির্বাচন করুন --</option>
+                            @foreach($divisions as $div)
+                                <option value="{{ $div->id }}" {{ old('present_division_id', $student->present_division_id) == $div->id ? 'selected' : '' }}>{{ $div->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-family:'Kalpurush',sans-serif">জেলা (Present District) <span class="text-danger">*</span></label>
+                        <select name="present_district_id" id="present_district_id" class="form-control" style="font-family:'Kalpurush',sans-serif" required>
+                            <option value="">-- জেলা নির্বাচন করুন --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="font-family:'Kalpurush',sans-serif">বর্তমান বিস্তারিত ঠিকানা (বাড়ি/গ্রাম, ডাকঘর, থানা) <span class="text-danger">*</span></label>
+                    <textarea name="address" id="present_address" class="form-control" rows="2" placeholder="বর্তমান বসবাসের বিস্তারিত ঠিকানা" style="font-family:'Kalpurush',sans-serif" required>{{ old('address', $student->address) }}</textarea>
+                </div>
+
+                {{-- ── স্থায়ী ঠিকানা অনুরূপ চেকবক্স ── --}}
+                <div style="margin:14px 0 16px;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+                    <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;cursor:pointer;margin:0;color:#1e293b;font-family:'Kalpurush',sans-serif">
+                        <input type="checkbox" id="same_address_check" onchange="copyAddress(this)" style="width:17px;height:17px;accent-color:var(--iom-green);cursor:pointer">
+                        <span>স্থায়ী ঠিকানা বর্তমান ঠিকানার অনুরূপ (Same as Present Address)</span>
                     </label>
                 </div>
 
+                {{-- ── স্থায়ী ঠিকানা ── --}}
+                <div style="font-size:13.5px;font-weight:700;color:#047857;margin-bottom:10px;padding-bottom:4px;border-bottom:1px solid #e2e8f0;font-family:'Kalpurush',sans-serif">
+                    <i class="fa-solid fa-map-location-dot"></i> স্থায়ী ঠিকানা (Permanent Address)
+                </div>
+                <div class="form-row" style="margin-bottom:12px">
+                    <div class="form-group">
+                        <label style="font-family:'Kalpurush',sans-serif">বিভাগ (Permanent Division) <span class="text-danger">*</span></label>
+                        <select name="permanent_division_id" id="permanent_division_id" class="form-control" onchange="loadDistricts('permanent', this.value)" style="font-family:'Kalpurush',sans-serif" required>
+                            <option value="">-- বিভাগ নির্বাচন করুন --</option>
+                            @foreach($divisions as $div)
+                                <option value="{{ $div->id }}" {{ old('permanent_division_id', $student->permanent_division_id) == $div->id ? 'selected' : '' }}>{{ $div->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="font-family:'Kalpurush',sans-serif">জেলা (Permanent District) <span class="text-danger">*</span></label>
+                        <select name="permanent_district_id" id="permanent_district_id" class="form-control" style="font-family:'Kalpurush',sans-serif" required>
+                            <option value="">-- জেলা নির্বাচন করুন --</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-group">
-                    <label>স্থায়ী ঠিকানা <span class="text-danger">*</span></label>
-                    <textarea name="permanent_address" id="permanent_address" class="form-control" rows="2" placeholder="স্থায়ী বিস্তারিত ঠিকানা" required>{{ old('permanent_address', $student->permanent_address) }}</textarea>
+                    <label style="font-family:'Kalpurush',sans-serif">স্থায়ী বিস্তারিত ঠিকানা (বাড়ি/গ্রাম, ডাকঘর, থানা) <span class="text-danger">*</span></label>
+                    <textarea name="permanent_address" id="permanent_address" class="form-control" rows="2" placeholder="স্থায়ী বিস্তারিত ঠিকানা" style="font-family:'Kalpurush',sans-serif" required>{{ old('permanent_address', $student->permanent_address) }}</textarea>
                 </div>
             </div>
         </div>
@@ -590,6 +657,106 @@
 
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeStudentAvatarModal();
+    });
+
+    // ── Address & Expatriate Handling ──
+    const DIVISIONS_DATA = @json($divisions ?? []);
+
+    function getDistrictsForDivision(divisionId) {
+        if (!divisionId) return [];
+        const div = DIVISIONS_DATA.find(d => String(d.id) === String(divisionId));
+        return div ? (div.districts || []) : [];
+    }
+
+    function loadDistricts(type, divisionId, selectedDistrictId = null) {
+        const select = document.getElementById(type + '_district_id');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- জেলা নির্বাচন করুন --</option>';
+        if (!divisionId) return;
+
+        const districts = getDistrictsForDivision(divisionId);
+        if (districts.length > 0) {
+            districts.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = d.name;
+                if (selectedDistrictId && String(d.id) === String(selectedDistrictId)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        } else {
+            fetch('/api/districts?division_id=' + divisionId)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.id;
+                        opt.textContent = d.name;
+                        if (selectedDistrictId && String(d.id) === String(selectedDistrictId)) {
+                            opt.selected = true;
+                        }
+                        select.appendChild(opt);
+                    });
+                })
+                .catch(() => {});
+        }
+    }
+
+    function toggleExpatriate(cb) {
+        const wrapper = document.getElementById('country_residence_wrapper');
+        const input = document.getElementById('country_of_residence');
+        if (cb.checked) {
+            if (wrapper) wrapper.style.display = 'block';
+            if (input) input.focus();
+        } else {
+            if (wrapper) wrapper.style.display = 'none';
+            if (input) input.value = '';
+        }
+    }
+
+    function copyAddress(cb) {
+        const presAddr = document.getElementById('present_address');
+        const permAddr = document.getElementById('permanent_address');
+        const presDiv = document.getElementById('present_division_id');
+        const permDiv = document.getElementById('permanent_division_id');
+        const presDist = document.getElementById('present_district_id');
+        const permDist = document.getElementById('permanent_district_id');
+
+        if (cb.checked) {
+            if (presDiv && permDiv) {
+                permDiv.value = presDiv.value;
+                loadDistricts('permanent', presDiv.value, presDist ? presDist.value : null);
+            }
+            if (presAddr && permAddr) {
+                permAddr.value = presAddr.value;
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const presDiv = document.getElementById('present_division_id');
+        if (presDiv && presDiv.value) {
+            loadDistricts('present', presDiv.value, '{{ old('present_district_id', $student->present_district_id) }}');
+        }
+        const permDiv = document.getElementById('permanent_division_id');
+        if (permDiv && permDiv.value) {
+            loadDistricts('permanent', permDiv.value, '{{ old('permanent_district_id', $student->permanent_district_id) }}');
+        }
+
+        ['present_address', 'present_division_id', 'present_district_id'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', () => {
+                    const same = document.getElementById('same_address_check');
+                    if (same && same.checked) copyAddress(same);
+                });
+                el.addEventListener('change', () => {
+                    const same = document.getElementById('same_address_check');
+                    if (same && same.checked) copyAddress(same);
+                });
+            }
+        });
     });
     </script>
 </x-student-layout>

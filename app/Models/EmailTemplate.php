@@ -73,12 +73,16 @@ class EmailTemplate extends Model
      */
     public static function resolveAdmissionTemplate(?int $courseId, ?int $batchId, ?string $gender = null): ?self
     {
+        if ($batchId && !$courseId) {
+            $courseId = Batch::where('id', $batchId)->value('course_id');
+        }
+
         $normalizedGender = 'All';
         if ($gender) {
-            $g = strtolower(trim($gender));
-            if ($g === 'male' || str_starts_with($g, 'm') || str_starts_with($g, 'প')) {
+            $g = strtolower(trim((string)$gender));
+            if ($g === 'male' || str_starts_with($g, 'm') || str_starts_with($g, 'প') || str_contains($g, 'ভাই') || str_contains($g, 'bro')) {
                 $normalizedGender = 'Male';
-            } elseif ($g === 'female' || str_starts_with($g, 'f') || str_starts_with($g, 'মহ')) {
+            } elseif ($g === 'female' || str_starts_with($g, 'f') || str_starts_with($g, 'মহ') || str_contains($g, 'বোন') || str_contains($g, 'sis')) {
                 $normalizedGender = 'Female';
             }
         }
@@ -97,7 +101,15 @@ class EmailTemplate extends Model
             if ($tpl) return $tpl;
         }
 
-        // 2. Try course + batch + 'All'
+        // 2. Try batch + gender (even if course_id on template is null)
+        if ($batchId && $normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('batch_id', $batchId)
+                ->where('gender', $normalizedGender)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 3. Try course + batch + 'All'
         if ($courseId && $batchId) {
             $tpl = (clone $base)->where('course_id', $courseId)
                 ->where('batch_id', $batchId)
@@ -106,7 +118,15 @@ class EmailTemplate extends Model
             if ($tpl) return $tpl;
         }
 
-        // 3. Try course + gender
+        // 4. Try batch + 'All'
+        if ($batchId) {
+            $tpl = (clone $base)->where('batch_id', $batchId)
+                ->where('gender', 'All')
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 5. Try course + gender
         if ($courseId && $normalizedGender !== 'All') {
             $tpl = (clone $base)->where('course_id', $courseId)
                 ->whereNull('batch_id')
@@ -115,7 +135,7 @@ class EmailTemplate extends Model
             if ($tpl) return $tpl;
         }
 
-        // 4. Try course + 'All'
+        // 6. Try course + 'All'
         if ($courseId) {
             $tpl = (clone $base)->where('course_id', $courseId)
                 ->whereNull('batch_id')
@@ -124,7 +144,19 @@ class EmailTemplate extends Model
             if ($tpl) return $tpl;
         }
 
-        // 5. Fallback: Any generic active admission template
+        // 7. Try gender-specific active custom template
+        if ($normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('gender', $normalizedGender)
+                ->where('is_system', false)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 8. Try any active custom non-system admission template
+        $customTpl = (clone $base)->where('is_system', false)->first();
+        if ($customTpl) return $customTpl;
+
+        // 9. Fallback: Any generic active admission template
         return (clone $base)->orderByDesc('is_system')->first();
     }
 

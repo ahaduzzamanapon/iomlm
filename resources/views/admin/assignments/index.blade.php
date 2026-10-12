@@ -168,21 +168,34 @@
                 @csrf
                 <div class="modal-body">
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>বিষয় (Subject) <span class="required">*</span></label>
-                            <select name="subject_id" class="form-control" required>
-                                <option value="">-- বিষয় নির্বাচন করুন --</option>
-                                @foreach($subjects as $s)
-                                    <option value="{{ $s->id }}">{{ $s->name }} ({{ $s->code }})</option>
+                        <div class="form-group" style="flex:1">
+                            <label>কোর্স (Course) <span style="font-size:11px;color:#64748b">(ঐচ্ছিক ফিল্টার)</span></label>
+                            <select id="modal_create_assignment_course_id" class="form-control" onchange="onAssignmentModalCourseChange(this.value)">
+                                <option value="">-- সকল কোর্স --</option>
+                                @foreach($courses as $c)
+                                    <option value="{{ $c->id }}" {{ ($courseId ?? '') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" style="flex:1">
+                            <label>বিষয় (Subject) <span class="required">*</span></label>
+                            <select name="subject_id" id="modal_create_assignment_subject_id" class="form-control" required onchange="onAssignmentModalSubjectChange(this.value)">
+                                <option value="">-- বিষয় নির্বাচন করুন --</option>
+                                @foreach($subjects as $s)
+                                    <option value="{{ $s->id }}" data-course-ids="{{ json_encode($s->courseSubjectMaps->pluck('course_id')->filter()->unique()->values()) }}">
+                                        {{ $s->name }} ({{ $s->code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex:1">
                             <label>নির্দিষ্ট ব্যাচ (ঐচ্ছিক)</label>
-                            <select name="batch_id" class="form-control">
+                            <select name="batch_id" id="modal_create_assignment_batch_id" class="form-control">
                                 <option value="">-- সকল ব্যাচের জন্য উন্মুক্ত --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">
+                                        {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
@@ -246,6 +259,81 @@
             batchSelect.value = '';
         }
     };
+
+    window.onAssignmentModalCourseChange = function(courseId) {
+        const subjectSelect = document.getElementById('modal_create_assignment_subject_id');
+        const batchSelect   = document.getElementById('modal_create_assignment_batch_id');
+        if (!subjectSelect || !batchSelect) return;
+
+        let hasSelectedSubj = false;
+        subjectSelect.querySelectorAll('option').forEach(opt => {
+            if (!opt.value) { opt.style.display = ''; return; }
+            const cIds = JSON.parse(opt.getAttribute('data-course-ids') || '[]');
+            if (!courseId || cIds.length === 0 || cIds.map(String).includes(String(courseId))) {
+                opt.style.display = '';
+                if (opt.selected) hasSelectedSubj = true;
+            } else {
+                opt.style.display = 'none';
+                if (opt.selected) opt.selected = false;
+            }
+        });
+        if (!hasSelectedSubj && courseId && subjectSelect.value) {
+            subjectSelect.value = '';
+        }
+
+        filterModalBatchesByCourseIds(courseId ? [String(courseId)] : null);
+    };
+
+    window.onAssignmentModalSubjectChange = function(subjectId) {
+        const courseSelect  = document.getElementById('modal_create_assignment_course_id');
+        const subjectSelect = document.getElementById('modal_create_assignment_subject_id');
+        const batchSelect   = document.getElementById('modal_create_assignment_batch_id');
+        if (!subjectSelect || !batchSelect) return;
+
+        if (!subjectId) {
+            const cId = courseSelect ? courseSelect.value : null;
+            filterModalBatchesByCourseIds(cId ? [String(cId)] : null);
+            return;
+        }
+
+        const selectedOpt = subjectSelect.querySelector(`option[value="${subjectId}"]`);
+        if (!selectedOpt) return;
+        const cIds = JSON.parse(selectedOpt.getAttribute('data-course-ids') || '[]').map(String);
+
+        if (cIds.length > 0) {
+            if (courseSelect && (!courseSelect.value || !cIds.includes(String(courseSelect.value)))) {
+                if (cIds.length === 1) {
+                    courseSelect.value = cIds[0];
+                }
+            }
+            filterModalBatchesByCourseIds(cIds);
+        } else {
+            const cId = courseSelect ? courseSelect.value : null;
+            filterModalBatchesByCourseIds(cId ? [String(cId)] : null);
+        }
+    };
+
+    function filterModalBatchesByCourseIds(allowedCourseIds) {
+        const batchSelect = document.getElementById('modal_create_assignment_batch_id');
+        if (!batchSelect) return;
+
+        let hasSelected = false;
+        batchSelect.querySelectorAll('option').forEach(opt => {
+            if (!opt.value) { opt.style.display = ''; return; }
+            const bCourseId = String(opt.getAttribute('data-course-id') || '');
+            if (!allowedCourseIds || allowedCourseIds.length === 0 || allowedCourseIds.includes(bCourseId)) {
+                opt.style.display = '';
+                if (opt.selected) hasSelected = true;
+            } else {
+                opt.style.display = 'none';
+                if (opt.selected) opt.selected = false;
+            }
+        });
+
+        if (!hasSelected && batchSelect.value) {
+            batchSelect.value = '';
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', function() {
         const cSelect = document.getElementById('assignment_filter_course');

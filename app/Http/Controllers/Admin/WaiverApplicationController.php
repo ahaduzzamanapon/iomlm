@@ -115,38 +115,43 @@ class WaiverApplicationController extends Controller
         if (!empty($waiverApplication->email) && filter_var($waiverApplication->email, FILTER_VALIDATE_EMAIL)) {
             try {
                 $mailService = app(\App\Services\DynamicMailService::class);
-                $subject = "🎉 Waiver Approved! Your Coupon Code: {$waiverApplication->application_no}";
+                $subject = "🎉 অভিনন্দন: আপনার পুওর ফান্ড আবেদন অনুমোদিত হয়েছে! কুপন কোড: {$waiverApplication->application_no}";
 
                 $detailsList = [];
-                $detailsList[] = "• Waiver / Coupon Code: {$waiverApplication->application_no}";
+                $detailsList[] = "• পুওর ফান্ড / কুপন কোড: {$waiverApplication->application_no}";
 
                 if (isset($updateData['approved_admission_fee'])) {
-                    $detailsList[] = "• Approved Admission Fee: ৳" . number_format($updateData['approved_admission_fee'], 0);
+                    $detailsList[] = "• অনুমোদিত ভর্তি ফি: ৳" . number_format($updateData['approved_admission_fee'], 0);
                 }
                 if (isset($updateData['approved_package_id'])) {
                     $pkg = CourseFeePackage::find($updateData['approved_package_id']);
                     if ($pkg) {
-                        $detailsList[] = "• Approved Fee Package: {$pkg->name}";
+                        $detailsList[] = "• অনুমোদিত ফি প্যাকেজ: {$pkg->name}";
                     }
                 }
 
                 $detailsText = implode("\n", $detailsList);
+                $applyUrl = url('/apply?waiver_code=' . urlencode($waiverApplication->application_no));
 
-                $emailBody = "Assalamu Alaikum, {$waiverApplication->full_name}!\n\n"
-                    . "Alhamdulillah! Your Waiver Application (No: {$waiverApplication->application_no}) has been APPROVED by the administration.\n\n"
-                    . "Here are your Approved Waiver & Coupon Code details:\n"
+                $emailBody = "আসসালামু আলাইকুম {$waiverApplication->full_name},\n\n"
+                    . "আলহামদুলিল্লাহ! ইসলামিক অনলাইন মাদ্রাসার প্রশাসন কর্তৃক আপনার পুওর ফান্ড / বিশেষ ছাড়ের আবেদনটি (আবেদন নং: {$waiverApplication->application_no}) সফলভাবে অনুমোদিত হয়েছে।\n\n"
+                    . "আপনার অনুমোদিত বিশেষ ছাড় ও কুপন কোডের বিবরণ:\n"
                     . "----------------------------------------\n"
                     . "{$detailsText}\n"
                     . "----------------------------------------\n\n"
-                    . "You can enter your Coupon / Waiver Code ({$waiverApplication->application_no}) in the Admission Form to enjoy your approved waiver rate.\n\n"
-                    . "Click below to submit your Admission Application:";
+                    . "ভর্তি ফরম পূরণ করার সময় আপনার এই কুপন কোডটি ({$waiverApplication->application_no}) ব্যবহার করে আপনি অনুমোদিত নির্ধারিত ফি-তে ভর্তি সম্পন্ন করতে পারবেন।\n\n"
+                    . "ভর্তি ফরম পূরণ করতে নিচের লিংকে ক্লিক করুন:\n"
+                    . "ভর্তি ফরম লিংক: {$applyUrl}\n\n"
+                    . "বিনীত,\n"
+                    . "পুওর ফান্ড ও স্কলারশিপ কমিটি,\n"
+                    . "ইসলামিক অনলাইন মাদ্রাসা (IOM)";
 
                 $mailService->sendHtmlNotification(
                     $waiverApplication->email,
                     $subject,
                     $emailBody,
                     null,
-                    url('/admissions/apply?waiver_code=' . urlencode($waiverApplication->application_no))
+                    $applyUrl
                 );
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Waiver Approval Email Exception: ' . $e->getMessage());

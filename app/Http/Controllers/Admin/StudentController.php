@@ -21,9 +21,12 @@ class StudentController extends Controller
      */
     protected function buildFilteredQuery(Request $request)
     {
-        $query = Student::with(['enrollments' => function ($q) {
-            $q->latest('id')->with(['batch.course', 'semester']);
-        }]);
+        $query = Student::with([
+            'presentDistrict', 'permanentDistrict', 'presentDivision', 'permanentDivision',
+            'enrollments' => function ($q) {
+                $q->latest('id')->with(['batch.course', 'semester']);
+            }
+        ]);
 
         // General search term across Name, Code, Phone, Email, NID
         if ($request->filled('search')) {
@@ -66,6 +69,28 @@ class StudentController extends Controller
 
         if ($request->filled('status')) {
             $query->where('status', strtoupper(trim($request->status)));
+        }
+
+        // District Filter (Present or Permanent District)
+        if ($request->filled('district_id')) {
+            $districtId = (int) $request->district_id;
+            $query->where(function ($q) use ($districtId) {
+                $q->where('present_district_id', $districtId)
+                  ->orWhere('permanent_district_id', $districtId);
+            });
+        }
+
+        // Expatriate Filter
+        if ($request->filled('is_expatriate')) {
+            $isExp = (string) $request->input('is_expatriate');
+            if ($isExp === '1' || $isExp === 'yes' || $isExp === 'true') {
+                $query->where('is_expatriate', true);
+            } elseif ($isExp === '0' || $isExp === 'no' || $isExp === 'false') {
+                $query->where(function ($q) {
+                    $q->where('is_expatriate', false)
+                      ->orWhereNull('is_expatriate');
+                });
+            }
         }
 
         // Course, Batch & Semester filters combined on enrollments
@@ -114,6 +139,7 @@ class StudentController extends Controller
         $courses     = Course::where('is_active', true)->orderBy('name')->get();
         $batches     = Batch::with('course')->orderBy('name')->get();
         $semesters   = Semester::with('course')->orderBy('sequence_no')->get();
+        $districts   = \App\Models\District::with('division')->orderBy('name')->get();
         $bloodGroups = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
         $query = $this->buildFilteredQuery($request);
@@ -137,12 +163,13 @@ class StudentController extends Controller
         $hasFilters = $request->anyFilled([
             'search', 'name', 'student_code', 'phone', 'email',
             'gender', 'blood_group', 'course_id', 'batch_id', 'semester_id',
+            'district_id', 'is_expatriate'
         ]) || ($request->filled('status') && !in_array($request->status, ['ACTIVE', 'PENDING', 'GRADUATED']));
 
         $status = $request->query('status');
 
         return view('admin.students.index', compact(
-            'students', 'courses', 'batches', 'semesters', 'bloodGroups',
+            'students', 'courses', 'batches', 'semesters', 'districts', 'bloodGroups',
             'status', 'totalCount', 'activeCount', 'pendingCount', 'graduatedCount', 'hasFilters', 'perPage'
         ));
     }
@@ -189,6 +216,8 @@ class StudentController extends Controller
                 'ইমেইল (Email)',
                 'রক্তের গ্রুপ (Blood Group)',
                 'এনআইডি / জন্ম নিবন্ধন (NID)',
+                'আবাসিক স্ট্যাটাস (Residence)',
+                'জেলা (District)',
                 'এনরোল্ড কোর্স (Course)',
                 'ব্যাচ (Batch)',
                 'বর্তমান সেমিস্টার (Semester)',
@@ -229,6 +258,8 @@ class StudentController extends Controller
                     $st->email ?? '',
                     $st->blood_group ?? '—',
                     $st->national_id ?? '—',
+                    $st->is_expatriate ? ('প্রবাসী (' . ($st->country_of_residence ?: 'বিদেশ') . ')') : 'দেশীয়',
+                    $st->presentDistrict?->name ?? $st->permanentDistrict?->name ?? '—',
                     $courseName,
                     $batchName,
                     $semName,
@@ -297,12 +328,17 @@ class StudentController extends Controller
             $student->setRelation('feePackage', $matchingPkg);
         }
 
-        return view('admin.students.show', compact('student', 'feePackages', 'currentCourse'));
+        $divisions = \App\Models\Division::with('districts')->orderBy('name')->get();
+        $districts = \App\Models\District::orderBy('name')->get();
+
+        return view('admin.students.show', compact('student', 'feePackages', 'currentCourse', 'divisions', 'districts'));
     }
 
     public function edit(Student $student)
     {
-        return view('admin.students.edit', compact('student'));
+        $divisions = \App\Models\Division::with('districts')->orderBy('name')->get();
+        $districts = \App\Models\District::orderBy('name')->get();
+        return view('admin.students.edit', compact('student', 'divisions', 'districts'));
     }
 
     public function update(Request $request, Student $student)
@@ -315,7 +351,13 @@ class StudentController extends Controller
             'date_of_birth'           => 'nullable|date',
             'blood_group'             => 'nullable|string',
             'national_id'             => 'nullable|string|max:50',
+            'is_expatriate'           => 'nullable',
+            'country_of_residence'    => 'nullable|string|max:100',
+            'present_division_id'     => 'nullable|integer',
+            'present_district_id'     => 'nullable|integer',
             'address'                 => 'nullable|string',
+            'permanent_division_id'   => 'nullable|integer',
+            'permanent_district_id'   => 'nullable|integer',
             'permanent_address'       => 'nullable|string',
             'father_name'             => 'nullable|string|max:200',
             'mother_name'             => 'nullable|string|max:200',
@@ -329,6 +371,11 @@ class StudentController extends Controller
             'avatar_preset'           => 'nullable|string|max:255',
         ]);
 
+        $validated['is_expatriate'] = $request->boolean('is_expatriate');
+        if (!$validated['is_expatriate']) {
+            $validated['country_of_residence'] = null;
+        }
+
         $validated['is_common_account'] = $request->boolean('is_common_account');
 
         if ($request->hasFile('photo')) {
@@ -341,8 +388,11 @@ class StudentController extends Controller
 
         $trackedFields = [
             'name', 'phone', 'email', 'gender', 'date_of_birth', 'blood_group', 
-            'national_id', 'address', 'permanent_address', 'father_name', 
-            'mother_name', 'guardian_name', 'guardian_phone', 'education_qualification', 'is_common_account', 'status', 'photo_url'
+            'national_id', 'is_expatriate', 'country_of_residence',
+            'present_division_id', 'present_district_id', 'address',
+            'permanent_division_id', 'permanent_district_id', 'permanent_address',
+            'father_name', 'mother_name', 'guardian_name', 'guardian_phone',
+            'education_qualification', 'is_common_account', 'status', 'photo_url'
         ];
 
         $oldValues = [];
