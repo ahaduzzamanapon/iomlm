@@ -249,6 +249,11 @@
                 <i class="fa-solid fa-arrow-right"></i> আবেদন রসিদ ও লগইন তথ্য দেখুন
             </a>
         @elseif($transaction->isPending())
+            @if(strtolower($transaction->gateway) === 'bkash')
+                <a href="{{ route('payment.bkash.page', $transaction->tran_id) }}" class="btn btn-primary" style="background:#e2136e;border-color:#e2136e;margin-bottom:10px;">
+                    <i class="fa-solid fa-wallet"></i> বিকাশ পেমেন্ট উইন্ডো খুলুন (Pay with bKash)
+                </a>
+            @endif
             <button type="button" class="btn btn-primary" onclick="window.location.reload()">
                 <i class="fa-solid fa-arrows-rotate"></i> স্ট্যাটাস রিফ্রেশ করুন
             </button>

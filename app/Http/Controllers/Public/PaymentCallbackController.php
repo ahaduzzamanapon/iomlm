@@ -358,4 +358,146 @@ class PaymentCallbackController extends Controller
             'status' => $transaction->status,
         ]);
     }
+
+    /**
+     * Dedicated bKash Hosted PGW Checkout Bridge Page
+     */
+    public function bkashCheckoutPage($tranId)
+    {
+        $transaction = GatewayTransaction::where('tran_id', $tranId)->firstOrFail();
+
+        if ($transaction->status === 'SUCCESS') {
+            if ($transaction->admissionForm) {
+                return redirect()->route('apply.success', $transaction->admissionForm->application_no);
+            }
+            if ($transaction->invoice_id) {
+                return redirect()->route('student.fees.index');
+            }
+            return redirect()->route('payment.status', $tranId)->with('success', 'পেমেন্ট ইতিমধ্যে সফলভাবে পরিশোধিত হয়েছে!');
+        }
+
+        $config = PaymentGatewayService::getBkashConfig();
+        $paymentData = $transaction->raw_response;
+
+        // If not initiated or missing paymentID, generate fresh
+        if (empty($paymentData['paymentID'])) {
+            $initRes = PaymentGatewayService::initiateBkash(
+                $transaction,
+                $transaction->admissionForm,
+                $transaction->customer_phone
+            );
+            $transaction->refresh();
+            $paymentData = $transaction->raw_response;
+        }
+
+        $scriptUrl = $config['is_sandbox']
+            ? 'https://scripts.sandbox.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout-sandbox.js'
+            : 'https://scripts.pay.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout.js';
+
+        return view('public.payment.bkash_checkout', compact('transaction', 'config', 'paymentData', 'scriptUrl'));
+    }
+
+    /**
+     * AJAX endpoint to create/refresh bKash payment if needed
+     */
+    public function bkashCreateAjax(Request $request, $tranId)
+    {
+        $transaction = GatewayTransaction::where('tran_id', $tranId)->first();
+        if (!$transaction) {
+            return response()->json(['success' => false, 'message' => 'লেনদেন পাওয়া যায়নি।'], 404);
+        }
+
+        $initRes = PaymentGatewayService::initiateBkash(
+            $transaction,
+            $transaction->admissionForm,
+            $transaction->customer_phone
+        );
+
+        $transaction->refresh();
+        $paymentData = $transaction->raw_response;
+
+        if (!empty($paymentData['paymentID'])) {
+            return response()->json([
+                'success' => true,
+                'data' => $paymentData,
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $initRes['message'] ?? 'বিকাশ পেমেন্ট সেশন শুরু করা যায়নি।',
+        ], 422);
+    }
+
+    /**
+     * AJAX Execute endpoint called by bKash-checkout.js executeRequestOnAuthorization
+     */
+    public function bkashExecuteAjax(Request $request, $tranId)
+    {
+        $transaction = GatewayTransaction::where('tran_id', $tranId)->first();
+        if (!$transaction) {
+            return response()->json(['success' => false, 'message' => 'লেনদেন পাওয়া যায়নি।'], 404);
+        }
+
+        if ($transaction->status === 'SUCCESS') {
+            $redirectUrl = $transaction->admissionForm
+                ? route('apply.success', $transaction->admissionForm->application_no)
+                : ($transaction->invoice_id ? route('student.fees.index') : route('payment.status', $tranId));
+            return response()->json(['success' => true, 'redirect_url' => $redirectUrl]);
+        }
+
+        $paymentId = $request->input('paymentID') ?: $transaction->payment_id;
+        if (!$paymentId) {
+            return response()->json(['success' => false, 'message' => 'পেমেন্ট রেফারেন্স আইডি পাওয়া যায়নি।'], 400);
+        }
+
+        Log::info("bKash Execute AJAX called for tranId: {$tranId}, paymentID: {$paymentId}");
+
+        $executeRes = PaymentGatewayService::executeBkash($paymentId);
+        $statusCode = $executeRes['statusCode'] ?? '';
+        $trxStatus = $executeRes['transactionStatus'] ?? '';
+
+        if (($statusCode === '0000' && $trxStatus === 'Completed') || $trxStatus === 'Completed' || !empty($executeRes['trxID'])) {
+            PaymentGatewayService::settleSuccessfulPayment($transaction, $executeRes);
+
+            $redirectUrl = $transaction->admissionForm
+                ? route('apply.success', $transaction->admissionForm->application_no)
+                : ($transaction->invoice_id ? route('student.fees.index') : route('payment.status', $tranId));
+
+            return response()->json([
+                'success' => true,
+                'redirect_url' => $redirectUrl,
+                'message' => 'আলহামদুলিল্লাহ! বিকাশ পেমেন্ট সফলভাবে সম্পন্ন হয়েছে।',
+            ]);
+        }
+
+        // Query status in case execute response was delayed or already processed
+        $queryRes = PaymentGatewayService::queryBkash($paymentId);
+        if (($queryRes['transactionStatus'] ?? '') === 'Completed') {
+            PaymentGatewayService::settleSuccessfulPayment($transaction, $queryRes);
+
+            $redirectUrl = $transaction->admissionForm
+                ? route('apply.success', $transaction->admissionForm->application_no)
+                : ($transaction->invoice_id ? route('student.fees.index') : route('payment.status', $tranId));
+
+            return response()->json([
+                'success' => true,
+                'redirect_url' => $redirectUrl,
+                'message' => 'আলহামদুলিল্লাহ! বিকাশ পেমেন্ট সফলভাবে যাচাই হয়েছে।',
+            ]);
+        }
+
+        $errMsg = $executeRes['statusMessage'] ?? $executeRes['errorMessage'] ?? 'বিকাশ পেমেন্ট যাচাই সম্পন্ন করা যায়নি।';
+        $transaction->update([
+            'status' => 'FAILED',
+            'error_message' => $errMsg,
+            'raw_response' => array_merge((array) ($transaction->raw_response ?? []), $executeRes),
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'message' => $errMsg,
+            'redirect_url' => route('payment.status', $tranId),
+        ], 422);
+    }
 }

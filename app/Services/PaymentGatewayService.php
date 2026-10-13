@@ -379,8 +379,9 @@ class PaymentGatewayService
 
                 return [
                     'success' => true,
-                    'redirect_url' => $data['bkashURL'] ?? null,
+                    'redirect_url' => !empty($data['bkashURL']) ? $data['bkashURL'] : route('payment.bkash.page', $transaction->tran_id),
                     'payment_id' => $data['paymentID'],
+                    'payment_data' => $data,
                 ];
             }
 

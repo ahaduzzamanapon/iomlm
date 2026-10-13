@@ -49,18 +49,18 @@ class SmsService
         $userName   = $userName   ?: env('MIMSMS_USERNAME', 'kmarsus@gmail.com');
         $senderName = $senderName ?: env('MIMSMS_SENDER_NAME');
 
-        if (empty($apiKey) || empty($userName) || empty($senderName)) {
-            Log::error("MiMSMS API credentials or senderName missing. Please configure them in Settings.");
+        if (empty($apiKey) || empty($userName)) {
+            Log::error("MiMSMS API credentials missing. Please configure them in Settings.");
             return [
                 'success' => false,
-                'message' => 'MiM SMS Sender ID সেট করা নেই। sms.mimsms.com এ লগইন করে Utility -> Sender ID থেকে আপনার নির্ধারিত Sender ID / নম্বরটি সেটিংস এ সংরক্ষণ করুন (নন-মাস্কিং অ্যাকাউন্টেও MiMSMS একটি নির্ধারিত Sender ID প্রদান করে)।',
+                'message' => 'MiM SMS API Key বা Username সেট করা নেই। দয়া করে সেটিংসে গিয়ে তা সংরক্ষণ করুন।',
             ];
         }
 
         $payload = [
             'apiKey'          => $apiKey,
             'userName'        => $userName,
-            'senderName'      => $senderName,
+            'senderName'      => $senderName ?: '',
             'transactionType' => 'T',
             'mobileNumber'    => $formattedPhone,
             'message'         => $message,
@@ -99,6 +99,12 @@ class SmsService
                 if (!empty($responseData['error_Data']) && is_array($responseData['error_Data'])) {
                     $firstErr = $responseData['error_Data'][0] ?? [];
                     $errDetail = trim(($firstErr['error'] ?? '') . ' ' . ($firstErr['errorParm'] ?? ''));
+                } elseif (!empty($responseData['errors']) && is_array($responseData['errors'])) {
+                    $fieldErrors = [];
+                    foreach ($responseData['errors'] as $field => $errs) {
+                        $fieldErrors[] = is_array($errs) ? implode(', ', $errs) : (string)$errs;
+                    }
+                    $errDetail = implode('; ', $fieldErrors);
                 }
 
                 $errMsg = trim($mResult . ' ' . $errDetail);

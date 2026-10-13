@@ -52,9 +52,12 @@ Route::match(['get', 'post'], '/payment/callback/sslcommerz/fail', [\App\Http\Co
 Route::match(['get', 'post'], '/payment/callback/sslcommerz/cancel', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzCancel'])->name('payment.callback.sslcommerz.cancel');
 Route::match(['get', 'post'], '/api/payment/sslcommerz/ipn', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'sslcommerzIpn'])->name('payment.callback.sslcommerz.ipn');
 
-// bKash Callbacks
+// bKash Callbacks & Hosted Checkout Bridge
 Route::match(['get', 'post'], '/payment/callback/bkash', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback'])->name('payment.callback.bkash');
 Route::match(['get', 'post'], '/api/payment/bkash/callback', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCallback']);
+Route::get('/apply/payment/bkash/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCheckoutPage'])->name('payment.bkash.page');
+Route::post('/apply/payment/bkash-create/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCreateAjax'])->name('payment.bkash.create.ajax');
+Route::post('/apply/payment/bkash-execute/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashExecuteAjax'])->name('payment.bkash.execute.ajax');
 
 
 // ── Public Special Discount / Waiver (SD / PF) Form & Status Tracker ──────
