@@ -8,7 +8,8 @@
             </div>
             <h1>Application: {{ $admission->student->name ?? '—' }}</h1>
             <p>Attempt #{{ $admission->attempt_no }} · Submitted {{ $admission->created_at->format('d M Y, h:i A') }}</p>
-                <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:'Kalpurush',sans-serif;">
+        </div>
+        <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:'Kalpurush',sans-serif;">
             <button type="button" class="btn btn-outline btn-lg" onclick="openModal('editAdmissionContactModal')" style="display:inline-flex;align-items:center;gap:6px;border-color:#0284c7;color:#0284c7;background:#f0f9ff;padding:8px 16px;border-radius:8px;font-weight:700;">
                 <i class="fa-solid fa-user-pen"></i> ইমেইল/মোবাইল এডিট
             </button>

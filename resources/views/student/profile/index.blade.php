@@ -360,8 +360,8 @@
             <div class="card-body">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>বর্তমান পেশা <span class="text-danger">*</span></label>
-                        <select name="occupation" class="form-control" required>
+                        <label>বর্তমান পেশা</label>
+                        <select name="occupation" class="form-control">
                             <option value="">-- পেশা নির্বাচন করুন --</option>
                             @foreach(['Student'=>'শিক্ষার্থী', 'Service Holder'=>'চাকরিজীবী', 'Business'=>'ব্যবসায়ী', 'Teacher'=>'শিক্ষক', 'Homemaker'=>'গৃহিণী', 'Other'=>'অন্যান্য'] as $k=>$v)
                                 <option value="{{ $k }}" {{ old('occupation', $student->occupation) == $k ? 'selected' : '' }}>{{ $v }} ({{ $k }})</option>
@@ -370,8 +370,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label>সর্বোচ্চ শিক্ষাগত যোগ্যতা <span class="text-danger">*</span></label>
-                        <select name="education_qualification" class="form-control" required>
+                        <label>সর্বোচ্চ শিক্ষাগত যোগ্যতা</label>
+                        <select name="education_qualification" class="form-control">
                             <option value="">-- যোগ্যতা নির্বাচন করুন --</option>
                             @foreach(['SSC / Equivalent'=>'এসএসসি / দাখিল বা সমমান', 'HSC / Equivalent'=>'এইচএসসি / আলিম বা সমমান', 'Bachelor / Fazil'=>'স্নাতক / ফাযিল বা সমমান', 'Masters / Kamil'=>'মাস্টার্স / কামিল বা সমমান', 'Hafez'=>'হিফজুল কুরআন', 'Other'=>'অন্যান্য'] as $k=>$v)
                                 <option value="{{ $k }}" {{ old('education_qualification', $student->education_qualification) == $k ? 'selected' : '' }}>{{ $v }}</option>
@@ -381,7 +381,7 @@
                 </div>
 
                 <div class="section-title" style="font-size:13px;font-weight:700;color:#047857;margin:16px 0 10px;border-bottom:1px solid #e2e8f0;padding-bottom:4px">
-                    এসএসসি / দাখিল বা সমমান পরীক্ষা
+                    এসএসসি / দাখিল বা সমমান পরীক্ষা (প্রযোজ্য ক্ষেত্রে)
                 </div>
                 <div class="form-row-3">
                     <div class="form-group">
@@ -389,8 +389,8 @@
                         <input type="text" name="ssc_school" class="form-control" value="{{ old('ssc_school', $student->ssc_school) }}" placeholder="মাদ্রাসা / স্কুলের নাম">
                     </div>
                     <div class="form-group">
-                        <label>শিক্ষা বোর্ড <span class="text-danger">*</span></label>
-                        <select name="ssc_board" class="form-control" required>
+                        <label>শিক্ষা বোর্ড</label>
+                        <select name="ssc_board" class="form-control">
                             <option value="">-- বোর্ড --</option>
                             @foreach(['Madrasah'=>'বাংলাদেশ মাদ্রাসা শিক্ষা বোর্ড', 'Dhaka'=>'ঢাকা বোর্ড', 'Chittagong'=>'চট্টগ্রাম বোর্ড', 'Rajshahi'=>'রাজশাহী বোর্ড', 'Jessore'=>'যশোর বোর্ড', 'Comilla'=>'কুমিল্লা বোর্ড', 'Barisal'=>'বরিশাল বোর্ড', 'Sylhet'=>'সিলেট বোর্ড', 'Dinajpur'=>'দিনাজপুর বোর্ড', 'Mymensingh'=>'ময়মনসিংহ বোর্ড', 'Technical'=>'কারিগরি বোর্ড', 'Other'=>'অন্যান্য'] as $k=>$v)
                                 <option value="{{ $k }}" {{ old('ssc_board', $student->ssc_board) == $k ? 'selected' : '' }}>{{ $v }}</option>
@@ -398,8 +398,8 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>পাসের সন <span class="text-danger">*</span></label>
-                        <input type="number" name="ssc_year" class="form-control" value="{{ old('ssc_year', $student->ssc_year) }}" placeholder="যেমন: 2020" min="1980" max="{{ now()->year }}" required>
+                        <label>পাসের সন</label>
+                        <input type="number" name="ssc_year" class="form-control" value="{{ old('ssc_year', $student->ssc_year) }}" placeholder="যেমন: 2020" min="1980" max="{{ now()->year }}">
                     </div>
                 </div>
 
