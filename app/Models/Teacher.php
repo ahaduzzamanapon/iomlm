@@ -40,7 +40,7 @@ class Teacher extends Model
      */
     public function getPhotoUrlAttribute($value): ?string
     {
-        if (!empty($value)) {
+        if (!empty($value) && !str_contains($value, 'employee_') && !str_contains($value, 'avatars/')) {
             return $value;
         }
 

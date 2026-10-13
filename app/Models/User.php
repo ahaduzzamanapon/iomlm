@@ -40,23 +40,29 @@ class User extends Authenticatable
     }
 
     /**
-     * Get user avatar URL with employee fallback
+     * Get user avatar URL with employee fallback dynamically resolved by gender
      */
     public function getAvatarUrlAttribute(): string
     {
-        if (!empty($this->attributes['avatar_url'] ?? null)) {
-            return $this->attributes['avatar_url'];
+        $rawAvatar = $this->attributes['avatar_url'] ?? null;
+        $gender = $this->gender ?? $this->teacher?->gender ?? $this->student?->gender ?? null;
+
+        // If a custom non-default avatar is explicitly stored (e.g. uploaded photo in /storage/), use it
+        if (!empty($rawAvatar)
+            && !str_contains($rawAvatar, 'employee_')
+            && !str_contains($rawAvatar, 'default-avatar')
+            && !str_contains($rawAvatar, 'avatars/')) {
+            return $rawAvatar;
         }
 
-        if ($this->teacher && !empty($this->teacher->photo_url)) {
+        if ($this->teacher && !empty($this->teacher->photo_url) && !str_contains($this->teacher->photo_url, 'employee_')) {
             return $this->teacher->photo_url;
         }
 
-        if ($this->student && !empty($this->student->photo_url)) {
+        if ($this->student && !empty($this->student->photo_url) && !str_contains($this->student->photo_url, 'avatars/')) {
             return $this->student->photo_url;
         }
 
-        $gender = $this->gender ?? $this->teacher?->gender ?? $this->student?->gender ?? null;
         return self::defaultAvatarForGender($gender);
     }
 

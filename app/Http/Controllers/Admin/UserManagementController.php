@@ -112,7 +112,9 @@ class UserManagementController extends Controller implements HasMiddleware
             : ($validated['permissions'] ?? []);
 
         $gender = $validated['gender'] ?? 'Male';
-        $avatarUrl = $validated['avatar_url'] ?? User::defaultAvatarForGender($gender);
+        $avatarUrl = !empty($validated['avatar_url']) && !str_contains($validated['avatar_url'], 'employee_')
+            ? $validated['avatar_url']
+            : User::defaultAvatarForGender($gender);
 
         $user = User::create([
             'name'                => $validated['name'],
@@ -177,7 +179,9 @@ class UserManagementController extends Controller implements HasMiddleware
             : ($validated['permissions'] ?? []);
 
         $gender = $validated['gender'] ?? ($user->gender ?? 'Male');
-        $avatarUrl = $validated['avatar_url'] ?? ($user->avatar_url ?: User::defaultAvatarForGender($gender));
+        $avatarUrl = !empty($validated['avatar_url']) && !str_contains($validated['avatar_url'], 'employee_')
+            ? $validated['avatar_url']
+            : User::defaultAvatarForGender($gender);
 
         $updateData = [
             'name'                => $validated['name'],
