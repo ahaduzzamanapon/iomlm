@@ -47,11 +47,14 @@ class SmsService
         $apiUrl     = $apiUrl     ?: env('MIMSMS_API_URL', 'https://api.mimsms.com/api/V2/SMS');
         $apiKey     = $apiKey     ?: env('MIMSMS_API_KEY', 'RZW30XSQHWPQVIH');
         $userName   = $userName   ?: env('MIMSMS_USERNAME', 'kmarsus@gmail.com');
-        $senderName = $senderName ?: env('MIMSMS_SENDER_NAME', 'IOM');
+        $senderName = $senderName ?: env('MIMSMS_SENDER_NAME');
 
         if (empty($apiKey) || empty($userName) || empty($senderName)) {
             Log::error("MiMSMS API credentials or senderName missing. Please configure them in Settings.");
-            return ['success' => false, 'message' => 'SMS Gateway credentials or Sender Name not configured.'];
+            return [
+                'success' => false,
+                'message' => 'MiM SMS Sender ID সেট করা নেই। sms.mimsms.com এ লগইন করে Utility -> Sender ID থেকে আপনার নির্ধারিত Sender ID / নম্বরটি সেটিংস এ সংরক্ষণ করুন (নন-মাস্কিং অ্যাকাউন্টেও MiMSMS একটি নির্ধারিত Sender ID প্রদান করে)।',
+            ];
         }
 
         $payload = [

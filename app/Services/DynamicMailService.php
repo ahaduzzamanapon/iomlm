@@ -172,7 +172,7 @@ class DynamicMailService
     private function buildEmailHtml(string $title, string $body, ?string $imageUrl = null, ?string $actionUrl = null): string
     {
         $instituteName = Setting::where('key', 'institute_name')->value('value') ?? 'IOM Technology Institute';
-        $formattedBody = nl2br(e($body));
+        $formattedBody = (strip_tags($body) !== $body) ? nl2br($body) : nl2br(e($body));
         $imgHtml = $imageUrl ? '<div style="margin:20px 0;text-align:center"><img src="'.e($imageUrl).'" style="max-width:100%;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1)"></div>' : '';
         $btnHtml = $actionUrl ? '<div style="margin:25px 0 10px;text-align:center"><a href="'.e($actionUrl).'" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#ffffff;text-decoration:none;font-weight:700;border-radius:8px;box-shadow:0 4px 12px rgba(37,99,235,0.3)">Open Link →</a></div>' : '';
 
@@ -183,7 +183,7 @@ class DynamicMailService
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body style="font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#f1f5f9;margin:0;padding:30px 15px;">
+<body style="font-family:'Kalpurush','SolaimanLipi','Segoe UI',Roboto,Helvetica,Arial,sans-serif;background-color:#f1f5f9;margin:0;padding:30px 15px;">
     <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 10px 25px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
         <div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:24px 30px;text-align:center;color:#ffffff;">
             <h2 style="margin:0;font-size:20px;font-weight:800;letter-spacing:.02em;">{$instituteName}</h2>

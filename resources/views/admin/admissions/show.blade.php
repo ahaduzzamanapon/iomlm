@@ -8,9 +8,24 @@
             </div>
             <h1>Application: {{ $admission->student->name ?? '—' }}</h1>
             <p>Attempt #{{ $admission->attempt_no }} · Submitted {{ $admission->created_at->format('d M Y, h:i A') }}</p>
-        </div>
-        <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;font-family:'Kalpurush',sans-serif;">
-            @if($admission->status === 'PENDING')
+                <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:'Kalpurush',sans-serif;">
+            <button type="button" class="btn btn-outline btn-lg" onclick="openModal('editAdmissionContactModal')" style="display:inline-flex;align-items:center;gap:6px;border-color:#0284c7;color:#0284c7;background:#f0f9ff;padding:8px 16px;border-radius:8px;font-weight:700;">
+                <i class="fa-solid fa-user-pen"></i> ইমেইল/মোবাইল এডিট
+            </button>
+            @if($admission->status === 'APPROVED')
+                <form method="POST" action="{{ route('admin.admissions.resend-confirmation', $admission) }}" style="display:inline;margin:0" onsubmit="return confirm('{{ $admission->applicant_name ?? $admission->student?->name }}-এর ইমেইলে ({{ $admission->email ?? $admission->student?->email }}) ভর্তি নিশ্চিতকরণ কনফার্মেশন মেইল পুনরায় পাঠাতে চান?')">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-lg" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-weight:700;background:#059669;border-color:#059669;color:#fff;">
+                        <i class="fa-solid fa-paper-plane"></i> কনফার্মেশন মেইল পাঠান (Resend)
+                    </button>
+                </form>
+            @elseif($admission->status === 'PENDING')
+                <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $admission) }}" style="display:inline;margin:0" onsubmit="return confirm('{{ $admission->applicant_name ?? $admission->student?->name }}-এর ইমেইলে ({{ $admission->email ?? $admission->student?->email }}) ভর্তির পেমেন্ট লিংক মেইল পাঠাতে চান?')">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-lg" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-weight:700;background:#0284c7;border-color:#0284c7;color:#fff;">
+                        <i class="fa-solid fa-paper-plane"></i> ভর্তির লিংক পাঠান (Send Link)
+                    </button>
+                </form>
                 <button class="btn btn-success btn-lg" onclick="openModal('approveModal')" style="display:inline-flex;align-items:center;gap:8px;font-weight:700;padding:8px 18px;border-radius:8px;">
                     <i class="fa-solid fa-user-check"></i> ভর্তি অনুমোদন ও সক্রিয় করুন (Approve)
                 </button>
@@ -59,8 +74,8 @@
                         </a>
                     @else
                         <span class="badge" 
-                              style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;color:#64748b;border:1px solid #cbd5e1;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;font-family:'Kalpurush',sans-serif;"
-                              title="ভর্তি অনুমোদন নিশ্চিত করার পর আইডি ও পাসওয়ার্ড জেনারেট হবে">
+                               style="display:inline-flex;align-items:center;gap:6px;background:#f8fafc;color:#64748b;border:1px solid #cbd5e1;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;font-family:'Kalpurush',sans-serif;"
+                               title="ভর্তি অনুমোদন নিশ্চিত করার পর আইডি ও পাসওয়ার্ড জেনারেট হবে">
                             <i class="fa-solid fa-id-card"></i> আইডি: ভর্তি নিশ্চিতের পর জেনারেট হবে
                         </span>
                     @endif
@@ -71,8 +86,24 @@
                 <table class="table" style="font-size:13px;margin-bottom:16px">
                     <tr><th style="width:140px;color:var(--text-muted)">Application No:</th><td><strong>{{ $admission->application_no ?? 'APP-'.$admission->id }}</strong></td></tr>
                     <tr><th style="color:var(--text-muted)">Full Name:</th><td><strong>{{ $admission->applicant_name ?? $admission->student->name }}</strong></td></tr>
-                    <tr><th style="color:var(--text-muted)">Phone:</th><td>{{ $admission->phone ?? $admission->student->phone }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Email:</th><td>{{ $admission->email ?? $admission->student->email ?? '—' }}</td></tr>
+                    <tr>
+                        <th style="color:var(--text-muted)">Phone:</th>
+                        <td>
+                            <strong>{{ $admission->phone ?? $admission->student->phone }}</strong>
+                            <button type="button" onclick="openModal('editAdmissionContactModal')" class="btn btn-outline btn-sm" style="margin-left:8px;padding:1px 8px;font-size:11px;color:#0284c7;border-color:#bae6fd;background:#f0f9ff">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="color:var(--text-muted)">Email:</th>
+                        <td>
+                            <strong>{{ $admission->email ?? $admission->student->email ?? '—' }}</strong>
+                            <button type="button" onclick="openModal('editAdmissionContactModal')" class="btn btn-outline btn-sm" style="margin-left:8px;padding:1px 8px;font-size:11px;color:#0284c7;border-color:#bae6fd;background:#f0f9ff">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
                     <tr><th style="color:var(--text-muted)">Date of Birth:</th><td>{{ $admission->date_of_birth ?? $admission->student->date_of_birth ?? '—' }}</td></tr>
                     <tr><th style="color:var(--text-muted)">Gender / Device:</th><td>{{ $admission->gender ?? $admission->student->gender ?? '—' }} ({{ $admission->device_type ?? 'N/A' }})</td></tr>
                     <tr><th style="color:var(--text-muted)">Course Interested:</th><td><strong>{{ $admission->interestedCourse->name ?? '—' }}</strong></td></tr>
@@ -1076,6 +1107,45 @@
                     <button type="button" class="btn btn-outline" onclick="closeModal('trashModal')">বাতিল (Cancel)</button>
                     <button type="submit" class="btn btn-danger" style="background:#dc2626;border-color:#dc2626;">
                         <i class="fa-solid fa-trash-can"></i> ট্র্যাশে পাঠান (Confirm Trash)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Contact Modal -->
+    <div class="modal-overlay" id="editAdmissionContactModal">
+        <div class="modal" style="max-width:480px;font-family:'Kalpurush',sans-serif;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff">
+                <span class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-user-pen"></i> শিক্ষার্থীর ইমেইল ও মোবাইল নম্বর সংশোধন
+                </span>
+                <button class="modal-close" onclick="closeModal('editAdmissionContactModal')" style="color:#fff">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.admissions.update-contact', $admission) }}">
+                @csrf
+                @method('PATCH')
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding:22px">
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-envelope" style="color:#0284c7;margin-right:4px"></i> ইমেইল অ্যাড্রেস <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="email" name="email" value="{{ old('email', $admission->email ?? $admission->student?->email) }}" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-phone" style="color:#0284c7;margin-right:4px"></i> মোবাইল নম্বর <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="text" name="phone" value="{{ old('phone', $admission->phone ?? $admission->student?->phone) }}" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div style="font-size:12px;color:#64748b;background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0">
+                        💡 <em>ইমেইল বা ফোন নম্বর সেভ করার পর আপনি সরাসরি ওখান থেকে ভর্তির লিংক কিংবা কনফার্মেশন মেইল পাঠাতে পারবেন।</em>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding:14px 22px;background:#f8fafc">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editAdmissionContactModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7;border-color:#0284c7;font-weight:600">
+                        <i class="fa-solid fa-check"></i> সংরক্ষণ করুন (Save)
                     </button>
                 </div>
             </form>

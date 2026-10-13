@@ -60,13 +60,17 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::patch('admissions/{admission}/trash', [\App\Http\Controllers\Admin\AdmissionController::class, 'trash'])->name('admissions.trash');
         Route::patch('admissions/{admission}/untrash', [\App\Http\Controllers\Admin\AdmissionController::class, 'untrash'])->name('admissions.untrash');
         Route::patch('admissions/{admission}/reject', [\App\Http\Controllers\Admin\AdmissionController::class, 'reject'])->name('admissions.reject');
+        Route::patch('admissions/{admission}/contact', [\App\Http\Controllers\Admin\AdmissionController::class, 'updateContact'])->name('admissions.update-contact');
         Route::post('admissions/{admission}/send-repayment-email', [\App\Http\Controllers\Admin\AdmissionController::class, 'sendRepaymentEmail'])->name('admissions.send-repayment-email');
+        Route::post('admissions/{admission}/resend-confirmation', [\App\Http\Controllers\Admin\AdmissionController::class, 'resendConfirmation'])->name('admissions.resend-confirmation');
 
         // Poor Fund & Waiver Applications
         Route::get('waiver-applications', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'index'])->name('waiver-applications.index');
         Route::get('waiver-applications/{waiverApplication}', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'show'])->name('waiver-applications.show');
         Route::patch('waiver-applications/{waiverApplication}/approve', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'approve'])->name('waiver-applications.approve');
         Route::patch('waiver-applications/{waiverApplication}/reject', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'reject'])->name('waiver-applications.reject');
+        Route::patch('waiver-applications/{waiverApplication}/contact', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'updateContact'])->name('waiver-applications.update-contact');
+        Route::post('waiver-applications/{waiverApplication}/resend-email', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'resendEmail'])->name('waiver-applications.resend-email');
     });
 
     // ── 4. Students ─────────────────────────────────────────────────────

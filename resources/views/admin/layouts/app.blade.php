@@ -1,1700 +1,1984 @@
-@php
-    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag();
-@endphp
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Dashboard' }} — Admin | IOM</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
-    /* ═══ Official IOM Brand Color Theme (derived from https://iom.edu.bd/) ═══ */
-    :root {
-        --iom-green:     #047857;   /* Official IOM Primary Brand Emerald Green */
-        --iom-dark:      #064e3b;   /* Official IOM Deep Forest Green */
-        --iom-deep-dark: #022c22;   /* Islamic Dark Midnight Background */
-        --iom-light:     #ecfdf5;   /* Official IOM Mint Light */
-        --iom-mint:      #d1fae5;   /* Mint Border Line */
-        --iom-gold:      #fbbf24;   /* Official IOM Accent Gold */
-        --iom-ink:       #1e293b;   /* Dark Ink */
-        --iom-muted:     #64748b;   /* Muted Slate */
-        --iom-line:      #dbe7e2;   /* Border Line */
+        /* ═══ Official IOM Brand Color Theme (derived from https://iom.edu.bd/) ═══ */
+        :root {
+            --iom-green: #047857;
+            /* Official IOM Primary Brand Emerald Green */
+            --iom-dark: #064e3b;
+            /* Official IOM Deep Forest Green */
+            --iom-deep-dark: #022c22;
+            /* Islamic Dark Midnight Background */
+            --iom-light: #ecfdf5;
+            /* Official IOM Mint Light */
+            --iom-mint: #d1fae5;
+            /* Mint Border Line */
+            --iom-gold: #fbbf24;
+            /* Official IOM Accent Gold */
+            --iom-ink: #1e293b;
+            /* Dark Ink */
+            --iom-muted: #64748b;
+            /* Muted Slate */
+            --iom-line: #dbe7e2;
+            /* Border Line */
 
-        /* Override App Theme Variables for Admin Panel */
-        --blue: #047857;
-        --blue-dark: #064e3b;
-        --primary: #047857;
-        --primary-dark: #064e3b;
-        --sidebar-bg: #064e3b;
-        --sidebar-active-bg: rgba(4, 120, 87, 0.45);
-        --sidebar-active: #34d399;
-        --topbar-border: #d1fae5;
-    }
-
-    body, input, select, textarea, button, .tree-toggle, .nav-item, .table, .card, h1, h2, h3, h4, h5, h6 {
-        font-family: 'Kalpurush', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-
-    /* Global Icon Protection against font-family inheritance */
-    i[class*="fa-"], .fa, .fas, .far, .fab, .fa-solid, .fa-regular, .fa-brands {
-        font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "FontAwesome" !important;
-        font-style: normal;
-    }
-
-    /* Disable native Edge / IE password reveal icons to prevent duplicate or conflicting buttons */
-    input[type="password"]::-ms-reveal,
-    input[type="password"]::-ms-clear,
-    input[type="text"]::-ms-reveal,
-    input[type="text"]::-ms-clear {
-        display: none !important;
-        width: 0 !important;
-        height: 0 !important;
-    }
-
-    /* ─── Admin Sidebar: IOM Deep Forest Green Gradient ────────── */
-    .sidebar {
-        background: linear-gradient(180deg, #022c22 0%, #064e3b 50%, #032b21 100%) !important;
-        border-right: 1px solid rgba(52, 211, 153, 0.18) !important;
-    }
-    .sidebar-logo {
-        background: rgba(0, 0, 0, 0.22) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-    }
-    .sidebar-logo-name {
-        color: #ffffff !important;
-    }
-    .sidebar-logo-sub {
-        color: #fbbf24 !important; /* IOM Brand Gold */
-        font-weight: 800 !important;
-        letter-spacing: 1.2px;
-    }
-    .nav-group-label {
-        color: #ffffff !important;
-        opacity: 0.92;
-        font-weight: 700;
-        letter-spacing: 1.2px;
-    }
-
-    /* ─── Tree Navigation & Items: Pure White Text ─────────────── */
-    .tree-group { margin-bottom: 2px; }
-
-    .tree-toggle {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-        padding: 9px 14px;
-        border-radius: 8px;
-        font-size: 13.5px;
-        font-weight: 600;
-        letter-spacing: .03em;
-        text-transform: uppercase;
-        color: #ffffff !important;
-        cursor: pointer;
-        user-select: none;
-        transition: background .15s, color .15s;
-    }
-    .tree-toggle:hover {
-        background: rgba(255, 255, 255, 0.12) !important;
-        color: #ffffff !important;
-    }
-    .tree-toggle.has-active {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-    }
-
-    .tree-toggle-arrow {
-        margin-left: auto;
-        transition: transform .25s cubic-bezier(.4,0,.2,1);
-        opacity: 0.85;
-        flex-shrink: 0;
-        color: #ffffff !important;
-    }
-    .tree-toggle.open .tree-toggle-arrow {
-        transform: rotate(90deg);
-        opacity: 1;
-        color: #ffffff !important;
-    }
-
-    .tree-children {
-        overflow: hidden;
-        max-height: 0;
-        transition: max-height .3s cubic-bezier(.4,0,.2,1);
-        padding-left: 8px;
-    }
-    .tree-children.open { max-height: 900px; }
-
-    .tree-children .nav-item {
-        font-size: 13px;
-        padding: 7px 12px;
-        border-radius: 6px;
-        margin-bottom: 1px;
-        border-left: 2px solid transparent;
-        color: #ffffff !important;
-        opacity: 0.92;
-    }
-    .tree-children .nav-item:hover {
-        color: #ffffff !important;
-        background: rgba(255, 255, 255, 0.12) !important;
-        opacity: 1;
-    }
-    .tree-children .nav-item.active {
-        border-left-color: #34d399 !important;
-        background: rgba(4, 120, 87, 0.5) !important;
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        opacity: 1;
-    }
-
-    .nav-item {
-        color: #ffffff !important;
-    }
-    .nav-item:hover {
-        background: rgba(255, 255, 255, 0.12) !important;
-        color: #ffffff !important;
-    }
-    .nav-item.active {
-        background: linear-gradient(135deg, rgba(4, 120, 87, 0.85), rgba(5, 150, 105, 0.65)) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(52, 211, 153, 0.5) !important;
-        box-shadow: 0 4px 14px rgba(2, 44, 34, 0.35) !important;
-    }
-    .nav-item i, .nav-item svg, .tree-toggle i, .tree-toggle svg {
-        color: #ffffff !important;
-    }
-    .nav-item.active i, .nav-item.active svg {
-        color: #ffffff !important;
-    }
-
-    /* ─── Admin Topbar ─────────────────────────────────────────── */
-    .topbar {
-        background: rgba(255, 255, 255, 0.96) !important;
-        border-bottom: 1px solid #d1fae5 !important;
-    }
-    .topbar-btn:hover {
-        background: #ecfdf5 !important;
-        color: #047857 !important;
-    }
-    .topbar-breadcrumb a:hover {
-        color: #047857 !important;
-    }
-    .notif-dot {
-        background: #fbbf24 !important; /* IOM Gold */
-        box-shadow: 0 0 0 2px #fff;
-    }
-    .user-name {
-        color: #1e293b !important;
-    }
-
-    /* ─── Admin Dashboard Banner: Forest Gradient & Gold Glow ──── */
-    .dashboard-banner {
-        background: linear-gradient(135deg, #064e3b 0%, #047857 55%, #065f46 100%) !important;
-        border: 1px solid rgba(251, 191, 36, 0.25) !important;
-        box-shadow: 0 10px 30px -5px rgba(6, 78, 59, 0.3) !important;
-    }
-    .dashboard-banner::after {
-        background: radial-gradient(circle, rgba(251, 191, 36, 0.22) 0%, rgba(0,0,0,0) 70%) !important;
-    }
-    .banner-title { color: #ffffff !important; }
-    .banner-sub { color: #ffffff !important; opacity: 0.98; }
-    .banner-status {
-        background: rgba(255, 255, 255, 0.15) !important;
-        border-color: rgba(251, 191, 36, 0.35) !important;
-        color: #fbbf24 !important;
-    }
-
-    /* ─── Buttons & Controls in IOM Brand Theme ────────────────── */
-    .btn-primary, button.btn-primary, a.btn-primary, .btn.btn-primary {
-        background: linear-gradient(135deg, #047857 0%, #064e3b 100%) !important;
-        border: none !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 14px rgba(4, 120, 87, 0.3) !important;
-    }
-    .btn-primary:hover, button.btn-primary:hover, a.btn-primary:hover, .btn.btn-primary:hover {
-        background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
-        box-shadow: 0 6px 20px rgba(6, 78, 59, 0.45) !important;
-        color: #ffffff !important;
-    }
-
-    .btn-outline:hover {
-        border-color: #047857 !important;
-        color: #047857 !important;
-        background: #ecfdf5 !important;
-    }
-
-    .quick-tile:hover {
-        border-color: #047857 !important;
-        color: #047857 !important;
-        box-shadow: 0 6px 16px -2px rgba(4, 120, 87, 0.15) !important;
-    }
-    .stat-card:hover {
-        border-color: #a7f3d0 !important;
-        box-shadow: 0 10px 25px -5px rgba(6, 78, 59, 0.12) !important;
-    }
-
-    /* Form Focus */
-    input:focus, select:focus, textarea:focus {
-        border-color: #047857 !important;
-        box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.18) !important;
-        outline: none !important;
-    }
-
-    /* Loader Top Bar */
-    .loader-top-bar {
-        background: linear-gradient(90deg, #047857, #34d399, #fbbf24) !important;
-    }
-    .loader-ring {
-        border-top-color: #047857 !important;
-    }
-
-    /* Pagination */
-    .pagination .page-item.active .page-link, .page-item.active .page-link {
-        background-color: #047857 !important;
-        border-color: #047857 !important;
-        color: #ffffff !important;
-    }
-    .page-link:hover {
-        color: #047857 !important;
-        background-color: #ecfdf5 !important;
-    }
-
-    /* Tables */
-    thead th {
-        border-bottom: 2px solid #d1fae5 !important;
-    }
-    tbody tr:hover td {
-        background: #f0fdf4 !important;
-    }
-
-    /* ════ UNIVERSAL FOOLPROOF MODAL SCROLLING & POSITIONING ════ */
-    .modal-overlay,
-    .modal-backdrop,
-    .modal-wrapper,
-    .admin-modal-overlay,
-    [class*="modal-overlay"],
-    [class*="modal-backdrop"],
-    [class*="modal-wrapper"],
-    div[id*="Modal"][style*="fixed"],
-    div[id*="modal"][style*="fixed"],
-    div[id*="Modal"][style*="position: fixed"],
-    div[id*="modal"][style*="position: fixed"],
-    div[id*="Modal"][style*="position:fixed"],
-    div[id*="modal"][style*="position:fixed"] {
-        position: fixed !important;
-        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
-        width: 100% !important; height: 100% !important;
-        background: rgba(15, 23, 42, 0.65) !important;
-        backdrop-filter: blur(4px) !important;
-        z-index: 99999 !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        align-items: flex-start !important;
-        justify-content: center !important;
-        padding: 30px 15px !important;
-        box-sizing: border-box !important;
-    }
-    .modal-overlay:not(.open):not(.active):not(.show),
-    .modal-backdrop:not(.open):not(.active):not(.show),
-    .admin-modal-overlay:not(.open):not(.active):not(.show),
-    .modal-wrapper:not(.open):not(.active):not(.show) {
-        display: none;
-    }
-    .modal-overlay.open,
-    .modal-overlay.active,
-    .modal-overlay.show,
-    .modal-backdrop.open,
-    .modal-backdrop.active,
-    .modal-backdrop.show,
-    .admin-modal-overlay.active,
-    .admin-modal-overlay.open,
-    .modal-overlay[style*="display: flex"],
-    .modal-overlay[style*="display:flex"],
-    .modal-backdrop[style*="display: flex"],
-    .modal-backdrop[style*="display:flex"],
-    .admin-modal-overlay[style*="display: flex"],
-    .admin-modal-overlay[style*="display:flex"],
-    div[id*="Modal"][style*="display: flex"],
-    div[id*="Modal"][style*="display:flex"],
-    div[id*="modal"][style*="display: flex"],
-    div[id*="modal"][style*="display:flex"] {
-        display: flex !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-    }
-    .modal-content-box,
-    .modal-dialog,
-    .modal,
-    .admin-modal-box,
-    .circular-modal-box,
-    .modal-card-premium,
-    [class*="modal-content"],
-    [class*="modal-box"],
-    .modal-overlay > div:not(.modal-backdrop),
-    .modal-backdrop > div,
-    .admin-modal-overlay > div {
-        margin: 0 auto !important;
-        max-height: calc(100vh - 60px) !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        box-sizing: border-box !important;
-    }
-
-    /* ════ UNIVERSAL ADMIN MOBILE RESPONSIVE ENGINE ════ */
-    @media (max-width: 768px) {
-        html, body {
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
-            width: 100% !important;
+            /* Override App Theme Variables for Admin Panel */
+            --blue: #047857;
+            --blue-dark: #064e3b;
+            --primary: #047857;
+            --primary-dark: #064e3b;
+            --sidebar-bg: #064e3b;
+            --sidebar-active-bg: rgba(4, 120, 87, 0.45);
+            --sidebar-active: #34d399;
+            --topbar-border: #d1fae5;
         }
-        .app-wrapper {
-            max-width: 100vw !important;
-            overflow-x: hidden !important;
-            width: 100% !important;
+
+        body,
+        input,
+        select,
+        textarea,
+        button,
+        .tree-toggle,
+        .nav-item,
+        .table,
+        .card,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Kalpurush', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+
+        /* Global Icon Protection against font-family inheritance */
+        i[class*="fa-"],
+        .fa,
+        .fas,
+        .far,
+        .fab,
+        .fa-solid,
+        .fa-regular,
+        .fa-brands {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "FontAwesome" !important;
+            font-style: normal;
+        }
+
+        /* Disable native Edge / IE password reveal icons to prevent duplicate or conflicting buttons */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear,
+        input[type="text"]::-ms-reveal,
+        input[type="text"]::-ms-clear {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+        /* ─── Admin Sidebar: IOM Deep Forest Green Gradient ────────── */
         .sidebar {
+            background: linear-gradient(180deg, #022c22 0%, #064e3b 50%, #032b21 100%) !important;
+            border-right: 1px solid rgba(52, 211, 153, 0.18) !important;
+        }
+
+        .sidebar-logo {
+            background: rgba(0, 0, 0, 0.22) !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+
+        .sidebar-logo-name {
+            color: #ffffff !important;
+        }
+
+        .sidebar-logo-sub {
+            color: #fbbf24 !important;
+            /* IOM Brand Gold */
+            font-weight: 800 !important;
+            letter-spacing: 1.2px;
+        }
+
+        .nav-group-label {
+            color: #ffffff !important;
+            opacity: 0.92;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+        }
+
+        /* ─── Tree Navigation & Items: Pure White Text ─────────────── */
+        .tree-group {
+            margin-bottom: 2px;
+        }
+
+        .tree-toggle {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            font-weight: 600;
+            letter-spacing: .03em;
+            text-transform: uppercase;
+            color: #ffffff !important;
+            cursor: pointer;
+            user-select: none;
+            transition: background .15s, color .15s;
+        }
+
+        .tree-toggle:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+        }
+
+        .tree-toggle.has-active {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        .tree-toggle-arrow {
+            margin-left: auto;
+            transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+            opacity: 0.85;
+            flex-shrink: 0;
+            color: #ffffff !important;
+        }
+
+        .tree-toggle.open .tree-toggle-arrow {
+            transform: rotate(90deg);
+            opacity: 1;
+            color: #ffffff !important;
+        }
+
+        .tree-children {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height .3s cubic-bezier(.4, 0, .2, 1);
+            padding-left: 8px;
+        }
+
+        .tree-children.open {
+            max-height: 900px;
+        }
+
+        .tree-children .nav-item {
+            font-size: 13px;
+            padding: 7px 12px;
+            border-radius: 6px;
+            margin-bottom: 1px;
+            border-left: 2px solid transparent;
+            color: #ffffff !important;
+            opacity: 0.92;
+        }
+
+        .tree-children .nav-item:hover {
+            color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+            opacity: 1;
+        }
+
+        .tree-children .nav-item.active {
+            border-left-color: #34d399 !important;
+            background: rgba(4, 120, 87, 0.5) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            opacity: 1;
+        }
+
+        .nav-item {
+            color: #ffffff !important;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.12) !important;
+            color: #ffffff !important;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(4, 120, 87, 0.85), rgba(5, 150, 105, 0.65)) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(52, 211, 153, 0.5) !important;
+            box-shadow: 0 4px 14px rgba(2, 44, 34, 0.35) !important;
+        }
+
+        .nav-item i,
+        .nav-item svg,
+        .tree-toggle i,
+        .tree-toggle svg {
+            color: #ffffff !important;
+        }
+
+        .nav-item.active i,
+        .nav-item.active svg {
+            color: #ffffff !important;
+        }
+
+        /* ─── Admin Topbar ─────────────────────────────────────────── */
+        .topbar {
+            background: rgba(255, 255, 255, 0.96) !important;
+            border-bottom: 1px solid #d1fae5 !important;
+        }
+
+        .topbar-btn:hover {
+            background: #ecfdf5 !important;
+            color: #047857 !important;
+        }
+
+        .topbar-breadcrumb a:hover {
+            color: #047857 !important;
+        }
+
+        .notif-dot {
+            background: #fbbf24 !important;
+            /* IOM Gold */
+            box-shadow: 0 0 0 2px #fff;
+        }
+
+        .user-name {
+            color: #1e293b !important;
+        }
+
+        /* ─── Admin Dashboard Banner: Forest Gradient & Gold Glow ──── */
+        .dashboard-banner {
+            background: linear-gradient(135deg, #064e3b 0%, #047857 55%, #065f46 100%) !important;
+            border: 1px solid rgba(251, 191, 36, 0.25) !important;
+            box-shadow: 0 10px 30px -5px rgba(6, 78, 59, 0.3) !important;
+        }
+
+        .dashboard-banner::after {
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.22) 0%, rgba(0, 0, 0, 0) 70%) !important;
+        }
+
+        .banner-title {
+            color: #ffffff !important;
+        }
+
+        .banner-sub {
+            color: #ffffff !important;
+            opacity: 0.98;
+        }
+
+        .banner-status {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(251, 191, 36, 0.35) !important;
+            color: #fbbf24 !important;
+        }
+
+        /* ─── Buttons & Controls in IOM Brand Theme ────────────────── */
+        .btn-primary,
+        button.btn-primary,
+        a.btn-primary,
+        .btn.btn-primary {
+            background: linear-gradient(135deg, #047857 0%, #064e3b 100%) !important;
+            border: none !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(4, 120, 87, 0.3) !important;
+        }
+
+        .btn-primary:hover,
+        button.btn-primary:hover,
+        a.btn-primary:hover,
+        .btn.btn-primary:hover {
+            background: linear-gradient(135deg, #064e3b 0%, #022c22 100%) !important;
+            box-shadow: 0 6px 20px rgba(6, 78, 59, 0.45) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-outline:hover {
+            border-color: #047857 !important;
+            color: #047857 !important;
+            background: #ecfdf5 !important;
+        }
+
+        .quick-tile:hover {
+            border-color: #047857 !important;
+            color: #047857 !important;
+            box-shadow: 0 6px 16px -2px rgba(4, 120, 87, 0.15) !important;
+        }
+
+        .stat-card:hover {
+            border-color: #a7f3d0 !important;
+            box-shadow: 0 10px 25px -5px rgba(6, 78, 59, 0.12) !important;
+        }
+
+        /* Form Focus */
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #047857 !important;
+            box-shadow: 0 0 0 3px rgba(4, 120, 87, 0.18) !important;
+            outline: none !important;
+        }
+
+        /* Loader Top Bar */
+        .loader-top-bar {
+            background: linear-gradient(90deg, #047857, #34d399, #fbbf24) !important;
+        }
+
+        .loader-ring {
+            border-top-color: #047857 !important;
+        }
+
+        /* Pagination */
+        .pagination .page-item.active .page-link,
+        .page-item.active .page-link {
+            background-color: #047857 !important;
+            border-color: #047857 !important;
+            color: #ffffff !important;
+        }
+
+        .page-link:hover {
+            color: #047857 !important;
+            background-color: #ecfdf5 !important;
+        }
+
+        /* Tables */
+        thead th {
+            border-bottom: 2px solid #d1fae5 !important;
+        }
+
+        tbody tr:hover td {
+            background: #f0fdf4 !important;
+        }
+
+        /* ════ UNIVERSAL FOOLPROOF MODAL SCROLLING & POSITIONING ════ */
+        .modal-overlay,
+        .modal-backdrop,
+        .modal-wrapper,
+        .admin-modal-overlay,
+        [class*="modal-overlay"],
+        [class*="modal-backdrop"],
+        [class*="modal-wrapper"],
+        div[id*="Modal"][style*="fixed"],
+        div[id*="modal"][style*="fixed"],
+        div[id*="Modal"][style*="position: fixed"],
+        div[id*="modal"][style*="position: fixed"],
+        div[id*="Modal"][style*="position:fixed"],
+        div[id*="modal"][style*="position:fixed"] {
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
+            right: 0 !important;
             bottom: 0 !important;
-            height: 100vh !important;
-            height: 100dvh !important;
-            width: 280px !important;
-            max-width: 85vw !important;
-            z-index: 10000 !important;
-            transform: translateX(-100%) !important;
-            transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
-            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.25) !important;
-        }
-        .sidebar.open {
-            transform: translateX(0) !important;
-        }
-        .sidebar-overlay {
-            position: fixed !important;
-            inset: 0 !important;
-            background: rgba(15, 23, 42, 0.6) !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: rgba(15, 23, 42, 0.65) !important;
             backdrop-filter: blur(4px) !important;
-            -webkit-backdrop-filter: blur(4px) !important;
-            z-index: 9999 !important;
-            opacity: 0 !important;
-            pointer-events: none !important;
-            transition: opacity 0.25s ease !important;
+            z-index: 99999 !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            align-items: flex-start !important;
+            justify-content: center !important;
+            padding: 30px 15px !important;
+            box-sizing: border-box !important;
         }
-        .sidebar-overlay.active {
+
+        .modal-overlay:not(.open):not(.active):not(.show),
+        .modal-backdrop:not(.open):not(.active):not(.show),
+        .admin-modal-overlay:not(.open):not(.active):not(.show),
+        .modal-wrapper:not(.open):not(.active):not(.show) {
+            display: none;
+        }
+
+        .modal-overlay.open,
+        .modal-overlay.active,
+        .modal-overlay.show,
+        .modal-backdrop.open,
+        .modal-backdrop.active,
+        .modal-backdrop.show,
+        .admin-modal-overlay.active,
+        .admin-modal-overlay.open,
+        .modal-overlay[style*="display: flex"],
+        .modal-overlay[style*="display:flex"],
+        .modal-backdrop[style*="display: flex"],
+        .modal-backdrop[style*="display:flex"],
+        .admin-modal-overlay[style*="display: flex"],
+        .admin-modal-overlay[style*="display:flex"],
+        div[id*="Modal"][style*="display: flex"],
+        div[id*="Modal"][style*="display:flex"],
+        div[id*="modal"][style*="display: flex"],
+        div[id*="modal"][style*="display:flex"] {
+            display: flex !important;
             opacity: 1 !important;
             pointer-events: auto !important;
         }
-        .main-area {
-            margin-left: 0 !important;
-            max-width: 100vw !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            box-sizing: border-box !important;
-            overflow-x: hidden !important;
-        }
-        .page-content {
-            padding: 14px 12px !important;
-            max-width: 100% !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            box-sizing: border-box !important;
-        }
-        .topbar {
-            padding: 0 14px !important;
-            height: 58px !important;
-            max-width: 100vw !important;
-            width: 100% !important;
-            box-sizing: border-box !important;
-        }
-        .topbar-left {
-            gap: 10px !important;
-        }
-        .topbar-right {
-            gap: 10px !important;
-        }
-        .topbar-breadcrumb {
-            display: none !important;
-        }
-        .user-menu {
-            padding: 4px 8px !important;
-            gap: 6px !important;
-            border-radius: 10px !important;
-        }
-        .user-menu > div:not(.dropdown-menu) {
-            display: none !important;
-        }
-        .user-menu .user-avatar {
-            width: 30px !important;
-            height: 30px !important;
-        }
-        .dashboard-banner {
-            padding: 16px 14px !important;
-            border-radius: 14px !important;
-            margin-bottom: 16px !important;
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-        }
-        .banner-title {
-            font-size: 16px !important;
-        }
-        .banner-sub {
-            font-size: 12px !important;
-        }
-        .page-header {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
-            margin-bottom: 16px !important;
-        }
-        .page-header-actions {
-            width: 100% !important;
-        }
-        .page-header-actions .btn {
-            width: 100% !important;
-            justify-content: center !important;
-            text-align: center !important;
-        }
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 10px !important;
-            margin-bottom: 16px !important;
-        }
-        .stat-card {
-            padding: 12px 12px !important;
-            border-radius: 12px !important;
-            gap: 10px !important;
-        }
-        .stat-value {
-            font-size: 20px !important;
-        }
-        .stat-label {
-            font-size: 11px !important;
-        }
-        .grid-2 {
-            grid-template-columns: 1fr !important;
-            gap: 14px !important;
-        }
-        .dropdown-menu,
-        #adminNotif,
-        #adminUserMenu {
-            min-width: auto !important;
-            max-width: calc(100vw - 20px) !important;
-            width: calc(100vw - 20px) !important;
-            right: -8px !important;
-        }
-        .card {
-            max-width: 100% !important;
-            border-radius: 12px !important;
-            box-sizing: border-box !important;
-        }
-        .card-header {
-            padding: 12px 14px !important;
-            flex-wrap: wrap !important;
-            gap: 8px !important;
-        }
-        .table-wrapper {
-            max-width: 100% !important;
-            overflow-x: auto !important;
+
+        .modal-content-box,
+        .modal-dialog,
+        .modal,
+        .admin-modal-box,
+        .circular-modal-box,
+        .modal-card-premium,
+        [class*="modal-content"],
+        [class*="modal-box"],
+        .modal-overlay>div:not(.modal-backdrop),
+        .modal-backdrop>div,
+        .admin-modal-overlay>div {
+            margin: 0 auto !important;
+            max-height: calc(100vh - 60px) !important;
+            overflow-y: auto !important;
             -webkit-overflow-scrolling: touch !important;
+            box-sizing: border-box !important;
         }
-        .form-row {
-            flex-direction: column !important;
-            gap: 10px !important;
+
+        /* ════ UNIVERSAL ADMIN MOBILE RESPONSIVE ENGINE ════ */
+        @media (max-width: 768px) {
+
+            html,
+            body {
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+                width: 100% !important;
+            }
+
+            .app-wrapper {
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+                width: 100% !important;
+            }
+
+            .sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                bottom: 0 !important;
+                height: 100vh !important;
+                height: 100dvh !important;
+                width: 280px !important;
+                max-width: 85vw !important;
+                z-index: 10000 !important;
+                transform: translateX(-100%) !important;
+                transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                box-shadow: 4px 0 25px rgba(0, 0, 0, 0.25) !important;
+            }
+
+            .sidebar.open {
+                transform: translateX(0) !important;
+            }
+
+            .sidebar-overlay {
+                position: fixed !important;
+                inset: 0 !important;
+                background: rgba(15, 23, 42, 0.6) !important;
+                backdrop-filter: blur(4px) !important;
+                -webkit-backdrop-filter: blur(4px) !important;
+                z-index: 9999 !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+                transition: opacity 0.25s ease !important;
+            }
+
+            .sidebar-overlay.active {
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+
+            .main-area {
+                margin-left: 0 !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+                overflow-x: hidden !important;
+            }
+
+            .page-content {
+                padding: 14px 12px !important;
+                max-width: 100% !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            .topbar {
+                padding: 0 14px !important;
+                height: 58px !important;
+                max-width: 100vw !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+
+            .topbar-left {
+                gap: 10px !important;
+            }
+
+            .topbar-right {
+                gap: 10px !important;
+            }
+
+            .topbar-breadcrumb {
+                display: none !important;
+            }
+
+            .user-menu {
+                padding: 4px 8px !important;
+                gap: 6px !important;
+                border-radius: 10px !important;
+            }
+
+            .user-menu>div:not(.dropdown-menu) {
+                display: none !important;
+            }
+
+            .user-menu .user-avatar {
+                width: 30px !important;
+                height: 30px !important;
+            }
+
+            .dashboard-banner {
+                padding: 16px 14px !important;
+                border-radius: 14px !important;
+                margin-bottom: 16px !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+            }
+
+            .banner-title {
+                font-size: 16px !important;
+            }
+
+            .banner-sub {
+                font-size: 12px !important;
+            }
+
+            .page-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 10px !important;
+                margin-bottom: 16px !important;
+            }
+
+            .page-header-actions {
+                width: 100% !important;
+            }
+
+            .page-header-actions .btn {
+                width: 100% !important;
+                justify-content: center !important;
+                text-align: center !important;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px !important;
+                margin-bottom: 16px !important;
+            }
+
+            .stat-card {
+                padding: 12px 12px !important;
+                border-radius: 12px !important;
+                gap: 10px !important;
+            }
+
+            .stat-value {
+                font-size: 20px !important;
+            }
+
+            .stat-label {
+                font-size: 11px !important;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr !important;
+                gap: 14px !important;
+            }
+
+            .dropdown-menu,
+            #adminNotif,
+            #adminUserMenu {
+                min-width: auto !important;
+                max-width: calc(100vw - 20px) !important;
+                width: calc(100vw - 20px) !important;
+                right: -8px !important;
+            }
+
+            .card {
+                max-width: 100% !important;
+                border-radius: 12px !important;
+                box-sizing: border-box !important;
+            }
+
+            .card-header {
+                padding: 12px 14px !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+
+            .table-wrapper {
+                max-width: 100% !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+            }
+
+            .form-row {
+                flex-direction: column !important;
+                gap: 10px !important;
+            }
         }
-    }
     </style>
     @stack('styles')
 </head>
+
 <body>
-<!-- Global Page Loader System -->
-<div class="loader-top-bar" id="globalTopBar"></div>
-<div class="page-loader" id="globalPageLoader" style="display:none">
-    <div class="loader-card">
-        <div class="loader-spinner-container">
-            <div class="loader-ring"></div>
-            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" class="loader-logo-static" style="width:26px;height:26px;max-width:26px;max-height:26px;object-fit:contain">
+    <!-- Global Page Loader System -->
+    <div class="loader-top-bar" id="globalTopBar"></div>
+    <div class="page-loader" id="globalPageLoader" style="display:none">
+        <div class="loader-card">
+            <div class="loader-spinner-container">
+                <div class="loader-ring"></div>
+                <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" class="loader-logo-static"
+                    style="width:26px;height:26px;max-width:26px;max-height:26px;object-fit:contain">
+            </div>
+            <div class="loader-label">Loading IOM ERP...</div>
         </div>
-        <div class="loader-label">Loading IOM ERP...</div>
     </div>
-</div>
 
-<div class="app-wrapper">
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    <div class="app-wrapper">
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-    <!-- ═══ ADMIN SIDEBAR ═══ -->
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo" style="gap:12px">
-            <img src="{{ asset('images/logo.png') }}" alt="IOM Logo" style="width:38px;height:38px;object-fit:contain">
-            <div class="sidebar-logo-text">
-                <span class="sidebar-logo-name">Admin Panel</span>
-                <span class="sidebar-logo-sub">IOM ERP</span>
-            </div>
-        </div>
-
-        <nav class="sidebar-nav">
-
-            {{-- ── 1. Dashboard ── --}}
-            <a href="{{ route('admin.dashboard') }}" class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" style="margin-bottom:4px">
-                <i class="fa-solid fa-gauge-high"></i>
-                Dashboard
-            </a>
-
-            {{-- ── 2. Academic Setup ── --}}
-            @if(auth()->user()->canAccess('academic'))
-            @php $academicActive = request()->routeIs('admin.academic-years*','admin.subjects*','admin.subject-categories*','admin.assignments*','admin.courses*','admin.semesters*'); @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $academicActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                    Academic Setup
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $academicActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.academic-years.index') }}" class="nav-item {{ request()->routeIs('admin.academic-years*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-calendar-days"></i>
-                        Academic Years
-                    </a>
-                    <a href="{{ route('admin.courses.index') }}" class="nav-item {{ request()->routeIs('admin.courses*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-book-open"></i>
-                        Courses
-                    </a>
-                    <a href="{{ route('admin.subject-categories.index') }}" class="nav-item {{ request()->routeIs('admin.subject-categories*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-tags"></i>
-                        বিষয় ক্যাটাগরি
-                    </a>
-                    <a href="{{ route('admin.subjects.index') }}" class="nav-item {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-book-bookmark"></i>
-                        Subjects &amp; Modules
-                    </a>
-                    <a href="{{ route('admin.assignments.index') }}" class="nav-item {{ request()->routeIs('admin.assignments*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-file-signature"></i>
-                        অ্যাসাইনমেন্ট (Assignments)
-                    </a>
+        <!-- ═══ ADMIN SIDEBAR ═══ -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo" style="gap:12px">
+                <img src="{{ asset('images/logo.png') }}" alt="IOM Logo"
+                    style="width:38px;height:38px;object-fit:contain">
+                <div class="sidebar-logo-text">
+                    <span class="sidebar-logo-name">Admin Panel</span>
+                    <span class="sidebar-logo-sub">IOM ERP</span>
                 </div>
             </div>
-            @endif
 
-            {{-- ── 3. People ── --}}
-            @if(auth()->user()->canAccess('admissions') || auth()->user()->canAccess('students') || auth()->user()->canAccess('teachers'))
-            @php 
-                $peopleActive = request()->routeIs('admin.admissions*','admin.students*','admin.teachers*','admin.waiver-applications*','admin.course-transfers*','admin.email-templates*'); 
-                try { $pendingCount = \App\Models\AdmissionForm::where('status','PENDING')->count(); } catch(\Exception $e) { $pendingCount = 0; }
-                try { $waiverPending = \App\Models\WaiverApplication::where('status','PENDING')->count(); } catch(\Exception) { $waiverPending = 0; }
-                try { $transferPending = \App\Models\CourseTransfer::where('status','PENDING')->count(); } catch(\Exception) { $transferPending = 0; }
-                $peopleBadge = $pendingCount + $waiverPending + $transferPending;
-            @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $peopleActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-users"></i>
-                    People
-                    @if($peopleBadge > 0)
-                        <span class="nav-badge" style="margin-left:auto;margin-right:6px">{{ $peopleBadge }}</span>
-                    @endif
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $peopleActive ? 'open' : '' }}">
-                    @if(auth()->user()->canAccess('admissions'))
-                    <a href="{{ route('admin.admissions.index') }}" class="nav-item {{ request()->routeIs('admin.admissions*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-user-plus"></i>
-                        Admissions
-                        @if($pendingCount > 0)<span class="nav-badge">{{ $pendingCount }}</span>@endif
-                    </a>
-                    <a href="{{ route('admin.email-templates.index') }}" class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-envelope-open-text"></i>
-                        Email Templates (ইমেইল টেমপ্লেট)
-                    </a>
-                    <a href="{{ route('admin.course-transfers.index') }}" class="nav-item {{ request()->routeIs('admin.course-transfers*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
-                        Course Transfers (কোর্স পরিবর্তন)
-                        @if($transferPending > 0)<span class="nav-badge" style="background:#0284c7">{{ $transferPending }}</span>@endif
-                    </a>
-                    <a href="{{ route('admin.waiver-applications.index') }}" class="nav-item {{ request()->routeIs('admin.waiver-applications*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
-                        Poor Fund / Waivers
-                        @if($waiverPending > 0)<span class="nav-badge" style="background:#8b5cf6">{{ $waiverPending }}</span>@endif
-                    </a>
-                    @endif
-                    @if(auth()->user()->canAccess('students'))
-                    <a href="{{ route('admin.students.index') }}" class="nav-item {{ request()->routeIs('admin.students*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-user-graduate"></i>
-                        Students
-                    </a>
-                    @endif
-                    @if(auth()->user()->canAccess('teachers'))
-                    <a href="{{ route('admin.teachers.index') }}" class="nav-item {{ request()->routeIs('admin.teachers*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-chalkboard-user"></i>
-                        Teachers
-                    </a>
-                    @endif
-                </div>
-            </div>
-            @endif
+            <nav class="sidebar-nav">
 
-            {{-- ── 4. Classes & Batches ── --}}
-            @if(auth()->user()->canAccess('classes_batches'))
-            @php $classesActive = request()->routeIs('admin.batches*','admin.classes*','admin.routine*'); @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $classesActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-video"></i>
-                    Class &amp; Batch
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $classesActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.batches.index') }}" class="nav-item {{ request()->routeIs('admin.batches*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-layer-group"></i>
-                        Batches
-                    </a>
-                    <a href="{{ route('admin.routine.index') }}" class="nav-item {{ request()->routeIs('admin.routine*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-calendar-week"></i>
-                        Class Routine
-                    </a>
-                    <a href="{{ route('admin.classes.index') }}?date={{ today()->toDateString() }}" class="nav-item {{ request()->routeIs('admin.classes*') && request()->query('date') === today()->toDateString() ? 'active' : '' }}">
-                        <i class="fa-solid fa-sun"></i>
-                        Today's Classes
-                        @php try { $adminTodayCount = \App\Models\ClassSession::whereDate('session_date', today())->count(); } catch (\Exception $e) { $adminTodayCount = 0; } @endphp
-                        @if($adminTodayCount > 0)<span class="nav-badge" style="background:#f59e0b">{{ $adminTodayCount }}</span>@endif
-                    </a>
-                    <a href="{{ route('admin.classes.index') }}" class="nav-item {{ request()->routeIs('admin.classes*') && !request()->query('date') ? 'active' : '' }}">
-                        <i class="fa-solid fa-list-check"></i>
-                        All Classes
-                    </a>
-                </div>
-            </div>
-            @endif
+                {{-- ── 1. Dashboard ── --}}
+                <a href="{{ route('admin.dashboard') }}"
+                    class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+                    style="margin-bottom:4px">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    Dashboard
+                </a>
 
-            {{-- ── 5. Exams & Results ── --}}
-            @if(auth()->user()->canAccess('exams'))
-            @php 
-                $examsActive = request()->routeIs('admin.exams*','admin.questions*','admin.retakes*','admin.readmissions*','admin.promotions*','admin.final-marks*','admin.result-book*'); 
-                try { $readmissionPending = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch(\Exception $e) { $readmissionPending = 0; }
-            @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $examsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-file-signature"></i>
-                    Exams &amp; Results
-                    @if($readmissionPending > 0)
-                        <span class="nav-badge" style="margin-left:auto;margin-right:6px;background:#dc2626">{{ $readmissionPending }}</span>
-                    @endif
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $examsActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.exams.index') }}" class="nav-item {{ request()->routeIs('admin.exams.index', 'admin.exams.show', 'admin.exams.builder') ? 'active' : '' }}">
-                        <i class="fa-solid fa-file-pen"></i>
-                        Exam Management
-                    </a>
-                    <a href="{{ route('admin.exams.appeals.index') }}" class="nav-item {{ request()->routeIs('admin.exams.appeals*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-file-circle-question"></i>
-                        Re-Exam Appeals (আপিল)
-                    </a>
-                    <a href="{{ route('admin.questions.index') }}" class="nav-item {{ request()->routeIs('admin.questions*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-database"></i>
-                        Question Bank
-                    </a>
-                    <a href="{{ route('admin.retakes.index') }}" class="nav-item {{ request()->routeIs('admin.retakes*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-rotate-left"></i>
-                        Retakes
-                    </a>
-                    <a href="{{ route('admin.readmissions.index') }}" class="nav-item {{ request()->routeIs('admin.readmissions*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-user-clock"></i>
-                        Re-admissions (রি-এডমিশন)
-                        @if($readmissionPending > 0)<span class="nav-badge" style="background:#dc2626">{{ $readmissionPending }}</span>@endif
-                    </a>
-                    <a href="{{ route('admin.promotions.index') }}" class="nav-item {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-arrow-trend-up"></i>
-                        Promotions
-                    </a>
-                    <a href="{{ route('admin.result-book.index') }}" class="nav-item {{ request()->routeIs('admin.result-book*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-square-poll-vertical"></i>
-                        Result Management
-                    </a>
-                </div>
-            </div>
-            @endif
+                {{-- ── 2. Academic Setup ── --}}
+                @if(auth()->user()->canAccess('academic'))
+                    @php $academicActive = request()->routeIs('admin.academic-years*', 'admin.subjects*', 'admin.subject-categories*', 'admin.assignments*', 'admin.courses*', 'admin.semesters*'); @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $academicActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            Academic Setup
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $academicActive ? 'open' : '' }}">
+                            <a href="{{ route('admin.academic-years.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.academic-years*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-calendar-days"></i>
+                                Academic Years
+                            </a>
+                            <a href="{{ route('admin.courses.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.courses*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-book-open"></i>
+                                Courses
+                            </a>
+                            <a href="{{ route('admin.subject-categories.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.subject-categories*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-tags"></i>
+                                বিষয় ক্যাটাগরি
+                            </a>
+                            <a href="{{ route('admin.subjects.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.subjects*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-book-bookmark"></i>
+                                Subjects &amp; Modules
+                            </a>
+                            <a href="{{ route('admin.assignments.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.assignments*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-file-signature"></i>
+                                অ্যাসাইনমেন্ট (Assignments)
+                            </a>
+                        </div>
+                    </div>
+                @endif
 
-            {{-- ── 6. Communication ── --}}
-            @if(auth()->user()->canAccess('communication'))
-            @php $commActive = request()->routeIs('admin.notices*','admin.notifications*','admin.surveys*','admin.email-templates*'); @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $commActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-bullhorn"></i>
-                    Communication
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $commActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.surveys.index') }}" class="nav-item {{ request()->routeIs('admin.surveys*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-square-poll-vertical"></i>
-                        Survey &amp; Forms
-                    </a>
-                    <a href="{{ route('admin.notifications.index') }}" class="nav-item {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-paper-plane"></i>
-                        Send Notification
-                    </a>
-                    <a href="{{ route('admin.email-templates.index') }}" class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-envelope-open-text"></i>
-                        Email Templates (ইমেইল টেমপ্লেট)
-                    </a>
-                    <a href="{{ route('admin.notices.index') }}" class="nav-item {{ request()->routeIs('admin.notices*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-bell"></i>
-                        Notice Board
-                    </a>
-                </div>
-            </div>
-            @endif
-
-            {{-- ── 7. Accounts & Financials ── --}}
-            @if(auth()->user()->canAccess('accounts'))
-            @php $accountsActive = request()->routeIs('admin.accounts*'); @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $accountsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-wallet"></i>
-                    Accounts &amp; Financials
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $accountsActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.accounts.dashboard') }}" class="nav-item {{ request()->routeIs('admin.accounts.dashboard') ? 'active' : '' }}">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
-                        Collect Fees
-                    </a>
-
-                    <a href="{{ route('admin.accounts.invoices') }}" class="nav-item {{ request()->routeIs('admin.accounts.invoices') ? 'active' : '' }}">
-                        <i class="fa-solid fa-file-invoice-dollar"></i>
-                        Invoices &amp; Dues
-                    </a>
-                    <a href="{{ route('admin.accounts.reports') }}" class="nav-item {{ request()->routeIs('admin.accounts.reports') ? 'active' : '' }}">
-                        <i class="fa-solid fa-chart-column"></i>
-                        Accounts Reports
-                    </a>
-                </div>
-            </div>
-            @endif
-
-            {{-- ── 7.6. Reports ── --}}
-            @if(auth()->user()->canAccess('reports') || auth()->user()->canAccess('admissions') || auth()->user()->isAdmin())
-            @php $reportsActive = request()->routeIs('admin.reports*'); @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $reportsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-chart-column"></i>
-                    Reports (রিপোর্ট)
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $reportsActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports.index') || request()->routeIs('admin.reports.admission-summary') ? 'active' : '' }}">
-                        <i class="fa-solid fa-table-list"></i>
-                        Admission Summary (ভর্তি সামারি)
-                    </a>
-                    <a href="{{ route('admin.reports.system') }}" class="nav-item {{ request()->routeIs('admin.reports.system') ? 'active' : '' }}">
-                        <i class="fa-solid fa-chart-pie"></i>
-                        System Analytics (পরিসংখ্যান)
-                    </a>
-                </div>
-            </div>
-            @endif
-
-            {{-- ── 7.5. Support & Helpdesk ── --}}
-            @if(auth()->user()->canAccess('support') || auth()->user()->isSupportAgent())
-            @php $supportActive = request()->routeIs('admin.support-tickets*','admin.support-departments*','admin.support-agents*','support*'); @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $supportActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-headset"></i>
-                    Support &amp; Helpdesk
-                    @php
+                {{-- ── 3. People ── --}}
+                @if(auth()->user()->canAccess('admissions') || auth()->user()->canAccess('students') || auth()->user()->canAccess('teachers'))
+                    @php 
+                                    $peopleActive = request()->routeIs('admin.admissions*', 'admin.students*', 'admin.teachers*', 'admin.waiver-applications*', 'admin.course-transfers*', 'admin.email-templates*');
                         try {
-                            $pendingSupportCount = \App\Models\SupportTicket::where('status', 'PENDING')->count();
-                        } catch (\Throwable $e) {
-                            $pendingSupportCount = 0;
+                            $pendingCount = \App\Models\AdmissionForm::where('status', 'PENDING')->count();
+                        } catch (\Exception $e) {
+                            $pendingCount = 0;
+                        }
+                        try {
+                            $waiverPending = \App\Models\WaiverApplication::where('status', 'PENDING')->count();
+                        } catch (\Exception) {
+                            $waiverPending = 0;
+                        }
+                        try {
+                            $transferPending = \App\Models\CourseTransfer::where('status', 'PENDING')->count();
+                        } catch (\Exception) {
+                            $transferPending = 0;
+                        }
+                        $peopleBadge = $pendingCount + $waiverPending + $transferPending;
+                    @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $peopleActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-users"></i>
+                            People
+                            @if($peopleBadge > 0)
+                                <span class="nav-badge" style="margin-left:auto;margin-right:6px">{{ $peopleBadge }}</span>
+                            @endif
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $peopleActive ? 'open' : '' }}">
+                            @if(auth()->user()->canAccess('admissions'))
+                                <a href="{{ route('admin.admissions.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.admissions*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                    Admissions
+                                    @if($pendingCount > 0)<span class="nav-badge">{{ $pendingCount }}</span>@endif
+                                </a>
+                                <a href="{{ route('admin.email-templates.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-envelope-open-text"></i>
+                                    Email Templates (ইমেইল টেমপ্লেট)
+                                </a>
+                                <a href="{{ route('admin.course-transfers.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.course-transfers*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                                    Course Transfers (কোর্স পরিবর্তন)
+                                    @if($transferPending > 0)<span class="nav-badge"
+                                    style="background:#0284c7">{{ $transferPending }}</span>@endif
+                                </a>
+                                <a href="{{ route('admin.waiver-applications.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.waiver-applications*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                                    Poor Fund / Waivers
+                                    @if($waiverPending > 0)<span class="nav-badge"
+                                    style="background:#8b5cf6">{{ $waiverPending }}</span>@endif
+                                </a>
+                            @endif
+                            @if(auth()->user()->canAccess('students'))
+                                <a href="{{ route('admin.students.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.students*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-user-graduate"></i>
+                                    Students
+                                </a>
+                            @endif
+                            @if(auth()->user()->canAccess('teachers'))
+                                <a href="{{ route('admin.teachers.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.teachers*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-chalkboard-user"></i>
+                                    Teachers
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                {{-- ── 4. Classes & Batches ── --}}
+                @if(auth()->user()->canAccess('classes_batches'))
+                    @php $classesActive = request()->routeIs('admin.batches*', 'admin.classes*', 'admin.routine*'); @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $classesActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-video"></i>
+                            Class &amp; Batch
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $classesActive ? 'open' : '' }}">
+                            <a href="{{ route('admin.batches.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.batches*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-layer-group"></i>
+                                Batches
+                            </a>
+                            <a href="{{ route('admin.routine.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.routine*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-calendar-week"></i>
+                                Class Routine
+                            </a>
+                            <a href="{{ route('admin.classes.index') }}?date={{ today()->toDateString() }}"
+                                class="nav-item {{ request()->routeIs('admin.classes*') && request()->query('date') === today()->toDateString() ? 'active' : '' }}">
+                                <i class="fa-solid fa-sun"></i>
+                                Today's Classes
+                                @php try {
+                                        $adminTodayCount = \App\Models\ClassSession::whereDate('session_date', today())->count();
+                                    } catch (\Exception $e) {
+                                        $adminTodayCount = 0;
+                                } @endphp
+                                @if($adminTodayCount > 0)<span class="nav-badge"
+                                style="background:#f59e0b">{{ $adminTodayCount }}</span>@endif
+                            </a>
+                            <a href="{{ route('admin.classes.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.classes*') && !request()->query('date') ? 'active' : '' }}">
+                                <i class="fa-solid fa-list-check"></i>
+                                All Classes
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- ── 5. Exams & Results ── --}}
+                @if(auth()->user()->canAccess('exams'))
+                    @php 
+                                    $examsActive = request()->routeIs('admin.exams*', 'admin.questions*', 'admin.retakes*', 'admin.readmissions*', 'admin.promotions*', 'admin.final-marks*', 'admin.result-book*');
+                        try {
+                            $readmissionPending = \App\Models\Readmission::where('status', 'PENDING')->count();
+                        } catch (\Exception $e) {
+                            $readmissionPending = 0;
                         }
                     @endphp
-                    @if($pendingSupportCount > 0)
-                        <span class="nav-badge" style="background:#f59e0b">{{ $pendingSupportCount }}</span>
-                    @endif
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $supportActive ? 'open' : '' }}">
-                    <a href="{{ route('admin.support-tickets.index') }}" class="nav-item {{ request()->routeIs('admin.support-tickets*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-ticket"></i>
-                        All Support Tickets
-                    </a>
-                    @if(auth()->user()->canAccess('support'))
-                    <a href="{{ route('admin.support-departments.index') }}" class="nav-item {{ request()->routeIs('admin.support-departments*','admin.support-agents*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-building-user"></i>
-                        Departments &amp; Agents
-                    </a>
-                    @endif
-                    <a href="{{ route('support.dashboard') }}" target="_blank" class="nav-item">
-                        <i class="fa-solid fa-comments"></i>
-                        Open Support Panel ↗
-                    </a>
-                </div>
-            </div>
-            @endif
-
-            {{-- ── 8. System ── --}}
-            @if(auth()->user()->canAccess('settings') || auth()->user()->canAccess('user_management'))
-            @php $systemActive = request()->routeIs('admin.reports*','admin.settings*','admin.app-settings*','admin.fee-heads*','admin.users*'); @endphp
-            <div class="tree-group">
-                <div class="tree-toggle {{ $systemActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
-                    <i class="fa-solid fa-gear"></i>
-                    System
-                    <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
-                </div>
-                <div class="tree-children {{ $systemActive ? 'open' : '' }}">
-                    @if(auth()->user()->canAccess('user_management'))
-                    <a href="{{ route('admin.users.index') }}" class="nav-item {{ request()->routeIs('admin.users*') ? 'active' : '' }}" style="background:rgba(99,102,241,0.06);color:#4f46e5;font-weight:700">
-                        <i class="fa-solid fa-users-gear" style="color:#6366f1"></i>
-                        User Management (ইউজার ও রোল)
-                    </a>
-                    @endif
-
-                    @if(auth()->user()->canAccess('settings'))
-                    <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-chart-line"></i>
-                        Reports
-                    </a>
-                    <a href="{{ route('admin.fee-heads.index') }}" class="nav-item {{ request()->routeIs('admin.fee-heads*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-receipt"></i>
-                        Fee Head
-                    </a>
-                    <a href="{{ route('admin.settings.index') }}" class="nav-item {{ request()->routeIs('admin.settings.index') ? 'active' : '' }}">
-                        <i class="fa-solid fa-sliders"></i>
-                        Settings
-                    </a>
-                    <a href="{{ route('admin.settings.notifications.index') }}" class="nav-item {{ request()->routeIs('admin.settings.notifications*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-bell-slash"></i>
-                        Notification Settings
-                    </a>
-                    <a href="{{ route('admin.settings.payment-gateways.index') }}" class="nav-item {{ request()->routeIs('admin.settings.payment-gateways*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-credit-card"></i>
-                        Payment Gateway Settings
-                    </a>
-                    <a href="{{ route('admin.app-settings.index') }}" class="nav-item {{ request()->routeIs('admin.app-settings*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-mobile-screen"></i>
-                        App Settings
-                    </a>
-                    <a href="{{ route('admin.settings.google-auth.index') }}" class="nav-item {{ request()->routeIs('admin.settings.google-auth*') ? 'active' : '' }}">
-                        <i class="fa-brands fa-google" style="color:#ea4335"></i>
-                        Google Auth Setup
-                    </a>
-                    <a href="{{ route('admin.support-departments.index') }}" class="nav-item {{ request()->routeIs('admin.support-departments*','admin.support-agents*') ? 'active' : '' }}">
-                        <i class="fa-solid fa-life-ring"></i>
-                        Support Setup
-                    </a>
-                    @endif
-                </div>
-            </div>
-            @endif
-
-        </nav>
-    </aside>
-
-    <!-- ═══ MAIN AREA ═══ -->
-    <div class="main-area">
-        <!-- Topbar -->
-        <header class="topbar">
-            <div class="topbar-left">
-                <button class="topbar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                @if(isset($breadcrumbs))
-                <div class="topbar-breadcrumb">
-                    <a href="{{ route('admin.dashboard') }}">Admin</a>
-                    @foreach($breadcrumbs as $bc)
-                        <span>›</span>
-                        @if(!$loop->last)<a href="{{ $bc['url'] }}">{{ $bc['label'] }}</a>
-                        @else<span style="color:var(--text-secondary)">{{ $bc['label'] }}</span>@endif
-                    @endforeach
-                </div>
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $examsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-file-signature"></i>
+                            Exams &amp; Results
+                            @if($readmissionPending > 0)
+                                <span class="nav-badge"
+                                    style="margin-left:auto;margin-right:6px;background:#dc2626">{{ $readmissionPending }}</span>
+                            @endif
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $examsActive ? 'open' : '' }}">
+                            <a href="{{ route('admin.exams.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.exams.index', 'admin.exams.show', 'admin.exams.builder') ? 'active' : '' }}">
+                                <i class="fa-solid fa-file-pen"></i>
+                                Exam Management
+                            </a>
+                            <a href="{{ route('admin.exams.appeals.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.exams.appeals*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-file-circle-question"></i>
+                                Re-Exam Appeals (আপিল)
+                            </a>
+                            <a href="{{ route('admin.questions.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.questions*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-database"></i>
+                                Question Bank
+                            </a>
+                            <a href="{{ route('admin.retakes.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.retakes*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-rotate-left"></i>
+                                Retakes
+                            </a>
+                            <a href="{{ route('admin.readmissions.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.readmissions*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-user-clock"></i>
+                                Re-admissions (রি-এডমিশন)
+                                @if($readmissionPending > 0)<span class="nav-badge"
+                                style="background:#dc2626">{{ $readmissionPending }}</span>@endif
+                            </a>
+                            <a href="{{ route('admin.promotions.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.promotions*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                Promotions
+                            </a>
+                            <a href="{{ route('admin.result-book.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.result-book*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-square-poll-vertical"></i>
+                                Result Management
+                            </a>
+                        </div>
+                    </div>
                 @endif
-            </div>
-            <div class="topbar-right">
-                @php
-                    try { $notifPendingAdmissions = \App\Models\AdmissionForm::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingAdmissions = 0; }
-                    try { $notifPendingWaivers = \App\Models\WaiverApplication::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingWaivers = 0; }
-                    try { $notifPendingTransfers = \App\Models\CourseTransfer::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingTransfers = 0; }
-                    try { $notifPendingReadmissions = \App\Models\Readmission::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingReadmissions = 0; }
-                    try { $notifPendingSupport = \App\Models\SupportTicket::where('status', 'PENDING')->count(); } catch (\Throwable) { $notifPendingSupport = 0; }
-                    $notifTotalActions = $notifPendingAdmissions + $notifPendingWaivers + $notifPendingTransfers + $notifPendingReadmissions + $notifPendingSupport;
-                    try { $recentNotifs = \App\Models\SentNotification::latest()->take(6)->get(); } catch (\Throwable) { $recentNotifs = collect(); }
-                    
-                    $userReadAt = auth()->user()?->notifications_read_at ?? session('notifications_read_at');
-                    $readNotifIds = (array) (auth()->user()?->read_notification_ids ?? session('read_notification_ids', []));
 
-                    $unreadBrdCount = 0;
-                    foreach ($recentNotifs as $rn) {
-                        $isRnRead = in_array($rn->id, $readNotifIds, true) || ($userReadAt && $rn->created_at <= $userReadAt);
-                        $rn->is_read = (bool) $isRnRead;
-                        if (!$isRnRead) {
-                            $unreadBrdCount++;
-                        }
-                    }
+                {{-- ── 6. Communication ── --}}
+                @if(auth()->user()->canAccess('communication'))
+                    @php $commActive = request()->routeIs('admin.notices*', 'admin.notifications*', 'admin.surveys*', 'admin.email-templates*'); @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $commActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-bullhorn"></i>
+                            Communication
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $commActive ? 'open' : '' }}">
+                            <a href="{{ route('admin.surveys.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.surveys*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-square-poll-vertical"></i>
+                                Survey &amp; Forms
+                            </a>
+                            <a href="{{ route('admin.notifications.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-paper-plane"></i>
+                                Send Notification
+                            </a>
+                            <a href="{{ route('admin.email-templates.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-envelope-open-text"></i>
+                                Email Templates (ইমেইল টেমপ্লেট)
+                            </a>
+                            <a href="{{ route('admin.notices.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.notices*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-bell"></i>
+                                Notice Board
+                            </a>
+                        </div>
+                    </div>
+                @endif
 
-                    if ($userReadAt) {
-                        try {
-                            $newAdm = \App\Models\AdmissionForm::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
-                            $newWai = \App\Models\WaiverApplication::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
-                            $newTrn = \App\Models\CourseTransfer::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
-                            $newRed = \App\Models\Readmission::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
-                            $newSup = \App\Models\SupportTicket::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
-                            $notifUnreadCount = $newAdm + $newWai + $newTrn + $newRed + $newSup + $unreadBrdCount;
-                        } catch (\Throwable) {
-                            $notifUnreadCount = $unreadBrdCount;
-                        }
-                    } else {
-                        $notifUnreadCount = $notifTotalActions + $unreadBrdCount;
-                    }
-                @endphp
-                <div class="dropdown">
-                    <button class="topbar-btn" onclick="toggleDropdown('adminNotif')" title="নোটিফিকেশন ও অ্যাকশন সেন্টার" style="position:relative">
-                        <i class="fa-solid fa-bell"></i>
-                        @if($notifUnreadCount > 0)
-                            <span id="topbarBellBadge" style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:#ffffff;font-size:10px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:16px;line-height:1.2;text-align:center;box-shadow:0 2px 4px rgba(239,68,68,0.4);border:2px solid #ffffff">
-                                {{ $notifUnreadCount > 99 ? '99+' : $notifUnreadCount }}
-                            </span>
-                        @elseif($recentNotifs->isNotEmpty() && !$userReadAt)
-                            <span id="topbarNotifDot" class="notif-dot"></span>
-                        @endif
+                {{-- ── 7. Accounts & Financials ── --}}
+                @if(auth()->user()->canAccess('accounts'))
+                    @php $accountsActive = request()->routeIs('admin.accounts*'); @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $accountsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-wallet"></i>
+                            Accounts &amp; Financials
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $accountsActive ? 'open' : '' }}">
+                            <a href="{{ route('admin.accounts.dashboard') }}"
+                                class="nav-item {{ request()->routeIs('admin.accounts.dashboard') ? 'active' : '' }}">
+                                <i class="fa-solid fa-hand-holding-dollar"></i>
+                                Collect Fees
+                            </a>
+
+                            <a href="{{ route('admin.accounts.invoices') }}"
+                                class="nav-item {{ request()->routeIs('admin.accounts.invoices') ? 'active' : '' }}">
+                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                                Invoices &amp; Dues
+                            </a>
+                            <a href="{{ route('admin.accounts.reports') }}"
+                                class="nav-item {{ request()->routeIs('admin.accounts.reports') ? 'active' : '' }}">
+                                <i class="fa-solid fa-chart-column"></i>
+                                Accounts Reports
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- ── 7.6. Reports ── --}}
+                @if(auth()->user()->canAccess('reports') || auth()->user()->canAccess('admissions') || auth()->user()->isAdmin())
+                    @php $reportsActive = request()->routeIs('admin.reports*'); @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $reportsActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-chart-column"></i>
+                            Reports (রিপোর্ট)
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $reportsActive ? 'open' : '' }}">
+                            <a href="{{ route('admin.reports.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.reports.index') || request()->routeIs('admin.reports.admission-summary') ? 'active' : '' }}">
+                                <i class="fa-solid fa-table-list"></i>
+                                Admission Summary (ভর্তি সামারি)
+                            </a>
+                            <a href="{{ route('admin.reports.system') }}"
+                                class="nav-item {{ request()->routeIs('admin.reports.system') ? 'active' : '' }}">
+                                <i class="fa-solid fa-chart-pie"></i>
+                                System Analytics (পরিসংখ্যান)
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- ── 7.5. Support & Helpdesk ── --}}
+                @if(auth()->user()->canAccess('support') || auth()->user()->isSupportAgent())
+                    @php $supportActive = request()->routeIs('admin.support-tickets*', 'admin.support-departments*', 'admin.support-agents*', 'support*'); @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $supportActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-headset"></i>
+                            Support &amp; Helpdesk
+                            @php
+                                try {
+                                    $pendingSupportCount = \App\Models\SupportTicket::where('status', 'PENDING')->count();
+                                } catch (\Throwable $e) {
+                                    $pendingSupportCount = 0;
+                                }
+                            @endphp
+                            @if($pendingSupportCount > 0)
+                                <span class="nav-badge" style="background:#f59e0b">{{ $pendingSupportCount }}</span>
+                            @endif
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $supportActive ? 'open' : '' }}">
+                            <a href="{{ route('admin.support-tickets.index') }}"
+                                class="nav-item {{ request()->routeIs('admin.support-tickets*') ? 'active' : '' }}">
+                                <i class="fa-solid fa-ticket"></i>
+                                All Support Tickets
+                            </a>
+                            @if(auth()->user()->canAccess('support'))
+                                <a href="{{ route('admin.support-departments.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.support-departments*', 'admin.support-agents*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-building-user"></i>
+                                    Departments &amp; Agents
+                                </a>
+                            @endif
+                            <a href="{{ route('support.dashboard') }}" target="_blank" class="nav-item">
+                                <i class="fa-solid fa-comments"></i>
+                                Open Support Panel ↗
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- ── 8. System ── --}}
+                @if(auth()->user()->canAccess('settings') || auth()->user()->canAccess('user_management'))
+                    @php $systemActive = request()->routeIs('admin.reports*', 'admin.settings*', 'admin.app-settings*', 'admin.fee-heads*', 'admin.users*'); @endphp
+                    <div class="tree-group">
+                        <div class="tree-toggle {{ $systemActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
+                            <i class="fa-solid fa-gear"></i>
+                            System
+                            <i class="fa-solid fa-chevron-right tree-toggle-arrow"></i>
+                        </div>
+                        <div class="tree-children {{ $systemActive ? 'open' : '' }}">
+                            @if(auth()->user()->canAccess('user_management'))
+                                <a href="{{ route('admin.users.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.users*') ? 'active' : '' }}"
+                                    style="background:rgba(99,102,241,0.06);color:#4f46e5;font-weight:700">
+                                    <i class="fa-solid fa-users-gear" style="color:#6366f1"></i>
+                                    User Management (ইউজার ও রোল)
+                                </a>
+                            @endif
+
+                            @if(auth()->user()->canAccess('settings'))
+                                <a href="{{ route('admin.reports.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.reports*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                    Reports
+                                </a>
+                                <a href="{{ route('admin.fee-heads.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.fee-heads*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-receipt"></i>
+                                    Fee Head
+                                </a>
+                                <a href="{{ route('admin.settings.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.settings.index') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-sliders"></i>
+                                    Settings
+                                </a>
+                                <a href="{{ route('admin.settings.notifications.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.settings.notifications*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-bell-slash"></i>
+                                    Notification Settings
+                                </a>
+                                <a href="{{ route('admin.settings.payment-gateways.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.settings.payment-gateways*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-credit-card"></i>
+                                    Payment Gateway Settings
+                                </a>
+                                <a href="{{ route('admin.app-settings.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.app-settings*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-mobile-screen"></i>
+                                    App Settings
+                                </a>
+                                <a href="{{ route('admin.settings.google-auth.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.settings.google-auth*') ? 'active' : '' }}">
+                                    <i class="fa-brands fa-google" style="color:#ea4335"></i>
+                                    Google Auth Setup
+                                </a>
+                                <a href="{{ route('admin.support-departments.index') }}"
+                                    class="nav-item {{ request()->routeIs('admin.support-departments*', 'admin.support-agents*') ? 'active' : '' }}">
+                                    <i class="fa-solid fa-life-ring"></i>
+                                    Support Setup
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+            </nav>
+        </aside>
+
+        <!-- ═══ MAIN AREA ═══ -->
+        <div class="main-area">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button class="topbar-btn" onclick="toggleSidebar()" title="Toggle Sidebar">
+                        <i class="fa-solid fa-bars"></i>
                     </button>
-                    <div class="dropdown-menu" id="adminNotif" style="min-width:340px;max-width:380px;right:0;padding:0;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.18);border:1px solid #e2e8f0;font-family:'Kalpurush',sans-serif">
-                        <div style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;gap:8px">
-                            <div style="font-weight:700;font-size:13px;color:#0f172a;display:flex;align-items:center;gap:6px">
-                                <i class="fa-solid fa-bell" style="color:#047857"></i> নোটিফিকেশন
-                            </div>
-                            <div style="display:flex;align-items:center;gap:6px">
-                                <span id="notifStatusBadge" class="badge {{ $notifUnreadCount > 0 ? 'badge-danger' : 'badge-success' }} no-dot" style="font-size:10.5px;padding:3px 8px;font-weight:700">
-                                    {{ $notifUnreadCount > 0 ? ($notifUnreadCount . 'টি নতুন') : ($notifTotalActions > 0 ? ($notifTotalActions . 'টি পেন্ডিং') : 'সব পঠিত') }}
+                    @if(isset($breadcrumbs))
+                        <div class="topbar-breadcrumb">
+                            <a href="{{ route('admin.dashboard') }}">Admin</a>
+                            @foreach($breadcrumbs as $bc)
+                                <span>›</span>
+                                @if(!$loop->last)<a href="{{ $bc['url'] }}">{{ $bc['label'] }}</a>
+                                @else<span style="color:var(--text-secondary)">{{ $bc['label'] }}</span>@endif
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+                <div class="topbar-right">
+                    @php
+                        try {
+                            $notifPendingAdmissions = \App\Models\AdmissionForm::where('status', 'PENDING')->count();
+                        } catch (\Throwable) {
+                            $notifPendingAdmissions = 0;
+                        }
+                        try {
+                            $notifPendingWaivers = \App\Models\WaiverApplication::where('status', 'PENDING')->count();
+                        } catch (\Throwable) {
+                            $notifPendingWaivers = 0;
+                        }
+                        try {
+                            $notifPendingTransfers = \App\Models\CourseTransfer::where('status', 'PENDING')->count();
+                        } catch (\Throwable) {
+                            $notifPendingTransfers = 0;
+                        }
+                        try {
+                            $notifPendingReadmissions = \App\Models\Readmission::where('status', 'PENDING')->count();
+                        } catch (\Throwable) {
+                            $notifPendingReadmissions = 0;
+                        }
+                        try {
+                            $notifPendingSupport = \App\Models\SupportTicket::where('status', 'PENDING')->count();
+                        } catch (\Throwable) {
+                            $notifPendingSupport = 0;
+                        }
+                        $notifTotalActions = $notifPendingAdmissions + $notifPendingWaivers + $notifPendingTransfers + $notifPendingReadmissions + $notifPendingSupport;
+                        try {
+                            $recentNotifs = \App\Models\SentNotification::latest()->take(6)->get();
+                        } catch (\Throwable) {
+                            $recentNotifs = collect();
+                        }
+
+                        $userReadAt = auth()->user()?->notifications_read_at ?? session('notifications_read_at');
+                        $readNotifIds = (array) (auth()->user()?->read_notification_ids ?? session('read_notification_ids', []));
+
+                        $unreadBrdCount = 0;
+                        foreach ($recentNotifs as $rn) {
+                            $isRnRead = in_array($rn->id, $readNotifIds, true) || ($userReadAt && $rn->created_at <= $userReadAt);
+                            $rn->is_read = (bool) $isRnRead;
+                            if (!$isRnRead) {
+                                $unreadBrdCount++;
+                            }
+                        }
+
+                        if ($userReadAt) {
+                            try {
+                                $newAdm = \App\Models\AdmissionForm::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                                $newWai = \App\Models\WaiverApplication::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                                $newTrn = \App\Models\CourseTransfer::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                                $newRed = \App\Models\Readmission::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                                $newSup = \App\Models\SupportTicket::where('status', 'PENDING')->where('created_at', '>', $userReadAt)->count();
+                                $notifUnreadCount = $newAdm + $newWai + $newTrn + $newRed + $newSup + $unreadBrdCount;
+                            } catch (\Throwable) {
+                                $notifUnreadCount = $unreadBrdCount;
+                            }
+                        } else {
+                            $notifUnreadCount = $notifTotalActions + $unreadBrdCount;
+                        }
+                    @endphp
+                    <div class="dropdown">
+                        <button class="topbar-btn" onclick="toggleDropdown('adminNotif')"
+                            title="নোটিফিকেশন ও অ্যাকশন সেন্টার" style="position:relative">
+                            <i class="fa-solid fa-bell"></i>
+                            @if($notifUnreadCount > 0)
+                                <span id="topbarBellBadge"
+                                    style="position:absolute;top:-5px;right:-5px;background:#ef4444;color:#ffffff;font-size:10px;font-weight:800;padding:2px 5px;border-radius:10px;min-width:16px;line-height:1.2;text-align:center;box-shadow:0 2px 4px rgba(239,68,68,0.4);border:2px solid #ffffff">
+                                    {{ $notifUnreadCount > 99 ? '99+' : $notifUnreadCount }}
                                 </span>
-                                <button type="button" id="btnMarkNotifRead" onclick="markAllNotificationsAsRead(event)"
+                            @elseif($recentNotifs->isNotEmpty() && !$userReadAt)
+                                <span id="topbarNotifDot" class="notif-dot"></span>
+                            @endif
+                        </button>
+                        <div class="dropdown-menu" id="adminNotif"
+                            style="min-width:340px;max-width:380px;right:0;padding:0;border-radius:12px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,0.18);border:1px solid #e2e8f0;font-family:'Kalpurush',sans-serif">
+                            <div
+                                style="padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;gap:8px">
+                                <div
+                                    style="font-weight:700;font-size:13px;color:#0f172a;display:flex;align-items:center;gap:6px">
+                                    <i class="fa-solid fa-bell" style="color:#047857"></i> নোটিফিকেশন
+                                </div>
+                                <div style="display:flex;align-items:center;gap:6px">
+                                    <span id="notifStatusBadge"
+                                        class="badge {{ $notifUnreadCount > 0 ? 'badge-danger' : 'badge-success' }} no-dot"
+                                        style="font-size:10.5px;padding:3px 8px;font-weight:700">
+                                        {{ $notifUnreadCount > 0 ? ($notifUnreadCount . 'টি নতুন') : ($notifTotalActions > 0 ? ($notifTotalActions . 'টি পেন্ডিং') : 'সব পঠিত') }}
+                                    </span>
+                                    <button type="button" id="btnMarkNotifRead"
+                                        onclick="markAllNotificationsAsRead(event)"
                                         style="background:#ffffff;border:1px solid #cbd5e1;color:#047857;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:all .15s"
                                         title="সকল নোটিফিকেশন পঠিত চিহ্নিত করুন"
                                         onmouseover="this.style.background='#ecfdf5';this.style.borderColor='#047857'"
                                         onmouseout="this.style.background='#ffffff';this.style.borderColor='#cbd5e1'">
-                                    <i class="fa-solid fa-check-double"></i>
-                                    <span>সব রিড</span>
-                                </button>
+                                        <i class="fa-solid fa-check-double"></i>
+                                        <span>সব রিড</span>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
 
-                        <div style="max-height:380px;overflow-y:auto">
-                            @if($notifTotalActions > 0)
-                                <div style="padding:8px 16px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;background:#fff">
-                                    জরুরি অ্যাকশন ও অনুমোদন
-                                </div>
+                            <div style="max-height:380px;overflow-y:auto">
+                                @if($notifTotalActions > 0)
+                                    <div
+                                        style="padding:8px 16px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;background:#fff">
+                                        জরুরি অ্যাকশন ও অনুমোদন
+                                    </div>
 
-                                @if($notifPendingAdmissions > 0)
-                                    <a href="{{ route('admin.admissions.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'">
-                                        <div style="width:34px;height:34px;border-radius:8px;background:#ecfdf5;color:#047857;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
-                                            <i class="fa-solid fa-user-plus"></i>
-                                        </div>
-                                        <div style="flex:1;min-width:0">
-                                            <div style="font-size:13px;font-weight:600;color:#0f172a">নতুন ভর্তি আবেদন</div>
-                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingAdmissions }}টি ফর্ম পর্যালোচনার অপেক্ষায়</div>
-                                        </div>
-                                        <span class="badge badge-danger no-dot" style="font-size:10px;padding:2px 6px">অনুমোদন</span>
-                                    </a>
-                                @endif
-
-                                @if($notifPendingWaivers > 0)
-                                    <a href="{{ route('admin.waiver-applications.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f5f3ff'" onmouseout="this.style.background='transparent'">
-                                        <div style="width:34px;height:34px;border-radius:8px;background:#f5f3ff;color:#8b5cf6;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
-                                            <i class="fa-solid fa-hand-holding-dollar"></i>
-                                        </div>
-                                        <div style="flex:1;min-width:0">
-                                            <div style="font-size:13px;font-weight:600;color:#0f172a">পুওর ফান্ড / ওয়েভার</div>
-                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingWaivers }}টি আবেদন সিদ্ধান্তহীন</div>
-                                        </div>
-                                        <span class="badge badge-pending no-dot" style="font-size:10px;padding:2px 6px">সিদ্ধান্ত</span>
-                                    </a>
-                                @endif
-
-                                @if($notifPendingTransfers > 0)
-                                    <a href="{{ route('admin.course-transfers.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#f0f9ff'" onmouseout="this.style.background='transparent'">
-                                        <div style="width:34px;height:34px;border-radius:8px;background:#f0f9ff;color:#0284c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
-                                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
-                                        </div>
-                                        <div style="flex:1;min-width:0">
-                                            <div style="font-size:13px;font-weight:600;color:#0f172a">কোর্স পরিবর্তন আবেদন</div>
-                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingTransfers }}টি ট্রান্সফার অপেক্ষমাণ</div>
-                                        </div>
-                                        <span class="badge badge-scheduled no-dot" style="font-size:10px;padding:2px 6px">ট্রান্সফার</span>
-                                    </a>
-                                @endif
-
-                                @if($notifPendingReadmissions > 0)
-                                    <a href="{{ route('admin.readmissions.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'">
-                                        <div style="width:34px;height:34px;border-radius:8px;background:#fef2f2;color:#dc2626;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
-                                            <i class="fa-solid fa-user-clock"></i>
-                                        </div>
-                                        <div style="flex:1;min-width:0">
-                                            <div style="font-size:13px;font-weight:600;color:#0f172a">রি-এডমিশন আবেদন</div>
-                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingReadmissions }}টি আবেদন অপেক্ষমাণ</div>
-                                        </div>
-                                        <span class="badge badge-danger no-dot" style="font-size:10px;padding:2px 6px">রি-এডমিট</span>
-                                    </a>
-                                @endif
-
-                                @if($notifPendingSupport > 0)
-                                    <a href="{{ route('admin.support-tickets.index') }}" style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s" onmouseover="this.style.background='#fffbeb'" onmouseout="this.style.background='transparent'">
-                                        <div style="width:34px;height:34px;border-radius:8px;background:#fffbeb;color:#d97706;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
-                                            <i class="fa-solid fa-headset"></i>
-                                        </div>
-                                        <div style="flex:1;min-width:0">
-                                            <div style="font-size:13px;font-weight:600;color:#0f172a">সাপোর্ট টিকেট</div>
-                                            <div style="font-size:11.5px;color:#64748b">{{ $notifPendingSupport }}টি নতুন টিকেট এসেছে</div>
-                                        </div>
-                                        <span class="badge badge-pending no-dot" style="font-size:10px;padding:2px 6px">টিকেট</span>
-                                    </a>
-                                @endif
-                            @endif
-
-                            @if($recentNotifs->isNotEmpty())
-                                <div style="padding:8px 16px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;background:#f8fafc">
-                                    সাম্প্রতিক ব্রডকাস্ট মেসেজ
-                                </div>
-                                @foreach($recentNotifs as $rn)
-                                    @php
-                                        $isUnreadMsg = !$rn->is_read;
-                                    @endphp
-                                    <div id="topbar-notif-item-{{ $rn->id }}" class="topbar-notif-item {{ $isUnreadMsg ? 'is-unread' : 'is-read' }}"
-                                         style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f1f5f9;transition:all .2s;{{ $isUnreadMsg ? 'background:#ffffff;border-left:3px solid #047857;' : 'background:#f8fafc;border-left:3px solid transparent;opacity:0.8;' }}">
-                                        <div class="notif-item-icon" style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;margin-top:2px;{{ $isUnreadMsg ? 'background:#ecfdf5;color:#047857;' : 'background:#e2e8f0;color:#94a3b8;' }}">
-                                            <i class="fa-solid fa-bullhorn"></i>
-                                        </div>
-                                        <div style="flex:1;min-width:0">
-                                            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-                                                <a href="{{ route('admin.notifications.index') }}" class="notif-item-title" style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;{{ $isUnreadMsg ? 'font-weight:700;color:#0f172a;' : 'font-weight:500;color:#64748b;' }}" title="{{ $rn->title }}">
-                                                    {{ $rn->title }}
-                                                </a>
-                                                @if($isUnreadMsg)
-                                                    <span class="notif-item-badge badge" style="background:#dcfce7;color:#166534;font-size:9.5px;padding:1px 5px;font-weight:700;flex-shrink:0">নতুন</span>
-                                                @else
-                                                    <span class="notif-item-badge" style="font-size:10px;color:#94a3b8;flex-shrink:0"><i class="fa-solid fa-check-double"></i> পঠিত</span>
-                                                @endif
+                                    @if($notifPendingAdmissions > 0)
+                                        <a href="{{ route('admin.admissions.index') }}"
+                                            style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s"
+                                            onmouseover="this.style.background='#f0fdf4'"
+                                            onmouseout="this.style.background='transparent'">
+                                            <div
+                                                style="width:34px;height:34px;border-radius:8px;background:#ecfdf5;color:#047857;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                                <i class="fa-solid fa-user-plus"></i>
                                             </div>
-                                            <div class="notif-item-msg" style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;{{ $isUnreadMsg ? 'color:#334155;' : 'color:#94a3b8;' }}">
-                                                {{ Str::limit(strip_tags($rn->message), 45) }}
+                                            <div style="flex:1;min-width:0">
+                                                <div style="font-size:13px;font-weight:600;color:#0f172a">নতুন ভর্তি আবেদন</div>
+                                                <div style="font-size:11.5px;color:#64748b">{{ $notifPendingAdmissions }}টি ফর্ম
+                                                    পর্যালোচনার অপেক্ষায়</div>
                                             </div>
-                                            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
-                                                <span style="font-size:10px;color:#94a3b8">{{ $rn->created_at?->diffForHumans() ?? '—' }}</span>
-                                                <div class="notif-item-action">
+                                            <span class="badge badge-danger no-dot"
+                                                style="font-size:10px;padding:2px 6px">অনুমোদন</span>
+                                        </a>
+                                    @endif
+
+                                    @if($notifPendingWaivers > 0)
+                                        <a href="{{ route('admin.waiver-applications.index') }}"
+                                            style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s"
+                                            onmouseover="this.style.background='#f5f3ff'"
+                                            onmouseout="this.style.background='transparent'">
+                                            <div
+                                                style="width:34px;height:34px;border-radius:8px;background:#f5f3ff;color:#8b5cf6;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                                <i class="fa-solid fa-hand-holding-dollar"></i>
+                                            </div>
+                                            <div style="flex:1;min-width:0">
+                                                <div style="font-size:13px;font-weight:600;color:#0f172a">পুওর ফান্ড / ওয়েভার
+                                                </div>
+                                                <div style="font-size:11.5px;color:#64748b">{{ $notifPendingWaivers }}টি আবেদন
+                                                    সিদ্ধান্তহীন</div>
+                                            </div>
+                                            <span class="badge badge-pending no-dot"
+                                                style="font-size:10px;padding:2px 6px">সিদ্ধান্ত</span>
+                                        </a>
+                                    @endif
+
+                                    @if($notifPendingTransfers > 0)
+                                        <a href="{{ route('admin.course-transfers.index') }}"
+                                            style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s"
+                                            onmouseover="this.style.background='#f0f9ff'"
+                                            onmouseout="this.style.background='transparent'">
+                                            <div
+                                                style="width:34px;height:34px;border-radius:8px;background:#f0f9ff;color:#0284c7;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                                            </div>
+                                            <div style="flex:1;min-width:0">
+                                                <div style="font-size:13px;font-weight:600;color:#0f172a">কোর্স পরিবর্তন আবেদন
+                                                </div>
+                                                <div style="font-size:11.5px;color:#64748b">{{ $notifPendingTransfers }}টি
+                                                    ট্রান্সফার অপেক্ষমাণ</div>
+                                            </div>
+                                            <span class="badge badge-scheduled no-dot"
+                                                style="font-size:10px;padding:2px 6px">ট্রান্সফার</span>
+                                        </a>
+                                    @endif
+
+                                    @if($notifPendingReadmissions > 0)
+                                        <a href="{{ route('admin.readmissions.index') }}"
+                                            style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s"
+                                            onmouseover="this.style.background='#fef2f2'"
+                                            onmouseout="this.style.background='transparent'">
+                                            <div
+                                                style="width:34px;height:34px;border-radius:8px;background:#fef2f2;color:#dc2626;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                                <i class="fa-solid fa-user-clock"></i>
+                                            </div>
+                                            <div style="flex:1;min-width:0">
+                                                <div style="font-size:13px;font-weight:600;color:#0f172a">রি-এডমিশন আবেদন</div>
+                                                <div style="font-size:11.5px;color:#64748b">{{ $notifPendingReadmissions }}টি
+                                                    আবেদন অপেক্ষমাণ</div>
+                                            </div>
+                                            <span class="badge badge-danger no-dot"
+                                                style="font-size:10px;padding:2px 6px">রি-এডমিট</span>
+                                        </a>
+                                    @endif
+
+                                    @if($notifPendingSupport > 0)
+                                        <a href="{{ route('admin.support-tickets.index') }}"
+                                            style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;transition:background .15s"
+                                            onmouseover="this.style.background='#fffbeb'"
+                                            onmouseout="this.style.background='transparent'">
+                                            <div
+                                                style="width:34px;height:34px;border-radius:8px;background:#fffbeb;color:#d97706;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px">
+                                                <i class="fa-solid fa-headset"></i>
+                                            </div>
+                                            <div style="flex:1;min-width:0">
+                                                <div style="font-size:13px;font-weight:600;color:#0f172a">সাপোর্ট টিকেট</div>
+                                                <div style="font-size:11.5px;color:#64748b">{{ $notifPendingSupport }}টি নতুন
+                                                    টিকেট এসেছে</div>
+                                            </div>
+                                            <span class="badge badge-pending no-dot"
+                                                style="font-size:10px;padding:2px 6px">টিকেট</span>
+                                        </a>
+                                    @endif
+                                @endif
+
+                                @if($recentNotifs->isNotEmpty())
+                                    <div
+                                        style="padding:8px 16px 4px;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:0.5px;background:#f8fafc">
+                                        সাম্প্রতিক ব্রডকাস্ট মেসেজ
+                                    </div>
+                                    @foreach($recentNotifs as $rn)
+                                        @php
+                                            $isUnreadMsg = !$rn->is_read;
+                                        @endphp
+                                        <div id="topbar-notif-item-{{ $rn->id }}"
+                                            class="topbar-notif-item {{ $isUnreadMsg ? 'is-unread' : 'is-read' }}"
+                                            style="display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #f1f5f9;transition:all .2s;{{ $isUnreadMsg ? 'background:#ffffff;border-left:3px solid #047857;' : 'background:#f8fafc;border-left:3px solid transparent;opacity:0.8;' }}">
+                                            <div class="notif-item-icon"
+                                                style="width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;margin-top:2px;{{ $isUnreadMsg ? 'background:#ecfdf5;color:#047857;' : 'background:#e2e8f0;color:#94a3b8;' }}">
+                                                <i class="fa-solid fa-bullhorn"></i>
+                                            </div>
+                                            <div style="flex:1;min-width:0">
+                                                <div
+                                                    style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                                                    <a href="{{ route('admin.notifications.index') }}" class="notif-item-title"
+                                                        style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none;{{ $isUnreadMsg ? 'font-weight:700;color:#0f172a;' : 'font-weight:500;color:#64748b;' }}"
+                                                        title="{{ $rn->title }}">
+                                                        {{ $rn->title }}
+                                                    </a>
                                                     @if($isUnreadMsg)
-                                                        <button type="button" class="btn-mark-single-read" onclick="markSingleNotificationAsRead(event, {{ $rn->id }}, this)"
+                                                        <span class="notif-item-badge badge"
+                                                            style="background:#dcfce7;color:#166534;font-size:9.5px;padding:1px 5px;font-weight:700;flex-shrink:0">নতুন</span>
+                                                    @else
+                                                        <span class="notif-item-badge"
+                                                            style="font-size:10px;color:#94a3b8;flex-shrink:0"><i
+                                                                class="fa-solid fa-check-double"></i> পঠিত</span>
+                                                    @endif
+                                                </div>
+                                                <div class="notif-item-msg"
+                                                    style="font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;{{ $isUnreadMsg ? 'color:#334155;' : 'color:#94a3b8;' }}">
+                                                    {{ Str::limit(strip_tags($rn->message), 45) }}
+                                                </div>
+                                                <div
+                                                    style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+                                                    <span
+                                                        style="font-size:10px;color:#94a3b8">{{ $rn->created_at?->diffForHumans() ?? '—' }}</span>
+                                                    <div class="notif-item-action">
+                                                        @if($isUnreadMsg)
+                                                            <button type="button" class="btn-mark-single-read"
+                                                                onclick="markSingleNotificationAsRead(event, {{ $rn->id }}, this)"
                                                                 title="নির্দিষ্ট এই মেসেজটি পঠিত চিহ্নিত করুন"
                                                                 style="background:#ffffff;border:1px solid #cbd5e1;color:#047857;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:all .15s"
                                                                 onmouseover="this.style.background='#ecfdf5';this.style.borderColor='#047857'"
                                                                 onmouseout="this.style.background='#ffffff';this.style.borderColor='#cbd5e1'">
-                                                            <i class="fa-solid fa-check"></i>
-                                                            <span>রিড</span>
-                                                        </button>
-                                                    @endif
+                                                                <i class="fa-solid fa-check"></i>
+                                                                <span>রিড</span>
+                                                            </button>
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    @endforeach
+                                @endif
+
+                                @if($notifTotalActions === 0 && $recentNotifs->isEmpty())
+                                    <div style="padding:32px 16px;text-align:center;color:#64748b">
+                                        <i class="fa-solid fa-circle-check"
+                                            style="font-size:28px;color:#10b981;margin-bottom:8px;display:block"></i>
+                                        <div style="font-size:13px;font-weight:600;color:#0f172a">সবকিছু হালনাগাদ আছে!</div>
+                                        <div style="font-size:11.5px;color:#94a3b8;margin-top:3px">বর্তমানে কোনো অপেক্ষমাণ
+                                            অ্যাকশন বা নোটিফিকেশন নেই।</div>
                                     </div>
-                                @endforeach
-                            @endif
+                                @endif
+                            </div>
 
-                            @if($notifTotalActions === 0 && $recentNotifs->isEmpty())
-                                <div style="padding:32px 16px;text-align:center;color:#64748b">
-                                    <i class="fa-solid fa-circle-check" style="font-size:28px;color:#10b981;margin-bottom:8px;display:block"></i>
-                                    <div style="font-size:13px;font-weight:600;color:#0f172a">সবকিছু হালনাগাদ আছে!</div>
-                                    <div style="font-size:11.5px;color:#94a3b8;margin-top:3px">বর্তমানে কোনো অপেক্ষমাণ অ্যাকশন বা নোটিফিকেশন নেই।</div>
-                                </div>
-                            @endif
-                        </div>
-
-                        <div style="padding:10px 16px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:12px">
-                            <a href="{{ route('admin.notifications.index') }}" style="color:#047857;font-weight:600;text-decoration:none">
-                                <i class="fa-solid fa-paper-plane" style="margin-right:4px"></i> নতুন নোটিফিকেশন পাঠান
-                            </a>
-                            <a href="{{ route('admin.notices.index') }}" style="color:#64748b;text-decoration:none">
-                                নোটিশ বোর্ড →
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <div class="user-menu" onclick="toggleDropdown('adminUserMenu')" style="cursor:pointer">
-                        <img src="{{ asset('images/default-avatar.svg') }}" alt="Avatar" class="user-avatar" style="border:2px solid #a7f3d0;width:34px;height:34px;border-radius:50%;object-fit:cover">
-                        <div>
-                            <div class="user-name">{{ auth()->user()->name ?? 'Admin' }}</div>
-                            <div class="user-role" style="color:#047857">
-                                {{ auth()->user()->designation ?: match(strtoupper(auth()->user()->role ?? 'ADMIN')) {
-                                    'SUPER_ADMIN' => 'Super Admin',
-                                    'ADMIN'       => 'Administrator',
-                                    'TEACHER'     => 'Teacher',
-                                    'STUDENT'     => 'Student',
-                                    'SUPPORT'     => 'Support Agent',
-                                    'ACCOUNTS'    => 'Accounts Officer',
-                                    default       => ucfirst(strtolower(auth()->user()->role ?? 'User')),
-                                } }}
+                            <div
+                                style="padding:10px 16px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:12px">
+                                <a href="{{ route('admin.notifications.index') }}"
+                                    style="color:#047857;font-weight:600;text-decoration:none">
+                                    <i class="fa-solid fa-paper-plane" style="margin-right:4px"></i> নতুন নোটিফিকেশন
+                                    পাঠান
+                                </a>
+                                <a href="{{ route('admin.notices.index') }}" style="color:#64748b;text-decoration:none">
+                                    নোটিশ বোর্ড →
+                                </a>
                             </div>
                         </div>
-                        <i class="fa-solid fa-chevron-down" style="font-size:11px;opacity:0.7"></i>
                     </div>
-                    <div class="dropdown-menu" id="adminUserMenu">
-                        @if(auth()->user()->canAccess('user_management'))
-                        <a href="{{ route('admin.users.index') }}" class="dropdown-item">
-                            <i class="fa-solid fa-users-gear"></i>
-                            User Management
-                        </a>
-                        @endif
-                        <a href="{{ route('admin.settings.index') }}" class="dropdown-item">
-                            <i class="fa-solid fa-gear"></i>
-                            Settings
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="dropdown-item danger" style="width:100%;border:none;background:none;text-align:left">
-                                <i class="fa-solid fa-right-from-bracket"></i>
-                                Logout
-                            </button>
-                        </form>
+                    <div class="dropdown">
+                        <div class="user-menu" onclick="toggleDropdown('adminUserMenu')" style="cursor:pointer">
+                            <img src="{{ asset('images/default-avatar.svg') }}" alt="Avatar" class="user-avatar"
+                                style="border:2px solid #a7f3d0;width:34px;height:34px;border-radius:50%;object-fit:cover">
+                            <div>
+                                <div class="user-name">{{ auth()->user()->name ?? 'Admin' }}</div>
+                                <div class="user-role" style="color:#047857">
+                                    {{ auth()->user()->designation ?: match (strtoupper(auth()->user()->role ?? 'ADMIN')) {
+    'SUPER_ADMIN' => 'Super Admin',
+    'ADMIN' => 'Administrator',
+    'TEACHER' => 'Teacher',
+    'STUDENT' => 'Student',
+    'SUPPORT' => 'Support Agent',
+    'ACCOUNTS' => 'Accounts Officer',
+    default => ucfirst(strtolower(auth()->user()->role ?? 'User')),
+} }}
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-chevron-down" style="font-size:11px;opacity:0.7"></i>
+                        </div>
+                        <div class="dropdown-menu" id="adminUserMenu">
+                            @if(auth()->user()->canAccess('user_management'))
+                                <a href="{{ route('admin.users.index') }}" class="dropdown-item">
+                                    <i class="fa-solid fa-users-gear"></i>
+                                    User Management
+                                </a>
+                            @endif
+                            <a href="{{ route('admin.settings.index') }}" class="dropdown-item">
+                                <i class="fa-solid fa-gear"></i>
+                                Settings
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="dropdown-item danger"
+                                    style="width:100%;border:none;background:none;text-align:left">
+                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </header>
+            </header>
 
-        @if(session('success'))
-        <div style="padding:12px 24px 0">
-            <div class="alert alert-success" id="lp-flash">{{ session('success') }}</div>
-        </div>
-        @endif
-        @if(session('error'))
-        <div style="padding:12px 24px 0">
-            <div class="alert alert-danger" id="lp-flash">{{ session('error') }}</div>
-        </div>
-        @endif
+            @if(session('success'))
+                <div style="padding:12px 24px 0">
+                    <div class="alert alert-success" id="lp-flash">{{ session('success') }}</div>
+                </div>
+            @endif
+            @if(session('error'))
+                <div style="padding:12px 24px 0">
+                    <div class="alert alert-danger" id="lp-flash">{{ session('error') }}</div>
+                </div>
+            @endif
 
-        <main class="page-content">{{ $slot ?? $__env->yieldContent('content') }}</main>
+            <main class="page-content">{{ $slot ?? $__env->yieldContent('content') }}</main>
+        </div>
     </div>
-</div>
 
-<script>
-function toggleSidebar(){
-    const s = document.getElementById('sidebar');
-    const w = document.querySelector('.app-wrapper');
-    const o = document.getElementById('sidebarOverlay');
-    if (window.innerWidth <= 768) {
-        s.classList.toggle('open');
-        if (o) o.classList.toggle('active');
-    } else {
-        s.classList.toggle('collapsed');
-        if (w) w.classList.toggle('sidebar-collapsed');
-    }
-}
-
-function toggleDropdown(id){
-    const m=document.getElementById(id),open=m.classList.contains('open');
-    document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open'));
-    if(!open) {
-        m.classList.add('open');
-        const rect = m.getBoundingClientRect();
-        const winHeight = window.innerHeight || document.documentElement.clientHeight;
-        if (rect.bottom > winHeight - 10 && rect.top > rect.height) {
-            m.style.top = 'auto';
-            m.style.bottom = 'calc(100% + 6px)';
-        } else {
-            m.style.top = 'calc(100% + 6px)';
-            m.style.bottom = 'auto';
+    <script>
+        function toggleSidebar() {
+            const s = document.getElementById('sidebar');
+            const w = document.querySelector('.app-wrapper');
+            const o = document.getElementById('sidebarOverlay');
+            if (window.innerWidth <= 768) {
+                s.classList.toggle('open');
+                if (o) o.classList.toggle('active');
+            } else {
+                s.classList.toggle('collapsed');
+                if (w) w.classList.toggle('sidebar-collapsed');
+            }
         }
-    }
-}
-document.addEventListener('click',function(e){
-    if(!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open'));
-});
 
-/* ── Tree toggle ── */
-function treeToggle(header){
-    const isOpen = header.classList.contains('open');
-    const children = header.nextElementSibling;
-    if(isOpen){
-        header.classList.remove('open');
-        children.classList.remove('open');
-    } else {
-        header.classList.add('open');
-        children.classList.add('open');
-    }
-}
-
-window.openModal = function(id) {
-    const m = typeof id === 'string' ? document.getElementById(id) : id;
-    if (!m) return;
-    m.classList.add('open', 'active', 'show');
-    m.style.display = 'flex';
-    m.style.pointerEvents = 'auto';
-    m.style.opacity = '1';
-    document.body.style.overflow = 'hidden';
-};
-
-window.closeModal = function(id) {
-    const m = typeof id === 'string' ? document.getElementById(id) : id;
-    if (!m) return;
-    m.classList.remove('open', 'active', 'show');
-    m.style.display = 'none';
-    m.style.pointerEvents = '';
-    m.style.opacity = '';
-    const anyStillOpen = document.querySelectorAll(
-        '.modal-overlay.open, .modal-overlay.active, .modal-backdrop.open, .modal-backdrop.active, .admin-modal-overlay.active, .admin-modal-overlay.open, ' +
-        '.modal-overlay[style*="display: flex"], .modal-backdrop[style*="display: flex"], ' +
-        '[id*="Modal"][style*="display: flex"], [id*="modal"][style*="display: flex"]'
-    );
-    if (!anyStillOpen || anyStillOpen.length === 0) {
-        document.body.style.overflow = '';
-    }
-};
-const lf=document.getElementById('lp-flash');
-if(lf) setTimeout(()=>{ lf.style.opacity='0'; lf.style.transition='opacity .4s'; setTimeout(()=>lf.remove(),400); },4000);
-
-/* ── Global Page Loader Logic ── */
-let loaderTimer = null;
-
-function isDownloadUrl(url) {
-    if (!url) return false;
-    const lower = url.toLowerCase();
-    const downloadKeywords = [
-        'download', 'export', 'template', 'sample', 'backup', 'aiken',
-        '.csv', '.xlsx', '.xls', '.pdf', '.zip', '.txt', '.doc', '.docx'
-    ];
-    return downloadKeywords.some(kw => lower.includes(kw));
-}
-
-function showLoader(isDownload = false){
-    const bar = document.getElementById('globalTopBar');
-    const loader = document.getElementById('globalPageLoader');
-    
-    if (loaderTimer) {
-        clearTimeout(loaderTimer);
-        loaderTimer = null;
-    }
-    
-    if (isDownload) {
-        if (bar) bar.classList.add('active');
-        loaderTimer = setTimeout(hideLoader, 2500);
-        return;
-    }
-    
-    if (loader) loader.classList.add('active');
-    if (bar) bar.classList.add('active');
-    
-    // Safety auto-dismiss: unfreeze after 3.5s so downloads or slow requests never permanently block the screen
-    loaderTimer = setTimeout(hideLoader, 3500);
-}
-
-function hideLoader(){
-    if (loaderTimer) {
-        clearTimeout(loaderTimer);
-        loaderTimer = null;
-    }
-    const loader = document.getElementById('globalPageLoader');
-    const bar = document.getElementById('globalTopBar');
-    if(loader) loader.classList.remove('active');
-    if(bar) bar.classList.remove('active');
-}
-
-window.addEventListener('pageshow', hideLoader);
-window.addEventListener('focus', function(){ setTimeout(hideLoader, 500); });
-window.addEventListener('blur', function(){ setTimeout(hideLoader, 1500); });
-
-document.addEventListener('DOMContentLoaded', function(){
-    hideLoader();
-    
-    const loaderEl = document.getElementById('globalPageLoader');
-    if (loaderEl) {
-        loaderEl.style.cursor = 'pointer';
-        loaderEl.setAttribute('title', 'ক্লিক করে বন্ধ করুন (Click to dismiss)');
-        loaderEl.addEventListener('click', hideLoader);
-    }
-    
-    document.addEventListener('keydown', function(e){
-        if (e.key === 'Escape') hideLoader();
-    });
-    
-    document.addEventListener('click', function(e){
-        const a = e.target.closest('a');
-        if (!a || !a.href || a.href.startsWith('javascript:') || a.href.includes('#') || a.target === '_blank') {
-            return;
+        function toggleDropdown(id) {
+            const m = document.getElementById(id), open = m.classList.contains('open');
+            document.querySelectorAll('.dropdown-menu.open').forEach(x => x.classList.remove('open'));
+            if (!open) {
+                m.classList.add('open');
+                const rect = m.getBoundingClientRect();
+                const winHeight = window.innerHeight || document.documentElement.clientHeight;
+                if (rect.bottom > winHeight - 10 && rect.top > rect.height) {
+                    m.style.top = 'auto';
+                    m.style.bottom = 'calc(100% + 6px)';
+                } else {
+                    m.style.top = 'calc(100% + 6px)';
+                    m.style.bottom = 'auto';
+                }
+            }
         }
-        if (a.hasAttribute('download') || a.hasAttribute('data-no-loader') || a.classList.contains('no-loader') || a.closest('.no-loader')) {
-            showLoader(true);
-            return;
-        }
-        if (isDownloadUrl(a.href)) {
-            showLoader(true);
-            return;
-        }
-        showLoader(false);
-    });
-    
-    document.addEventListener('submit', function(e){
-        if (e.defaultPrevented || e.target.hasAttribute('data-ajax') || e.target.closest('.modal') || e.target.closest('.modal-overlay')) {
-            return;
-        }
-        const action = e.target.getAttribute('action') || '';
-        const isExportForm = isDownloadUrl(action) || e.target.querySelector('button[name="export"], input[name="export"], [data-action="export"]');
-        if (isExportForm) {
-            showLoader(true);
-            return;
-        }
-        showLoader(false);
-    });
-});
-if(window.fetch){
-    const origFetch = window.fetch;
-    window.fetch = function(){
-        const bar = document.getElementById('globalTopBar');
-        if(bar) bar.classList.add('active');
-        return origFetch.apply(this, arguments).finally(function(){
-            if(bar) bar.classList.remove('active');
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown-menu.open').forEach(x => x.classList.remove('open'));
         });
-    };
-}
-function togglePasswordVisibility(inputId, btn) {
-    const input = document.getElementById(inputId);
-    const eyeShow = btn.querySelector('.eye-show');
-    const eyeHide = btn.querySelector('.eye-hide');
-    if (input.type === 'password') {
-        input.type = 'text';
-        if (eyeShow) eyeShow.style.display = 'none';
-        if (eyeHide) eyeHide.style.display = 'inline-block';
-    } else {
-        input.type = 'password';
-        if (eyeShow) eyeShow.style.display = 'inline-block';
-        if (eyeHide) eyeHide.style.display = 'none';
-    }
-}
 
-/* ════ Universal Modal Backdrop Click to Close & Escape Key Listener ════ */
-document.addEventListener('click', function(e) {
-    const target = e.target;
-    if (!target) return;
-
-    // Never close if clicking inside modal content
-    if (target.closest('.modal, .modal-dialog, .modal-content, .modal-content-box, .circular-modal-box, .admin-modal-box, .modal-card, .modal-card-premium, form, [class*="modal-box"], [class*="modal-content"], [class*="modal-dialog"]')) {
-        return;
-    }
-
-    const isBackdrop = target.classList.contains('modal-backdrop') ||
-                       target.classList.contains('modal-overlay') ||
-                       target.classList.contains('modal-wrapper') ||
-                       target.classList.contains('admin-modal-overlay') ||
-                       (target.id && (target.id.toLowerCase().includes('modal') || target.id.toLowerCase().includes('dialog')) && 
-                        (target.style.position === 'fixed' || window.getComputedStyle(target).position === 'fixed'));
-    if (isBackdrop) {
-        if (typeof closeCircularModal === 'function' && target.id === 'circularModal') {
-            closeCircularModal();
-        } else if (typeof closeStudentMarksheet === 'function' && target.id === 'marksheetModal') {
-            closeStudentMarksheet();
-        } else if (typeof closeEditMarkModal === 'function' && target.id === 'editMarkModal') {
-            closeEditMarkModal();
-        } else if (typeof closeApproveModal === 'function' && target.id === 'approveModal') {
-            closeApproveModal();
-        } else if (typeof closeShareLinksModal === 'function' && target.id === 'shareLinksModal') {
-            closeShareLinksModal();
-        } else if (typeof closeSingleMarksheetModal === 'function' && target.id === 'singleMarksheetModal') {
-            closeSingleMarksheetModal();
-        } else {
-            closeModal(target);
+        /* ── Tree toggle ── */
+        function treeToggle(header) {
+            const isOpen = header.classList.contains('open');
+            const children = header.nextElementSibling;
+            if (isOpen) {
+                header.classList.remove('open');
+                children.classList.remove('open');
+            } else {
+                header.classList.add('open');
+                children.classList.add('open');
+            }
         }
-    }
-});
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' || e.keyCode === 27) {
-        const candidates = document.querySelectorAll(
-            '.modal-backdrop, .modal-overlay, .modal-wrapper, .admin-modal-overlay, [id*="Modal"], [id*="modal"]'
-        );
-        candidates.forEach(function(m) {
-            const isFixed = m.style.position === 'fixed' || window.getComputedStyle(m).position === 'fixed' ||
-                            m.classList.contains('modal-backdrop') || m.classList.contains('modal-overlay') ||
-                            m.classList.contains('admin-modal-overlay');
-            if (isFixed) {
-                const isVisible = m.classList.contains('open') || m.classList.contains('active') || m.classList.contains('show') ||
-                                  (m.style.display && m.style.display !== 'none') ||
-                                  (window.getComputedStyle(m).display !== 'none');
-                if (isVisible) {
-                    if (typeof closeCircularModal === 'function' && m.id === 'circularModal') closeCircularModal();
-                    else if (typeof closeStudentMarksheet === 'function' && m.id === 'marksheetModal') closeStudentMarksheet();
-                    else if (typeof closeEditMarkModal === 'function' && m.id === 'editMarkModal') closeEditMarkModal();
-                    else if (typeof closeApproveModal === 'function' && m.id === 'approveModal') closeApproveModal();
-                    else if (typeof closeShareLinksModal === 'function' && m.id === 'shareLinksModal') closeShareLinksModal();
-                    else if (typeof closeSingleMarksheetModal === 'function' && m.id === 'singleMarksheetModal') closeSingleMarksheetModal();
-                    else closeModal(m);
+        window.openModal = function (id) {
+            const m = typeof id === 'string' ? document.getElementById(id) : id;
+            if (!m) return;
+            m.classList.add('open', 'active', 'show');
+            m.style.display = 'flex';
+            m.style.pointerEvents = 'auto';
+            m.style.opacity = '1';
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeModal = function (id) {
+            const m = typeof id === 'string' ? document.getElementById(id) : id;
+            if (!m) return;
+            m.classList.remove('open', 'active', 'show');
+            m.style.display = 'none';
+            m.style.pointerEvents = '';
+            m.style.opacity = '';
+            const anyStillOpen = document.querySelectorAll(
+                '.modal-overlay.open, .modal-overlay.active, .modal-backdrop.open, .modal-backdrop.active, .admin-modal-overlay.active, .admin-modal-overlay.open, ' +
+                '.modal-overlay[style*="display: flex"], .modal-backdrop[style*="display: flex"], ' +
+                '[id*="Modal"][style*="display: flex"], [id*="modal"][style*="display: flex"]'
+            );
+            if (!anyStillOpen || anyStillOpen.length === 0) {
+                document.body.style.overflow = '';
+            }
+        };
+        const lf = document.getElementById('lp-flash');
+        if (lf) setTimeout(() => { lf.style.opacity = '0'; lf.style.transition = 'opacity .4s'; setTimeout(() => lf.remove(), 400); }, 4000);
+
+        /* ── Global Page Loader Logic ── */
+        let loaderTimer = null;
+
+        function isDownloadUrl(url) {
+            if (!url) return false;
+            const lower = url.toLowerCase();
+            const downloadKeywords = [
+                'download', 'export', 'template', 'sample', 'backup', 'aiken',
+                '.csv', '.xlsx', '.xls', '.pdf', '.zip', '.txt', '.doc', '.docx'
+            ];
+            return downloadKeywords.some(kw => lower.includes(kw));
+        }
+
+        function showLoader(isDownload = false) {
+            const bar = document.getElementById('globalTopBar');
+            const loader = document.getElementById('globalPageLoader');
+
+            if (loaderTimer) {
+                clearTimeout(loaderTimer);
+                loaderTimer = null;
+            }
+
+            if (isDownload) {
+                if (bar) bar.classList.add('active');
+                loaderTimer = setTimeout(hideLoader, 2500);
+                return;
+            }
+
+            if (loader) loader.classList.add('active');
+            if (bar) bar.classList.add('active');
+
+            // Safety auto-dismiss: unfreeze after 3.5s so downloads or slow requests never permanently block the screen
+            loaderTimer = setTimeout(hideLoader, 3500);
+        }
+
+        function hideLoader() {
+            if (loaderTimer) {
+                clearTimeout(loaderTimer);
+                loaderTimer = null;
+            }
+            const loader = document.getElementById('globalPageLoader');
+            const bar = document.getElementById('globalTopBar');
+            if (loader) loader.classList.remove('active');
+            if (bar) bar.classList.remove('active');
+        }
+
+        window.addEventListener('pageshow', hideLoader);
+        window.addEventListener('focus', function () { setTimeout(hideLoader, 500); });
+        window.addEventListener('blur', function () { setTimeout(hideLoader, 1500); });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            hideLoader();
+
+            const loaderEl = document.getElementById('globalPageLoader');
+            if (loaderEl) {
+                loaderEl.style.cursor = 'pointer';
+                loaderEl.setAttribute('title', 'ক্লিক করে বন্ধ করুন (Click to dismiss)');
+                loaderEl.addEventListener('click', hideLoader);
+            }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') hideLoader();
+            });
+
+            document.addEventListener('click', function (e) {
+                const a = e.target.closest('a');
+                if (!a || !a.href || a.href.startsWith('javascript:') || a.href.includes('#') || a.target === '_blank') {
+                    return;
+                }
+                if (a.hasAttribute('download') || a.hasAttribute('data-no-loader') || a.classList.contains('no-loader') || a.closest('.no-loader')) {
+                    showLoader(true);
+                    return;
+                }
+                if (isDownloadUrl(a.href)) {
+                    showLoader(true);
+                    return;
+                }
+                showLoader(false);
+            });
+
+            document.addEventListener('submit', function (e) {
+                if (e.defaultPrevented || e.target.hasAttribute('data-ajax') || e.target.closest('.modal') || e.target.closest('.modal-overlay')) {
+                    return;
+                }
+                const action = e.target.getAttribute('action') || '';
+                const isExportForm = isDownloadUrl(action) || e.target.querySelector('button[name="export"], input[name="export"], [data-action="export"]');
+                if (isExportForm) {
+                    showLoader(true);
+                    return;
+                }
+                showLoader(false);
+            });
+        });
+        if (window.fetch) {
+            const origFetch = window.fetch;
+            window.fetch = function () {
+                const bar = document.getElementById('globalTopBar');
+                if (bar) bar.classList.add('active');
+                return origFetch.apply(this, arguments).finally(function () {
+                    if (bar) bar.classList.remove('active');
+                });
+            };
+        }
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const eyeShow = btn.querySelector('.eye-show');
+            const eyeHide = btn.querySelector('.eye-hide');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (eyeShow) eyeShow.style.display = 'none';
+                if (eyeHide) eyeHide.style.display = 'inline-block';
+            } else {
+                input.type = 'password';
+                if (eyeShow) eyeShow.style.display = 'inline-block';
+                if (eyeHide) eyeHide.style.display = 'none';
+            }
+        }
+
+        /* ════ Universal Modal Backdrop Click to Close & Escape Key Listener ════ */
+        document.addEventListener('click', function (e) {
+            const target = e.target;
+            if (!target) return;
+
+            // Never close if clicking inside modal content
+            if (target.closest('.modal, .modal-dialog, .modal-content, .modal-content-box, .circular-modal-box, .admin-modal-box, .modal-card, .modal-card-premium, form, [class*="modal-box"], [class*="modal-content"], [class*="modal-dialog"]')) {
+                return;
+            }
+
+            const isBackdrop = target.classList.contains('modal-backdrop') ||
+                target.classList.contains('modal-overlay') ||
+                target.classList.contains('modal-wrapper') ||
+                target.classList.contains('admin-modal-overlay') ||
+                (target.id && (target.id.toLowerCase().includes('modal') || target.id.toLowerCase().includes('dialog')) &&
+                    (target.style.position === 'fixed' || window.getComputedStyle(target).position === 'fixed'));
+            if (isBackdrop) {
+                if (typeof closeCircularModal === 'function' && target.id === 'circularModal') {
+                    closeCircularModal();
+                } else if (typeof closeStudentMarksheet === 'function' && target.id === 'marksheetModal') {
+                    closeStudentMarksheet();
+                } else if (typeof closeEditMarkModal === 'function' && target.id === 'editMarkModal') {
+                    closeEditMarkModal();
+                } else if (typeof closeApproveModal === 'function' && target.id === 'approveModal') {
+                    closeApproveModal();
+                } else if (typeof closeShareLinksModal === 'function' && target.id === 'shareLinksModal') {
+                    closeShareLinksModal();
+                } else if (typeof closeSingleMarksheetModal === 'function' && target.id === 'singleMarksheetModal') {
+                    closeSingleMarksheetModal();
+                } else {
+                    closeModal(target);
                 }
             }
         });
-        document.body.style.overflow = '';
-    }
-});
 
-function markSingleNotificationAsRead(e, id, btn) {
-    if (e) {
-        e.stopPropagation();
-        e.preventDefault();
-    }
-    if (!btn) return;
-    const originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
-    fetch('/admin/notifications/' + id + '/mark-single-read', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-    })
-    .then(r => r.json())
-    .then(data => {
-        // Update topbar item styling to faded (ফ্যাকাশে কালার)
-        const item = document.getElementById('topbar-notif-item-' + id);
-        if (item) {
-            item.classList.remove('is-unread');
-            item.classList.add('is-read');
-            item.style.background = '#f8fafc';
-            item.style.borderLeft = '3px solid transparent';
-            item.style.opacity = '0.8';
-
-            const icon = item.querySelector('.notif-item-icon');
-            if (icon) {
-                icon.style.background = '#e2e8f0';
-                icon.style.color = '#94a3b8';
-            }
-
-            const title = item.querySelector('.notif-item-title');
-            if (title) {
-                title.style.color = '#64748b';
-                title.style.fontWeight = '500';
-            }
-
-            const msg = item.querySelector('.notif-item-msg');
-            if (msg) {
-                msg.style.color = '#94a3b8';
-            }
-
-            const badge = item.querySelector('.notif-item-badge');
-            if (badge) {
-                badge.className = 'notif-item-badge';
-                badge.style.background = 'transparent';
-                badge.style.color = '#94a3b8';
-                badge.innerHTML = '<i class="fa-solid fa-check-double"></i> পঠিত';
-            }
-
-            const actionBox = item.querySelector('.notif-item-action');
-            if (actionBox) {
-                actionBox.innerHTML = '';
-            }
-        }
-
-        // Also update table row if present
-        const tableRow = document.getElementById('table-notif-row-' + id);
-        if (tableRow) {
-            tableRow.classList.remove('row-unread');
-            tableRow.classList.add('row-read');
-            tableRow.style.background = '#f8fafc';
-            tableRow.style.opacity = '0.82';
-            const rTitle = tableRow.querySelector('.table-notif-title');
-            if (rTitle) {
-                rTitle.style.color = '#64748b';
-                rTitle.style.fontWeight = '500';
-            }
-            const rBadge = tableRow.querySelector('.table-notif-badge');
-            if (rBadge) {
-                rBadge.style.display = 'none';
-            }
-            const rBtn = tableRow.querySelector('.btn-mark-table-read');
-            if (rBtn) {
-                rBtn.outerHTML = '<span style="font-size:11px;color:#94a3b8;font-weight:600"><i class="fa-solid fa-check-double"></i> পঠিত</span>';
-            }
-        }
-
-        // Update bell badge
-        const bellBadge = document.getElementById('topbarBellBadge');
-        if (bellBadge) {
-            let curCount = parseInt(bellBadge.innerText) || 0;
-            if (curCount > 1) {
-                bellBadge.innerText = (curCount - 1);
-            } else {
-                bellBadge.style.display = 'none';
-                const notifDot = document.getElementById('topbarNotifDot');
-                if (notifDot) notifDot.style.display = 'none';
-            }
-        }
-
-        const unreadItems = document.querySelectorAll('.topbar-notif-item.is-unread').length;
-        const statusBadge = document.getElementById('notifStatusBadge');
-        if (statusBadge) {
-            if (unreadItems > 0) {
-                statusBadge.className = 'badge badge-danger no-dot';
-                statusBadge.innerText = unreadItems + 'টি নতুন';
-            } else {
-                statusBadge.className = 'badge badge-success no-dot';
-                statusBadge.innerText = 'সব পঠিত';
-            }
-        }
-    })
-    .catch(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-    });
-}
-
-function markAllNotificationsAsRead(e) {
-    if (e) {
-        e.stopPropagation();
-        e.preventDefault();
-    }
-    const btn = document.getElementById('btnMarkNotifRead');
-    if (!btn) return;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> সেভ হচ্ছে...';
-    btn.disabled = true;
-
-    fetch('{{ route('admin.notifications.mark-read') }}', {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        }
-    })
-    .then(r => r.json())
-    .then(data => {
-        const bellBadge = document.getElementById('topbarBellBadge');
-        if (bellBadge) bellBadge.style.display = 'none';
-        const notifDot = document.getElementById('topbarNotifDot');
-        if (notifDot) notifDot.style.display = 'none';
-
-        const statusBadge = document.getElementById('notifStatusBadge');
-        if (statusBadge) {
-            statusBadge.className = 'badge badge-success no-dot';
-            statusBadge.innerText = 'সব পঠিত';
-        }
-
-        // Transform all topbar unread items to faded
-        document.querySelectorAll('.topbar-notif-item.is-unread').forEach(item => {
-            item.classList.remove('is-unread');
-            item.classList.add('is-read');
-            item.style.background = '#f8fafc';
-            item.style.borderLeft = '3px solid transparent';
-            item.style.opacity = '0.8';
-
-            const icon = item.querySelector('.notif-item-icon');
-            if (icon) {
-                icon.style.background = '#e2e8f0';
-                icon.style.color = '#94a3b8';
-            }
-
-            const title = item.querySelector('.notif-item-title');
-            if (title) {
-                title.style.color = '#64748b';
-                title.style.fontWeight = '500';
-            }
-
-            const msg = item.querySelector('.notif-item-msg');
-            if (msg) {
-                msg.style.color = '#94a3b8';
-            }
-
-            const badge = item.querySelector('.notif-item-badge');
-            if (badge) {
-                badge.className = 'notif-item-badge';
-                badge.style.background = 'transparent';
-                badge.style.color = '#94a3b8';
-                badge.innerHTML = '<i class="fa-solid fa-check-double"></i> পঠিত';
-            }
-
-            const actionBox = item.querySelector('.notif-item-action');
-            if (actionBox) {
-                actionBox.innerHTML = '';
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                const candidates = document.querySelectorAll(
+                    '.modal-backdrop, .modal-overlay, .modal-wrapper, .admin-modal-overlay, [id*="Modal"], [id*="modal"]'
+                );
+                candidates.forEach(function (m) {
+                    const isFixed = m.style.position === 'fixed' || window.getComputedStyle(m).position === 'fixed' ||
+                        m.classList.contains('modal-backdrop') || m.classList.contains('modal-overlay') ||
+                        m.classList.contains('admin-modal-overlay');
+                    if (isFixed) {
+                        const isVisible = m.classList.contains('open') || m.classList.contains('active') || m.classList.contains('show') ||
+                            (m.style.display && m.style.display !== 'none') ||
+                            (window.getComputedStyle(m).display !== 'none');
+                        if (isVisible) {
+                            if (typeof closeCircularModal === 'function' && m.id === 'circularModal') closeCircularModal();
+                            else if (typeof closeStudentMarksheet === 'function' && m.id === 'marksheetModal') closeStudentMarksheet();
+                            else if (typeof closeEditMarkModal === 'function' && m.id === 'editMarkModal') closeEditMarkModal();
+                            else if (typeof closeApproveModal === 'function' && m.id === 'approveModal') closeApproveModal();
+                            else if (typeof closeShareLinksModal === 'function' && m.id === 'shareLinksModal') closeShareLinksModal();
+                            else if (typeof closeSingleMarksheetModal === 'function' && m.id === 'singleMarksheetModal') closeSingleMarksheetModal();
+                            else closeModal(m);
+                        }
+                    }
+                });
+                document.body.style.overflow = '';
             }
         });
 
-        // Also transform all table rows to faded if on index page
-        document.querySelectorAll('.table-notif-row.row-unread').forEach(row => {
-            row.classList.remove('row-unread');
-            row.classList.add('row-read');
-            row.style.background = '#f8fafc';
-            row.style.opacity = '0.82';
-            const rTitle = row.querySelector('.table-notif-title');
-            if (rTitle) {
-                rTitle.style.color = '#64748b';
-                rTitle.style.fontWeight = '500';
+        function markSingleNotificationAsRead(e, id, btn) {
+            if (e) {
+                e.stopPropagation();
+                e.preventDefault();
             }
-            const rBadge = row.querySelector('.table-notif-badge');
-            if (rBadge) {
-                rBadge.style.display = 'none';
-            }
-            const rBtn = row.querySelector('.btn-mark-table-read');
-            if (rBtn) {
-                rBtn.outerHTML = '<span style="font-size:11px;color:#94a3b8;font-weight:600"><i class="fa-solid fa-check-double"></i> পঠিত</span>';
-            }
-        });
+            if (!btn) return;
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> সম্পন্ন';
-        btn.style.color = '#10b981';
-        btn.style.borderColor = '#a7f3d0';
-        btn.style.background = '#ecfdf5';
-    })
-    .catch(() => {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-}
-</script>
-<style>
-/* Custom smooth scrollbar for all modals */
-.modal-overlay::-webkit-scrollbar,
-.modal-backdrop::-webkit-scrollbar,
-.admin-modal-overlay::-webkit-scrollbar,
-.modal-content-box::-webkit-scrollbar,
-.modal::-webkit-scrollbar,
-.admin-modal-box::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
-}
-.modal-overlay::-webkit-scrollbar-thumb,
-.modal-backdrop::-webkit-scrollbar-thumb,
-.admin-modal-overlay::-webkit-scrollbar-thumb,
-.modal-content-box::-webkit-scrollbar-thumb,
-.modal::-webkit-scrollbar-thumb,
-.admin-modal-box::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.6);
-    border-radius: 4px;
-}
-.modal-overlay::-webkit-scrollbar-thumb:hover,
-.modal-backdrop::-webkit-scrollbar-thumb:hover,
-.modal-content-box::-webkit-scrollbar-thumb:hover,
-.modal::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 116, 139, 0.9);
-}
+            fetch('/admin/notifications/' + id + '/mark-single-read', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    // Update topbar item styling to faded (ফ্যাকাশে কালার)
+                    const item = document.getElementById('topbar-notif-item-' + id);
+                    if (item) {
+                        item.classList.remove('is-unread');
+                        item.classList.add('is-read');
+                        item.style.background = '#f8fafc';
+                        item.style.borderLeft = '3px solid transparent';
+                        item.style.opacity = '0.8';
 
-/* Universal Table Wrapper Horizontal Scrolling */
-.table-wrapper {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    width: 100% !important;
-    position: relative;
-}
-.table-wrapper::-webkit-scrollbar {
-    height: 7px;
-}
-.table-wrapper::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-.table-wrapper::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-.table-wrapper::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-</style>
-<x-fcm-initializer />
-@stack('scripts')
+                        const icon = item.querySelector('.notif-item-icon');
+                        if (icon) {
+                            icon.style.background = '#e2e8f0';
+                            icon.style.color = '#94a3b8';
+                        }
+
+                        const title = item.querySelector('.notif-item-title');
+                        if (title) {
+                            title.style.color = '#64748b';
+                            title.style.fontWeight = '500';
+                        }
+
+                        const msg = item.querySelector('.notif-item-msg');
+                        if (msg) {
+                            msg.style.color = '#94a3b8';
+                        }
+
+                        const badge = item.querySelector('.notif-item-badge');
+                        if (badge) {
+                            badge.className = 'notif-item-badge';
+                            badge.style.background = 'transparent';
+                            badge.style.color = '#94a3b8';
+                            badge.innerHTML = '<i class="fa-solid fa-check-double"></i> পঠিত';
+                        }
+
+                        const actionBox = item.querySelector('.notif-item-action');
+                        if (actionBox) {
+                            actionBox.innerHTML = '';
+                        }
+                    }
+
+                    // Also update table row if present
+                    const tableRow = document.getElementById('table-notif-row-' + id);
+                    if (tableRow) {
+                        tableRow.classList.remove('row-unread');
+                        tableRow.classList.add('row-read');
+                        tableRow.style.background = '#f8fafc';
+                        tableRow.style.opacity = '0.82';
+                        const rTitle = tableRow.querySelector('.table-notif-title');
+                        if (rTitle) {
+                            rTitle.style.color = '#64748b';
+                            rTitle.style.fontWeight = '500';
+                        }
+                        const rBadge = tableRow.querySelector('.table-notif-badge');
+                        if (rBadge) {
+                            rBadge.style.display = 'none';
+                        }
+                        const rBtn = tableRow.querySelector('.btn-mark-table-read');
+                        if (rBtn) {
+                            rBtn.outerHTML = '<span style="font-size:11px;color:#94a3b8;font-weight:600"><i class="fa-solid fa-check-double"></i> পঠিত</span>';
+                        }
+                    }
+
+                    // Update bell badge
+                    const bellBadge = document.getElementById('topbarBellBadge');
+                    if (bellBadge) {
+                        let curCount = parseInt(bellBadge.innerText) || 0;
+                        if (curCount > 1) {
+                            bellBadge.innerText = (curCount - 1);
+                        } else {
+                            bellBadge.style.display = 'none';
+                            const notifDot = document.getElementById('topbarNotifDot');
+                            if (notifDot) notifDot.style.display = 'none';
+                        }
+                    }
+
+                    const unreadItems = document.querySelectorAll('.topbar-notif-item.is-unread').length;
+                    const statusBadge = document.getElementById('notifStatusBadge');
+                    if (statusBadge) {
+                        if (unreadItems > 0) {
+                            statusBadge.className = 'badge badge-danger no-dot';
+                            statusBadge.innerText = unreadItems + 'টি নতুন';
+                        } else {
+                            statusBadge.className = 'badge badge-success no-dot';
+                            statusBadge.innerText = 'সব পঠিত';
+                        }
+                    }
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                });
+        }
+
+        function markAllNotificationsAsRead(e) {
+            if (e) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+            const btn = document.getElementById('btnMarkNotifRead');
+            if (!btn) return;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> সেভ হচ্ছে...';
+            btn.disabled = true;
+
+            fetch('{{ route('admin.notifications.mark-read') }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    const bellBadge = document.getElementById('topbarBellBadge');
+                    if (bellBadge) bellBadge.style.display = 'none';
+                    const notifDot = document.getElementById('topbarNotifDot');
+                    if (notifDot) notifDot.style.display = 'none';
+
+                    const statusBadge = document.getElementById('notifStatusBadge');
+                    if (statusBadge) {
+                        statusBadge.className = 'badge badge-success no-dot';
+                        statusBadge.innerText = 'সব পঠিত';
+                    }
+
+                    // Transform all topbar unread items to faded
+                    document.querySelectorAll('.topbar-notif-item.is-unread').forEach(item => {
+                        item.classList.remove('is-unread');
+                        item.classList.add('is-read');
+                        item.style.background = '#f8fafc';
+                        item.style.borderLeft = '3px solid transparent';
+                        item.style.opacity = '0.8';
+
+                        const icon = item.querySelector('.notif-item-icon');
+                        if (icon) {
+                            icon.style.background = '#e2e8f0';
+                            icon.style.color = '#94a3b8';
+                        }
+
+                        const title = item.querySelector('.notif-item-title');
+                        if (title) {
+                            title.style.color = '#64748b';
+                            title.style.fontWeight = '500';
+                        }
+
+                        const msg = item.querySelector('.notif-item-msg');
+                        if (msg) {
+                            msg.style.color = '#94a3b8';
+                        }
+
+                        const badge = item.querySelector('.notif-item-badge');
+                        if (badge) {
+                            badge.className = 'notif-item-badge';
+                            badge.style.background = 'transparent';
+                            badge.style.color = '#94a3b8';
+                            badge.innerHTML = '<i class="fa-solid fa-check-double"></i> পঠিত';
+                        }
+
+                        const actionBox = item.querySelector('.notif-item-action');
+                        if (actionBox) {
+                            actionBox.innerHTML = '';
+                        }
+                    });
+
+                    // Also transform all table rows to faded if on index page
+                    document.querySelectorAll('.table-notif-row.row-unread').forEach(row => {
+                        row.classList.remove('row-unread');
+                        row.classList.add('row-read');
+                        row.style.background = '#f8fafc';
+                        row.style.opacity = '0.82';
+                        const rTitle = row.querySelector('.table-notif-title');
+                        if (rTitle) {
+                            rTitle.style.color = '#64748b';
+                            rTitle.style.fontWeight = '500';
+                        }
+                        const rBadge = row.querySelector('.table-notif-badge');
+                        if (rBadge) {
+                            rBadge.style.display = 'none';
+                        }
+                        const rBtn = row.querySelector('.btn-mark-table-read');
+                        if (rBtn) {
+                            rBtn.outerHTML = '<span style="font-size:11px;color:#94a3b8;font-weight:600"><i class="fa-solid fa-check-double"></i> পঠিত</span>';
+                        }
+                    });
+
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> সম্পন্ন';
+                    btn.style.color = '#10b981';
+                    btn.style.borderColor = '#a7f3d0';
+                    btn.style.background = '#ecfdf5';
+                })
+                .catch(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+        }
+    </script>
+    <style>
+        /* Custom smooth scrollbar for all modals */
+        .modal-overlay::-webkit-scrollbar,
+        .modal-backdrop::-webkit-scrollbar,
+        .admin-modal-overlay::-webkit-scrollbar,
+        .modal-content-box::-webkit-scrollbar,
+        .modal::-webkit-scrollbar,
+        .admin-modal-box::-webkit-scrollbar {
+            width: 7px;
+            height: 7px;
+        }
+
+        .modal-overlay::-webkit-scrollbar-thumb,
+        .modal-backdrop::-webkit-scrollbar-thumb,
+        .admin-modal-overlay::-webkit-scrollbar-thumb,
+        .modal-content-box::-webkit-scrollbar-thumb,
+        .modal::-webkit-scrollbar-thumb,
+        .admin-modal-box::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.6);
+            border-radius: 4px;
+        }
+
+        .modal-overlay::-webkit-scrollbar-thumb:hover,
+        .modal-backdrop::-webkit-scrollbar-thumb:hover,
+        .modal-content-box::-webkit-scrollbar-thumb:hover,
+        .modal::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.9);
+        }
+
+        /* Universal Table Wrapper Horizontal Scrolling */
+        .table-wrapper {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            width: 100% !important;
+            position: relative;
+        }
+
+        .table-wrapper::-webkit-scrollbar {
+            height: 7px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+    <x-fcm-initializer />
+    @stack('scripts')
 </body>
+
 </html>

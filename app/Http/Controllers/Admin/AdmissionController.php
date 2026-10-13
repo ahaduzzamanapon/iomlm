@@ -877,4 +877,134 @@ class AdmissionController extends Controller
     {
         return $this->trash($request, $admission);
     }
+
+    /**
+     * Update applicant / student contact info (Email & Phone)
+     */
+    public function updateContact(Request $request, AdmissionForm $admission)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|max:255',
+            'phone' => 'required|string|max:30',
+        ]);
+
+        $updateData = [];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('admission_forms', 'email')) {
+            $updateData['email'] = $validated['email'];
+        }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('admission_forms', 'phone')) {
+            $updateData['phone'] = $validated['phone'];
+        }
+        if (!empty($updateData)) {
+            $admission->update($updateData);
+        }
+
+        $student = $admission->student;
+        if ($student) {
+            $student->update([
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+            ]);
+
+            if ($student->user) {
+                $student->user->update([
+                    'email' => $validated['email'],
+                ]);
+            }
+        }
+
+        // Also if linked to a waiver application, update contact there too
+        if ($admission->waiver_code) {
+            $waiverApp = \App\Models\WaiverApplication::where('application_no', $admission->waiver_code)->first();
+            if ($waiverApp) {
+                $waiverApp->update([
+                    'email' => $validated['email'],
+                    'phone' => $validated['phone'],
+                ]);
+            }
+        }
+
+        return back()->with('success', 'শিক্ষার্থীর ইমেইল ও মোবাইল নম্বর সফলভাবে আপডেট করা হয়েছে।');
+    }
+
+    /**
+     * Resend Admission Confirmation / Payment Link Email
+     */
+    public function resendConfirmation(AdmissionForm $admission)
+    {
+        // If pending, send repayment / admission payment link
+        if ($admission->status === 'PENDING') {
+            return $this->sendRepaymentEmail($admission);
+        }
+
+        // If approved, resend admission confirmation notification
+        if ($admission->status === 'APPROVED') {
+            $student = $admission->student;
+            $targetEmail = $admission->email ?: ($student?->email ?: $student?->user?->email);
+
+            if (empty($targetEmail) || !filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+                return back()->with('error', 'শিক্ষার্থীর কোনো বৈধ ইমেইল ঠিকানা পাওয়া যায়নি। অনুগ্রহ করে প্রথমে ইমেইল আপডেট করুন।');
+            }
+
+            $user = $student?->user;
+            $enrollment = $student?->enrollments()->where('admission_form_id', $admission->id)->latest()->first()
+                ?? $student?->enrollments()->latest()->first();
+            $batch = $enrollment?->batch ?? $admission->batch;
+            $course = $batch?->course ?: ($admission->interestedCourse ?: Course::find($batch?->course_id));
+            $courseName = $course->name ?? 'Islamic Online Madrasah';
+            $loginUrl   = url('/login');
+            $rawPassword = $student?->temporary_password ?? '—';
+
+            $studentName = $student?->name ?? $admission->applicant_name ?? 'সম্মানিত শিক্ষার্থী';
+            $rollNumber  = $student?->student_code ?? $admission->application_no ?? '—';
+
+            $replaceVars = [
+                '{name}'             => $studentName,
+                '{roll}'             => $rollNumber,
+                '{student_id}'       => $rollNumber,
+                'অফিসিয়াল রোল'       => $rollNumber,
+                '[অফিসিয়াল রোল]'     => $rollNumber,
+                'অফিসিয়াল রোল নম্বর' => $rollNumber,
+                '{email}'            => $targetEmail,
+                '{login_email}'      => $targetEmail,
+                '{password}'         => $rawPassword,
+                '{course}'           => $courseName,
+                '{batch}'            => $batch?->name ?? '—',
+                '{login_url}'        => $loginUrl,
+            ];
+
+            $selectedTemplate = \App\Models\EmailTemplate::resolveAdmissionTemplate(
+                $admission->interested_course_id ?? $batch?->course_id,
+                $batch?->id,
+                $student?->gender ?? $admission->gender
+            );
+
+            $rawEmailBody = $selectedTemplate
+                ? $selectedTemplate->content
+                : ($batch?->getEffectiveEmailTemplate() ?: "আসসালামু আলাইকুম {name},\n\nইসলামিক অনলাইন মাদ্রাসায় আপনার ভর্তি নিশ্চিত করা হয়েছে।\n\nকোর্স: {course}\nব্যাচ: {batch}\nঅফিসিয়াল রোল: {roll}\nলগইন ইমেইল: {login_email}\nপাসওয়ার্ড: {password}\nলগইন লিংক: {login_url}\n\nধন্যবাদ,\nইসলামিক অনলাইন মাদ্রাসা");
+
+            $defaultSubject = $selectedTemplate?->subject
+                ?: "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$studentName} ({$courseName})";
+
+            $compiledEmailBody = str_replace(array_keys($replaceVars), array_values($replaceVars), $rawEmailBody);
+            $compiledSubject   = str_replace(array_keys($replaceVars), array_values($replaceVars), $defaultSubject);
+
+            try {
+                $mailService = app(\App\Services\DynamicMailService::class);
+                $mailService->sendHtmlNotification(
+                    $targetEmail,
+                    $compiledSubject,
+                    $compiledEmailBody,
+                    null,
+                    $loginUrl
+                );
+                return back()->with('success', "শিক্ষার্থীর ইমেইলে ({$targetEmail}) ভর্তি নিশ্চিতকরণ কনফার্মেশন মেইল সফলভাবে পুনরায় পাঠানো হয়েছে।");
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Resend Admission Confirmation Exception: ' . $e->getMessage());
+                return back()->with('error', 'ইমেইল পাঠাতে সমস্যা হয়েছে: ' . $e->getMessage());
+            }
+        }
+
+        return back()->with('error', 'শুধুমাত্র পেন্ডিং বা অনুমোদিত আবেদনের ক্ষেত্রে মেইল পাঠানো যাবে।');
+    }
 }

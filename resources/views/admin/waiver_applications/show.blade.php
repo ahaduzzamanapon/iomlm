@@ -19,7 +19,18 @@
             <h1>Application: {{ $waiverApplication->full_name }}</h1>
             <p>App No: <strong>{{ $waiverApplication->application_no }}</strong> · Submitted {{ $waiverApplication->created_at->format('d M Y, h:i A') }}</p>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button type="button" class="btn btn-outline btn-lg" onclick="openModal('editWaiverContactModal')" style="display:inline-flex;align-items:center;gap:6px;border-color:#0284c7;color:#0284c7;background:#f0f9ff;font-family:'Kalpurush',sans-serif;">
+                <i class="fa-solid fa-user-pen"></i> ইমেইল/মোবাইল এডিট
+            </button>
+            @if($waiverApplication->status === 'APPROVED')
+                <form method="POST" action="{{ route('admin.waiver-applications.resend-email', $waiverApplication) }}" style="display:inline;margin:0" onsubmit="return confirm('{{ $waiverApplication->full_name }}-এর ইমেইলে ({{ $waiverApplication->email }}) পুওর ফান্ড কনফার্মেশন ও কুপন কোড পুনরায় পাঠাতে চান?')">
+                    @csrf
+                    <button type="submit" class="btn btn-primary btn-lg" style="display:inline-flex;align-items:center;gap:6px;background:#059669;border-color:#059669;font-family:'Kalpurush',sans-serif;">
+                        <i class="fa-solid fa-paper-plane"></i> কনফার্মেশন মেইল পাঠান (Resend)
+                    </button>
+                </form>
+            @endif
             @if($waiverApplication->status === 'PENDING')
                 <button class="btn btn-success btn-lg" onclick="openModal('approveWaiverModal')">Approve Waiver</button>
                 <button class="btn btn-danger btn-lg" onclick="openModal('rejectWaiverModal')">Reject Application</button>
@@ -41,8 +52,24 @@
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">1. Personal & Contact</div>
                 <table class="table" style="font-size:13px;margin-bottom:16px">
                     <tr><th style="width:160px;color:var(--text-muted)">Full Name:</th><td><strong>{{ $waiverApplication->full_name }}</strong></td></tr>
-                    <tr><th style="color:var(--text-muted)">Mobile Number:</th><td>{{ $waiverApplication->phone }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Email Address:</th><td>{{ $waiverApplication->email }}</td></tr>
+                    <tr>
+                        <th style="color:var(--text-muted)">Mobile Number:</th>
+                        <td>
+                            <strong>{{ $waiverApplication->phone }}</strong>
+                            <button type="button" onclick="openModal('editWaiverContactModal')" class="btn btn-outline btn-sm" style="margin-left:8px;padding:1px 8px;font-size:11px;color:#0284c7;border-color:#bae6fd;background:#f0f9ff">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="color:var(--text-muted)">Email Address:</th>
+                        <td>
+                            <strong>{{ $waiverApplication->email }}</strong>
+                            <button type="button" onclick="openModal('editWaiverContactModal')" class="btn btn-outline btn-sm" style="margin-left:8px;padding:1px 8px;font-size:11px;color:#0284c7;border-color:#bae6fd;background:#f0f9ff">
+                                <i class="fa-solid fa-pen"></i> Edit
+                            </button>
+                        </td>
+                    </tr>
                     <tr><th style="color:var(--text-muted)">Date of Birth / Gender:</th><td>{{ $waiverApplication->date_of_birth ? $waiverApplication->date_of_birth->format('d M Y') : '—' }} ({{ $waiverApplication->gender ?? 'N/A' }})</td></tr>
                     <tr><th style="color:var(--text-muted)">Father's Name:</th><td>{{ $waiverApplication->father_name }}</td></tr>
                     <tr><th style="color:var(--text-muted)">National ID / Birth Reg:</th><td>{{ $waiverApplication->national_id }}</td></tr>
@@ -244,6 +271,45 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('rejectWaiverModal')">Cancel</button>
                     <button type="submit" class="btn btn-danger">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- ═══ EDIT CONTACT MODAL ═══ --}}
+    <div class="modal-overlay" id="editWaiverContactModal">
+        <div class="modal" style="max-width:480px;font-family:'Kalpurush',sans-serif;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff">
+                <span class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px">
+                    <i class="fa-solid fa-user-pen"></i> ইমেইল ও মোবাইল নম্বর সংশোধন
+                </span>
+                <button class="modal-close" onclick="closeModal('editWaiverContactModal')" style="color:#fff">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.waiver-applications.update-contact', $waiverApplication) }}">
+                @csrf
+                @method('PATCH')
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;padding:22px">
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-envelope" style="color:#0284c7;margin-right:4px"></i> ইমেইল অ্যাড্রেস <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="email" name="email" value="{{ old('email', $waiverApplication->email) }}" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-phone" style="color:#0284c7;margin-right:4px"></i> মোবাইল নম্বর <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="text" name="phone" value="{{ old('phone', $waiverApplication->phone) }}" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div style="font-size:12px;color:#64748b;background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0">
+                        💡 <em>ইমেইল বা ফোন নম্বর সেভ করার পর আপনি সরাসরি কনফার্মেশন মেইল পুনরায় পাঠাতে পারবেন।</em>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding:14px 22px;background:#f8fafc">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editWaiverContactModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7;border-color:#0284c7;font-weight:600">
+                        <i class="fa-solid fa-check"></i> সংরক্ষণ করুন (Save)
+                    </button>
                 </div>
             </form>
         </div>

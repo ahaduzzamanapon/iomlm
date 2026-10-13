@@ -30,10 +30,6 @@ class AcademicYearController extends Controller
             'end_date'   => 'required|date|after_or_equal:start_date',
         ]);
 
-        if ($request->boolean('is_active')) {
-            AcademicYear::query()->update(['is_active' => false]);
-        }
-
         AcademicYear::create([
             'name'       => $validated['name'],
             'start_date' => $validated['start_date'],
@@ -51,10 +47,6 @@ class AcademicYearController extends Controller
             'start_date' => 'required|date',
             'end_date'   => 'required|date|after_or_equal:start_date',
         ]);
-
-        if ($request->boolean('is_active')) {
-            AcademicYear::where('id', '!=', $academicYear->id)->update(['is_active' => false]);
-        }
 
         $academicYear->update([
             'name'       => $validated['name'],
@@ -75,10 +67,6 @@ class AcademicYearController extends Controller
     public function toggleStatus(AcademicYear $academicYear)
     {
         $newStatus = !$academicYear->is_active;
-
-        if ($newStatus) {
-            AcademicYear::where('id', '!=', $academicYear->id)->update(['is_active' => false]);
-        }
 
         $academicYear->update(['is_active' => $newStatus]);
 

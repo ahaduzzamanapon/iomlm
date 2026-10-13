@@ -354,6 +354,9 @@
                                         </button>
                                     </form>
                                 @endif
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openAdmissionEditContactModal({{ $unp->id }}, '{{ addslashes($unp->applicant_name ?? $unp->student?->name ?? 'Student') }}', '{{ addslashes($unp->email ?? $unp->student?->email ?? '') }}', '{{ addslashes($unp->phone ?? $unp->student?->phone ?? '') }}')" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff;padding:1px 5px;font-size:10px;height:24px" title="ইমেইল ও ফোন এডিট করুন">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
                                 <form method="POST" action="{{ route('admin.admissions.send-repayment-email', $unp) }}" style="display:inline;" onsubmit="return confirm('আবেদনকারীর কাছে রি-পেমেন্ট মেইল পাঠাতে চান?')">
                                     @csrf
                                     <button type="submit" class="btn btn-outline btn-sm" style="color:#b45309;border-color:#fde68a;background:#fffbeb;padding:1px 5px;font-size:10px;height:24px" title="Send Re-Payment Email">
@@ -420,6 +423,17 @@
                                         @method('PATCH')
                                         <button type="submit" class="btn btn-outline btn-sm" style="color:#047857;border-color:#a7f3d0;background:#ecfdf5;font-weight:600;padding:1px 5px;font-size:10px;height:24px" title="Restore to pending">
                                             <i class="fa-solid fa-rotate-left"></i> রিস্টোর
+                                        </button>
+                                    </form>
+                                @endif
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openAdmissionEditContactModal({{ $adm->id }}, '{{ addslashes($adm->applicant_name ?? $adm->student?->name ?? 'Student') }}', '{{ addslashes($adm->email ?? $adm->student?->email ?? '') }}', '{{ addslashes($adm->phone ?? $adm->student?->phone ?? '') }}')" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff;padding:1px 5px;font-size:10px;height:24px" title="ইমেইল ও ফোন এডিট করুন">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                @if($adm->status === 'APPROVED')
+                                    <form method="POST" action="{{ route('admin.admissions.resend-confirmation', $adm) }}" style="display:inline;" onsubmit="return confirm('{{ $adm->applicant_name ?? $adm->student?->name }}-এর কাছে কনফার্মেশন মেইল পাঠাতে চান?')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:#059669;border-color:#a7f3d0;background:#ecfdf5;padding:1px 5px;font-size:10px;height:24px" title="Send Confirmation Email">
+                                            <i class="fa-solid fa-paper-plane"></i>
                                         </button>
                                     </form>
                                 @endif
@@ -494,6 +508,17 @@
                                         @method('PATCH')
                                         <button type="submit" class="btn btn-outline btn-sm" style="color:#047857;border-color:#a7f3d0;background:#ecfdf5;font-weight:600;padding:1px 5px;font-size:10px;height:24px" title="Restore to pending">
                                             <i class="fa-solid fa-rotate-left"></i> রিস্টোর
+                                        </button>
+                                    </form>
+                                @endif
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openAdmissionEditContactModal({{ $pub->id }}, '{{ addslashes($pub->applicant_name ?? $pub->student?->name ?? 'Student') }}', '{{ addslashes($pub->email ?? $pub->student?->email ?? '') }}', '{{ addslashes($pub->phone ?? $pub->student?->phone ?? '') }}')" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff;padding:1px 5px;font-size:10px;height:24px" title="ইমেইল ও ফোন এডিট করুন">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                @if($pub->status === 'APPROVED')
+                                    <form method="POST" action="{{ route('admin.admissions.resend-confirmation', $pub) }}" style="display:inline;" onsubmit="return confirm('{{ $pub->applicant_name ?? $pub->student?->name }}-এর কাছে কনফার্মেশন মেইল পাঠাতে চান?')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-outline btn-sm" style="color:#059669;border-color:#a7f3d0;background:#ecfdf5;padding:1px 5px;font-size:10px;height:24px" title="Send Confirmation Email">
+                                            <i class="fa-solid fa-paper-plane"></i>
                                         </button>
                                     </form>
                                 @endif
@@ -575,5 +600,58 @@
             });
         }
     });
+
+    function openAdmissionEditContactModal(id, name, email, phone) {
+        document.getElementById('editAdmissionContactForm').action = "{{ url('admin/admissions') }}/" + id + "/contact";
+        document.getElementById('editAdmissionStudentName').textContent = name;
+        document.getElementById('editAdmissionEmail').value = email;
+        document.getElementById('editAdmissionPhone').value = phone;
+        document.getElementById('editAdmissionIndexContactModal').style.display = 'flex';
+    }
+    function closeAdmissionEditContactModal() {
+        document.getElementById('editAdmissionIndexContactModal').style.display = 'none';
+    }
     </script>
+
+    {{-- Edit Contact Modal for Admission Student --}}
+    <div id="editAdmissionIndexContactModal" class="modal-overlay" onclick="if(event.target===this) closeAdmissionEditContactModal()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;box-sizing:border-box">
+        <div class="modal" style="background:#fff;border-radius:16px;max-width:480px;width:100%;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);animation:modalSlideUp .25s ease;font-family:'Kalpurush',sans-serif;">
+            <div style="background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-user-pen"></i> শিক্ষার্থীর ইমেইল ও মোবাইল নম্বর সংশোধন
+                    </div>
+                    <div id="editAdmissionStudentName" style="font-size:12px;opacity:.9;margin-top:2px">শিক্ষার্থীর নাম</div>
+                </div>
+                <button type="button" onclick="closeAdmissionEditContactModal()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
+            </div>
+            <form id="editAdmissionContactForm" method="POST" action="">
+                @csrf
+                @method('PATCH')
+                <div style="padding:22px;display:flex;flex-direction:column;gap:14px">
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-envelope" style="color:#0284c7;margin-right:4px"></i> ইমেইল অ্যাড্রেস <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="email" name="email" id="editAdmissionEmail" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-phone" style="color:#0284c7;margin-right:4px"></i> মোবাইল নম্বর <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="text" name="phone" id="editAdmissionPhone" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div style="font-size:12px;color:#64748b;background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0">
+                        💡 <em>ইমেইল বা ফোন নম্বর সেভ করার পর আপনি সরাসরি ওখান থেকে ভর্তির লিংক কিংবা কনফার্মেশন মেইল পাঠাতে পারবেন।</em>
+                    </div>
+                </div>
+                <div style="padding:14px 22px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px">
+                    <button type="button" onclick="closeAdmissionEditContactModal()" class="btn btn-outline" style="border-radius:8px">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7;border-color:#0284c7;border-radius:8px;font-weight:600">
+                        <i class="fa-solid fa-check"></i> সংরক্ষণ করুন (Save)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </x-admin-layout>

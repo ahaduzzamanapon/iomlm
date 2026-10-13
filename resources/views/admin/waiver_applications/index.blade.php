@@ -112,7 +112,20 @@
                             @endif
                         </td>
                         <td style="text-align:right;white-space:nowrap">
-                            <a href="{{ route('admin.waiver-applications.show', $app) }}" class="btn btn-outline btn-sm">Review App →</a>
+                            <div style="display:inline-flex;align-items:center;gap:6px">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="openWaiverEditContactModal({{ $app->id }}, '{{ addslashes($app->full_name) }}', '{{ addslashes($app->email) }}', '{{ addslashes($app->phone) }}')" title="ইমেইল ও মোবাইল নম্বর এডিট করুন" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff">
+                                    <i class="fa-solid fa-pen-to-square"></i> Edit
+                                </button>
+                                @if($app->status === 'APPROVED')
+                                    <form method="POST" action="{{ route('admin.waiver-applications.resend-email', $app) }}" style="display:inline;margin:0" onsubmit="return confirm('{{ $app->full_name }}-এর ইমেইলে ({{ $app->email }}) পুওর ফান্ড কনফার্মেশন ও কুপন কোড পুনরায় পাঠাতে চান?')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-outline btn-sm" title="কনফার্মেশন মেইল পুনরায় পাঠান" style="color:#16a34a;border-color:#bbf7d0;background:#f0fdf4">
+                                            <i class="fa-solid fa-paper-plane"></i> Resend Email
+                                        </button>
+                                    </form>
+                                @endif
+                                <a href="{{ route('admin.waiver-applications.show', $app) }}" class="btn btn-outline btn-sm">Review App →</a>
+                            </div>
                         </td>
                     </tr>
                     @empty
@@ -259,6 +272,59 @@
             prompt('লিংকটি কপি করুন:', url);
         });
     }
+
+    function openWaiverEditContactModal(id, name, email, phone) {
+        document.getElementById('editWaiverContactForm').action = "{{ url('admin/waiver-applications') }}/" + id + "/contact";
+        document.getElementById('editWaiverApplicantName').textContent = name;
+        document.getElementById('editWaiverEmail').value = email;
+        document.getElementById('editWaiverPhone').value = phone;
+        document.getElementById('editWaiverContactModal').style.display = 'flex';
+    }
+    function closeWaiverEditContactModal() {
+        document.getElementById('editWaiverContactModal').style.display = 'none';
+    }
     </script>
+
+    {{-- Edit Contact Modal for Waiver Applicant --}}
+    <div id="editWaiverContactModal" class="modal-overlay" onclick="if(event.target===this) closeWaiverEditContactModal()" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.65);backdrop-filter:blur(4px);z-index:9999;box-sizing:border-box">
+        <div class="modal" style="background:#fff;border-radius:16px;max-width:480px;width:100%;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);animation:modalSlideUp .25s ease;font-family:'Kalpurush',sans-serif;">
+            <div style="background:linear-gradient(135deg,#0284c7,#0369a1);color:#fff;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                    <div style="font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px">
+                        <i class="fa-solid fa-user-pen"></i> ইমেইল ও মোবাইল নম্বর সংশোধন
+                    </div>
+                    <div id="editWaiverApplicantName" style="font-size:12px;opacity:.9;margin-top:2px">আবেদনকারীর নাম</div>
+                </div>
+                <button type="button" onclick="closeWaiverEditContactModal()" style="background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1">&times;</button>
+            </div>
+            <form id="editWaiverContactForm" method="POST" action="">
+                @csrf
+                @method('PATCH')
+                <div style="padding:22px;display:flex;flex-direction:column;gap:14px">
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-envelope" style="color:#0284c7;margin-right:4px"></i> ইমেইল অ্যাড্রেস <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="email" name="email" id="editWaiverEmail" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            <i class="fa-solid fa-phone" style="color:#0284c7;margin-right:4px"></i> মোবাইল নম্বর <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <input type="text" name="phone" id="editWaiverPhone" class="form-control" required style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                    </div>
+                    <div style="font-size:12px;color:#64748b;background:#f8fafc;padding:10px 12px;border-radius:8px;border:1px solid #e2e8f0">
+                        💡 <em>ইমেইল বা ফোন নম্বর সেভ করার পর আপনি সরাসরি কনফার্মেশন মেইল পাঠাতে পারবেন।</em>
+                    </div>
+                </div>
+                <div style="padding:14px 22px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px">
+                    <button type="button" onclick="closeWaiverEditContactModal()" class="btn btn-outline" style="border-radius:8px">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#0284c7;border-color:#0284c7;border-radius:8px;font-weight:600">
+                        <i class="fa-solid fa-check"></i> সংরক্ষণ করুন (Save)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
     @endpush
 </x-admin-layout>

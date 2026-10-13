@@ -271,11 +271,13 @@
                                     value="{{ $settings['sms_api_key'] ?? 'RZW30XSQHWPQVIH' }}" required>
                             </div>
                             <div class="form-group">
-                                <label>Sender Name (Sender ID / Masking)</label>
+                                <label>Sender ID / Sender Name <span class="required">*</span></label>
                                 <input type="text" name="sms_sender_name" class="form-control"
-                                    placeholder="e.g. IOM or leave empty for default non-masking"
-                                    value="{{ $settings['sms_sender_name'] ?? '' }}">
-                                <small style="color:#64748b">MiM SMS প্যানেল থেকে অনুমোদিত Sender ID (Utility &rarr; Sender ID)। খালি রাখলে ডিফল্ট নন-মাস্কিং ব্যবহৃত হবে।</small>
+                                    placeholder="sms.mimsms.com থেকে অনুমোদিত Sender ID লিখুন"
+                                    value="{{ $settings['sms_sender_name'] ?? '' }}" required>
+                                <small style="color:#64748b;font-family:'Kalpurush',sans-serif;">
+                                    📌 <strong>জরুরি:</strong> আপনার MiM SMS প্যানেলে (<strong>sms.mimsms.com &rarr; Utility &rarr; Sender ID</strong>) যে অনুমোদিত Sender ID বা নন-মাস্কিং মোবাইল নম্বরটি দেওয়া আছে, সেটি এখানে হুবহু লিখুন। নন-মাস্কিং অ্যাকাউন্টেও MiMSMS সিস্টেমে একটি নির্দিষ্ট Sender ID বরাদ্দ থাকে।
+                                </small>
                             </div>
                         </div>
 
