@@ -325,13 +325,9 @@
                         @php
                             $tcUser = auth()->user();
                             $tcRecord = $tcUser?->teacher;
-                            $tcPhoto = $tcRecord?->photo_url;
+                            $tcPhoto = $tcRecord?->photo_url ?: \App\Models\Teacher::defaultAvatarForGender($tcRecord?->gender ?? $tcUser?->gender);
                         @endphp
-                        @if(!empty($tcPhoto))
-                            <img src="{{ asset($tcPhoto) }}" alt="Avatar" class="user-avatar" onerror="this.onerror=null;this.src='{{ asset('images/default-avatar.svg') }}'">
-                        @else
-                            <img src="{{ asset('images/default-avatar.svg') }}" alt="Avatar" class="user-avatar">
-                        @endif
+                        <img src="{{ asset($tcPhoto) }}" alt="Avatar" class="user-avatar" onerror="this.onerror=null;this.src='{{ asset('images/avatars/employee_male.jpg') }}'">
                         <div>
                             <div class="user-name">{{ $tcUser->name ?? 'Teacher' }}</div>
                             <div class="user-role">

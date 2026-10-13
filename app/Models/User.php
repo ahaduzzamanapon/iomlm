@@ -17,6 +17,8 @@ class User extends Authenticatable
         'role',
         'admin_permissions',
         'designation',
+        'gender',
+        'avatar_url',
         'employee_id',
         'can_provide_support',
         'is_common_account',
@@ -24,6 +26,39 @@ class User extends Authenticatable
         'notifications_read_at',
         'read_notification_ids',
     ];
+
+    /**
+     * Resolve default avatar image for employee / user by gender
+     */
+    public static function defaultAvatarForGender(?string $gender): string
+    {
+        $g = strtolower($gender ?? '');
+        if (str_contains($g, 'female') || str_contains($g, 'মহিলা') || str_contains($g, 'বোন')) {
+            return '/images/avatars/employee_female.jpg';
+        }
+        return '/images/avatars/employee_male.jpg';
+    }
+
+    /**
+     * Get user avatar URL with employee fallback
+     */
+    public function getAvatarUrlAttribute(): string
+    {
+        if (!empty($this->attributes['avatar_url'] ?? null)) {
+            return $this->attributes['avatar_url'];
+        }
+
+        if ($this->teacher && !empty($this->teacher->photo_url)) {
+            return $this->teacher->photo_url;
+        }
+
+        if ($this->student && !empty($this->student->photo_url)) {
+            return $this->student->photo_url;
+        }
+
+        $gender = $this->gender ?? $this->teacher?->gender ?? $this->student?->gender ?? null;
+        return self::defaultAvatarForGender($gender);
+    }
 
     protected $hidden = [
         'password',

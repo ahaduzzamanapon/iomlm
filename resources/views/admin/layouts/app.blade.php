@@ -1391,8 +1391,12 @@
                     </div>
                     <div class="dropdown">
                         <div class="user-menu" onclick="toggleDropdown('adminUserMenu')" style="cursor:pointer">
-                            <img src="{{ asset('images/default-avatar.svg') }}" alt="Avatar" class="user-avatar"
-                                style="border:2px solid #a7f3d0;width:34px;height:34px;border-radius:50%;object-fit:cover">
+                            @php
+                                $adminAvatar = auth()->user()->avatar_url ?? \App\Models\User::defaultAvatarForGender(auth()->user()->gender ?? 'Male');
+                            @endphp
+                            <img src="{{ asset($adminAvatar) }}" alt="Avatar" class="user-avatar"
+                                style="border:2px solid #a7f3d0;width:34px;height:34px;border-radius:50%;object-fit:cover"
+                                onerror="this.onerror=null;this.src='{{ asset('images/avatars/employee_male.jpg') }}'">
                             <div>
                                 <div class="user-name">{{ auth()->user()->name ?? 'Admin' }}</div>
                                 <div class="user-role" style="color:#047857">

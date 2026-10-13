@@ -156,9 +156,9 @@
                     {{-- User Details --}}
                     <td>
                         <div style="display:flex;align-items:center;gap:12px">
-                            <div class="user-avatar-um">
-                                {{ strtoupper(substr($u->name, 0, 1)) }}
-                            </div>
+                            <img src="{{ asset($u->avatar_url) }}" alt="{{ $u->name }}"
+                                 style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1.5px solid #a7f3d0;background:#f8fafc;flex-shrink:0"
+                                 onerror="this.onerror=null;this.src='{{ asset('images/avatars/employee_male.jpg') }}'">
                             <div>
                                 <div style="font-weight:700;color:#0f172a;font-size:14px">
                                     {{ $u->name }}

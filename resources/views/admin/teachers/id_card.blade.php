@@ -51,7 +51,9 @@
             </div>
 
             <div class="card-body">
-                <div class="photo-placeholder"></div>
+                <div class="photo-placeholder" style="overflow:hidden;padding:0">
+                    <img src="{{ asset($teacher->photo_url) }}" alt="{{ $teacher->name }}" style="width:100%;height:100%;object-fit:cover" onerror="this.onerror=null;this.src='{{ asset('images/avatars/employee_male.jpg') }}'">
+                </div>
                 <h2 class="teacher-name">{{ $teacher->name }}</h2>
                 <div class="emp-code">{{ $teacher->employee_id ?? 'EMP-2026-001' }}</div>
 

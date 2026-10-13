@@ -94,8 +94,10 @@ class UserManagementController extends Controller implements HasMiddleware
             'email'               => 'required|email|unique:users,email',
             'password'            => 'required|string|min:6',
             'role'                => 'required|in:admin,super_admin',
+            'gender'              => 'nullable|string|in:Male,Female',
             'designation'         => 'nullable|string|max:120',
             'employee_id'         => 'nullable|string|max:50',
+            'avatar_url'          => 'nullable|string|max:500',
             'permissions'         => 'nullable|array',
             'permissions.*'       => 'string',
             'can_provide_support' => 'nullable|boolean',
@@ -109,11 +111,16 @@ class UserManagementController extends Controller implements HasMiddleware
             ? array_keys(User::adminModules())
             : ($validated['permissions'] ?? []);
 
+        $gender = $validated['gender'] ?? 'Male';
+        $avatarUrl = $validated['avatar_url'] ?? User::defaultAvatarForGender($gender);
+
         $user = User::create([
             'name'                => $validated['name'],
             'email'               => $validated['email'],
             'password'            => bcrypt($validated['password']),
             'role'                => $validated['role'],
+            'gender'              => $gender,
+            'avatar_url'          => $avatarUrl,
             'designation'         => $validated['designation'] ?? null,
             'employee_id'         => $validated['employee_id'] ?? null,
             'admin_permissions'   => $permissions,
@@ -151,8 +158,10 @@ class UserManagementController extends Controller implements HasMiddleware
             'email'               => 'required|email|unique:users,email,' . $user->id,
             'password'            => 'nullable|string|min:6',
             'role'                => 'required|in:admin,super_admin',
+            'gender'              => 'nullable|string|in:Male,Female',
             'designation'         => 'nullable|string|max:120',
             'employee_id'         => 'nullable|string|max:50',
+            'avatar_url'          => 'nullable|string|max:500',
             'permissions'         => 'nullable|array',
             'permissions.*'       => 'string',
             'can_provide_support' => 'nullable|boolean',
@@ -167,10 +176,15 @@ class UserManagementController extends Controller implements HasMiddleware
             ? array_keys(User::adminModules())
             : ($validated['permissions'] ?? []);
 
+        $gender = $validated['gender'] ?? ($user->gender ?? 'Male');
+        $avatarUrl = $validated['avatar_url'] ?? ($user->avatar_url ?: User::defaultAvatarForGender($gender));
+
         $updateData = [
             'name'                => $validated['name'],
             'email'               => $validated['email'],
             'role'                => $validated['role'],
+            'gender'              => $gender,
+            'avatar_url'          => $avatarUrl,
             'designation'         => $validated['designation'] ?? null,
             'employee_id'         => $validated['employee_id'] ?? null,
             'admin_permissions'   => $permissions,

@@ -71,10 +71,13 @@ class TeacherController extends Controller
         }
 
         $user = User::create([
-            'name'     => $teacher->name,
-            'email'    => $loginEmail,
-            'password' => Hash::make($tempPassword),
-            'role'     => 'teacher',
+            'name'        => $teacher->name,
+            'email'       => $loginEmail,
+            'password'    => Hash::make($tempPassword),
+            'role'        => 'teacher',
+            'gender'      => $teacher->gender,
+            'employee_id' => $nextEmpId,
+            'avatar_url'  => $teacher->photo_url,
         ]);
 
         $teacher->update(['user_id' => $user->id]);
@@ -113,7 +116,11 @@ class TeacherController extends Controller
         ]));
 
         if ($teacher->user) {
-            $userUpdate = ['name' => $teacher->name];
+            $userUpdate = [
+                'name'       => $teacher->name,
+                'gender'     => $teacher->gender,
+                'avatar_url' => $teacher->photo_url,
+            ];
             if (!empty($validated['email'])) {
                 $userUpdate['email'] = $validated['email'];
             }

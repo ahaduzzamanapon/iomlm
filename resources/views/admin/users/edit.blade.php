@@ -120,6 +120,22 @@
                     </div>
 
                     <div class="form-group-um">
+                        <label class="form-label-um">জেন্ডার ও এভাটর (Gender / Avatar) <span style="color:#ef4444">*</span></label>
+                        <div style="display:flex;align-items:center;gap:18px;height:42px">
+                            <label style="display:inline-flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer">
+                                <input type="radio" name="gender" value="Male" {{ old('gender', $user->gender ?? 'Male') === 'Male' ? 'checked' : '' }}>
+                                <img src="{{ asset('images/avatars/employee_male.jpg') }}" alt="ভাই" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid #047857">
+                                <span><strong>ভাই (Male)</strong></span>
+                            </label>
+                            <label style="display:inline-flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer">
+                                <input type="radio" name="gender" value="Female" {{ old('gender', $user->gender) === 'Female' ? 'checked' : '' }}>
+                                <img src="{{ asset('images/avatars/employee_female.jpg') }}" alt="বোন" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid #047857">
+                                <span><strong>বোন (Female)</strong></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group-um">
                         <label class="form-label-um">পাসওয়ার্ড পরিবর্তন (Password)</label>
                         <div style="position:relative">
                             <input type="password" id="adminEditPasswordInput" name="password" class="form-input-um" style="padding-right:44px" placeholder="পাসওয়ার্ড অপরিবর্তিত রাখতে ফাঁকা রাখুন" autocomplete="new-password">

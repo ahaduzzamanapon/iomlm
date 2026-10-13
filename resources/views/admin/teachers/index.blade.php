@@ -84,7 +84,19 @@
                     <tr data-searchable="{{ strtolower($teacher->employee_id.' '.$teacher->name.' '.$teacher->designation.' '.$teacher->phone.' '.$teacher->email.' '.$teacher->department) }}"
                         data-active="{{ $teacher->is_active ? '1' : '0' }}">
                         <td><span class="badge badge-secondary no-dot"><strong>{{ $teacher->employee_id ?? 'N/A' }}</strong></span></td>
-                        <td class="td-primary"><strong>{{ $teacher->name }}</strong></td>
+                        <td class="td-primary">
+                            <div style="display:flex;align-items:center;gap:10px">
+                                <img src="{{ asset($teacher->photo_url) }}" alt="{{ $teacher->name }}"
+                                     style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.5px solid #10b981;background:#f8fafc;flex-shrink:0"
+                                     onerror="this.onerror=null;this.src='{{ asset('images/avatars/employee_male.jpg') }}'">
+                                <div>
+                                    <strong>{{ $teacher->name }}</strong>
+                                    @if($teacher->gender)
+                                        <div style="font-size:11px;color:var(--text-muted)">{{ $teacher->gender === 'Female' ? 'বোন (মহিলা)' : 'ভাই (পুরুষ)' }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </td>
                         <td class="td-muted">{{ $teacher->designation ?? 'Faculty' }}</td>
                         <td class="td-muted">{{ $teacher->phone ?? '—' }}<br>{{ $teacher->email ?? '—' }}</td>
                         <td>
