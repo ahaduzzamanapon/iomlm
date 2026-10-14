@@ -207,7 +207,7 @@
             <div style="margin-bottom: 24px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                     <h3 style="font-size:16px;font-weight:700;color:#064e3b;margin:0;">
-                        <i class="fa-solid fa-layer-group"></i> আপনার মোট {{ $admissions->count() }}টি কোর্সে আবেদন পাওয়া গেছে:
+                        <i class="fa-solid fa-layer-group"></i> আপনার মোট {{ $admissions->count() }}টি আবেদন পাওয়া গেছে:
                     </h3>
                 </div>
                 <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px;">

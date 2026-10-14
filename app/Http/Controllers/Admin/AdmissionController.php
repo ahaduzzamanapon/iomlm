@@ -299,16 +299,19 @@ class AdmissionController extends Controller
 
             $student->calculateProfileCompletion();
 
+            $batchId = !empty($validated['batch_id']) ? (int) $validated['batch_id'] : null;
+            $resolvedSession = \App\Models\AcademicSession::resolveForBatchOrYear($batchId);
+
             // Create Admission Form with source=ADMIN
             $form = AdmissionForm::create([
                 'source'                  => 'ADMIN',
                 'application_no'          => AdmissionForm::generateApplicationNo(),
                 'student_id'              => $student->id,
                 'interested_course_id'    => (int) $validated['interested_course_id'],
-                'batch_id'                => !empty($validated['batch_id']) ? (int) $validated['batch_id'] : null,
+                'batch_id'                => $batchId,
                 'academic_session_id'     => !empty($validated['academic_session_id'])
                     ? (int) $validated['academic_session_id']
-                    : (\App\Models\AcademicSession::getActiveSession()?->id ?? \App\Models\AcademicSession::where('is_active', true)->latest('id')->value('id')),
+                    : ($resolvedSession?->id ?? \App\Models\AcademicSession::getActiveSession()?->id),
                 'attempt_no'              => 1,
                 'lead_source'             => $validated['lead_source'] ?? 'Direct',
                 'discount_percent'        => $validated['discount_percent'] ?? 0,
@@ -479,6 +482,10 @@ class AdmissionController extends Controller
                 $admission->waiver_notes = $request->waiver_notes;
             }
             $admission->batch_id = $batch->id;
+            $resolvedSession = \App\Models\AcademicSession::resolveForBatchOrYear($batch->id, $batch->academic_year_id);
+            if ($resolvedSession) {
+                $admission->academic_session_id = $resolvedSession->id;
+            }
             $admission->rejection_reason = null;
 
             // ── GENERATE CUSTOM STUDENT ID (YY-BB-CC-G-RRRR) ─────────────

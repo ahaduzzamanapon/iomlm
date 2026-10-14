@@ -367,8 +367,12 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>ইমেইল ঠিকানা <span class="req">*</span></label>
-                        <input type="email" name="email" value="{{ old('email') }}" placeholder="name@example.com" required>
+                        <input type="email" name="email" id="email" value="{{ old('email') }}" placeholder="name@example.com" required>
                         <small style="color:var(--muted);font-size:11px">পাসওয়ার্ড ও লগইন তথ্য এই ইমেইলে পাঠানো হবে</small>
+                        <div id="duplicate_email_alert" style="display:none;margin-top:8px;padding:10px 12px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;color:#991b1b;font-size:12.5px;font-weight:600;line-height:1.5;">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <span id="duplicate_email_msg"></span>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>লিঙ্গ / শাখা <span class="req">*</span></label>
@@ -439,16 +443,77 @@ function filterBatchesByCourse(courseId) {
     if (!hasMatch) select.value = '';
 }
 
-function onCourseChange(courseSelect) {
-    filterBatchesByCourse(courseSelect.value);
+let checkTimeout = null;
+function checkDuplicateApplication() {
+    const courseId = document.getElementById('course_id')?.value;
+    const email = document.getElementById('email')?.value?.trim();
+    const alertBox = document.getElementById('duplicate_email_alert');
+    const msgBox = document.getElementById('duplicate_email_msg');
+    const submitBtn = document.getElementById('btn-submit');
+
+    if (!courseId || !email || !email.includes('@')) {
+        if (alertBox) alertBox.style.display = 'none';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+        return;
+    }
+
+    clearTimeout(checkTimeout);
+    checkTimeout = setTimeout(() => {
+        fetch('{{ route("apply.check.duplicate") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                course_id: courseId,
+                email: email
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.exists) {
+                if (alertBox && msgBox) {
+                    msgBox.textContent = data.message;
+                    alertBox.style.display = 'block';
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.5';
+                    submitBtn.style.cursor = 'not-allowed';
+                }
+            } else {
+                if (alertBox) alertBox.style.display = 'none';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                }
+            }
+        })
+        .catch(() => {});
+    }, 300);
 }
 
-
+function onCourseChange(courseSelect) {
+    filterBatchesByCourse(courseSelect.value);
+    checkDuplicateApplication();
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const courseSelect = document.getElementById('course_id');
     if (courseSelect && courseSelect.value) {
         filterBatchesByCourse(courseSelect.value);
+    }
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+        emailInput.addEventListener('input', checkDuplicateApplication);
+        emailInput.addEventListener('blur', checkDuplicateApplication);
     }
 });
 </script>

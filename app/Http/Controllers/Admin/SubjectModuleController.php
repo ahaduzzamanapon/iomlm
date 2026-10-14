@@ -57,7 +57,7 @@ class SubjectModuleController extends Controller
             'is_active'                => true,
         ]);
 
-        return back()->with('success', 'মডিউল ও রেকর্ডেড ক্লাস সফলভাবে যুক্ত করা হয়েছে।');
+        return back()->with('success', 'মডিউল সফলভাবে সংরক্ষণ করা হয়েছে।');
     }
 
     public function update(Request $request, SubjectModule $module)
@@ -101,14 +101,14 @@ class SubjectModuleController extends Controller
             'description'              => $validated['description'] ?? null,
             'file_path'                => $filePath,
             'drive_link'               => $validated['drive_link'] ?? null,
-            'recorded_url'             => $firstVideo['url'] ?? ($validated['recorded_url'] ?? null),
-            'embed_code'               => $firstVideo['embed_code'] ?? ($validated['embed_code'] ?? null),
-            'recorded_videos'          => !empty($recordedVideos) ? $recordedVideos : null,
+            'recorded_url'             => $request->has('videos') ? ($firstVideo['url'] ?? null) : $module->recorded_url,
+            'embed_code'               => $request->has('videos') ? ($firstVideo['embed_code'] ?? null) : $module->embed_code,
+            'recorded_videos'          => $request->has('videos') ? (!empty($recordedVideos) ? $recordedVideos : null) : $module->recorded_videos,
             'is_hidden'                => $request->boolean('is_hidden', false),
             'is_locked_until_previous' => $request->boolean('is_locked_until_previous', false),
         ]);
 
-        return back()->with('success', 'মডিউল ও রেকর্ডেড ক্লাস সফলভাবে আপডেট করা হয়েছে।');
+        return back()->with('success', 'মডিউল সফলভাবে আপডেট করা হয়েছে।');
     }
 
     /**

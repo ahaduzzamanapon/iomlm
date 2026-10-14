@@ -61,4 +61,37 @@ class AcademicSession extends Model
         }
         return $query->latest('id')->first();
     }
+
+    /**
+     * Resolve the active session for a given batch or academic year.
+     * If a batch is given, its academic year's active session takes precedence.
+     */
+    public static function resolveForBatchOrYear(?int $batchId = null, ?int $academicYearId = null): ?self
+    {
+        if ($batchId) {
+            $batch = Batch::find($batchId);
+            if ($batch && $batch->academic_year_id) {
+                $academicYearId = $batch->academic_year_id;
+            }
+        }
+
+        if ($academicYearId) {
+            $session = static::where('academic_year_id', $academicYearId)
+                ->where('is_active', true)
+                ->latest('id')
+                ->first();
+            if ($session) {
+                return $session;
+            }
+
+            // Fallback to latest session in that academic year
+            $session = static::where('academic_year_id', $academicYearId)->latest('id')->first();
+            if ($session) {
+                return $session;
+            }
+        }
+
+        // Global fallback to active session
+        return static::getActiveSession();
+    }
 }

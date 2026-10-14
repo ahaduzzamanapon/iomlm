@@ -28,6 +28,9 @@ class StudentController extends Controller
             }
         ]);
 
+        // Exclude unapproved admission applicants (LEAD) from student directory
+        $query->where('status', '!=', 'LEAD');
+
         // General search term across Name, Code, Phone, Email, NID
         if ($request->filled('search')) {
             $term = trim($request->search);
@@ -144,10 +147,11 @@ class StudentController extends Controller
 
         $query = $this->buildFilteredQuery($request);
 
-        $totalCount     = Student::count();
-        $activeCount    = Student::where('status', 'ACTIVE')->count();
-        $pendingCount   = Student::whereIn('status', ['PENDING', 'LEAD'])->count();
-        $graduatedCount = Student::where('status', 'GRADUATED')->count();
+        $baseStudentQuery = Student::where('status', '!=', 'LEAD');
+        $totalCount     = (clone $baseStudentQuery)->count();
+        $activeCount    = (clone $baseStudentQuery)->where('status', 'ACTIVE')->count();
+        $pendingCount   = (clone $baseStudentQuery)->where('status', 'PENDING')->count();
+        $graduatedCount = (clone $baseStudentQuery)->where('status', 'GRADUATED')->count();
 
         $rawPerPage = $request->input('per_page', 25);
         if ($rawPerPage === 'all' || (int)$rawPerPage === -1) {

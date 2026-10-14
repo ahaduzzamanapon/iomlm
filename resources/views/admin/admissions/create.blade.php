@@ -48,10 +48,10 @@
 
                     <div class="form-group">
                         <label>টার্গেট ব্যাচ <span class="required">*</span></label>
-                        <select name="batch_id" id="batch_id" class="form-control">
+                        <select name="batch_id" id="batch_id" class="form-control" onchange="syncSessionWithBatch()">
                             <option value="">-- ব্যাচ নির্বাচন করুন --</option>
                             @foreach($activeBatches as $b)
-                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ old('batch_id') == $b->id ? 'selected' : '' }}>
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" data-year-id="{{ $b->academic_year_id }}" {{ old('batch_id') == $b->id ? 'selected' : '' }}>
                                     {{ $b->name }} ({{ $b->batch_code }})
                                 </option>
                             @endforeach
@@ -61,11 +61,10 @@
 
                     <div class="form-group">
                         <label>একাডেমিক সেশন</label>
-                        @php $activeSessionId = $sessions->firstWhere('is_active', true)?->id ?? $sessions->first()?->id; @endphp
-                        <select name="academic_session_id" class="form-control">
+                        <select name="academic_session_id" id="academic_session_id" class="form-control">
                             <option value="">-- সেশন নির্বাচন করুন --</option>
                             @foreach($sessions as $s)
-                                <option value="{{ $s->id }}" {{ old('academic_session_id', $activeSessionId) == $s->id ? 'selected' : '' }}>
+                                <option value="{{ $s->id }}" data-year-id="{{ $s->academic_year_id }}" data-is-active="{{ $s->is_active ? 1 : 0 }}" {{ old('academic_session_id') == $s->id ? 'selected' : '' }}>
                                     {{ $s->name }}{{ $s->academicYear ? ' (' . $s->academicYear->name . ')' : '' }}{{ $s->is_active ? ' (সক্রিয়)' : '' }}
                                 </option>
                             @endforeach
@@ -159,6 +158,29 @@
     </form>
 
     <script>
+    function syncSessionWithBatch() {
+        const batchSelect = document.getElementById('batch_id');
+        const sessionSelect = document.getElementById('academic_session_id');
+        if (!batchSelect || !sessionSelect) return;
+
+        const selectedBatchOpt = batchSelect.options[batchSelect.selectedIndex];
+        if (!selectedBatchOpt || !selectedBatchOpt.value) return;
+
+        const yearId = selectedBatchOpt.getAttribute('data-year-id');
+        if (!yearId) return;
+
+        // Auto-select the active session corresponding to this batch's academic year
+        const options = Array.from(sessionSelect.options);
+        const activeYearSession = options.find(opt => opt.getAttribute('data-year-id') === yearId && opt.getAttribute('data-is-active') === '1');
+        const anyYearSession = options.find(opt => opt.getAttribute('data-year-id') === yearId);
+
+        if (activeYearSession) {
+            sessionSelect.value = activeYearSession.value;
+        } else if (anyYearSession) {
+            sessionSelect.value = anyYearSession.value;
+        }
+    }
+
     function filterBatches(courseId) {
         const batchSelect = document.getElementById('batch_id');
         const options = batchSelect.querySelectorAll('option');
@@ -176,11 +198,16 @@
         });
 
         if (!hasMatch) batchSelect.value = '';
+        syncSessionWithBatch();
     }
 
     document.addEventListener('DOMContentLoaded', function() {
         const courseSelect = document.getElementById('interested_course_id');
-        if (courseSelect && courseSelect.value) filterBatches(courseSelect.value);
+        if (courseSelect && courseSelect.value) {
+            filterBatches(courseSelect.value);
+        } else {
+            syncSessionWithBatch();
+        }
     });
     </script>
 </x-admin-layout>

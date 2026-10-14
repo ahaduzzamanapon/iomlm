@@ -195,23 +195,6 @@
                         </div>
                     </div>
 
-                    {{-- Multiple Recorded Class Videos --}}
-                    <div style="background:#fdf2f8;border:1px solid #fbcfe8;border-radius:10px;padding:14px;margin-bottom:14px">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-                            <div style="font-weight:700;font-size:13px;color:#9d174d;display:flex;align-items:center;gap:6px">
-                                <i class="fa-solid fa-video"></i> রেকর্ডেড ক্লাস ভিডিওসমূহ (Multiple Recorded Class Videos)
-                            </div>
-                            <button type="button" class="btn btn-sm" onclick="addVideoRow('add')" 
-                                    style="background:#be185d;color:#fff;border:none;border-radius:6px;font-size:12px;font-family:'Kalpurush',sans-serif;font-weight:700;padding:5px 12px;display:inline-flex;align-items:center;gap:5px;cursor:pointer">
-                                <i class="fa-solid fa-plus"></i> + নতুন ক্লাস রেকর্ড যোগ করুন
-                            </button>
-                        </div>
-                        <p style="font-size:11.5px;color:#9d174d;margin:0 0 10px;opacity:0.85">
-                            প্রতিটি ক্লাসের নির্দিষ্ট নাম/শিরোনাম দিয়ে একাধিক ভিডিও লিংক (YouTube, Vimeo, Drive), সরাসরি ভিডিও ফাইল বা আইফ্রেম কোড যুক্ত করুন।
-                        </p>
-                        <div id="add_videos_container" style="display:flex;flex-direction:column;gap:12px"></div>
-                    </div>
-
                     <label class="form-check" style="display:flex;align-items:center;gap:8px;cursor:pointer">
                         <input type="checkbox" name="is_hidden" value="1">
                         <span style="font-weight:600;color:#b45309">শিক্ষার্থীদের কাছ থেকে এই মডিউলটি লুকিয়ে রাখুন (Hide Module)</span>
@@ -276,23 +259,6 @@
                         </div>
                     </div>
 
-                    {{-- Multiple Recorded Class Videos --}}
-                    <div style="background:#fdf2f8;border:1px solid #fbcfe8;border-radius:10px;padding:14px;margin-bottom:14px">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-                            <div style="font-weight:700;font-size:13px;color:#9d174d;display:flex;align-items:center;gap:6px">
-                                <i class="fa-solid fa-video"></i> রেকর্ডেড ক্লাস ভিডিওসমূহ (Multiple Recorded Class Videos)
-                            </div>
-                            <button type="button" class="btn btn-sm" onclick="addVideoRow('edit')" 
-                                    style="background:#be185d;color:#fff;border:none;border-radius:6px;font-size:12px;font-family:'Kalpurush',sans-serif;font-weight:700;padding:5px 12px;display:inline-flex;align-items:center;gap:5px;cursor:pointer">
-                                <i class="fa-solid fa-plus"></i> + নতুন ক্লাস রেকর্ড যোগ করুন
-                            </button>
-                        </div>
-                        <p style="font-size:11.5px;color:#9d174d;margin:0 0 10px;opacity:0.85">
-                            পূর্বে আপলোডকৃত ক্লাস রেকর্ডগুলো সম্পাদনা করুন অথবা নতুন ক্লাস রেকর্ড যোগ করুন।
-                        </p>
-                        <div id="edit_videos_container" style="display:flex;flex-direction:column;gap:12px"></div>
-                    </div>
-
                     <label class="form-check" style="display:flex;align-items:center;gap:8px;cursor:pointer">
                         <input type="checkbox" name="is_hidden" id="em_is_hidden" value="1">
                         <span style="font-weight:600;color:#b45309">শিক্ষার্থীদের কাছ থেকে এই মডিউলটি লুকিয়ে রাখুন (Hide Module)</span>
@@ -308,75 +274,6 @@
 
     @push('scripts')
     <script>
-    let videoIndexTracker = 0;
-
-    function createVideoRowHtml(prefix, index, data = {}) {
-        const title = data.title || '';
-        const url = data.url || '';
-        const embedCode = data.embed_code || '';
-        const existingFile = data.file_path || '';
-        const vidId = data.id || ('vid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
-
-        let fileInfoHtml = '';
-        if (existingFile) {
-            fileInfoHtml = `<div style="font-size:11.5px;color:#047857;margin-top:4px;font-weight:600">
-                <i class="fa-solid fa-circle-check"></i> ভিডিও ফাইল সংযুক্ত আছে (${existingFile.split('/').pop()})
-            </div>`;
-        }
-
-        return `
-        <div class="video-item-card" id="${prefix}_video_row_${index}" style="background:#ffffff;border:1px solid #f472b6;border-radius:8px;padding:12px;position:relative;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
-            <input type="hidden" name="videos[${index}][id]" value="${vidId}">
-            <input type="hidden" name="videos[${index}][existing_file]" value="${existingFile}">
-            
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px dashed #fbcfe8;padding-bottom:6px">
-                <span style="font-weight:700;font-size:12.5px;color:#be185d">
-                    <i class="fa-solid fa-circle-play"></i> ক্লাস রেকর্ড আইটেম
-                </span>
-                <button type="button" class="btn btn-ghost btn-sm" onclick="removeVideoRow('${prefix}_video_row_${index}')" style="color:#e11d48;padding:2px 8px;font-size:12px;font-weight:700;cursor:pointer" title="এই ভিডিওটি মুছে ফেলুন">
-                    <i class="fa-solid fa-trash-can"></i> মুছুন
-                </button>
-            </div>
-
-            <div class="form-group" style="margin-bottom:8px">
-                <label style="font-weight:700;font-size:12px;color:#334155">ক্লাসের নির্দিষ্ট নাম / শিরোনাম (Video Title) <span class="required" style="color:#e11d48">*</span></label>
-                <input type="text" name="videos[${index}][title]" class="form-control" value="${title.replace(/"/g, '&quot;')}" placeholder="যেমনঃ ক্লাস ০১: পরিচিতি ও পাঠ্যসূচি" required style="font-family:'Kalpurush',sans-serif;font-weight:600">
-            </div>
-
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:12px">
-                <div>
-                    <div class="form-group" style="margin-bottom:8px">
-                        <label style="font-size:11.5px;font-weight:600;color:#475569">ভিডিও লিংক (YouTube / Vimeo / Drive URL)</label>
-                        <input type="text" name="videos[${index}][url]" class="form-control" value="${url.replace(/"/g, '&quot;')}" placeholder="https://www.youtube.com/watch?v=...">
-                    </div>
-                    <div class="form-group" style="margin-bottom:0">
-                        <label style="font-size:11.5px;font-weight:600;color:#475569">অথবা সরাসরি ভিডিও ফাইল আপলোড (MP4, WebM)</label>
-                        <input type="file" name="videos[${index}][file]" class="form-control" accept="video/mp4,video/webm,video/*" style="font-size:11.5px">
-                        ${fileInfoHtml}
-                    </div>
-                </div>
-                <div class="form-group" style="margin-bottom:0">
-                    <label style="font-size:11.5px;font-weight:600;color:#475569">অথবা আইফ্রেম এম্বেড কোড (Embed iframe Code)</label>
-                    <textarea name="videos[${index}][embed_code]" class="form-control" rows="3" placeholder="<iframe src='...' ...></iframe>" style="font-size:12px">${embedCode}</textarea>
-                </div>
-            </div>
-        </div>`;
-    }
-
-    function addVideoRow(prefix, data = {}) {
-        videoIndexTracker++;
-        const container = document.getElementById(prefix + '_videos_container');
-        if (!container) return;
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = createVideoRowHtml(prefix, videoIndexTracker, data);
-        container.appendChild(tempDiv.firstElementChild);
-    }
-
-    function removeVideoRow(rowId) {
-        const row = document.getElementById(rowId);
-        if (row) row.remove();
-    }
-
     function openEditModal(mod) {
         document.getElementById('editModuleForm').action = '/admin/modules/' + mod.id;
         document.getElementById('em_title').value        = mod.title;
@@ -394,33 +291,8 @@
             currentFileEl.innerHTML = '';
         }
 
-        // Populate multiple recorded videos
-        const editContainer = document.getElementById('edit_videos_container');
-        editContainer.innerHTML = '';
-        let videos = mod.videos || [];
-        if ((!videos || videos.length === 0) && (mod.recorded_url || mod.embed_code)) {
-            videos = [{
-                id: 'legacy_' + mod.id,
-                title: mod.title + ' (রেকর্ডেড ক্লাস)',
-                url: mod.recorded_url || '',
-                embed_code: mod.embed_code || '',
-                file_path: ''
-            }];
-        }
-
-        if (videos && videos.length > 0) {
-            videos.forEach(v => addVideoRow('edit', v));
-        } else {
-            addVideoRow('edit');
-        }
-
         openModal('editModuleModal');
     }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize 1 default row in Add Module Modal
-        addVideoRow('add');
-    });
     </script>
     @endpush
 

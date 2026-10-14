@@ -393,7 +393,7 @@
                     <i class="fa-solid fa-user-clock"></i>
                 </div>
                 <div class="student-stat-info">
-                    <span class="student-stat-label">অপেক্ষমান / লিড (Pending)</span>
+                    <span class="student-stat-label">অপেক্ষমান শিক্ষার্থী (Pending)</span>
                     <span class="student-stat-value">{{ number_format($pendingCount) }}</span>
                 </div>
             </div>

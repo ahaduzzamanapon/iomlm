@@ -131,11 +131,48 @@ class AdmissionFormController extends Controller
             return back()->withInput()->with('error', 'আপনি ইতিমধ্যে এই কোর্সে সক্রিয়ভাবে ভর্তি আছেন। অনুগ্রহ করে লগইন করে আপনার ড্যাশবোর্ডে প্রবেশ করুন।');
         }
 
+        // 2. Prevent multiple applications for the exact same course with the same email / phone
+        $email = trim(strtolower($validated['email']));
+        $phone = trim($validated['phone'] ?? '');
+
+        $existingAdmission = AdmissionForm::where('interested_course_id', $validated['course_id'])
+            ->where(function ($q) use ($email, $phone) {
+                $q->whereHas('student', function ($sq) use ($email) {
+                    $sq->whereRaw('LOWER(email) = ?', [$email]);
+                });
+                if (!empty($phone)) {
+                    $q->orWhereHas('student', function ($sq) use ($phone) {
+                        $sq->where('phone', $phone);
+                    });
+                }
+            })
+            ->latest('id')
+            ->first();
+
+        if ($existingAdmission) {
+            $courseName = $course->name;
+            $appNo = $existingAdmission->application_no;
+
+            if ($existingAdmission->status === 'APPROVED') {
+                return back()->withInput()->with('error', "এই ইমেইল ({$email}) দিয়ে \"{$courseName}\" কোর্সে আপনার একটি আবেদন ইতিমধ্যে অনুমোদিত হয়েছে (আবেদন নং: {$appNo})। একই কোর্সে একাধিকবার আবেদন করা যাবে না। অনুগ্রহ করে লগইন করুন।");
+            }
+
+            if ($existingAdmission->status === 'PENDING') {
+                return back()->withInput()->with('error', "এই ইমেইল ({$email}) দিয়ে \"{$courseName}\" কোর্সে আপনার একটি আবেদন ইতিমধ্যে জমা রয়েছে (আবেদন নং: {$appNo})। একই কোর্সে একাধিকবার আবেদন করা যাবে না। আপনার আবেদনের অবস্থা দেখতে স্ট্যাটাস পেজ চেক করুন অথবা ফি পরিশোধ করুন।");
+            }
+
+            // REJECTED / TRASH
+            return back()->withInput()->with('error', "এই ইমেইল ({$email}) দিয়ে \"{$courseName}\" কোর্সে ইতিমধ্যে একটি আবেদন করা হয়েছিল (আবেদন নং: {$appNo})। একই কোর্সে পুনরায় আবেদন করার অনুমতি নেই। প্রয়োজনে কর্তৃপক্ষের সাথে যোগাযোগ করুন।");
+        }
+
         // Create Application & Lead Student inside Transaction
-        $result = DB::transaction(function () use ($validated, $request) {
+        $result = DB::transaction(function () use ($validated, $request, $batch) {
+            $batchId = !empty($validated['batch_id']) ? (int) $validated['batch_id'] : ($batch?->id ?? null);
+            $resolvedSession = AcademicSession::resolveForBatchOrYear($batchId, $batch?->academic_year_id);
+
             $sessionId = (!empty($validated['academic_session_id']) && AcademicSession::where('id', $validated['academic_session_id'])->where('is_active', true)->exists())
                 ? (int) $validated['academic_session_id']
-                : (AcademicSession::getActiveSession()?->id ?? AcademicSession::where('is_active', true)->latest('id')->value('id') ?? AcademicSession::latest('id')->value('id'));
+                : ($resolvedSession?->id ?? AcademicSession::getActiveSession()?->id ?? AcademicSession::where('is_active', true)->latest('id')->value('id') ?? AcademicSession::latest('id')->value('id'));
 
             // Resolve student photo or avatar preset
             $photoUrl = null;
@@ -208,28 +245,29 @@ class AdmissionFormController extends Controller
 
             $student->calculateProfileCompletion();
 
-            // 2. Check if student already has an unpaid PENDING admission form for this course
+            // 2. Check if student already has an admission form for this course
             $form = AdmissionForm::where('student_id', $student->id)
                 ->where('interested_course_id', $validated['course_id'])
-                ->where('status', 'PENDING')
-                ->latest()
+                ->latest('id')
                 ->first();
 
             if ($form) {
                 // Update batch / session on existing pending application
-                $form->update([
-                    'batch_id' => $validated['batch_id'] ?? $form->batch_id,
-                    'academic_session_id' => $sessionId,
-                    'gender' => $validated['gender'] ?? $form->gender,
-                    'ip_address' => $request->ip(),
-                ]);
+                if ($form->status === 'PENDING') {
+                    $form->update([
+                        'batch_id' => $batchId ?? $form->batch_id,
+                        'academic_session_id' => $sessionId,
+                        'gender' => $validated['gender'] ?? $form->gender,
+                        'ip_address' => $request->ip(),
+                    ]);
+                }
             } else {
                 $form = AdmissionForm::create([
                     'source' => 'PUBLIC',
                     'application_no' => AdmissionForm::generateApplicationNo(),
                     'student_id' => $student->id,
                     'interested_course_id' => $validated['course_id'],
-                    'batch_id' => $validated['batch_id'] ?? null,
+                    'batch_id' => $batchId,
                     'academic_session_id' => $sessionId,
                     'gender' => $validated['gender'] ?? null,
                     'attempt_no' => 1,
@@ -730,5 +768,45 @@ class AdmissionFormController extends Controller
 
         $searchQuery = trim($request->input('search'));
         return redirect()->route('admission.status', ['app_no' => $searchQuery]);
+    }
+
+    /**
+     * AJAX endpoint: Check if student already applied to this course with this email/phone
+     */
+    public function checkDuplicateAjax(Request $request)
+    {
+        $courseId = $request->input('course_id');
+        $email = trim(strtolower($request->input('email', '')));
+        $phone = trim($request->input('phone', ''));
+
+        if (!$courseId || (!$email && !$phone)) {
+            return response()->json(['exists' => false]);
+        }
+
+        $existing = AdmissionForm::where('interested_course_id', $courseId)
+            ->where(function ($q) use ($email, $phone) {
+                if ($email) {
+                    $q->whereHas('student', fn($sq) => $sq->whereRaw('LOWER(email) = ?', [$email]));
+                }
+                if ($phone) {
+                    $q->orWhereHas('student', fn($sq) => $sq->where('phone', $phone));
+                }
+            })
+            ->latest('id')
+            ->first();
+
+        if ($existing) {
+            $course = Course::find($courseId);
+            $courseName = $course?->name ?? 'এই';
+            return response()->json([
+                'exists' => true,
+                'application_no' => $existing->application_no,
+                'status' => $existing->status,
+                'course_name' => $courseName,
+                'message' => "এই ইমেইল দিয়ে \"{$courseName}\" কোর্সে ইতিমধ্যে একটি আবেদন জমা রয়েছে (আবেদন নং: {$existing->application_no})। একই কোর্সে পুনরায় আবেদন করা যাবে না।",
+            ]);
+        }
+
+        return response()->json(['exists' => false]);
     }
 }

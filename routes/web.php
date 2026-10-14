@@ -33,6 +33,7 @@ require __DIR__ . '/student.php';
 // ── Public Admission Form (No Auth) ──────────────────────────────────
 Route::get('/apply', [\App\Http\Controllers\Public\AdmissionFormController::class, 'show'])->name('apply.show');
 Route::post('/apply', [\App\Http\Controllers\Public\AdmissionFormController::class, 'store'])->name('apply.store');
+Route::post('/apply/check-duplicate', [\App\Http\Controllers\Public\AdmissionFormController::class, 'checkDuplicateAjax'])->name('apply.check.duplicate');
 Route::get('/apply/payment/{applicationNo}', [\App\Http\Controllers\Public\AdmissionFormController::class, 'paymentView'])->name('apply.payment');
 Route::post('/apply/payment/{applicationNo}', [\App\Http\Controllers\Public\AdmissionFormController::class, 'processPayment'])->name('apply.payment.process');
 Route::get('/apply/success/{applicationNo}', [\App\Http\Controllers\Public\AdmissionFormController::class, 'success'])->name('apply.success');

@@ -84,17 +84,20 @@ class LearningResourceController extends Controller
         if ($targetSubjectIds->isEmpty()) {
             return view('student.resources.index', [
                 'resources'            => collect(),
+                'subjectsWithModules'  => collect(),
                 'subjects'             => collect(),
                 'selectedSubjectId'    => null,
                 'runningSemesterNames' => $runningSemesterNames,
             ]);
         }
 
-        // Fetch subject modules with attachments, drive links, or videos
-        $modules = SubjectModule::with(['subject', 'learningResources'])
-            ->whereIn('subject_id', $targetSubjectIds)
-            ->where('is_hidden', false)
-            ->orderBy('sequence_no')
+        // Fetch subjects with visible modules ordered by sequence_no ASC (1, 2, 3...)
+        $subjectsWithModules = Subject::whereIn('id', $targetSubjectIds)
+            ->with(['modules' => function ($q) {
+                $q->where('is_hidden', false)
+                  ->orderBy('sequence_no', 'asc');
+            }, 'modules.learningResources'])
+            ->orderBy('name')
             ->get();
 
         // Standard learning resources uploaded via teacher portal
@@ -105,79 +108,89 @@ class LearningResourceController extends Controller
             ->latest()
             ->get();
 
-        // Normalize all resources into a clean collection
+        // Flattened resources collection sorted by sequence_no ASC
         $resources = collect();
 
-        foreach ($modules as $mod) {
-            // 1. File attachment
-            if ($mod->file_path) {
-                $ext = strtolower(pathinfo($mod->file_path, PATHINFO_EXTENSION));
-                $type = in_array($ext, ['pdf']) ? 'PDF' : (in_array($ext, ['doc', 'docx', 'ppt', 'pptx']) ? 'SLIDES' : 'ATTACHMENT');
-                $resources->push([
-                    'id'           => 'mod_file_' . $mod->id,
-                    'title'        => $mod->title,
-                    'description'  => $mod->description,
-                    'subject_name' => $mod->subject?->name ?? '—',
-                    'module_title' => $mod->title,
-                    'type'         => $type,
-                    'url'          => asset('storage/' . $mod->file_path),
-                    'is_external'  => false,
-                    'created_at'   => $mod->created_at,
-                ]);
-            }
+        foreach ($subjectsWithModules as $sub) {
+            foreach ($sub->modules as $mod) {
+                // 1. File attachment
+                if ($mod->file_path) {
+                    $ext = strtolower(pathinfo($mod->file_path, PATHINFO_EXTENSION));
+                    $type = in_array($ext, ['pdf']) ? 'PDF' : (in_array($ext, ['doc', 'docx', 'ppt', 'pptx']) ? 'SLIDES' : 'ATTACHMENT');
+                    $resources->push([
+                        'id'           => 'mod_file_' . $mod->id,
+                        'title'        => $mod->title,
+                        'description'  => $mod->description,
+                        'subject_name' => $sub->name,
+                        'module_title' => $mod->title,
+                        'folder_name'  => $mod->folder_name ?: 'কোর্স মডিউল',
+                        'sequence_no'  => $mod->sequence_no,
+                        'type'         => $type,
+                        'url'          => asset('storage/' . $mod->file_path),
+                        'is_external'  => false,
+                        'created_at'   => $mod->created_at,
+                    ]);
+                }
 
-            // 2. Drive link
-            if ($mod->drive_link) {
-                $resources->push([
-                    'id'           => 'mod_drive_' . $mod->id,
-                    'title'        => $mod->title . ' (Google Drive)',
-                    'description'  => $mod->description,
-                    'subject_name' => $mod->subject?->name ?? '—',
-                    'module_title' => $mod->title,
-                    'type'         => 'DRIVE',
-                    'url'          => $mod->drive_link,
-                    'is_external'  => true,
-                    'created_at'   => $mod->created_at,
-                ]);
-            }
+                // 2. Drive link
+                if ($mod->drive_link) {
+                    $resources->push([
+                        'id'           => 'mod_drive_' . $mod->id,
+                        'title'        => $mod->title . ' (Google Drive)',
+                        'description'  => $mod->description,
+                        'subject_name' => $sub->name,
+                        'module_title' => $mod->title,
+                        'folder_name'  => $mod->folder_name ?: 'কোর্স মডিউল',
+                        'sequence_no'  => $mod->sequence_no,
+                        'type'         => 'DRIVE',
+                        'url'          => $mod->drive_link,
+                        'is_external'  => true,
+                        'created_at'   => $mod->created_at,
+                    ]);
+                }
 
-            // 3. Recorded videos
-            if (!empty($mod->videos)) {
-                foreach ($mod->videos as $idx => $v) {
-                    $vUrl = $v['url'] ?? ($v['file_path'] ? asset('storage/' . $v['file_path']) : null);
-                    if ($vUrl) {
-                        $resources->push([
-                            'id'           => 'mod_vid_' . $mod->id . '_' . $idx,
-                            'title'        => $v['title'] ?? ($mod->title . ' - ভিডিও ' . ($idx + 1)),
-                            'description'  => $mod->description,
-                            'subject_name' => $mod->subject?->name ?? '—',
-                            'module_title' => $mod->title,
-                            'type'         => 'VIDEO',
-                            'url'          => $vUrl,
-                            'is_external'  => !empty($v['url']),
-                            'created_at'   => $mod->created_at,
-                        ]);
+                // 3. Recorded videos
+                if (!empty($mod->videos)) {
+                    foreach ($mod->videos as $idx => $v) {
+                        $vUrl = $v['url'] ?? ($v['file_path'] ? asset('storage/' . $v['file_path']) : null);
+                        if ($vUrl) {
+                            $resources->push([
+                                'id'           => 'mod_vid_' . $mod->id . '_' . $idx,
+                                'title'        => $v['title'] ?? ($mod->title . ' - ভিডিও ' . ($idx + 1)),
+                                'description'  => $mod->description,
+                                'subject_name' => $sub->name,
+                                'module_title' => $mod->title,
+                                'folder_name'  => $mod->folder_name ?: 'কোর্স মডিউল',
+                                'sequence_no'  => $mod->sequence_no,
+                                'type'         => 'VIDEO',
+                                'url'          => $vUrl,
+                                'is_external'  => !empty($v['url']),
+                                'created_at'   => $mod->created_at,
+                            ]);
+                        }
                     }
                 }
-            }
 
-            // 4. Learning resources child records
-            foreach ($mod->learningResources as $lr) {
-                $resources->push([
-                    'id'           => 'lr_' . $lr->id,
-                    'title'        => $lr->title,
-                    'description'  => null,
-                    'subject_name' => $mod->subject?->name ?? '—',
-                    'module_title' => $mod->title,
-                    'type'         => $lr->type,
-                    'url'          => $lr->url,
-                    'is_external'  => str_starts_with($lr->url, 'http'),
-                    'created_at'   => $lr->created_at,
-                ]);
+                // 4. Learning resources child records
+                foreach ($mod->learningResources as $lr) {
+                    $resources->push([
+                        'id'           => 'lr_' . $lr->id,
+                        'title'        => $lr->title,
+                        'description'  => null,
+                        'subject_name' => $sub->name,
+                        'module_title' => $mod->title,
+                        'folder_name'  => $mod->folder_name ?: 'কোর্স মডিউল',
+                        'sequence_no'  => $mod->sequence_no,
+                        'type'         => $lr->type,
+                        'url'          => $lr->url,
+                        'is_external'  => str_starts_with($lr->url, 'http'),
+                        'created_at'   => $lr->created_at,
+                    ]);
+                }
             }
         }
 
-        // Add any remaining standalone learning resources not already captured
+        // Standalone learning resources not captured above
         foreach ($extraResources as $lr) {
             if (!$resources->contains('id', 'lr_' . $lr->id)) {
                 $resources->push([
@@ -186,6 +199,8 @@ class LearningResourceController extends Controller
                     'description'  => null,
                     'subject_name' => $lr->module?->subject?->name ?? '—',
                     'module_title' => $lr->module?->title ?? '—',
+                    'folder_name'  => $lr->module?->folder_name ?: 'সম্পূরক রিসোর্স',
+                    'sequence_no'  => $lr->module?->sequence_no ?? 999,
                     'type'         => $lr->type,
                     'url'          => $lr->url,
                     'is_external'  => str_starts_with($lr->url, 'http'),
@@ -194,8 +209,6 @@ class LearningResourceController extends Controller
             }
         }
 
-        $resources = $resources->sortByDesc('created_at')->values();
-
-        return view('student.resources.index', compact('resources', 'subjects', 'selectedSubjectId', 'runningSemesterNames'));
+        return view('student.resources.index', compact('resources', 'subjectsWithModules', 'subjects', 'selectedSubjectId', 'runningSemesterNames'));
     }
 }
