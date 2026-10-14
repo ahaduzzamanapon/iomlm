@@ -267,7 +267,7 @@
 </head>
 <body>
 
-    <div class="checkout-card">
+    {{-- <div class="checkout-card">
         <div class="card-header">
             <div class="logo-wrap">
                 <img src="{{ asset('images/logo.png') }}" alt="IOM" class="logo-iom" onerror="this.style.display='none'">
@@ -323,7 +323,7 @@
                 <span>১২৮-বিট এনক্রিপশনযুক্ত নিরাপদ ও সরাসরি বিকাশ গেটওয়ে</span>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     <!-- Processing Loader Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
