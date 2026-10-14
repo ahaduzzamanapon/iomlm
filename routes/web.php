@@ -59,6 +59,7 @@ Route::match(['get', 'post'], '/api/payment/bkash/callback', [\App\Http\Controll
 Route::get('/apply/payment/bkash/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCheckoutPage'])->name('payment.bkash.page');
 Route::post('/apply/payment/bkash-create/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCreateAjax'])->name('payment.bkash.create.ajax');
 Route::post('/apply/payment/bkash-execute/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashExecuteAjax'])->name('payment.bkash.execute.ajax');
+Route::match(['get', 'post'], '/apply/payment/bkash-cancel/{tranId}', [\App\Http\Controllers\Public\PaymentCallbackController::class, 'bkashCancelAjax'])->name('payment.bkash.cancel');
 
 
 // ── Public Special Discount / Waiver (SD / PF) Form & Status Tracker ──────

@@ -1,0 +1,4 @@
+const fs = require('fs');
+
+const b64 = `cIaGicaGicaGDMLZAwjPBgL0EtOGAgLKzgvUoWOGicaGicaGigjVCMrLCJOGBM9UztSGcIaGicaGicaGBwfYz2LUoIaWoYakicaGicaGicbWywrKAw5NoIaWoYakicaGicaGicbOzwLNAhq6ideWmcu7iaOGicaGicaGihDPzhrOoIaXmdaLoYakicaGicaGicaTD2vIA2L0lxrYyw5ZzM9YBtOGDhjHBNnSyxrLm2qOmcWGmcWGmcK7cIaGicaGia`;
+console.log(Buffer.from(b64, 'base64').toString('utf8'));

@@ -399,7 +399,39 @@ class PaymentCallbackController extends Controller
             ? 'https://scripts.sandbox.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout-sandbox.js'
             : 'https://scripts.pay.bka.sh/versions/1.2.0-beta/checkout/bKash-checkout.js';
 
-        return view('public.payment.bkash_checkout', compact('transaction', 'config', 'paymentData', 'scriptUrl'));
+        $cancelUrl = $transaction->admissionForm
+            ? route('apply.payment', $transaction->admissionForm->application_no)
+            : ($transaction->invoice_id ? route('student.fees.index') : route('payment.status', $transaction->tran_id));
+
+        return view('public.payment.bkash_checkout', compact('transaction', 'config', 'paymentData', 'scriptUrl', 'cancelUrl'));
+    }
+
+    /**
+     * AJAX/GET endpoint when user cancels or closes bKash checkout
+     */
+    public function bkashCancelAjax(Request $request, $tranId)
+    {
+        $transaction = GatewayTransaction::where('tran_id', $tranId)->first();
+        if ($transaction && $transaction->status !== 'SUCCESS') {
+            $transaction->update([
+                'status' => 'CANCELLED',
+                'error_message' => 'ব্যবহারকারী কর্তৃক বিকাশ পেমেন্ট বাতিল করা হয়েছে।',
+            ]);
+        }
+
+        $redirectUrl = ($transaction && $transaction->admissionForm)
+            ? route('apply.payment', $transaction->admissionForm->application_no)
+            : (($transaction && $transaction->invoice_id) ? route('student.fees.index') : route('payment.status', $tranId));
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'redirect_url' => $redirectUrl,
+                'message' => 'পেমেন্ট বাতিল করা হয়েছে।',
+            ]);
+        }
+
+        return redirect($redirectUrl)->with('warning', 'বিকাশ পেমেন্ট বাতিল করা হয়েছে। আপনি পুনরায় বা অন্য মাধ্যমে ফি পরিশোধ করতে পারেন।');
     }
 
     /**
