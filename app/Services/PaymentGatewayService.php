@@ -323,8 +323,9 @@ class PaymentGatewayService
         if (str_starts_with($callbackUrl, 'http://')) {
             $callbackUrl = preg_replace('/^http:\/\//', 'https://', $callbackUrl);
         }
-        if ($config['is_sandbox'] && str_contains($callbackUrl, '.test')) {
-            $callbackUrl = str_replace(['http://learning-plus.test', 'https://learning-plus.test'], 'https://iom.mysoftheaven.com', $callbackUrl);
+        if (str_contains($callbackUrl, '.test')) {
+            $liveDomain = \App\Models\Setting::where('key', 'site_url')->value('value') ?: 'https://iom.mysoftheaven.com';
+            $callbackUrl = str_replace(['http://learning-plus.test', 'https://learning-plus.test'], $liveDomain, $callbackUrl);
         }
 
         $isCheckoutPgw = !str_contains($config['base_url'], 'tokenized');

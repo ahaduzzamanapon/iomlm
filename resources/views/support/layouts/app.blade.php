@@ -65,6 +65,71 @@
         }
         .support-content { padding: 24px; flex: 1; }
 
+        .support-mobile-toggle {
+            display: none; background: none; border: none; font-size: 20px; color: #064e3b; cursor: pointer; padding: 6px 10px; border-radius: 8px;
+        }
+        .support-mobile-toggle:hover { background: #f0fdf4; }
+        .support-sidebar-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 9998;
+        }
+        .support-sidebar-overlay.active { display: block !important; }
+
+        @media (max-width: 991px) {
+            .support-wrapper {
+                position: relative;
+                overflow-x: hidden;
+                max-width: 100vw;
+            }
+            .support-sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                height: 100vh !important;
+                width: 280px !important;
+                max-width: 85vw !important;
+                transform: translateX(-100%);
+                transition: transform 0.25s ease-in-out !important;
+                z-index: 9999 !important;
+                box-shadow: 4px 0 25px rgba(0,0,0,0.4) !important;
+            }
+            .support-sidebar.open {
+                transform: translateX(0) !important;
+            }
+            .support-mobile-toggle {
+                display: inline-flex !important;
+                align-items: center;
+                justify-content: center;
+            }
+            .support-mobile-close {
+                display: inline-flex !important;
+            }
+            .support-main {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: 100vw !important;
+            }
+            .support-topbar {
+                padding: 10px 14px !important;
+                height: auto !important;
+                min-height: 56px !important;
+                flex-wrap: wrap !important;
+                gap: 10px !important;
+            }
+            .support-content {
+                padding: 14px !important;
+                max-width: 100vw !important;
+                overflow-x: hidden !important;
+            }
+            .topbar-lookup-wrap {
+                width: 100% !important;
+                order: 3;
+            }
+            .topbar-lookup-wrap input {
+                width: 100% !important;
+            }
+        }
+
         /* ════ UNIVERSAL FOOLPROOF MODAL SCROLLING & POSITIONING ════ */
         .modal-overlay,
         .modal-backdrop,
@@ -152,17 +217,24 @@
 </head>
 <body>
     <div class="support-wrapper">
+        <div id="supportSidebarOverlay" class="support-sidebar-overlay" onclick="closeSupportSidebar()"></div>
+
         {{-- Sidebar Menu --}}
         <aside class="support-sidebar">
-            <a href="{{ route('support.dashboard') }}" class="sidebar-brand">
-                <div class="sidebar-brand-icon">
-                    <i class="fa-solid fa-headset"></i>
-                </div>
-                <div class="sidebar-brand-text">
-                    <h2>IOM Support</h2>
-                    <span>Agent Panel</span>
-                </div>
-            </a>
+            <div class="sidebar-brand" style="display:flex;align-items:center;justify-content:space-between">
+                <a href="{{ route('support.dashboard') }}" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff">
+                    <div class="sidebar-brand-icon">
+                        <i class="fa-solid fa-headset"></i>
+                    </div>
+                    <div class="sidebar-brand-text">
+                        <h2>IOM Support</h2>
+                        <span>Agent Panel</span>
+                    </div>
+                </a>
+                <button type="button" onclick="closeSupportSidebar()" class="support-mobile-close" style="display:none;background:none;border:none;color:#fff;font-size:18px;cursor:pointer;padding:4px 8px">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
             <div class="sidebar-menu">
                 <div class="menu-section-title">Support Queue</div>
@@ -236,12 +308,17 @@
         {{-- Main Content Area --}}
         <div class="support-main">
             <header class="support-topbar">
-                <div style="font-weight:700;font-size:15px;color:#0f172a">
-                    {{ $title ?? 'Support Agent Portal' }}
+                <div style="display:flex;align-items:center;gap:10px">
+                    <button type="button" class="support-mobile-toggle" onclick="toggleSupportSidebar()">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div style="font-weight:700;font-size:15px;color:#0f172a">
+                        {{ $title ?? 'Support Agent Portal' }}
+                    </div>
                 </div>
 
                 {{-- Global Student Profile Quick Check --}}
-                <div style="display:flex;align-items:center;background:#f8fafc;border:1px solid #cbd5e1;border-radius:20px;padding:3px 12px;gap:8px">
+                <div class="topbar-lookup-wrap" style="display:flex;align-items:center;background:#f8fafc;border:1px solid #cbd5e1;border-radius:20px;padding:3px 12px;gap:8px">
                     <i class="fa-solid fa-magnifying-glass" style="color:#64748b;font-size:12px"></i>
                     <input type="text" id="topbarStudentLookupInput" placeholder="স্টুডেন্ট আইডি দিয়ে প্রোফাইল চেক..." style="border:none;background:transparent;outline:none;font-size:13px;font-family:'Kalpurush',sans-serif;width:220px" onkeydown="if(event.key==='Enter'){event.preventDefault();openStudentProfileModal(this.value);}">
                     <button type="button" onclick="openStudentProfileModal(document.getElementById('topbarStudentLookupInput').value)" style="background:#0284c7;color:#fff;border:none;border-radius:12px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer">
@@ -356,6 +433,22 @@
             document.body.style.overflow = '';
         }
     });
+
+    function toggleSupportSidebar() {
+        const sb = document.querySelector('.support-sidebar');
+        const ov = document.getElementById('supportSidebarOverlay');
+        if (sb && ov) {
+            sb.classList.toggle('open');
+            ov.classList.toggle('active');
+        }
+    }
+
+    function closeSupportSidebar() {
+        const sb = document.querySelector('.support-sidebar');
+        const ov = document.getElementById('supportSidebarOverlay');
+        if (sb) sb.classList.remove('open');
+        if (ov) ov.classList.remove('active');
+    }
     </script>
     @stack('scripts')
 </body>

@@ -336,11 +336,23 @@
                     <input type="hidden" name="slot_id" id="add_slot_id">
 
                     <div class="form-group">
-                        <label>Batch <span class="required">*</span></label>
+                        <label>কোর্স (Course) <span class="required">*</span></label>
+                        <select id="add_course_id" class="form-control" required onchange="onModalCourseChange(this.value, 'add')">
+                            <option value="">— কোর্স নির্বাচন করুন —</option>
+                            @foreach($courses as $c)
+                                <option value="{{ $c->id }}" {{ ($selectedCourseId ?? null) == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ব্যাচ (Batch) <span class="required">*</span></label>
                         <select name="batch_id" id="add_batch_id" class="form-control" required onchange="onBatchSelect(this.value, 'add')">
-                            <option value="">Select Batch</option>
+                            <option value="">— প্রথমে কোর্স নির্বাচন করুন —</option>
                             @foreach($batches as $b)
-                                <option value="{{ $b->id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}" {{ ($selectedBatchId ?? null) == $b->id ? 'selected' : '' }}>
+                                    {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -406,10 +418,23 @@
                 @method('PUT')
                 <div class="modal-body">
                     <div class="form-group">
-                        <label>Batch</label>
-                        <select name="batch_id" id="edit_batch_id" class="form-control" onchange="onBatchSelect(this.value, 'edit')">
+                        <label>কোর্স (Course) <span class="required">*</span></label>
+                        <select id="edit_course_id" class="form-control" required onchange="onModalCourseChange(this.value, 'edit')">
+                            <option value="">— কোর্স নির্বাচন করুন —</option>
+                            @foreach($courses as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ব্যাচ (Batch) <span class="required">*</span></label>
+                        <select name="batch_id" id="edit_batch_id" class="form-control" required onchange="onBatchSelect(this.value, 'edit')">
+                            <option value="">— ব্যাচ নির্বাচন করুন —</option>
                             @foreach($batches as $b)
-                                <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">
+                                    {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                                </option>
                             @endforeach
                         </select>
                     </div>
@@ -717,6 +742,41 @@
         }
     }
 
+    function onModalCourseChange(courseId, prefix, targetBatchId = null) {
+        const batchSelect = document.getElementById(prefix + '_batch_id');
+        if (!batchSelect) return;
+
+        let hasSelectedValid = false;
+
+        Array.from(batchSelect.options).forEach(opt => {
+            if (!opt.value) {
+                opt.hidden = false;
+                opt.text = courseId ? '— ব্যাচ নির্বাচন করুন —' : '— প্রথমে কোর্স নির্বাচন করুন —';
+                return;
+            }
+            const bCourseId = opt.getAttribute('data-course-id');
+            if (!courseId || String(bCourseId) === String(courseId)) {
+                opt.hidden = false;
+                if (targetBatchId && String(opt.value) === String(targetBatchId)) {
+                    opt.selected = true;
+                    hasSelectedValid = true;
+                } else if (!targetBatchId && batchSelect.value && String(opt.value) === String(batchSelect.value)) {
+                    hasSelectedValid = true;
+                }
+            } else {
+                opt.hidden = true;
+            }
+        });
+
+        if (!hasSelectedValid && !targetBatchId) {
+            batchSelect.value = '';
+        } else if (targetBatchId) {
+            batchSelect.value = targetBatchId;
+        }
+
+        onBatchSelect(batchSelect.value, prefix);
+    }
+
     function onBatchSelect(batchId, prefix = 'add', targetSemesterId = null, targetSubjectId = null, targetTeacherId = null) {
         const semSelect = document.getElementById(prefix + '_semester_id');
         if (!semSelect) return;
@@ -947,8 +1007,13 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         initDragDrop();
-        const initialBatch = document.getElementById('add_batch_id')?.value;
-        if (initialBatch) onBatchSelect(initialBatch, 'add');
+        const initialCourse = document.getElementById('add_course_id')?.value;
+        const initialBatch  = document.getElementById('add_batch_id')?.value;
+        if (initialCourse) {
+            onModalCourseChange(initialCourse, 'add', initialBatch);
+        } else if (initialBatch) {
+            onBatchSelect(initialBatch, 'add');
+        }
     });
 
     // ── Modal helpers ──────────────────────────
@@ -956,11 +1021,29 @@
         document.getElementById('add_day').value = day;
         document.getElementById('add_slot_id').value = slotId;
 
-        const batchSelect = document.getElementById('add_batch_id');
-        if (batchSelect && batchSelect.value) {
-            onBatchSelect(batchSelect.value, 'add');
+        const mainCourseFilter = document.getElementById('routine_filter_course')?.value;
+        const mainBatchFilter = document.getElementById('routine_filter_batch')?.value;
+        const addCourse = document.getElementById('add_course_id');
+
+        if (addCourse) {
+            if (mainCourseFilter) {
+                addCourse.value = mainCourseFilter;
+                onModalCourseChange(mainCourseFilter, 'add', mainBatchFilter);
+            } else if (mainBatchFilter && batchDetails[mainBatchFilter] && batchDetails[mainBatchFilter].course_id) {
+                const cId = batchDetails[mainBatchFilter].course_id;
+                addCourse.value = cId;
+                onModalCourseChange(cId, 'add', mainBatchFilter);
+            } else {
+                addCourse.value = '';
+                onModalCourseChange('', 'add');
+            }
         } else {
-            onBatchSelect('', 'add');
+            const batchSelect = document.getElementById('add_batch_id');
+            if (batchSelect && batchSelect.value) {
+                onBatchSelect(batchSelect.value, 'add');
+            } else {
+                onBatchSelect('', 'add');
+            }
         }
 
         if (document.getElementById('add_group_tag')) {
@@ -974,13 +1057,23 @@
         document.getElementById('editEntryForm').action = '/admin/routine/entries/' + id;
         document.getElementById('edit_day_of_week').value = day;
         document.getElementById('edit_slot_id').value = slotId;
+
+        const b = batchDetails[batchId];
+        const editCourse = document.getElementById('edit_course_id');
+        if (editCourse && b && b.course_id) {
+            editCourse.value = b.course_id;
+            onModalCourseChange(b.course_id, 'edit', batchId);
+        } else if (editCourse) {
+            editCourse.value = '';
+            onModalCourseChange('', 'edit', batchId);
+        }
+
         document.getElementById('edit_batch_id').value = batchId;
         if (document.getElementById('edit_group_tag')) {
             document.getElementById('edit_group_tag').value = groupTag || 'ALL';
         }
 
         let foundSemId = null;
-        const b = batchDetails[batchId];
         if (b && b.subject_maps && subjectId) {
             const m = b.subject_maps.find(map => map.subject_id == subjectId);
             if (m) foundSemId = m.semester_id;

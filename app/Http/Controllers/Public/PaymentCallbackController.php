@@ -379,8 +379,13 @@ class PaymentCallbackController extends Controller
         $config = PaymentGatewayService::getBkashConfig();
         $paymentData = $transaction->raw_response;
 
-        // If not initiated or missing paymentID, generate fresh
-        if (empty($paymentData['paymentID'])) {
+        $isStale = false;
+        if (!empty($paymentData['paymentID']) && $transaction->updated_at && $transaction->updated_at->diffInMinutes(now()) > 10) {
+            $isStale = true;
+        }
+
+        // If not initiated, missing paymentID, stale (>10 min), or previous attempt failed/cancelled, generate fresh
+        if ($isStale || empty($paymentData['paymentID']) || in_array($transaction->status, ['FAILED', 'CANCELLED'])) {
             $initRes = PaymentGatewayService::initiateBkash(
                 $transaction,
                 $transaction->admissionForm,

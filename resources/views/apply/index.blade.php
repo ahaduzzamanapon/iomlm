@@ -35,11 +35,14 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 68px;
+        min-height: 68px;
+        flex-wrap: wrap;
+        gap: 12px;
     }
     .site-logo { display: flex; align-items: center; gap: 12px; }
     .site-logo-name { font-size: 16px; font-weight: 700; color: var(--iom-green); line-height: 1.2; }
     .site-logo-sub { font-size: 11px; color: var(--muted); }
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .btn-outline-sm {
         padding: 7px 16px;
         border: 1.5px solid var(--iom-green);
@@ -50,6 +53,10 @@
         text-decoration: none;
         background: #fff;
         transition: all .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
     }
     .btn-outline-sm:hover { background: var(--iom-green); color: #fff; }
 
@@ -62,7 +69,61 @@
     .hero-banner h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
     .hero-banner p { font-size: 13px; opacity: 0.9; max-width: 600px; margin: 0 auto; line-height: 1.6; }
 
-    .apply-container { max-width: 680px; margin: -20px auto 40px; padding: 0 16px; }
+    .apply-container { max-width: 680px; margin: -20px auto 40px; padding: 0 16px; width: 100%; box-sizing: border-box; }
+
+    @media (max-width: 768px) {
+        .site-header {
+            padding: 10px 14px;
+            min-height: auto;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .site-logo {
+            gap: 8px;
+        }
+        .site-logo img {
+            height: 36px !important;
+        }
+        .site-logo-name {
+            font-size: 13px !important;
+            letter-spacing: -0.2px;
+        }
+        .site-logo-sub {
+            display: none !important;
+        }
+        .header-actions {
+            gap: 6px;
+        }
+        .btn-outline-sm {
+            padding: 5px 9px !important;
+            font-size: 11px !important;
+            border-radius: 5px;
+        }
+        .hero-banner {
+            padding: 18px 14px;
+        }
+        .hero-banner h1 {
+            font-size: 18px;
+        }
+        .hero-banner p {
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .apply-container {
+            margin: -15px auto 30px;
+            padding: 0 12px;
+        }
+        .form-card-header {
+            padding: 14px 16px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+        .form-card-body {
+            padding: 18px 14px;
+        }
+    }
     .form-card {
         background: #fff;
         border-radius: 12px;

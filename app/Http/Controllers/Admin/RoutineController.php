@@ -140,6 +140,7 @@ class RoutineController extends Controller
             return [$b->id => [
                 'id'                  => $b->id,
                 'name'                => $b->name,
+                'course_id'           => $b->course_id,
                 'course_type'         => $b->course?->type ?? 'SEMESTER_BASED',
                 'current_semester_id' => $runningSemId,
                 'has_groups'          => (bool) ($runningSem?->has_groups ?? false),

@@ -109,6 +109,7 @@ class AdmissionFormController extends Controller
             $firstOpenBatch = (clone $openBatchQuery)->first();
             if ($firstOpenBatch) {
                 $validated['batch_id'] = $firstOpenBatch->id;
+                $batch = $firstOpenBatch;
             }
         }
 

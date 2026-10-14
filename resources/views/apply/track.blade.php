@@ -23,7 +23,9 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        height: 68px;
+        min-height: 68px;
+        flex-wrap: wrap;
+        gap: 12px;
     }
     .site-logo { display: flex; align-items: center; gap: 12px; }
     .site-logo-name { font-size: 16px; font-weight: 700; color: #047857; line-height: 1.2; }
@@ -38,6 +40,10 @@
         text-decoration: none;
         background: #fff;
         transition: all .15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
     }
     .btn-outline-sm:hover { background: #047857; color: #fff; }
 
@@ -54,6 +60,49 @@
         max-width: 680px;
         margin: -24px auto 40px;
         padding: 0 16px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 768px) {
+        .site-header {
+            padding: 10px 14px;
+            min-height: auto;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .site-logo {
+            gap: 8px;
+        }
+        .site-logo img {
+            height: 36px !important;
+        }
+        .site-logo-name {
+            font-size: 13px !important;
+            letter-spacing: -0.2px;
+        }
+        .site-logo-sub {
+            display: none !important;
+        }
+        .btn-outline-sm {
+            padding: 5px 9px !important;
+            font-size: 11px !important;
+            border-radius: 5px;
+        }
+        .hero-tracker {
+            padding: 20px 14px 34px;
+        }
+        .hero-tracker h1 {
+            font-size: 18px;
+        }
+        .hero-tracker p {
+            font-size: 12px;
+        }
+        .tracker-container {
+            margin: -16px auto 30px;
+            padding: 0 12px;
+        }
     }
     .search-card {
         background: #fff;

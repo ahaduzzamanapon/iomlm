@@ -344,6 +344,79 @@
             background: #f1f5f9;
             margin: 4px 0;
         }
+
+        @media (max-width: 768px) {
+            .student-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .student-header-right {
+                width: 100%;
+                display: flex;
+                gap: 8px;
+            }
+            .student-header-right .btn {
+                flex: 1;
+                justify-content: center;
+                font-size: 12px;
+                padding: 8px 10px;
+            }
+            .student-stats-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 10px;
+            }
+            .tabs {
+                display: flex !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                white-space: nowrap !important;
+                scrollbar-width: none !important;
+                max-width: 100% !important;
+                border-bottom: 2px solid #e2e8f0;
+                padding-bottom: 2px;
+            }
+            .tabs::-webkit-scrollbar {
+                display: none !important;
+            }
+            .tab-item {
+                white-space: nowrap !important;
+                flex-shrink: 0 !important;
+                padding: 9px 14px !important;
+                font-size: 13px !important;
+            }
+            .filter-card {
+                padding: 14px 12px;
+            }
+            .filter-grid {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+            .filter-actions {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px;
+            }
+            .filter-actions-left, .filter-actions-right {
+                width: 100% !important;
+                display: flex;
+                gap: 8px;
+            }
+            .filter-actions-left .btn, .filter-actions-right .form-select {
+                flex: 1;
+            }
+            .table-wrapper {
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                width: 100%;
+                display: block;
+            }
+        }
+        @media (max-width: 480px) {
+            .student-stats-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
     </style>
 
     <div class="student-roster">

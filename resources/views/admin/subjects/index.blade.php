@@ -22,9 +22,28 @@
         </div>
     @endif
 
+    <style>
+        @media (max-width: 768px) {
+            .subject-filter-form {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+            }
+            .subject-filter-form > div {
+                width: 100% !important;
+                min-width: 100% !important;
+            }
+            .subject-filter-form .btn {
+                width: 100% !important;
+                justify-content: center !important;
+                text-align: center !important;
+            }
+        }
+    </style>
+
     {{-- Filter Bar --}}
     <div class="card" style="margin-bottom:16px;padding:14px">
-        <form method="GET" action="{{ route('admin.subjects.index') }}" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <form method="GET" action="{{ route('admin.subjects.index') }}" class="subject-filter-form" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <div style="flex:1;min-width:200px">
                 <input type="text" name="search" class="form-control" placeholder="বিষয়ের নাম বা কোড দিয়ে অনুসন্ধান..." value="{{ $search ?? '' }}">
             </div>
@@ -92,7 +111,7 @@
                                 <span class="badge badge-secondary">Inactive</span>
                             @endif
                         </td>
-                        <td style="text-align:right">
+                        <td style="text-align:right;white-space:nowrap">
                             <button class="btn btn-outline btn-sm" onclick='openEditSubjectModal(@json($subj))' title="Edit Subject">
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </button>

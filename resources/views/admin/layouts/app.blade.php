@@ -560,10 +560,13 @@
 
             .page-header-actions {
                 width: 100% !important;
+                display: flex !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
             }
 
             .page-header-actions .btn {
-                width: 100% !important;
+                flex: 1 1 180px !important;
                 justify-content: center !important;
                 text-align: center !important;
             }

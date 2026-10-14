@@ -33,6 +33,30 @@
         </div>
     @endif
 
+    <style>
+        @media (max-width: 768px) {
+            .module-item {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+            }
+            .module-actions {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                justify-content: flex-start !important;
+                gap: 8px !important;
+                margin-left: 0 !important;
+                padding-top: 10px;
+                border-top: 1px dashed #e2e8f0;
+            }
+            .module-actions .btn {
+                flex: 1 1 auto !important;
+                justify-content: center !important;
+                text-align: center !important;
+            }
+        }
+    </style>
+
     <!-- Modules List (Folder / Group Organization) -->
     @php
         $groupedModules = $subject->modules->groupBy(fn($m) => $m->folder_name ?: 'General');
@@ -103,7 +127,7 @@
                                 </div>
                             </div>
 
-                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:12px">
+                            <div class="module-actions" style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:12px">
                                 {{-- Toggle Hidden Form --}}
                                 <form method="POST" action="{{ route('admin.modules.toggle-hidden', $mod) }}" style="display:inline">
                                     @csrf
