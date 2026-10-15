@@ -599,8 +599,17 @@ class StudentFeeService
                 $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
             }
 
+            $actualPmtSum = $admInv ? (float) $admInv->payments()->sum('amount') : 0.0;
+            if ($actualPmtSum > 0) {
+                $admPaid = $actualPmtSum;
+            }
             $isPaid = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
-            $paidAmt = $isPaid ? ($admPaid > 0 ? $admPaid : $nominalAmt) : $admPaid;
+            $paidAmt = $admPaid;
+            if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
+                $paidAmt = 0.0;
+            } elseif ($isPaid && $paidAmt <= 0) {
+                $paidAmt = $admPayable > 0 ? $admPayable : $nominalAmt;
+            }
 
             $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
             $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
@@ -671,8 +680,17 @@ class StudentFeeService
                     $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
                 }
 
+                $actualPmtSum = $admInv ? (float) $admInv->payments()->sum('amount') : 0.0;
+                if ($actualPmtSum > 0) {
+                    $admPaid = $actualPmtSum;
+                }
                 $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
-                $paidAmt = $isPaid ? ($admPaid > 0 ? $admPaid : $nominalAmt) : $admPaid;
+                $paidAmt = $admPaid;
+                if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
+                    $paidAmt = 0.0;
+                } elseif ($isPaid && $paidAmt <= 0) {
+                    $paidAmt = $admPayable > 0 ? $admPayable : $nominalAmt;
+                }
 
                 $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
                 $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
@@ -962,8 +980,17 @@ class StudentFeeService
                 $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
             }
 
+            $actualPmtSum = $admInv ? (float) $admInv->payments()->sum('amount') : 0.0;
+            if ($actualPmtSum > 0) {
+                $admPaid = $actualPmtSum;
+            }
             $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
-            $paidAmt = $isPaid ? ($admPaid > 0 ? $admPaid : $nominalAmt) : $admPaid;
+            $paidAmt = $admPaid;
+            if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
+                $paidAmt = 0.0;
+            } elseif ($isPaid && $paidAmt <= 0) {
+                $paidAmt = $admPayable > 0 ? $admPayable : $nominalAmt;
+            }
 
             $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
             $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
@@ -1379,16 +1406,49 @@ class StudentFeeService
         // Apply unified ordering pass across all particulars (template items + semester custom + extra invoices)
         $step1Particulars = $this->reorderStep1Particulars($step1Particulars);
 
-        // ── Assemble Chronological History Logs ──
+        // ── Assemble Chronological History Logs (Deduplicated & Persistent) ──
         $rawHistory = $selectedSemesterInvoice?->custom_particulars['_history'] ?? [];
         $historyLogs = [];
+        $recordedPaymentNos = [];
+
+        // 1. Process _history from current invoice
         foreach ($rawHistory as $rh) {
             $historyLogs[] = $rh;
+            if (!empty($rh['payment_no'])) {
+                $recordedPaymentNos[$rh['payment_no']] = true;
+            }
+            if (!empty($rh['remarks']) && preg_match('/PAY-[A-Za-z0-9-]+/', $rh['remarks'], $m)) {
+                $recordedPaymentNos[$m[0]] = true;
+            }
         }
 
+        // 2. Add Payments from payments table (checking for duplicate)
         if ($selectedSemesterInvoice) {
             $invPayments = Payment::where('invoice_id', $selectedSemesterInvoice->id)->with('receivedBy')->get();
             foreach ($invPayments as $pmt) {
+                if (isset($recordedPaymentNos[$pmt->payment_no])) {
+                    continue;
+                }
+
+                $pmtTime = $pmt->paid_at ? $pmt->paid_at->format('d M Y, h:i A') : $pmt->created_at->format('d M Y, h:i A');
+                $matchedHistoryIdx = null;
+                foreach ($historyLogs as $idx => $hl) {
+                    if (($hl['action'] ?? '') === 'PAYMENT_COLLECTED'
+                        && abs((float)($hl['amount'] ?? 0) - (float)$pmt->amount) < 0.01
+                        && ($hl['date_time'] ?? '') === $pmtTime
+                        && empty($hl['payment_no'])) {
+                        $matchedHistoryIdx = $idx;
+                        break;
+                    }
+                }
+
+                if ($matchedHistoryIdx !== null) {
+                    $historyLogs[$matchedHistoryIdx]['payment_no'] = $pmt->payment_no;
+                    $historyLogs[$matchedHistoryIdx]['remarks'] = trim(($historyLogs[$matchedHistoryIdx]['remarks'] ?? '') . " • রশিদ: {$pmt->payment_no}");
+                    $recordedPaymentNos[$pmt->payment_no] = true;
+                    continue;
+                }
+
                 $historyLogs[] = [
                     'action'     => 'PAYMENT_COLLECTED',
                     'particular' => $pmt->remarks ?: 'ইনভয়েস পেমেন্ট (' . ($selectedSemester?->name ?? 'সেমিস্টার ফি') . ')',
@@ -1396,20 +1456,34 @@ class StudentFeeService
                     'user_id'    => $pmt->received_by,
                     'user_name'  => $pmt->receivedBy?->name ?? ($student->user?->name ?? 'অনলাইন / শিক্ষার্থী'),
                     'method'     => $pmt->payment_method,
-                    'date_time'  => $pmt->paid_at ? $pmt->paid_at->format('d M Y, h:i A') : $pmt->created_at->format('d M Y, h:i A'),
-                    'created_at' => $pmt->created_at ? $pmt->created_at->toDateTimeString() : now()->toDateTimeString(),
+                    'date_time'  => $pmtTime,
+                    'created_at' => $pmt->paid_at ? $pmt->paid_at->toDateTimeString() : ($pmt->created_at ? $pmt->created_at->toDateTimeString() : now()->toDateTimeString()),
                     'remarks'    => "রশিদ নম্বর: {$pmt->payment_no}",
+                    'payment_no' => $pmt->payment_no,
                 ];
+                $recordedPaymentNos[$pmt->payment_no] = true;
             }
         }
 
-        if (($selectedSemester?->sequence_no ?? 1) == 1 && $admissionInvoices->isNotEmpty()) {
+        // 3. Admission Invoices: Always include admission payments in history regardless of selected semester!
+        if ($admissionInvoices->isNotEmpty()) {
             foreach ($admissionInvoices as $admI) {
                 $admHistory = $admI->custom_particulars['_history'] ?? [];
                 foreach ($admHistory as $arh) {
+                    if (!empty($arh['payment_no']) && isset($recordedPaymentNos[$arh['payment_no']])) {
+                        continue;
+                    }
                     $historyLogs[] = $arh;
+                    if (!empty($arh['payment_no'])) {
+                        $recordedPaymentNos[$arh['payment_no']] = true;
+                    }
                 }
                 foreach ($admI->payments()->with('receivedBy')->get() as $admPmt) {
+                    if (isset($recordedPaymentNos[$admPmt->payment_no])) {
+                        continue;
+                    }
+
+                    $admPmtTime = $admPmt->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : $admPmt->created_at->format('d M Y, h:i A');
                     $historyLogs[] = [
                         'action'     => 'PAYMENT_COLLECTED',
                         'particular' => 'Admission Fee (ভর্তি ফি)',
@@ -1417,25 +1491,40 @@ class StudentFeeService
                         'user_id'    => $admPmt->received_by,
                         'user_name'  => $admPmt->receivedBy?->name ?? ($student->user?->name ?? 'অনলাইন / শিক্ষার্থী'),
                         'method'     => $admPmt->payment_method,
-                        'date_time'  => $admPmt->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : $admPmt->created_at->format('d M Y, h:i A'),
-                        'created_at' => $admPmt->created_at ? $admPmt->created_at->toDateTimeString() : now()->toDateTimeString(),
+                        'date_time'  => $admPmtTime,
+                        'created_at' => $admPmt->paid_at ? $admPmt->paid_at->toDateTimeString() : ($admPmt->created_at ? $admPmt->created_at->toDateTimeString() : now()->toDateTimeString()),
                         'remarks'    => "ভর্তি ফি রশিদ নম্বর: {$admPmt->payment_no}",
+                        'payment_no' => $admPmt->payment_no,
                     ];
+                    $recordedPaymentNos[$admPmt->payment_no] = true;
                 }
             }
         }
 
+        // 4. Other active invoices history
         foreach ($activeInvoices as $othInv) {
             if ($selectedSemesterInvoice && $othInv->id === $selectedSemesterInvoice->id) continue;
             if ($othInv->category === 'ADMISSION') continue;
             $othHistory = $othInv->custom_particulars['_history'] ?? [];
             foreach ($othHistory as $orh) {
+                if (!empty($orh['payment_no']) && isset($recordedPaymentNos[$orh['payment_no']])) {
+                    continue;
+                }
                 $historyLogs[] = $orh;
+                if (!empty($orh['payment_no'])) {
+                    $recordedPaymentNos[$orh['payment_no']] = true;
+                }
             }
         }
 
+        // 5. Sort historyLogs strictly in Descending Order (newest at the very top)
         usort($historyLogs, function ($a, $b) {
-            return strcmp($b['created_at'] ?? '', $a['created_at'] ?? '');
+            $timeA = !empty($a['created_at']) ? strtotime($a['created_at']) : 0;
+            $timeB = !empty($b['created_at']) ? strtotime($b['created_at']) : 0;
+            if ($timeA === $timeB) {
+                return ($b['id'] ?? 0) <=> ($a['id'] ?? 0);
+            }
+            return $timeB <=> $timeA;
         });
 
         return [
@@ -1480,7 +1569,9 @@ class StudentFeeService
 
         foreach ($items as $item) {
             $pos = $item['position'] ?? 'default';
-            if (!empty($item['is_added']) || in_array($pos, ['at_top', 'after', 'before', 'at_bottom'], true)) {
+            // Only explicitly added custom items or explicitly chosen at_top, after, before are moved to customItems.
+            // Regular base template items with default position retain their original sequential curriculum position.
+            if (!empty($item['is_added']) || in_array($pos, ['at_top', 'after', 'before'], true)) {
                 $customItems[] = $item;
             } else {
                 $baseItems[] = $item;
@@ -1616,15 +1707,28 @@ class StudentFeeService
         ?int $userId = null,
         ?float $currentDueHint = null,
         ?string $position = null,
-        ?string $relativeTo = null
+        ?string $relativeTo = null,
+        ?float $currentPaidHint = null
     ): array {
         $invoice = Invoice::findOrFail($invoiceId);
         $pName   = trim($particularName);
         $newDue  = round($newDue, 2);
 
         $custom = $invoice->custom_particulars ?? [];
-        $currentPaid = isset($custom[$pName]['paid_amt']) ? (float)$custom[$pName]['paid_amt'] : 0.0;
 
+        // 1. Determine previously paid amount for this particular
+        $currentPaid = 0.0;
+        if (isset($custom[$pName]['paid_amt']) && (float)$custom[$pName]['paid_amt'] > 0) {
+            $currentPaid = (float) $custom[$pName]['paid_amt'];
+        } elseif ($currentPaidHint !== null && (float)$currentPaidHint > 0) {
+            $currentPaid = (float) $currentPaidHint;
+        } elseif ($invoice->category === 'ADMISSION' && (str_contains(mb_strtolower($pName), 'admission') || str_contains(mb_strtolower($pName), 'ভর্তি'))) {
+            $currentPaid = (float) $invoice->paid_amount;
+        } elseif ($invoice->paid_amount > 0 && count($custom) <= 1) {
+            $currentPaid = (float) $invoice->paid_amount;
+        }
+
+        // 2. Determine previous due
         if (isset($custom[$pName]['due'])) {
             $oldDue = (float) $custom[$pName]['due'];
         } elseif ($currentDueHint !== null) {
@@ -1633,11 +1737,24 @@ class StudentFeeService
             $oldDue = $newDue;
         }
 
-        $diff = $newDue - $oldDue;
-        $newAmount = $newDue + $currentPaid;
+        // 3. User intention handling:
+        // If admin sets 0 OR sets an amount matching currentPaid -> remaining due is waived (Due = 0, is_paid = true)
+        $finalDue = $newDue;
+        if ($newDue == 0.0 || ($currentPaid > 0 && abs($newDue - $currentPaid) < 0.01)) {
+            $finalDue = 0.0;
+        }
 
-        $existingPos = $custom[$pName]['position'] ?? 'at_bottom';
+        $diff = $finalDue - $oldDue;
+
+        // Total nominal amount for this particular
+        $origAmt = isset($custom[$pName]['amount']) ? (float)$custom[$pName]['amount'] : ($oldDue + $currentPaid);
+        $newAmount = ($finalDue <= 0)
+            ? max($currentPaid, ($origAmt > 0 ? $origAmt : $currentPaid))
+            : ($finalDue + $currentPaid);
+
+        $existingPos = $custom[$pName]['position'] ?? null;
         $existingRel = $custom[$pName]['relative_to'] ?? null;
+        $isAdded     = !empty($custom[$pName]['is_added']);
 
         $resolvedPos = ($position !== null && $position !== '') ? $position : $existingPos;
         $resolvedRel = in_array($resolvedPos, ['after', 'before'], true)
@@ -1648,13 +1765,13 @@ class StudentFeeService
             'name'            => $pName,
             'amount'          => $newAmount,
             'paid_amt'        => $currentPaid,
-            'due'             => $newDue,
-            'is_paid'         => ($newDue <= 0),
+            'due'             => $finalDue,
+            'is_paid'         => ($finalDue <= 0),
             'adjusted_at'     => now()->toDateTimeString(),
             'adjusted_by'     => $userId ?? auth()->id(),
             'remarks'         => $remarks ?? ($custom[$pName]['remarks'] ?? 'ফি পরিবর্তন'),
             'is_custom'       => true,
-            'is_added'        => isset($custom[$pName]['is_added']) ? !empty($custom[$pName]['is_added']) : true,
+            'is_added'        => $isAdded,
             'position'        => $resolvedPos,
             'relative_to'     => $resolvedRel,
             'created_by'      => $custom[$pName]['created_by'] ?? ($userId ?? auth()->id()),
@@ -1662,12 +1779,13 @@ class StudentFeeService
             'added_at'        => $custom[$pName]['added_at'] ?? now()->format('d M Y, h:i A'),
         ];
 
-        $newPayable     = max(0, $invoice->payable_amount + $diff);
+        // 4. Update Invoice totals safely
+        $newPayable     = max($invoice->paid_amount, $invoice->payable_amount + $diff);
         $newDueAmt      = max(0, $invoice->due_amount + $diff);
-        $newTotalAmount = max(0, $invoice->amount + $diff);
+        $newTotalAmount = max($invoice->paid_amount, $invoice->amount + $diff);
 
         $status = 'UNPAID';
-        if ($newDueAmt <= 0 && $invoice->paid_amount > 0) {
+        if ($newDueAmt <= 0) {
             $status = 'PAID';
         } elseif ($invoice->paid_amount > 0) {
             $status = 'PARTIAL';
@@ -1686,18 +1804,19 @@ class StudentFeeService
                 'fee_particular_adjusted',
                 $invoice,
                 ['old_due' => $oldDue],
-                ['new_due' => $newDue, 'particular' => $pName, 'remarks' => $remarks],
-                "অ্যাডমিন {$pName} ফি ৳{$oldDue} থেকে পরিবর্তন করে ৳{$newDue} করেছেন।"
+                ['new_due' => $finalDue, 'particular' => $pName, 'remarks' => $remarks],
+                "অ্যাডমিন {$pName} ফি ৳{$oldDue} থেকে পরিবর্তন করে বকেয়া ৳{$finalDue} করেছেন।"
             );
         } catch (\Throwable $e) {}
 
         return [
             'success'     => true,
-            'message'     => "✓ {$pName} এর ফি সফলভাবে ৳" . number_format($newDue, 0) . " এ আপডেট এবং সেভ করা হয়েছে।",
+            'message'     => "✓ {$pName} এর ফি সফলভাবে বকেয়া ৳" . number_format($finalDue, 0) . " এ আপডেট এবং সেভ করা হয়েছে।",
             'particular'  => $pName,
-            'new_due'     => $newDue,
+            'new_due'     => $finalDue,
             'new_amount'  => $newAmount,
-            'is_paid'     => ($newDue <= 0),
+            'paid_amt'    => $currentPaid,
+            'is_paid'     => ($finalDue <= 0),
             'invoice_due' => $newDueAmt,
             'invoice_id'  => $invoice->id,
             'position'    => $custom[$pName]['position'],
@@ -2181,8 +2300,13 @@ class StudentFeeService
 
             $curCustom = $curInv->custom_particulars ?? [];
             $history = $curCustom['_history'] ?? [];
+            $payNo = $lastPayment ? $lastPayment->payment_no : null;
             foreach ($invData['items'] as $itName => $itVals) {
                 $curCustom[$itName] = $itVals;
+                $remText = $itVals['remarks'];
+                if ($payNo && !str_contains($remText, $payNo)) {
+                    $remText .= " • রশিদ: {$payNo}";
+                }
                 $history[] = [
                     'action'      => 'PAYMENT_COLLECTED',
                     'particular'  => $itName,
@@ -2192,7 +2316,8 @@ class StudentFeeService
                     'method'      => $paymentMethod,
                     'date_time'   => $payTime,
                     'created_at'  => now()->toDateTimeString(),
-                    'remarks'     => $itVals['remarks'],
+                    'remarks'     => $remText,
+                    'payment_no'  => $payNo,
                 ];
             }
             $curCustom['_history'] = $history;

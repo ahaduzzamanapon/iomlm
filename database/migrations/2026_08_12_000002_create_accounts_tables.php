@@ -58,7 +58,7 @@ return new class extends Migration
             $table->foreignId('invoice_id')->constrained()->cascadeOnDelete();
             $table->foreignId('student_id')->constrained()->restrictOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->enum('payment_method', ['CASH', 'BKASH', 'NAGAD', 'ROCKET', 'BANK_TRANSFER', 'CARD', 'ONLINE'])->default('CASH');
+            $table->string('payment_method', 50)->default('CASH');
             $table->string('transaction_id', 100)->nullable();
             $table->text('remarks')->nullable();
             $table->foreignId('received_by')->nullable()->constrained('users')->nullOnDelete();

@@ -138,7 +138,7 @@ class AccountsController extends Controller
             'due_date'       => 'nullable|date',
             'record_payment' => 'nullable|boolean',
             'paid_amount'    => 'nullable|numeric|min:1',
-            'payment_method' => 'nullable|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'payment_method' => 'nullable|string|max:50',
             'sender_number'  => 'nullable|string|max:30',
             'transaction_id' => 'nullable|string|max:100',
             'remarks'        => 'nullable|string|max:255',
@@ -195,7 +195,7 @@ class AccountsController extends Controller
     {
         $validated = $request->validate([
             'amount'         => 'required|numeric|min:1|max:' . $invoice->due_amount,
-            'payment_method' => 'required|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'payment_method' => 'required|string|max:50',
             'sender_number'  => 'nullable|string|max:30',
             'transaction_id' => 'nullable|string|max:100',
             'remarks'        => 'nullable|string',
@@ -365,6 +365,7 @@ class AccountsController extends Controller
             'particular_name' => 'required|string',
             'new_amount'      => 'required|numeric|min:0',
             'current_due'     => 'nullable|numeric|min:0',
+            'current_paid'    => 'nullable|numeric|min:0',
             'remarks'         => 'nullable|string|max:255',
             'position'        => 'nullable|string|in:at_bottom,at_top,after,before',
             'relative_to'     => 'nullable|string|max:150',
@@ -378,7 +379,8 @@ class AccountsController extends Controller
             auth()->id(),
             isset($validated['current_due']) ? (float)$validated['current_due'] : null,
             $validated['position'] ?? null,
-            $validated['relative_to'] ?? null
+            $validated['relative_to'] ?? null,
+            isset($validated['current_paid']) ? (float)$validated['current_paid'] : null
         );
 
         return response()->json($res);
@@ -472,7 +474,7 @@ class AccountsController extends Controller
             'particular_amounts'  => 'nullable|array',
             'particular_invoices' => 'nullable|array',
             'amount'              => 'required|numeric|min:1',
-            'payment_method'      => 'required|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'payment_method'      => 'required|string|max:50',
             'transaction_id'      => 'nullable|string|max:100',
             'sender_number'       => 'nullable|string|max:30',
             'remarks'             => 'nullable|string|max:255',
@@ -589,7 +591,7 @@ class AccountsController extends Controller
         $validated = $request->validate([
             'status'         => 'required|in:PAID,UNPAID,PARTIAL,CANCELLED',
             'remarks'        => 'nullable|string|max:255',
-            'payment_method' => 'nullable|in:CASH,BKASH,NAGAD,ROCKET,BANK_TRANSFER,CARD,ONLINE',
+            'payment_method' => 'nullable|string|max:50',
             'sender_number'  => 'nullable|string|max:30',
             'transaction_id' => 'nullable|string|max:100',
         ]);

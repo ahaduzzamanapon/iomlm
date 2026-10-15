@@ -332,13 +332,21 @@
                                     </td>
                                     <td style="padding:9px 14px;text-align:center" id="particularDueCell_{{ $p['sl'] }}">
                                         @if($p['is_paid'])
+                                            @php
+                                                $dispPaid = ($p['paid_amt'] ?? 0) > 0 ? $p['paid_amt'] : ($p['due'] <= 0 ? ($p['amount'] ?? 0) : 0);
+                                            @endphp
                                             <div style="display:inline-flex;align-items:center;gap:6px">
                                                 <span id="particularDueVal_{{ $p['sl'] }}"
                                                     style="color:#16a34a;font-weight:700">Paid
-                                                    ({{ number_format($p['amount'], 0) }})</span>
+                                                    ({{ number_format($dispPaid, 0) }})</span>
+                                                @if(($p['amount'] ?? 0) > $dispPaid && $dispPaid > 0)
+                                                    <span style="font-size:11px;color:#64748b;font-weight:500" title="মূল ফি: ৳{{ number_format($p['amount'], 0) }}">
+                                                        (মূল: {{ number_format($p['amount'], 0) }})
+                                                    </span>
+                                                @endif
                                                 @if($isAdminSession && ($p['invoice_id'] ?? $selectedSemesterInvoice?->id))
                                                     <button type="button"
-                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}')"
+                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}', {{ $dispPaid }})"
                                                         title="টাকার পরিমাণ এডিট করুন (Admin Edit)"
                                                         style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:2px">
                                                         <i class="fa-solid fa-pencil"></i>
@@ -356,7 +364,7 @@
                                                 @endif
                                                 @if($isAdminSession && ($p['invoice_id'] ?? $selectedSemesterInvoice?->id))
                                                     <button type="button"
-                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}')"
+                                                        onclick="openAdminParticularEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}', {{ $p['paid_amt'] ?? 0 }})"
                                                         title="টাকার পরিমাণ এডিট বা সমন্বয় করুন (Admin Edit: Increase/Decrease Taka)"
                                                         style="background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:all .15s"
                                                         onmouseover="this.style.background='#dbeafe'"
@@ -938,6 +946,7 @@
                 <input type="hidden" id="ape_invoice_id" name="invoice_id">
                 <input type="hidden" id="ape_particular_name" name="particular_name">
                 <input type="hidden" id="ape_current_due" name="current_due">
+                <input type="hidden" id="ape_current_paid" name="current_paid" value="0">
                 <input type="hidden" id="ape_row_sl" name="row_sl">
 
                 <div style="margin-bottom:14px">
@@ -952,6 +961,9 @@
                     <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:4px">বর্তমান
                         বকেয়া (Current Dues):</label>
                     <div id="ape_display_current_due" style="font-size:15px;font-weight:800;color:#be123c"></div>
+                    <div id="ape_display_paid_wrap" style="display:none;font-size:12px;color:#059669;margin-top:2px">
+                        • ইতোমধ্যে পরিশোধিত: <strong id="ape_display_current_paid">৳0</strong>
+                    </div>
                 </div>
 
                 <div style="margin-bottom:16px">
@@ -1652,14 +1664,27 @@
                 }
             }
 
-            function openAdminParticularEditModal(invoiceId, pName, currentDue, sl, isAdded = false, position = 'at_bottom', relativeTo = '') {
+            function openAdminParticularEditModal(invoiceId, pName, currentDue, sl, isAdded = false, position = 'at_bottom', relativeTo = '', paidAmt = 0) {
                 document.getElementById('ape_invoice_id').value = invoiceId;
                 document.getElementById('ape_particular_name').value = pName;
                 document.getElementById('ape_current_due').value = currentDue;
+                document.getElementById('ape_current_paid').value = paidAmt || 0;
                 document.getElementById('ape_row_sl').value = sl;
 
                 document.getElementById('ape_display_name').innerText = pName;
                 document.getElementById('ape_display_current_due').innerText = '৳' + Number(currentDue).toLocaleString('en-BD');
+
+                const paidWrap = document.getElementById('ape_display_paid_wrap');
+                const paidSpan = document.getElementById('ape_display_current_paid');
+                if (paidWrap && paidSpan) {
+                    if (paidAmt && Number(paidAmt) > 0) {
+                        paidSpan.innerText = '৳' + Number(paidAmt).toLocaleString('en-BD');
+                        paidWrap.style.display = 'block';
+                    } else {
+                        paidWrap.style.display = 'none';
+                    }
+                }
+
                 document.getElementById('ape_new_amount').value = currentDue;
                 document.getElementById('ape_remarks').value = '';
 
@@ -1856,6 +1881,7 @@
                 const invoiceId = document.getElementById('ape_invoice_id').value;
                 const pName = document.getElementById('ape_particular_name').value;
                 const currentDue = document.getElementById('ape_current_due').value;
+                const currentPaid = document.getElementById('ape_current_paid').value;
                 const newAmount = document.getElementById('ape_new_amount').value;
                 const remarks = document.getElementById('ape_remarks').value;
                 const sl = document.getElementById('ape_row_sl').value;
@@ -1878,6 +1904,7 @@
                         invoice_id: invoiceId,
                         particular_name: pName,
                         current_due: currentDue,
+                        current_paid: currentPaid,
                         new_amount: newAmount,
                         remarks: remarks,
                         position: position,
@@ -1889,40 +1916,10 @@
                         btn.disabled = false;
                         btn.innerHTML = originalText;
                         if (data.success) {
-                            if (position) {
-                                alert(data.message);
-                                location.reload();
-                                return;
-                            }
                             closeAdminParticularEditModal();
-                            // Update UI elements
-                            const cell = document.getElementById('particularDueCell_' + sl);
-                            const payCell = document.getElementById('particularPayCell_' + sl);
-                            const valSpan = document.getElementById('particularDueVal_' + sl);
-                            const chk = document.querySelector('.step1-chk[data-name="' + pName + '"]');
-
-                            if (data.is_paid) {
-                                if (cell) {
-                                    cell.innerHTML = '<div style="display:inline-flex;align-items:center;gap:6px"><span style="color:#16a34a;font-weight:700">Paid (0)</span><button type="button" onclick="openAdminParticularEditModal(\'' + invoiceId + '\', \'' + pName.replace(/'/g, "\\'") + '\', 0, ' + sl + ')" style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;cursor:pointer"><i class="fa-solid fa-pencil"></i></button></div>';
-                                }
-                                if (payCell) {
-                                    payCell.innerHTML = '';
-                                }
-                            } else {
-                                if (valSpan) {
-                                    valSpan.innerText = Number(data.new_due).toLocaleString('en-BD');
-                                    valSpan.style.color = '#2563eb';
-                                }
-                                if (chk) {
-                                    chk.dataset.amount = data.new_due;
-                                }
-                            }
-
-                            if (typeof updateStep1Total === 'function') {
-                                updateStep1Total();
-                            }
-
                             alert(data.message);
+                            location.reload();
+                            return;
                         } else {
                             alert(data.message || 'Error updating fee amount.');
                         }

@@ -154,10 +154,12 @@ class AccountingService
 
             if ($alreadyRecorded < $finalPaidAmount) {
                 $amountToCredit = $finalPaidAmount - $alreadyRecorded;
-                $payMethod = $paymentDetails['method'] ?? $admission->manual_payment_method ?? 'bKash';
+                $payMethod = !empty($paymentDetails['method']) 
+                    ? trim((string)$paymentDetails['method']) 
+                    : (!empty($admission->manual_payment_method) ? trim((string)$admission->manual_payment_method) : 'bKash');
                 $trxId     = $paymentDetails['trx_id'] ?? $admission->manual_trx_id ?? null;
                 $sender    = $paymentDetails['sender_number'] ?? $admission->manual_sender_phone ?? null;
-                $notes     = $paymentDetails['notes'] ?? 'Admission fee payment approved during admission review';
+                $notes     = $paymentDetails['notes'] ?? 'Admission fee payment approved by Admin during admission review';
 
                 Payment::create([
                     'payment_no'     => 'PAY-ADM-' . date('Ymd') . '-' . rand(1000, 9999),

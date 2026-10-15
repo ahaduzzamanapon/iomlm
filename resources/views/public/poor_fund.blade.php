@@ -118,6 +118,20 @@
         </div>
     </div>
 
+    @if(session('error'))
+    <div class="alert-error" style="background:#fef2f2;border:1.5px solid #fecaca;color:#991b1b;padding:14px 18px;border-radius:10px;margin-bottom:18px;font-size:14px;font-family:'Kalpurush', sans-serif;">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;font-size:16px;"></i>
+        <strong>{{ session('error') }}</strong>
+    </div>
+    @endif
+
+    @if(session('success'))
+    <div class="alert-success" style="background:#f0fdf4;border:1.5px solid #bbf7d0;color:#166534;padding:14px 18px;border-radius:10px;margin-bottom:18px;font-size:14px;font-family:'Kalpurush', sans-serif;">
+        <i class="fa-solid fa-circle-check" style="margin-right:6px;font-size:16px;"></i>
+        <strong>{{ session('success') }}</strong>
+    </div>
+    @endif
+
     @if(isset($errors) && is_object($errors) && method_exists($errors, 'any') && $errors->any())
     <div class="alert-error">
         <strong>অনুরোধ: অনুগ্রহ করে নিচের ভুলগুলো সংশোধন করুন:</strong>
@@ -168,7 +182,7 @@
                     @if(isset($courses) && $courses->count())
                     <div class="form-group">
                         <label>আপনি কোন Course এ ভর্তি হতে চান?</label>
-                        <select name="course_id">
+                        <select name="course_id" id="course_id" onchange="checkDuplicateApplication()">
                             <option value="">-- Select Course (Optional) --</option>
                             @foreach($courses as $c)
                                 <option value="{{ $c->id }}" {{ old('course_id') == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
@@ -180,33 +194,37 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Full Name (সম্পূর্ণ নাম) <span class="req">*</span></label>
-                            <input type="text" name="full_name" value="{{ old('full_name') }}" placeholder="আপনার নাম লিখুন" required>
+                            <input type="text" name="full_name" id="full_name" value="{{ old('full_name') }}" placeholder="আপনার নাম লিখুন" required>
                         </div>
                         <div class="form-group">
                             <label>Email Address (ইমেইল) <span class="req">*</span></label>
-                            <input type="email" name="email" value="{{ old('email') }}" placeholder="email@example.com" required>
+                            <input type="email" name="email" id="email" value="{{ old('email') }}" placeholder="email@example.com" oninput="checkDuplicateApplication()" required>
+                            <div id="duplicate_email_alert" style="display:none;margin-top:8px;padding:10px 14px;background:#fef2f2;border:1.5px solid #fecaca;border-radius:8px;color:#991b1b;font-size:13px;font-weight:600;line-height:1.5;font-family:'Kalpurush', sans-serif;">
+                                <i class="fa-solid fa-triangle-exclamation" style="margin-right:5px;"></i>
+                                <span id="duplicate_email_msg"></span>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
                             <label>Mobile Number (মোবাইল) <span class="req">*</span></label>
-                            <input type="text" name="phone" value="{{ old('phone') }}" placeholder="01XXXXXXXXX" required>
+                            <input type="text" name="phone" id="phone" value="{{ old('phone') }}" placeholder="01XXXXXXXXX" oninput="checkDuplicateApplication()" required>
                         </div>
                         <div class="form-group">
                             <label>Date of Birth (জন্ম তারিখ) <span class="req">*</span></label>
-                            <input type="date" name="date_of_birth" value="{{ old('date_of_birth') }}" required>
+                            <input type="date" name="date_of_birth" id="date_of_birth" value="{{ old('date_of_birth') }}" required>
                         </div>
                     </div>
 
                     <div class="form-row-3">
                         <div class="form-group">
                             <label>Father's Name (পিতার নাম) <span class="req">*</span></label>
-                            <input type="text" name="father_name" value="{{ old('father_name') }}" placeholder="পিতার নাম" required>
+                            <input type="text" name="father_name" id="father_name" value="{{ old('father_name') }}" placeholder="পিতার নাম" required>
                         </div>
                         <div class="form-group">
                             <label>National ID / Birth Reg No <span class="req">*</span></label>
-                            <input type="text" name="national_id" value="{{ old('national_id') }}" placeholder="NID বা জন্ম নিবন্ধন নং" required>
+                            <input type="text" name="national_id" id="national_id" value="{{ old('national_id') }}" placeholder="NID বা জন্ম নিবন্ধন নং" oninput="checkDuplicateApplication()" required>
                         </div>
                         <div class="form-group">
                             <label>Gender (লিঙ্গ)</label>
@@ -394,7 +412,7 @@
             </div>
 
             <div class="form-footer">
-                <button type="submit" class="btn-submit">আবেদন সম্পন্ন করুন (Submit Waiver Application) →</button>
+                <button type="submit" id="btn-submit" class="btn-submit">আবেদন সম্পন্ন করুন (Submit Waiver Application) →</button>
             </div>
         </form>
     </div>
@@ -455,7 +473,101 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sel) {
         toggleFeeFields(sel.value);
     }
+
+    const poorFundForm = document.getElementById('poorFundForm');
+    if (poorFundForm) {
+        poorFundForm.addEventListener('submit', function(e) {
+            const alertBox = document.getElementById('duplicate_email_alert');
+            if (alertBox && alertBox.style.display !== 'none') {
+                e.preventDefault();
+                alert('আপনার এই ইমেইল / মোবাইল দিয়ে ইতিমধ্যে আবেদন রয়েছে। পুনরায় আবেদন করা যাবে না।');
+                return false;
+            }
+            const submitBtn = document.getElementById('btn-submit');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.6';
+                submitBtn.style.cursor = 'not-allowed';
+                submitBtn.innerText = 'আবেদন জমা হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন';
+            }
+        });
+    }
+
+    // Trigger duplicate check on load if old inputs exist
+    const emailVal = document.getElementById('email')?.value?.trim();
+    const phoneVal = document.getElementById('phone')?.value?.trim();
+    if (emailVal || phoneVal) {
+        checkDuplicateApplication();
+    }
 });
+
+let checkTimeout = null;
+function checkDuplicateApplication() {
+    const courseId = document.getElementById('course_id')?.value;
+    const email = document.getElementById('email')?.value?.trim();
+    const phone = document.getElementById('phone')?.value?.trim();
+    const nid = document.getElementById('national_id')?.value?.trim();
+    const alertBox = document.getElementById('duplicate_email_alert');
+    const msgBox = document.getElementById('duplicate_email_msg');
+    const submitBtn = document.getElementById('btn-submit');
+    const emailInp = document.getElementById('email');
+
+    const hasValidEmail = email && email.includes('@') && email.length >= 5;
+    const hasValidPhone = phone && phone.length >= 8;
+
+    if (!hasValidEmail && !hasValidPhone) {
+        if (alertBox) alertBox.style.display = 'none';
+        if (emailInp) emailInp.style.borderColor = '';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            submitBtn.style.cursor = 'pointer';
+        }
+        return;
+    }
+
+    clearTimeout(checkTimeout);
+    checkTimeout = setTimeout(() => {
+        fetch('{{ route("poor_fund.check.duplicate") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                course_id: courseId || null,
+                email: email || null,
+                phone: phone || null,
+                national_id: nid || null
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.exists) {
+                if (alertBox && msgBox) {
+                    msgBox.textContent = data.message;
+                    alertBox.style.display = 'block';
+                }
+                if (emailInp) emailInp.style.borderColor = '#e02424';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.5';
+                    submitBtn.style.cursor = 'not-allowed';
+                }
+            } else {
+                if (alertBox) alertBox.style.display = 'none';
+                if (emailInp) emailInp.style.borderColor = '';
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                }
+            }
+        })
+        .catch(() => {});
+    }, 350);
+}
 </script>
 </body>
 </html>

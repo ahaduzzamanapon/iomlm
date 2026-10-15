@@ -94,6 +94,49 @@ class WaiverApplicationController extends Controller
             }
         }
 
+        // Prevent multiple / duplicate applications for the same person (email / phone / national_id)
+        $email    = trim(strtolower($validated['email']));
+        $phone    = trim($validated['phone'] ?? '');
+        $nid      = trim($validated['national_id'] ?? '');
+        $courseId = !empty($validated['course_id']) ? (int) $validated['course_id'] : null;
+
+        $existingWaiverQuery = WaiverApplication::where(function ($q) use ($email, $phone, $nid) {
+            $q->whereRaw('LOWER(email) = ?', [$email]);
+            if (!empty($phone)) {
+                $q->orWhere('phone', $phone);
+            }
+            if (!empty($nid)) {
+                $q->orWhere('national_id', $nid);
+            }
+        });
+
+        if ($courseId) {
+            $existingWaiverQuery->where(function ($cq) use ($courseId) {
+                $cq->where('course_id', $courseId)
+                   ->orWhereNull('course_id');
+            });
+        }
+
+        $existingWaiver = $existingWaiverQuery->latest('id')->first();
+
+        if ($existingWaiver) {
+            $courseName  = $existingWaiver->course?->name;
+            $courseLabel = $courseName ? " \"{$courseName}\" কোর্সে" : "";
+            $appNo       = $existingWaiver->application_no;
+
+            if ($existingWaiver->status === 'APPROVED') {
+                $errorMsg = "এই ইমেইল ({$email}) দিয়ে{$courseLabel} আপনার একটি পুওর ফান্ড আবেদন ইতিমধ্যে অনুমোদিত হয়েছে (আবেদন নং: {$appNo})। অনুগ্রহ করে অনুমোদন কোডটি ভর্তি ফর্মে ব্যবহার করুন অথবা স্ট্যাটাস পেজ চেক করুন।";
+            } elseif ($existingWaiver->status === 'PENDING') {
+                $errorMsg = "এই ইমেইল ({$email}) দিয়ে{$courseLabel} আপনার একটি পুওর ফান্ড আবেদন ইতিমধ্যে জমা রয়েছে (আবেদন নং: {$appNo})। আবেদনটি বর্তমানে বিবেচনাধীন রয়েছে। একই ফান্ডে বারবার আবেদন করার প্রয়োজন নেই। স্ট্যাটাস পেজ চেক করুন।";
+            } else {
+                $errorMsg = "এই ইমেইল ({$email}) দিয়ে{$courseLabel} ইতিপূর্বে করা আবেদনটি (আবেদন নং: {$appNo}) গৃহিত হয়নি। পুনরায় আবেদনের জন্য অনুগ্রহ করে সরাসরি কর্তৃপক্ষের সাথে যোগাযোগ করুন।";
+            }
+
+            return back()->withInput()->with('error', $errorMsg)->withErrors([
+                'email' => $errorMsg,
+            ]);
+        }
+
         // Map old apply_reason_type values to new apply_for enum
         $applyForMap = [
             'Admission Fee' => 'ADMISSION_FEE',
@@ -367,5 +410,72 @@ class WaiverApplicationController extends Controller
 
         $searchQuery = trim((string) $request->input('search'));
         return redirect()->route('poor_fund.status', ['app_no' => $searchQuery]);
+    }
+
+    /**
+     * AJAX endpoint: Check if applicant already applied to poor fund with this email/phone
+     */
+    public function checkDuplicateAjax(Request $request)
+    {
+        $courseId = $request->input('course_id');
+        $email    = trim(strtolower($request->input('email', '')));
+        $phone    = trim($request->input('phone', ''));
+        $nid      = trim($request->input('national_id', ''));
+
+        if (!$email && !$phone && !$nid) {
+            return response()->json(['exists' => false]);
+        }
+
+        $query = WaiverApplication::where(function ($q) use ($email, $phone, $nid) {
+            if ($email) {
+                $q->whereRaw('LOWER(email) = ?', [$email]);
+            }
+            if ($phone) {
+                if ($email) {
+                    $q->orWhere('phone', $phone);
+                } else {
+                    $q->where('phone', $phone);
+                }
+            }
+            if ($nid) {
+                if ($email || $phone) {
+                    $q->orWhere('national_id', $nid);
+                } else {
+                    $q->where('national_id', $nid);
+                }
+            }
+        });
+
+        if ($courseId) {
+            $query->where(function ($cq) use ($courseId) {
+                $cq->where('course_id', $courseId)
+                   ->orWhereNull('course_id');
+            });
+        }
+
+        $existing = $query->latest('id')->first();
+
+        if ($existing) {
+            $courseName  = $existing->course?->name;
+            $courseLabel = $courseName ? " \"{$courseName}\" কোর্সে" : "";
+
+            if ($existing->status === 'APPROVED') {
+                $msg = "এই ইমেইল / মোবাইল দিয়ে{$courseLabel} আপনার একটি পুওর ফান্ড আবেদন ইতিমধ্যে অনুমোদিত হয়েছে (আবেদন নং: {$existing->application_no})। অনুগ্রহ করে অনুমোদন কোডটি ভর্তি ফর্মে ব্যবহার করুন।";
+            } elseif ($existing->status === 'PENDING') {
+                $msg = "এই ইমেইল / মোবাইল দিয়ে{$courseLabel} আপনার একটি আবেদন ইতিমধ্যে জমা রয়েছে (আবেদন নং: {$existing->application_no})। একই ফর্মে বারবার আবেদন করার প্রয়োজন নেই।";
+            } else {
+                $msg = "এই ইমেইল / মোবাইল দিয়ে{$courseLabel} ইতিপূর্বে করা আবেদনটি (আবেদন নং: {$existing->application_no}) গৃহিত হয়নি। পুনরায় আবেদনের জন্য সরাসরি কর্তৃপক্ষের সাথে যোগাযোগ করুন।";
+            }
+
+            return response()->json([
+                'exists'         => true,
+                'application_no' => $existing->application_no,
+                'status'         => $existing->status,
+                'course_name'    => $courseName,
+                'message'        => $msg,
+            ]);
+        }
+
+        return response()->json(['exists' => false]);
     }
 }

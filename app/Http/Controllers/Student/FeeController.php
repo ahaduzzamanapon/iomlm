@@ -215,6 +215,7 @@ class FeeController extends Controller
             'particular_name' => 'required|string',
             'new_amount'      => 'required|numeric|min:0',
             'current_due'     => 'nullable|numeric|min:0',
+            'current_paid'    => 'nullable|numeric|min:0',
             'remarks'         => 'nullable|string|max:255',
             'position'        => 'nullable|string|in:at_bottom,at_top,after,before',
             'relative_to'     => 'nullable|string|max:150',
@@ -228,7 +229,8 @@ class FeeController extends Controller
             session('admin_impersonator_id') ?? auth()->id(),
             isset($validated['current_due']) ? (float)$validated['current_due'] : null,
             $validated['position'] ?? null,
-            $validated['relative_to'] ?? null
+            $validated['relative_to'] ?? null,
+            isset($validated['current_paid']) ? (float)$validated['current_paid'] : null
         );
 
         return response()->json($res);

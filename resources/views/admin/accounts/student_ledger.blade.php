@@ -288,10 +288,18 @@
                                 </td>
                                 <td style="padding:10px 14px;text-align:center" id="adminPartDueCell_{{ $p['sl'] }}">
                                     @if($p['is_paid'])
+                                        @php
+                                            $dispPaid = ($p['paid_amt'] ?? 0) > 0 ? $p['paid_amt'] : ($p['due'] <= 0 ? ($p['amount'] ?? 0) : 0);
+                                        @endphp
                                         <div style="display:inline-flex;align-items:center;gap:6px">
-                                            <span style="color:#16a34a;font-weight:700">Paid ({{ number_format($p['amount'], 0) }})</span>
+                                            <span style="color:#16a34a;font-weight:700">Paid ({{ number_format($dispPaid, 0) }})</span>
+                                            @if(($p['amount'] ?? 0) > $dispPaid && $dispPaid > 0)
+                                                <span style="font-size:11px;color:#64748b;font-weight:500" title="মূল ফি: ৳{{ number_format($p['amount'], 0) }}">
+                                                    (মূল: {{ number_format($p['amount'], 0) }})
+                                                </span>
+                                            @endif
                                             <button type="button"
-                                                onclick="openAdminPartEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice?->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}')"
+                                                onclick="openAdminPartEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice?->id }}', '{{ addslashes($p['name']) }}', 0, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}', {{ $dispPaid }})"
                                                 title="টাকার পরিমাণ এডিট করুন"
                                                 style="background:#f8fafc;border:1px solid #cbd5e1;color:#64748b;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;cursor:pointer">
                                                 <i class="fa-solid fa-pencil"></i>
@@ -306,7 +314,7 @@
                                                 </span>
                                             @endif
                                             <button type="button"
-                                                onclick="openAdminPartEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice?->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}')"
+                                                onclick="openAdminPartEditModal('{{ $p['invoice_id'] ?? $selectedSemesterInvoice?->id }}', '{{ addslashes($p['name']) }}', {{ $p['due'] }}, {{ $p['sl'] }}, {{ !empty($p['is_added']) ? 'true' : 'false' }}, '{{ $p['position'] ?? 'at_bottom' }}', '{{ addslashes($p['relative_to'] ?? '') }}', {{ $p['paid_amt'] ?? 0 }})"
                                                 title="টাকার পরিমাণ এডিট বা সমন্বয় করুন"
                                                 style="background:#eff6ff;border:1px solid #93c5fd;color:#1d4ed8;border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:3px">
                                                 <i class="fa-solid fa-pencil" style="font-size:10px"></i> এডিট
@@ -1076,6 +1084,7 @@
                     <input type="hidden" id="admin_pe_invoice_id">
                     <input type="hidden" id="admin_pe_particular_name">
                     <input type="hidden" id="admin_pe_current_due">
+                    <input type="hidden" id="admin_pe_current_paid" value="0">
                     <input type="hidden" id="admin_pe_row_sl">
 
                     <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px">
@@ -1083,6 +1092,9 @@
                         <div style="font-size:14px;font-weight:700;color:#0f172a;margin-top:2px" id="admin_pe_display_name">—</div>
                         <div style="font-size:12px;color:#64748b;margin-top:4px">
                             বর্তমান বকেয়া: <strong style="color:#dc2626" id="admin_pe_display_due">৳0</strong>
+                            <span id="admin_pe_display_paid_wrap" style="margin-left:8px;color:#059669;display:none">
+                                • ইতোমধ্যে পরিশোধিত: <strong id="admin_pe_display_paid">৳0</strong>
+                            </span>
                         </div>
                     </div>
 
@@ -1493,14 +1505,27 @@
         }
     }
 
-    function openAdminPartEditModal(invoiceId, pName, currentDue, sl, isAdded = false, position = 'at_bottom', relativeTo = '') {
+    function openAdminPartEditModal(invoiceId, pName, currentDue, sl, isAdded = false, position = 'at_bottom', relativeTo = '', paidAmt = 0) {
         document.getElementById('admin_pe_invoice_id').value = invoiceId || '';
         document.getElementById('admin_pe_particular_name').value = pName;
         document.getElementById('admin_pe_current_due').value = currentDue;
+        document.getElementById('admin_pe_current_paid').value = paidAmt || 0;
         document.getElementById('admin_pe_row_sl').value = sl;
 
         document.getElementById('admin_pe_display_name').innerText = pName;
         document.getElementById('admin_pe_display_due').innerText = '৳' + Number(currentDue).toLocaleString('en-BD');
+
+        const paidWrap = document.getElementById('admin_pe_display_paid_wrap');
+        const paidSpan = document.getElementById('admin_pe_display_paid');
+        if (paidWrap && paidSpan) {
+            if (paidAmt && Number(paidAmt) > 0) {
+                paidSpan.innerText = '৳' + Number(paidAmt).toLocaleString('en-BD');
+                paidWrap.style.display = 'inline';
+            } else {
+                paidWrap.style.display = 'none';
+            }
+        }
+
         document.getElementById('admin_pe_new_amount').value = currentDue;
         document.getElementById('admin_pe_remarks').value = '';
 
@@ -1579,6 +1604,7 @@
         const invoiceId = document.getElementById('admin_pe_invoice_id').value;
         const pName = document.getElementById('admin_pe_particular_name').value;
         const currentDue = document.getElementById('admin_pe_current_due').value;
+        const currentPaid = document.getElementById('admin_pe_current_paid').value;
         const newAmount = document.getElementById('admin_pe_new_amount').value;
         const remarks = document.getElementById('admin_pe_remarks').value;
 
@@ -1600,6 +1626,7 @@
                 invoice_id: invoiceId,
                 particular_name: pName,
                 current_due: currentDue,
+                current_paid: currentPaid,
                 new_amount: newAmount,
                 remarks: remarks,
                 position: position,

@@ -73,6 +73,7 @@ Route::get('/sd/tuition', [\App\Http\Controllers\Public\WaiverApplicationControl
 Route::get('/sd/monthly', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('poor_fund.monthly');
 Route::get('/sd/both', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showBoth'])->name('poor_fund.both');
 Route::post('/sd', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store'])->name('poor_fund.store');
+Route::post('/sd/check-duplicate', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'checkDuplicateAjax'])->name('poor_fund.check.duplicate');
 Route::get('/sd/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('poor_fund.success');
 
 // Short Alias routes under /pf (PF)
@@ -85,6 +86,7 @@ Route::get('/pf/tuition', [\App\Http\Controllers\Public\WaiverApplicationControl
 Route::get('/pf/monthly', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showTuition'])->name('pf.monthly');
 Route::get('/pf/both', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'showBoth'])->name('pf.both');
 Route::post('/pf', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store'])->name('pf.store');
+Route::post('/pf/check-duplicate', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'checkDuplicateAjax'])->name('pf.check.duplicate');
 Route::get('/pf/success/{applicationNo}', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'success'])->name('pf.success');
 
 // Backward Compatibility redirects for legacy /poor-fund URLs
@@ -97,6 +99,7 @@ Route::get('/poor-fund/tuition', fn() => redirect()->route('poor_fund.tuition'))
 Route::get('/poor-fund/monthly', fn() => redirect()->route('poor_fund.tuition'));
 Route::get('/poor-fund/both', fn() => redirect()->route('poor_fund.both'));
 Route::post('/poor-fund', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'store']);
+Route::post('/poor-fund/check-duplicate', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'checkDuplicateAjax']);
 Route::get('/poor-fund/success/{applicationNo}', fn($no) => redirect()->route('poor_fund.success', $no));
 
 Route::get('/api/waiver-lookup', [\App\Http\Controllers\Public\WaiverApplicationController::class, 'lookup'])->name('api.waiver-lookup');
