@@ -69,17 +69,33 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($n->channel === 'BOTH')
-                                        <span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe">
-                                            PUSH + EMAIL
+                                    @if($n->channel === 'ALL')
+                                        <span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;font-weight:700;">
+                                            <i class="fa-solid fa-layer-group"></i> ALL (PUSH+EMAIL+SMS)
+                                        </span>
+                                    @elseif($n->channel === 'SMS')
+                                        <span class="badge" style="background:#fdf4ff;color:#a21caf;border:1px solid #f0abfc;font-weight:700;">
+                                            <i class="fa-solid fa-comment-sms"></i> SMS ONLY
+                                        </span>
+                                    @elseif($n->channel === 'PUSH_SMS')
+                                        <span class="badge" style="background:#faf5ff;color:#7e22ce;border:1px solid #e9d5ff;font-weight:700;">
+                                            <i class="fa-solid fa-mobile-screen"></i> PUSH + SMS
+                                        </span>
+                                    @elseif($n->channel === 'EMAIL_SMS')
+                                        <span class="badge" style="background:#ecfeff;color:#0e7490;border:1px solid #a5f3fc;font-weight:700;">
+                                            <i class="fa-solid fa-envelope-circle-check"></i> EMAIL + SMS
+                                        </span>
+                                    @elseif($n->channel === 'BOTH')
+                                        <span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-weight:700;">
+                                            <i class="fa-solid fa-bell"></i> PUSH + EMAIL
                                         </span>
                                     @elseif($n->channel === 'PUSH')
-                                        <span class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a">
-                                            PUSH ONLY
+                                        <span class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;font-weight:700;">
+                                            <i class="fa-solid fa-bell"></i> PUSH ONLY
                                         </span>
                                     @else
-                                        <span class="badge" style="background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0">
-                                            EMAIL ONLY
+                                        <span class="badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;font-weight:700;">
+                                            <i class="fa-solid fa-envelope"></i> EMAIL ONLY
                                         </span>
                                     @endif
                                 </td>
@@ -88,6 +104,11 @@
                                         {{ str_replace('_', ' ', $n->recipient_type) }}
                                     </span>
                                     <div style="font-size:11px;color:#64748b;margin-top:2px;">{{ $n->sent_count }} জন প্রাপক</div>
+                                    @if($n->sms_count > 0 || in_array($n->channel, ['ALL', 'SMS', 'PUSH_SMS', 'EMAIL_SMS']))
+                                        <div style="font-size:10.5px;color:#a21caf;margin-top:2px;font-weight:600;">
+                                            <i class="fa-solid fa-comment-sms"></i> SMS: {{ $n->sms_count ?? 0 }} টি
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($n->status === 'SCHEDULED')
@@ -159,6 +180,19 @@
                     </div>
                     <h3 id="vn_title" style="font-size:16px;font-weight:700;color:#0f172a;margin:4px 0 6px;"></h3>
                     <div style="font-size:12px;color:#64748b" id="vn_meta"></div>
+                    
+                    {{-- Delivery Statistics Breakdown --}}
+                    <div id="vn_delivery_stats" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px dashed #cbd5e1;font-size:12px;">
+                        <span id="vn_stat_push" class="badge" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;">
+                            <i class="fa-solid fa-bell"></i> পুশ ডেলিভারি: <b id="vn_val_push">0</b>
+                        </span>
+                        <span id="vn_stat_email" class="badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;">
+                            <i class="fa-solid fa-envelope"></i> ইমেইল ডেলিভারি: <b id="vn_val_email">0</b>
+                        </span>
+                        <span id="vn_stat_sms" class="badge" style="background:#fdf4ff;color:#a21caf;border:1px solid #f0abfc;">
+                            <i class="fa-solid fa-comment-sms"></i> এসএমএস ডেলিভারি: <b id="vn_val_sms">0</b>
+                        </span>
+                    </div>
                 </div>
 
                 {{-- Banner image if available --}}
@@ -170,6 +204,17 @@
                 <div>
                     <label style="font-weight:600;font-size:13px;color:#334155;margin-bottom:4px;display:block;">নোটিফিকেশন বার্তা (Message Body):</label>
                     <div id="vn_message" style="background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;padding:14px;font-size:14px;color:#1e293b;line-height:1.6;white-space:pre-wrap;max-height:280px;overflow-y:auto;"></div>
+                </div>
+
+                {{-- Dedicated SMS Message Box if applicable --}}
+                <div id="vn_sms_container" style="display:none;background:#fdf4ff;border:1px solid #f0abfc;border-radius:8px;padding:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <label style="font-weight:700;font-size:13px;color:#86198f;display:flex;align-items:center;gap:6px;margin-bottom:0;">
+                            <i class="fa-solid fa-comment-sms"></i> প্রেরিত মোবাইল এসএমএস বার্তা (SMS Message):
+                        </label>
+                        <span id="vn_sms_count_badge" class="badge" style="background:#fae8ff;color:#86198f;font-size:11px;"></span>
+                    </div>
+                    <div id="vn_sms_message" style="background:#ffffff;border:1px solid #f5d0fe;border-radius:6px;padding:10px 12px;font-size:13px;color:#1e293b;line-height:1.6;white-space:pre-wrap;"></div>
                 </div>
 
                 {{-- Action URL button if exists --}}
@@ -206,11 +251,58 @@
                 document.getElementById('vn_message').textContent = n.message;
                 document.getElementById('vn_meta').textContent = `প্রেরক: ${n.sender_name} | প্রাপক: ${n.sent_count} জন (${n.recipient_type}) | তারিখ: ${n.created_at}`;
 
-                // Channel badge
+                // Delivery Stats values
+                document.getElementById('vn_val_push').textContent = n.push_count || 0;
+                document.getElementById('vn_val_email').textContent = n.email_count || 0;
+                document.getElementById('vn_val_sms').textContent = n.sms_count || 0;
+
+                // Channel badge styling
                 const ch = document.getElementById('vn_channel');
                 ch.textContent = n.channel;
-                ch.style.background = n.channel === 'BOTH' ? '#eff6ff' : (n.channel === 'PUSH' ? '#fef3c7' : '#f0fdf4');
-                ch.style.color = n.channel === 'BOTH' ? '#1d4ed8' : (n.channel === 'PUSH' ? '#b45309' : '#15803d');
+                if (n.channel === 'ALL') {
+                    ch.style.background = '#f0fdf4';
+                    ch.style.color = '#15803d';
+                    ch.style.border = '1px solid #bbf7d0';
+                } else if (n.channel === 'SMS') {
+                    ch.style.background = '#fdf4ff';
+                    ch.style.color = '#a21caf';
+                    ch.style.border = '1px solid #f0abfc';
+                } else if (n.channel === 'PUSH_SMS') {
+                    ch.style.background = '#faf5ff';
+                    ch.style.color = '#7e22ce';
+                    ch.style.border = '1px solid #e9d5ff';
+                } else if (n.channel === 'EMAIL_SMS') {
+                    ch.style.background = '#ecfeff';
+                    ch.style.color = '#0e7490';
+                    ch.style.border = '1px solid #a5f3fc';
+                } else if (n.channel === 'BOTH') {
+                    ch.style.background = '#eff6ff';
+                    ch.style.color = '#1d4ed8';
+                    ch.style.border = '1px solid #bfdbfe';
+                } else if (n.channel === 'PUSH') {
+                    ch.style.background = '#fef3c7';
+                    ch.style.color = '#b45309';
+                    ch.style.border = '1px solid #fde68a';
+                } else {
+                    ch.style.background = '#f1f5f9';
+                    ch.style.color = '#334155';
+                    ch.style.border = '1px solid #cbd5e1';
+                }
+
+                // Dedicated SMS container in modal
+                const smsContainer = document.getElementById('vn_sms_container');
+                const smsMessageBox = document.getElementById('vn_sms_message');
+                const smsBadge = document.getElementById('vn_sms_count_badge');
+                const hasSms = ['ALL', 'SMS', 'PUSH_SMS', 'EMAIL_SMS'].includes(n.channel) || (n.sms_count && n.sms_count > 0) || n.sms_message;
+
+                if (hasSms) {
+                    const smsText = n.sms_message || n.message.replace(/<[^>]*>/g, '').trim();
+                    smsMessageBox.textContent = smsText;
+                    smsBadge.textContent = `${n.sms_count || 0} টি এসএমএস প্রেরিত`;
+                    smsContainer.style.display = 'block';
+                } else {
+                    smsContainer.style.display = 'none';
+                }
 
                 // Status badge
                 const st = document.getElementById('vn_status');

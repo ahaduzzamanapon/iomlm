@@ -5,12 +5,51 @@
         <div class="page-header-left">
             <a href="{{ route('admin.notifications.index') }}" style="color:#64748b;text-decoration:none;font-weight:600;font-size:13px">← Back to History</a>
             <h1 style="margin-top:4px">Compose &amp; Send Broadcast Notification</h1>
-            <p>Target specific students, batches, or semesters via Firebase Push Notification and Email</p>
+            <p style="font-family:'Kalpurush',sans-serif;">নির্দিষ্ট শিক্ষার্থী, ব্যাচ বা সেমিস্টারকে পুশ নোটিফিকেশন, ইমেইল এবং মোবাইল এসএমএস এর মাধ্যমে বার্তা পাঠান (Push Notification, Email &amp; SMS Broadcast)</p>
         </div>
     </div>
 
+    <style>
+        .channel-card {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .channel-card:hover {
+            border-color: #0284c7 !important;
+            background: #f0f9ff !important;
+        }
+        .channel-card.active {
+            border-color: #0284c7 !important;
+            background: #f0f9ff !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.12);
+        }
+        .preview-tab-btn {
+            flex: 1;
+            padding: 7px 12px;
+            font-size: 12.5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: 'Kalpurush', sans-serif;
+            transition: all 0.2s ease;
+        }
+    </style>
+
     @if(session('error'))
-        <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:14px 18px;border-radius:10px;margin-bottom:20px;font-weight:600">
+        <div style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:14px 18px;border-radius:10px;margin-bottom:20px;font-weight:600;font-family:'Kalpurush',sans-serif;">
             {{ session('error') }}
         </div>
     @endif
@@ -29,29 +68,95 @@
                     </div>
                     <div class="card-body">
                         <div class="form-group">
-                            <label>Delivery Channel / Medium <span class="required">*</span></label>
-                            <div style="display:flex;gap:16px;margin-top:6px">
-                                <label style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;flex:1">
-                                    <input type="radio" name="channel" value="BOTH" checked>
+                            <label style="font-family:'Kalpurush',sans-serif;font-weight:700;color:#0f172a;font-size:13.5px;">
+                                Delivery Channel / Medium (প্রেরণ মাধ্যম) <span class="required">*</span>
+                            </label>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:10px;margin-top:8px">
+                                
+                                <!-- ALL CHANNELS -->
+                                <label class="channel-card active" id="card_ch_ALL">
+                                    <input type="radio" name="channel" value="ALL" checked onchange="handleChannelChange(this.value)" style="margin-top:3px;accent-color:#0284c7;">
                                     <div>
-                                        <div style="font-weight:700;color:#0f172a">Push + Email</div>
-                                        <div style="font-size:11px;color:#64748b">Send to both devices &amp; inbox</div>
+                                        <div style="font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:6px;">
+                                            <i class="fa-solid fa-layer-group" style="color:#0284c7;"></i> Push + Email + SMS
+                                        </div>
+                                        <div style="font-size:11px;color:#0284c7;margin-top:2px;font-family:'Kalpurush',sans-serif;font-weight:600;">সবগুলো মাধ্যম (সর্বোচ্চ রিচ)</div>
+                                        <div style="font-size:10px;color:#64748b;margin-top:1px;">অ্যাপ, ইনবক্স ও সরাসরি মোবাইল</div>
                                     </div>
                                 </label>
-                                <label style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;flex:1">
-                                    <input type="radio" name="channel" value="PUSH">
+
+                                <!-- SMS ONLY -->
+                                <label class="channel-card" id="card_ch_SMS">
+                                    <input type="radio" name="channel" value="SMS" onchange="handleChannelChange(this.value)" style="margin-top:3px;accent-color:#a21caf;">
                                     <div>
-                                        <div style="font-weight:700;color:#0f172a">Push Only</div>
-                                        <div style="font-size:11px;color:#64748b">Firebase Push Notification</div>
+                                        <div style="font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:6px;">
+                                            <i class="fa-solid fa-comment-sms" style="color:#a21caf;"></i> SMS Only
+                                        </div>
+                                        <div style="font-size:11px;color:#a21caf;margin-top:2px;font-family:'Kalpurush',sans-serif;font-weight:600;">শুধুমাত্র মোবাইল এসএমএস</div>
+                                        <div style="font-size:10px;color:#64748b;margin-top:1px;">MiM SMS গেটওয়ে দ্বারা সরাসরি বার্তা</div>
                                     </div>
                                 </label>
-                                <label style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;flex:1">
-                                    <input type="radio" name="channel" value="EMAIL">
+
+                                <!-- PUSH + EMAIL -->
+                                <label class="channel-card" id="card_ch_BOTH">
+                                    <input type="radio" name="channel" value="BOTH" onchange="handleChannelChange(this.value)" style="margin-top:3px;accent-color:#2563eb;">
                                     <div>
-                                        <div style="font-weight:700;color:#0f172a">Email Only</div>
-                                        <div style="font-size:11px;color:#64748b">SMTP Email Broadcast</div>
+                                        <div style="font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:6px;">
+                                            <i class="fa-solid fa-bell" style="color:#2563eb;"></i> Push + Email
+                                        </div>
+                                        <div style="font-size:11px;color:#2563eb;margin-top:2px;font-family:'Kalpurush',sans-serif;font-weight:600;">পুশ ও ইমেইল</div>
+                                        <div style="font-size:10px;color:#64748b;margin-top:1px;">ডিভাইস নোটিফিকেশন ও ইনবক্স</div>
                                     </div>
                                 </label>
+
+                                <!-- PUSH + SMS -->
+                                <label class="channel-card" id="card_ch_PUSH_SMS">
+                                    <input type="radio" name="channel" value="PUSH_SMS" onchange="handleChannelChange(this.value)" style="margin-top:3px;accent-color:#7e22ce;">
+                                    <div>
+                                        <div style="font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:6px;">
+                                            <i class="fa-solid fa-mobile-screen" style="color:#7e22ce;"></i> Push + SMS
+                                        </div>
+                                        <div style="font-size:11px;color:#7e22ce;margin-top:2px;font-family:'Kalpurush',sans-serif;font-weight:600;">পুশ ও মোবাইল এসএমএস</div>
+                                        <div style="font-size:10px;color:#64748b;margin-top:1px;">অ্যাপ ও বেসিক ফোন উভয়েই</div>
+                                    </div>
+                                </label>
+
+                                <!-- EMAIL + SMS -->
+                                <label class="channel-card" id="card_ch_EMAIL_SMS">
+                                    <input type="radio" name="channel" value="EMAIL_SMS" onchange="handleChannelChange(this.value)" style="margin-top:3px;accent-color:#0e7490;">
+                                    <div>
+                                        <div style="font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:6px;">
+                                            <i class="fa-solid fa-envelope-circle-check" style="color:#0e7490;"></i> Email + SMS
+                                        </div>
+                                        <div style="font-size:11px;color:#0e7490;margin-top:2px;font-family:'Kalpurush',sans-serif;font-weight:600;">ইমেইল ও মোবাইল এসএমএস</div>
+                                        <div style="font-size:10px;color:#64748b;margin-top:1px;">অফিসিয়াল ইনবক্স ও এসএমএস অ্যালার্ট</div>
+                                    </div>
+                                </label>
+
+                                <!-- PUSH ONLY -->
+                                <label class="channel-card" id="card_ch_PUSH">
+                                    <input type="radio" name="channel" value="PUSH" onchange="handleChannelChange(this.value)" style="margin-top:3px;accent-color:#d97706;">
+                                    <div>
+                                        <div style="font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:6px;">
+                                            <i class="fa-solid fa-bell" style="color:#d97706;"></i> Push Only
+                                        </div>
+                                        <div style="font-size:11px;color:#d97706;margin-top:2px;font-family:'Kalpurush',sans-serif;font-weight:600;">শুধুমাত্র পুশ নোটিফিকেশন</div>
+                                        <div style="font-size:10px;color:#64748b;margin-top:1px;">Firebase পুশ নোটিফিকেশন</div>
+                                    </div>
+                                </label>
+
+                                <!-- EMAIL ONLY -->
+                                <label class="channel-card" id="card_ch_EMAIL">
+                                    <input type="radio" name="channel" value="EMAIL" onchange="handleChannelChange(this.value)" style="margin-top:3px;accent-color:#16a34a;">
+                                    <div>
+                                        <div style="font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:6px;">
+                                            <i class="fa-solid fa-envelope" style="color:#16a34a;"></i> Email Only
+                                        </div>
+                                        <div style="font-size:11px;color:#16a34a;margin-top:2px;font-family:'Kalpurush',sans-serif;font-weight:600;">শুধুমাত্র ইমেইল</div>
+                                        <div style="font-size:10px;color:#64748b;margin-top:1px;">SMTP ইমেইল ব্রডকাস্ট</div>
+                                    </div>
+                                </label>
+
                             </div>
                         </div>
 
@@ -207,21 +312,92 @@
                                 placeholder="e.g. https://iom.edu.bd/student/exams or route link">
                             <span class="form-help">Clicking the push notification or email CTA button opens this page.</span>
                         </div>
+                    </div>
+                </div>
 
-                        {{-- Schedule for Later (Optional) --}}
-                        <div class="form-group" style="background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;margin-top:10px;">
-                            <label style="font-weight:600;color:#1e293b;display:flex;align-items:center;gap:6px;">
-                                <i class="fa-solid fa-clock" style="color:#0284c7"></i> ভবিষ্যতে প্রেরণের জন্য শিডিউল করুন (Schedule Broadcast - ঐচ্ছিক)
+                <!-- 3. SMS BROADCAST CONTENT -->
+                <div class="card" id="sms_custom_section" style="border:2px solid #a21caf;transition:all 0.3s ease;">
+                    <div class="card-header" style="background:#fdf4ff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                        <span class="card-title" style="display:flex;align-items:center;gap:8px;font-family:'Kalpurush',sans-serif;font-size:15px;color:#701a75;">
+                            <i class="fa-solid fa-comment-sms" style="color:#a21caf;font-size:17px;"></i> 3. মোবাইল এসএমএস বার্তা কনফিগারেশন (SMS Broadcast Content)
+                        </span>
+                        <span id="sms_channel_indicator" class="badge" style="background:#fdf4ff;color:#a21caf;border:1px solid #f0abfc;font-size:11px;font-family:'Kalpurush',sans-serif;padding:4px 10px;">
+                            <i class="fa-solid fa-circle-check"></i> এসএমএস চ্যানেল সক্রিয়
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div style="background:#eff6ff;border-left:4px solid #0284c7;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:14px;font-family:'Kalpurush',sans-serif;font-size:13px;color:#0369a1;line-height:1.5;">
+                            <i class="fa-solid fa-circle-info"></i> <strong>পরামর্শ:</strong> নির্বাচিত মাধ্যমে মোবাইল এসএমএস অন্তর্ভুক্ত রয়েছে। আপনি চাইলে নিচে পৃথক সংক্ষিপ্ত এসএমএস টেক্সট লিখতে পারেন। যদি এটি ফাঁকা রাখেন, তবে উপরের মূল মেসেজ বডির টেক্সট স্বয়ংক্রিয়ভাবে ক্লিন ফরম্যাটে এসএমএস হিসেবে প্রেরিত হবে।
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+                                <label style="margin-bottom:0;font-weight:700;color:#0f172a;font-family:'Kalpurush',sans-serif;font-size:13.5px;">
+                                    এসএমএস টেক্সট (Custom SMS Text - ঐচ্ছিক)
+                                </label>
+                                <div style="display:flex;gap:6px;">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="copyFromMainMessage()" style="font-family:'Kalpurush',sans-serif;font-size:12px;padding:3px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;">
+                                        <i class="fa-solid fa-copy"></i> মূল মেসেজ থেকে কপি করুন
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSmsMessage()" style="font-family:'Kalpurush',sans-serif;font-size:12px;padding:3px 8px;border-radius:6px;">
+                                        মুছুন
+                                    </button>
+                                </div>
+                            </div>
+
+                            <textarea name="sms_message" id="sms_message_input" class="form-control" rows="4"
+                                placeholder="যেমন: প্রিয় {name}, আপনার অবগতির জন্য জানানো যাচ্ছে যে... (এখানে এসএমএস এর জন্য নির্দিষ্ট টেক্সট লিখুন)"
+                                oninput="updateSmsCharCounter()" style="font-family:'Kalpurush',sans-serif;line-height:1.6;font-size:14px;"></textarea>
+
+                            {{-- Helper Variables Bar for SMS --}}
+                            <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;font-size:12px;color:#64748b;font-family:'Kalpurush',sans-serif;">
+                                <span style="font-weight:600;"><i class="fa-solid fa-code"></i> ভ্যারিয়েবল ট্যাগ:</span>
+                                <button type="button" onclick="insertSmsVariableTag('{name}')" style="background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">{name} (নাম)</button>
+                                <button type="button" onclick="insertSmsVariableTag('{roll}')" style="background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">{roll} (রোল)</button>
+                                <button type="button" onclick="insertSmsVariableTag('{course}')" style="background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">{course} (কোর্স)</button>
+                                <button type="button" onclick="insertSmsVariableTag('{batch}')" style="background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">{batch} (ব্যাচ)</button>
+                                <button type="button" onclick="insertSmsVariableTag('{date}')" style="background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">{date} (তারিখ)</button>
+                            </div>
+
+                            {{-- Live Counter Status Bar --}}
+                            <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 14px;margin-top:10px;font-family:'Kalpurush',sans-serif;font-size:12.5px;flex-wrap:wrap;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span id="sms_lang_badge" class="badge" style="background:#fdf4ff;color:#a21caf;font-weight:700;">বাংলা (Unicode)</span>
+                                    <span id="sms_char_count" style="font-weight:600;color:#0f172a;">০ অক্ষর</span>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span id="sms_parts_count" class="badge" style="background:#dcfce7;color:#166534;font-weight:700;font-size:12px;">১ টি এসএমএস</span>
+                                    <span style="color:#64748b;font-size:11.5px;">(বাংলা: ৭০ অক্ষর/পার্ট, ইংরেজি: ১৬০ অক্ষর/পার্ট)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. SCHEDULE & DISPATCH -->
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title" style="font-family:'Kalpurush',sans-serif;font-size:15px;display:flex;align-items:center;gap:8px;">
+                            <i class="fa-solid fa-clock" style="color:#0284c7;"></i> ৪. শিডিউল ও প্রেরণ (Schedule &amp; Dispatch)
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-weight:600;color:#1e293b;display:flex;align-items:center;gap:6px;font-family:'Kalpurush',sans-serif;">
+                                ভবিষ্যতে প্রেরণের জন্য শিডিউল করুন (Schedule Broadcast - ঐচ্ছিক)
                             </label>
                             <input type="datetime-local" name="scheduled_at" class="form-control" style="margin-top:6px;">
-                            <span class="form-help" style="font-size:11px;color:#64748b">
+                            <span class="form-help" style="font-size:11px;color:#64748b;font-family:'Kalpurush',sans-serif;">
                                 নির্দিষ্ট তারিখ ও সময় নির্বাচন করলে সেই সময়ে নোটিফিকেশনটি স্বয়ংক্রিয়ভাবে প্রেরিত হবে। অবিলম্বে পাঠাতে চাইলে এটি ফাঁকা রাখুন।
                             </span>
                         </div>
                     </div>
-                    <div class="card-footer" style="text-align:right">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            Dispatch / Schedule Broadcast
+                    <div class="card-footer" style="text-align:right;background:#f8fafc;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:12px;color:#64748b;font-family:'Kalpurush',sans-serif;">
+                            <i class="fa-solid fa-shield-halved" style="color:#10b981;"></i> নিরাপদ ব্রডকাস্ট ইঞ্জিন সক্রিয়
+                        </span>
+                        <button type="submit" class="btn btn-primary btn-lg" style="font-family:'Kalpurush',sans-serif;font-weight:700;padding:10px 24px;">
+                            <i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i> ব্রডকাস্ট সম্পন্ন করুন (Dispatch Now)
                         </button>
                     </div>
                 </div>
@@ -232,26 +408,70 @@
             <div>
                 <div style="position:sticky;top:20px">
                     <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">Live Notification Preview</span>
+                        <div class="card-header" style="padding:12px 16px;">
+                            <span class="card-title" style="font-family:'Kalpurush',sans-serif;font-size:14px;display:flex;align-items:center;gap:6px;">
+                                <i class="fa-solid fa-eye" style="color:#0284c7;"></i> লাইভ প্রিভিউ (Live Preview)
+                            </span>
                         </div>
-                        <div class="card-body" style="background:#f8fafc">
-                            <div style="background:#ffffff;border-radius:12px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);border:1px solid #e2e8f0">
-                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-                                    <img src="{{ asset('images/logo.png') }}" style="width:24px;height:24px;object-fit:contain">
-                                    <span style="font-size:12px;font-weight:700;color:#1e293b">IOM Learning Plus</span>
-                                    <span style="margin-left:auto;font-size:10px;color:#94a3b8">now</span>
-                                </div>
-                                <div id="preview_title" style="font-weight:700;font-size:14px;color:#0f172a;margin-bottom:6px">
-                                    Notification Title...
-                                </div>
-                                <div id="preview_body" style="font-size:12px;color:#475569;line-height:1.4;white-space:pre-line">
-                                    Notification body text preview will appear here in real-time as you type.
-                                </div>
-                                <div id="preview_img_box" style="display:none;margin-top:10px">
-                                    <img id="preview_img" src="" style="width:100%;border-radius:8px;max-height:140px;object-fit:cover">
+                        <div class="card-body" style="background:#f8fafc;padding:14px;">
+                            
+                            {{-- Tab Switcher --}}
+                            <div style="display:flex;gap:4px;background:#e2e8f0;padding:3px;border-radius:8px;margin-bottom:14px;">
+                                <button type="button" id="tab_preview_push" class="preview-tab-btn" onclick="switchPreviewTab('push')" style="background:#ffffff;color:#0284c7;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                                    <i class="fa-solid fa-bell"></i> পুশ প্রিভিউ
+                                </button>
+                                <button type="button" id="tab_preview_sms" class="preview-tab-btn" onclick="switchPreviewTab('sms')" style="background:transparent;color:#64748b;font-weight:500;">
+                                    <i class="fa-solid fa-comment-sms"></i> এসএমএস প্রিভিউ
+                                </button>
+                            </div>
+
+                            {{-- 1. PUSH PREVIEW --}}
+                            <div id="push_preview_view" style="display:block;">
+                                <div style="background:#ffffff;border-radius:12px;padding:16px;box-shadow:0 4px 16px rgba(0,0,0,0.08);border:1px solid #e2e8f0">
+                                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                                        <img src="{{ asset('images/logo.png') }}" style="width:24px;height:24px;object-fit:contain">
+                                        <span style="font-size:12px;font-weight:700;color:#1e293b">IOM Learning Plus</span>
+                                        <span style="margin-left:auto;font-size:10px;color:#94a3b8">now</span>
+                                    </div>
+                                    <div id="preview_title" style="font-weight:700;font-size:14px;color:#0f172a;margin-bottom:6px">
+                                        Notification Title...
+                                    </div>
+                                    <div id="preview_body" style="font-size:12px;color:#475569;line-height:1.4;white-space:pre-line">
+                                        Notification body text preview will appear here in real-time as you type.
+                                    </div>
+                                    <div id="preview_img_box" style="display:none;margin-top:10px">
+                                        <img id="preview_img" src="" style="width:100%;border-radius:8px;max-height:140px;object-fit:cover">
+                                    </div>
                                 </div>
                             </div>
+
+                            {{-- 2. SMS PREVIEW (MOBILE PHONE BUBBLE) --}}
+                            <div id="sms_preview_view" style="display:none;font-family:'Kalpurush',sans-serif;">
+                                <div style="background:#ffffff;border-radius:12px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,0.08);border:1px solid #e2e8f0">
+                                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;">
+                                        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg, #a21caf, #701a75);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">
+                                            <i class="fa-solid fa-comment-sms"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight:700;font-size:13px;color:#0f172a;">IOM LMS (MiM SMS)</div>
+                                            <div style="font-size:11px;color:#64748b;">আজকের তারিখ · সরাসরি ইনবক্স</div>
+                                        </div>
+                                    </div>
+                                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px 12px 12px 2px;padding:12px 14px;position:relative;">
+                                        <div id="preview_sms_bubble_text" style="font-size:13px;color:#1e293b;line-height:1.6;white-space:pre-wrap;">
+                                            প্রিয় আব্দুল্লাহ (রোল: ২০২৬০০১), নোটিফিকেশন এসএমএস প্রিভিউ এখানে প্রদর্শিত হবে।
+                                        </div>
+                                        <div style="text-align:right;margin-top:6px;font-size:10px;color:#94a3b8;">
+                                            এখন • SMS
+                                        </div>
+                                    </div>
+                                    <div style="margin-top:12px;background:#f1f5f9;border-radius:6px;padding:6px 10px;font-size:11.5px;color:#475569;display:flex;justify-content:space-between;align-items:center;">
+                                        <span id="preview_sms_calc_chars">০ অক্ষর</span>
+                                        <span id="preview_sms_calc_parts" style="font-weight:700;color:#0f172a;">১ টি এসএমএস পার্ট</span>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                 </div>
@@ -479,6 +699,211 @@
         }
     }
 
+    function handleChannelChange(val) {
+        document.querySelectorAll('.channel-card').forEach(card => {
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio && radio.checked) {
+                card.classList.add('active');
+                card.style.borderColor = '#0284c7';
+                card.style.background = '#f0f9ff';
+            } else {
+                card.classList.remove('active');
+                card.style.borderColor = '#e2e8f0';
+                card.style.background = '#f8fafc';
+            }
+        });
+
+        const smsSection = document.getElementById('sms_custom_section');
+        const smsIndicator = document.getElementById('sms_channel_indicator');
+        const smsTabBtn = document.getElementById('tab_preview_sms');
+        const hasSms = ['ALL', 'SMS', 'PUSH_SMS', 'EMAIL_SMS'].includes(val);
+
+        if (hasSms) {
+            if (smsSection) {
+                smsSection.style.opacity = '1';
+                smsSection.style.borderColor = '#a21caf';
+                smsSection.style.pointerEvents = 'auto';
+            }
+            if (smsIndicator) {
+                smsIndicator.style.background = '#fdf4ff';
+                smsIndicator.style.color = '#a21caf';
+                smsIndicator.style.borderColor = '#f0abfc';
+                smsIndicator.innerHTML = '<i class="fa-solid fa-circle-check"></i> এসএমএস চ্যানেল সক্রিয়';
+            }
+            if (smsTabBtn) smsTabBtn.style.display = 'inline-flex';
+            if (val === 'SMS') {
+                switchPreviewTab('sms');
+            }
+        } else {
+            if (smsSection) {
+                smsSection.style.opacity = '0.55';
+                smsSection.style.borderColor = '#cbd5e1';
+                smsSection.style.pointerEvents = 'none';
+            }
+            if (smsIndicator) {
+                smsIndicator.style.background = '#f1f5f9';
+                smsIndicator.style.color = '#64748b';
+                smsIndicator.style.borderColor = '#cbd5e1';
+                smsIndicator.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> এই চ্যানেলে এসএমএস নিষ্ক্রিয়';
+            }
+            switchPreviewTab('push');
+        }
+
+        updateSmsCharCounter();
+    }
+
+    function switchPreviewTab(tab) {
+        const pushView = document.getElementById('push_preview_view');
+        const smsView  = document.getElementById('sms_preview_view');
+        const pushTab  = document.getElementById('tab_preview_push');
+        const smsTab   = document.getElementById('tab_preview_sms');
+
+        if (tab === 'sms') {
+            if (pushView) pushView.style.display = 'none';
+            if (smsView)  smsView.style.display  = 'block';
+            if (pushTab) {
+                pushTab.style.background = 'transparent';
+                pushTab.style.color = '#64748b';
+                pushTab.style.fontWeight = '500';
+                pushTab.style.boxShadow = 'none';
+            }
+            if (smsTab) {
+                smsTab.style.background = '#ffffff';
+                smsTab.style.color = '#0284c7';
+                smsTab.style.fontWeight = '700';
+                smsTab.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+            }
+        } else {
+            if (pushView) pushView.style.display = 'block';
+            if (smsView)  smsView.style.display  = 'none';
+            if (pushTab) {
+                pushTab.style.background = '#ffffff';
+                pushTab.style.color = '#0284c7';
+                pushTab.style.fontWeight = '700';
+                pushTab.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+            }
+            if (smsTab) {
+                smsTab.style.background = 'transparent';
+                smsTab.style.color = '#64748b';
+                smsTab.style.fontWeight = '500';
+                smsTab.style.boxShadow = 'none';
+            }
+        }
+    }
+
+    function updateSmsCharCounter() {
+        const customSms = document.getElementById('sms_message_input')?.value || '';
+        const mainMessage = document.getElementById('message_input')?.value || '';
+        
+        // Fallback: if custom sms is empty, use main message without html tags
+        const activeText = customSms.trim() ? customSms : mainMessage.replace(/<[^>]*>/g, '').trim();
+
+        // Check if Unicode (contains non-ASCII characters such as Bengali)
+        const isUnicode = /[^\x00-\x7F]/.test(activeText);
+        const charCount = activeText.length;
+
+        let parts = 1;
+        let limitPerPart = isUnicode ? 70 : 160;
+
+        if (isUnicode) {
+            if (charCount > 70) {
+                parts = Math.ceil(charCount / 67);
+                limitPerPart = 67;
+            } else {
+                parts = charCount === 0 ? 1 : Math.ceil(charCount / 70);
+            }
+        } else {
+            if (charCount > 160) {
+                parts = Math.ceil(charCount / 153);
+                limitPerPart = 153;
+            } else {
+                parts = charCount === 0 ? 1 : Math.ceil(charCount / 160);
+            }
+        }
+
+        const langBadge = document.getElementById('sms_lang_badge');
+        const charCountEl = document.getElementById('sms_char_count');
+        const partsCountEl = document.getElementById('sms_parts_count');
+
+        if (langBadge) {
+            langBadge.textContent = isUnicode ? 'বাংলা (Unicode)' : 'ইংরেজি (GSM-7)';
+            langBadge.style.background = isUnicode ? '#fdf4ff' : '#eff6ff';
+            langBadge.style.color = isUnicode ? '#a21caf' : '#1d4ed8';
+        }
+
+        if (charCountEl) {
+            charCountEl.textContent = `${charCount} অক্ষর ${charCount > 0 ? '(প্রতি পার্ট ' + limitPerPart + ')' : ''}`;
+        }
+
+        if (partsCountEl) {
+            partsCountEl.textContent = `${parts} টি এসএমএস`;
+            if (parts === 1) {
+                partsCountEl.style.background = '#dcfce7';
+                partsCountEl.style.color = '#166534';
+            } else if (parts <= 3) {
+                partsCountEl.style.background = '#fef3c7';
+                partsCountEl.style.color = '#92400e';
+            } else {
+                partsCountEl.style.background = '#fee2e2';
+                partsCountEl.style.color = '#b91c1c';
+            }
+        }
+
+        // Update Live SMS Preview Bubble
+        const previewBubble = document.getElementById('preview_sms_bubble_text');
+        if (previewBubble) {
+            if (!activeText) {
+                previewBubble.textContent = 'প্রিয় আব্দুল্লাহ (রোল: ২০২৬০০১), নোটিফিকেশন এসএমএস প্রিভিউ এখানে প্রদর্শিত হবে।';
+            } else {
+                const today = new Date().toLocaleDateString('bn-BD', { day: 'numeric', month: 'short', year: 'numeric' });
+                let previewText = activeText
+                    .replace(/{name}/g, 'আব্দুল্লাহ')
+                    .replace(/{roll}/g, '২০২৬০০১')
+                    .replace(/{course}/g, 'আলিম ১ম বর্ষ')
+                    .replace(/{batch}/g, 'ব্যাচ-০১')
+                    .replace(/{date}/g, today);
+                previewBubble.textContent = previewText;
+            }
+        }
+
+        const previewCalcChars = document.getElementById('preview_sms_calc_chars');
+        const previewCalcParts = document.getElementById('preview_sms_calc_parts');
+        if (previewCalcChars) previewCalcChars.textContent = `${charCount} অক্ষর (${isUnicode ? 'বাংলা' : 'ইংরেজি'})`;
+        if (previewCalcParts) previewCalcParts.textContent = `${parts} টি এসএমএস পার্ট`;
+    }
+
+    function copyFromMainMessage() {
+        const mainMessage = document.getElementById('message_input')?.value || '';
+        const cleanText = mainMessage.replace(/<[^>]*>/g, '').trim();
+        if (!cleanText) {
+            alert('মূল মেসেজ বডিতে কোনো টেক্সট পাওয়া যায়নি।');
+            return;
+        }
+        const smsInput = document.getElementById('sms_message_input');
+        smsInput.value = cleanText;
+        smsInput.focus();
+        updateSmsCharCounter();
+        showTemplateToast('মূল মেসেজ থেকে টেক্সট এসএমএস বক্সে কপি করা হয়েছে!');
+    }
+
+    function clearSmsMessage() {
+        const smsInput = document.getElementById('sms_message_input');
+        smsInput.value = '';
+        updateSmsCharCounter();
+    }
+
+    function insertSmsVariableTag(tag) {
+        const smsInput = document.getElementById('sms_message_input');
+        const start = smsInput.selectionStart || 0;
+        const end   = smsInput.selectionEnd || 0;
+        const val   = smsInput.value;
+
+        smsInput.value = val.substring(0, start) + tag + val.substring(end);
+        smsInput.focus();
+        smsInput.selectionStart = smsInput.selectionEnd = start + tag.length;
+        updateSmsCharCounter();
+    }
+
     function updateLivePreview() {
         const title = document.getElementById('title_input').value;
         const body  = document.getElementById('message_input').value;
@@ -495,7 +920,17 @@
         } else {
             imgBox.style.display = 'none';
         }
+
+        // Also refresh SMS counter & SMS preview
+        updateSmsCharCounter();
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkedRadio = document.querySelector('input[name="channel"]:checked');
+        if (checkedRadio) {
+            handleChannelChange(checkedRadio.value);
+        }
+    });
 
     /* ════ Email Template System Handlers ════ */
     function showTemplateToast(msg) {

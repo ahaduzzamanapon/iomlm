@@ -890,7 +890,7 @@
 
                 {{-- ── 6. Communication ── --}}
                 @if(auth()->user()->canAccess('communication'))
-                    @php $commActive = request()->routeIs('admin.notices*', 'admin.notifications*', 'admin.surveys*', 'admin.email-templates*'); @endphp
+                    @php $commActive = request()->routeIs('admin.notices*', 'admin.notifications*', 'admin.surveys*'); @endphp
                     <div class="tree-group">
                         <div class="tree-toggle {{ $commActive ? 'has-active open' : '' }}" onclick="treeToggle(this)">
                             <i class="fa-solid fa-bullhorn"></i>
@@ -907,11 +907,6 @@
                                 class="nav-item {{ request()->routeIs('admin.notifications*') ? 'active' : '' }}">
                                 <i class="fa-solid fa-paper-plane"></i>
                                 Send Notification
-                            </a>
-                            <a href="{{ route('admin.email-templates.index') }}"
-                                class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
-                                <i class="fa-solid fa-envelope-open-text"></i>
-                                Email Templates (ইমেইল টেমপ্লেট)
                             </a>
                             <a href="{{ route('admin.notices.index') }}"
                                 class="nav-item {{ request()->routeIs('admin.notices*') ? 'active' : '' }}">

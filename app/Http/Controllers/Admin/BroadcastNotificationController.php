@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\UserFcmToken;
 use App\Services\DynamicMailService;
 use App\Services\FirebaseNotificationService;
+use App\Services\SmsService;
 use Illuminate\Http\Request;
 
 class BroadcastNotificationController extends Controller
@@ -34,12 +35,13 @@ class BroadcastNotificationController extends Controller
         return view('admin.notifications.create', compact('students', 'batches', 'courses', 'emailTemplates'));
     }
 
-    public function send(Request $request, DynamicMailService $mailService, FirebaseNotificationService $fcmService)
+    public function send(Request $request, DynamicMailService $mailService, FirebaseNotificationService $fcmService, SmsService $smsService)
     {
         $validated = $request->validate([
             'title'                => 'required|string|max:250',
             'message'              => 'required|string',
-            'channel'              => 'required|in:PUSH,EMAIL,BOTH',
+            'sms_message'          => 'nullable|string|max:1000',
+            'channel'              => 'required|string|in:ALL,BOTH,PUSH,EMAIL,SMS,PUSH_SMS,EMAIL_SMS',
             'recipient_type'       => 'required|in:ALL_STUDENTS,ALL_TEACHERS,SPECIFIC_STUDENT,BATCH_WISE,SEMESTER_WISE',
             'specific_student_id'  => 'nullable|required_if:recipient_type,SPECIFIC_STUDENT|exists:users,id',
             'batch_id'             => 'nullable|required_if:recipient_type,BATCH_WISE|exists:batches,id',
@@ -97,6 +99,10 @@ class BroadcastNotificationController extends Controller
             return back()->withInput()->with('error', 'নির্বাচিত ফিল্টারের জন্য কোনো প্রাপক পাওয়া যায়নি।');
         }
 
+        $shouldSendEmail = in_array($validated['channel'], ['ALL', 'EMAIL', 'BOTH', 'EMAIL_SMS']);
+        $shouldSendPush  = in_array($validated['channel'], ['ALL', 'PUSH', 'BOTH', 'PUSH_SMS']);
+        $shouldSendSms   = in_array($validated['channel'], ['ALL', 'SMS', 'PUSH_SMS', 'EMAIL_SMS']);
+
         // Check if Scheduled for future
         $isScheduled = !empty($validated['scheduled_at']) && \Carbon\Carbon::parse($validated['scheduled_at'])->isFuture();
 
@@ -105,12 +111,16 @@ class BroadcastNotificationController extends Controller
             SentNotification::create([
                 'title'               => $validated['title'],
                 'message'             => $validated['message'],
+                'sms_message'         => $validated['sms_message'] ?? null,
                 'channel'             => $validated['channel'],
                 'recipient_type'      => $validated['recipient_type'],
                 'recipient_filter_id' => $filterId,
                 'image_url'           => $imageUrl,
                 'action_url'          => $validated['action_url'] ?? null,
                 'sent_count'          => $targetUsers->count(),
+                'sms_count'           => 0,
+                'email_count'         => 0,
+                'push_count'          => 0,
                 'sent_by'             => auth()->id(),
                 'scheduled_at'        => $scheduledTime,
                 'status'              => 'SCHEDULED',
@@ -120,12 +130,54 @@ class BroadcastNotificationController extends Controller
                 ->with('success', "✅ নোটিফিকেশন সফলভাবে শিডিউল করা হয়েছে! নির্ধারিত সময়ে (" . $scheduledTime->format('d M Y, h:i A') . ") এটি {$targetUsers->count()} জন প্রাপকের নিকট স্বয়ংক্রিয়ভাবে প্রেরিত হবে।");
         }
 
+        $smsCount   = 0;
         $emailCount = 0;
         $pushCount  = 0;
         $todayStr   = now()->format('d/m/Y');
 
-        // 2. Dispatch Email Notifications
-        if (in_array($validated['channel'], ['EMAIL', 'BOTH'])) {
+        // 2. Dispatch SMS Notifications
+        if ($shouldSendSms) {
+            $sentPhones = [];
+            foreach ($targetUsers as $user) {
+                $rawPhone = $user->student?->phone ?? $user->teacher?->phone ?? $user->phone ?? null;
+                if (empty($rawPhone)) {
+                    continue;
+                }
+
+                $formattedPhone = $smsService->formatBangladeshiPhone($rawPhone);
+                if (!$formattedPhone || isset($sentPhones[$formattedPhone])) {
+                    continue;
+                }
+
+                $uName   = $user->name ?? 'সম্মানিত শিক্ষার্থী';
+                $uRoll   = $user->student->roll_no ?? '';
+                $uCourse = $user->student->batch->course->name ?? '';
+                $uBatch  = $user->student->batch->name ?? '';
+
+                $baseSms = !empty($validated['sms_message'])
+                    ? $validated['sms_message']
+                    : trim(html_entity_decode(strip_tags($validated['message'])));
+
+                $compiledSms = str_replace(
+                    ['{name}', '{roll}', '{course}', '{batch}', '{date}'],
+                    [$uName, $uRoll, $uCourse, $uBatch, $todayStr],
+                    $baseSms
+                );
+
+                try {
+                    $res = $smsService->send($formattedPhone, $compiledSms);
+                    if (!empty($res['success'])) {
+                        $smsCount++;
+                        $sentPhones[$formattedPhone] = true;
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::error("Broadcast SMS dispatch exception to {$formattedPhone}: " . $e->getMessage());
+                }
+            }
+        }
+
+        // 3. Dispatch Email Notifications
+        if ($shouldSendEmail) {
             foreach ($targetUsers as $user) {
                 if (!empty($user->email)) {
                     $uName   = $user->name ?? 'সম্মানিত শিক্ষার্থী';
@@ -152,8 +204,8 @@ class BroadcastNotificationController extends Controller
             }
         }
 
-        // 3. Dispatch Firebase Push Notifications
-        if (in_array($validated['channel'], ['PUSH', 'BOTH'])) {
+        // 4. Dispatch Firebase Push Notifications
+        if ($shouldSendPush) {
             $userIds = $targetUsers->pluck('id');
             $fcmTokens = UserFcmToken::whereIn('user_id', $userIds)->pluck('fcm_token')->toArray();
 
@@ -169,28 +221,36 @@ class BroadcastNotificationController extends Controller
             }
         }
 
-        // 4. Record Audit Log in database
+        // 5. Record Audit Log in database
         SentNotification::create([
             'title'               => $validated['title'],
             'message'             => $validated['message'],
+            'sms_message'         => $validated['sms_message'] ?? null,
             'channel'             => $validated['channel'],
             'recipient_type'      => $validated['recipient_type'],
             'recipient_filter_id' => $filterId,
             'image_url'           => $imageUrl,
             'action_url'          => $validated['action_url'] ?? null,
             'sent_count'          => $targetUsers->count(),
+            'sms_count'           => $smsCount,
+            'email_count'         => $emailCount,
+            'push_count'          => $pushCount,
             'sent_by'             => auth()->id(),
             'scheduled_at'        => now(),
             'status'              => 'SENT',
         ]);
 
-        $summaryMsg = "নোটিফিকেশন সফলভাবে প্রেরিত হয়েছে! প্রাপক: {$targetUsers->count()} জন। ";
-        if (in_array($validated['channel'], ['EMAIL', 'BOTH'])) {
-            $summaryMsg .= "ইমেইল ডেলিভারি: {$emailCount}। ";
+        $summaryParts = ["নোটিফিকেশন সফলভাবে প্রেরিত হয়েছে! মোট প্রাপক: {$targetUsers->count()} জন।"];
+        if ($shouldSendPush) {
+            $summaryParts[] = "পুশ নোটিফিকেশন: {$pushCount}";
         }
-        if (in_array($validated['channel'], ['PUSH', 'BOTH'])) {
-            $summaryMsg .= "পুশ নোটিফিকেশন: {$pushCount}।";
+        if ($shouldSendEmail) {
+            $summaryParts[] = "ইমেইল: {$emailCount}";
         }
+        if ($shouldSendSms) {
+            $summaryParts[] = "এসএমএস ডেলিভারি: {$smsCount}";
+        }
+        $summaryMsg = implode(' • ', $summaryParts);
 
         return redirect()->route('admin.notifications.index')->with('success', $summaryMsg);
     }
@@ -204,11 +264,15 @@ class BroadcastNotificationController extends Controller
             'id'             => $notification->id,
             'title'          => $notification->title,
             'message'        => $notification->message,
+            'sms_message'    => $notification->sms_message,
             'channel'        => $notification->channel,
             'recipient_type' => $notification->recipient_type,
             'image_url'      => $notification->image_url,
             'action_url'     => $notification->action_url,
             'sent_count'     => $notification->sent_count,
+            'sms_count'      => $notification->sms_count ?? 0,
+            'email_count'    => $notification->email_count ?? 0,
+            'push_count'     => $notification->push_count ?? 0,
             'status'         => $notification->status ?? 'SENT',
             'scheduled_at'   => $notification->scheduled_at ? $notification->scheduled_at->format('d M Y, h:i A') : null,
             'created_at'     => $notification->created_at->format('d M Y, h:i A'),
