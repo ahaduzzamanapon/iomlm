@@ -110,7 +110,7 @@
                     <tr><th style="color:var(--text-muted)">Course Interested:</th><td><strong>{{ $admission->interestedCourse->name ?? '—' }}</strong></td></tr>
                     <tr><th style="color:var(--text-muted)">Course Admission Fee:</th><td><strong style="color:#047857;font-size:14px">৳ {{ number_format($admission->interestedCourse->admission_fee ?? 0, 0) }}</strong></td></tr>
                     <tr><th style="color:var(--text-muted)">Academic Session:</th><td>{{ $admission->session->name ?? '—' }}{{ $admission->session && $admission->session->academicYear ? ' (' . $admission->session->academicYear->name . ')' : '' }}</td></tr>
-                    <tr><th style="color:var(--text-muted)">Lead Source / Waiver:</th><td>{{ $admission->lead_source ?? 'Direct' }} (Waiver: {{ $admission->discount_percent ?? 0 }}%)</td></tr>
+                    <tr><th style="color:var(--text-muted)">Lead Source / Waiver:</th><td>{{ $admission->lead_source ?? 'Direct' }} (Waiver: {{ round($admission->effective_discount_percent) }}%)</td></tr>
                 </table>
 
                 @if($admission->waiver_code)
@@ -119,7 +119,13 @@
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
                         <strong style="color:#166534;font-size:14px">Applied Poor Fund Waiver Code: {{ $admission->waiver_code }}</strong>
                         <span class="badge badge-active no-dot">
-                            {{ $admission->discount_type === 'FIXED' ? ('৳'.$admission->discount_amount.' Fixed Discount') : (($admission->discount_percent ?? 0).'% Approved Discount') }}
+                            @if($admission->effective_discount_percent > 0)
+                                {{ round($admission->effective_discount_percent) }}% Approved Discount
+                            @elseif($admission->effective_discount_amount > 0)
+                                ৳{{ number_format($admission->effective_discount_amount, 0) }} Fixed Discount
+                            @else
+                                Approved Waiver
+                            @endif
                         </span>
                     </div>
                     @if($waiverApp)
@@ -136,15 +142,23 @@
                 <div style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--blue);border-bottom:1px solid #dbeafe;padding-bottom:4px;margin-bottom:10px">Accounts & Fee Summary</div>
                 @php 
                     $courseFee = (float)($admission->interestedCourse->admission_fee ?? 0);
-                    $batchFee = ($admission->batch && $admission->batch->admission_fee !== null) ? (float)$admission->batch->admission_fee : $courseFee;
+                    $batchFee = ($admission->batch && (float)$admission->batch->admission_fee > 0) ? (float)$admission->batch->admission_fee : $courseFee;
                     $waiverApp = $admission->waiver_code ? \App\Models\WaiverApplication::where('application_no', $admission->waiver_code)->first() : null;
+                    $effectivePercent = $admission->effective_discount_percent;
+                    $effectiveDiscAmount = $admission->effective_discount_amount;
+
                     if ($waiverApp && $waiverApp->approved_admission_fee !== null && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
-                        $netPayable = min($batchFee, (float) $waiverApp->approved_admission_fee);
-                        $discVal = max(0, $batchFee - $netPayable);
+                        $approvedAdmFee = (float) $waiverApp->approved_admission_fee;
+                        if ($batchFee > 0) {
+                            $netPayable = min($batchFee, $approvedAdmFee);
+                            $discVal = max(0, $batchFee - $netPayable);
+                        } else {
+                            $netPayable = $approvedAdmFee;
+                            $discVal = $effectiveDiscAmount;
+                            $batchFee = $netPayable + $discVal;
+                        }
                     } else {
-                        $discVal = ($admission->discount_type === 'FIXED') 
-                            ? (float)($admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent) 
-                            : round($batchFee * (((float)($admission->discount_percent ?? 0)) / 100), 2);
+                        $discVal = $effectiveDiscAmount;
                         $netPayable = max(0, $batchFee - $discVal);
                     }
                     $invoice = \App\Models\Invoice::where('source_type', \App\Models\AdmissionForm::class)->where('source_id', $admission->id)->first();
@@ -156,10 +170,10 @@
                         <td>
                             -৳ {{ number_format($discVal, 0) }} 
                             @if($waiverApp && $waiverApp->approved_admission_fee !== null)
-                                <span class="badge badge-active no-dot" style="font-size:11px">Approved Waiver Fee</span>
+                                <span class="badge badge-active no-dot" style="font-size:11px">Approved Waiver Fee ({{ round($effectivePercent) }}% Discount)</span>
                             @else
                                 <span class="badge badge-secondary no-dot" style="font-size:11px">
-                                    ({{ $admission->discount_type === 'FIXED' ? 'Fixed Taka Waiver' : ($admission->discount_percent.'% Percentage Waiver') }})
+                                    ({{ $admission->discount_type === 'FIXED' ? 'Fixed ৳'.number_format($discVal, 0).' Waiver' : (round($effectivePercent).'% Percentage Waiver') }})
                                 </span>
                             @endif
                         </td>

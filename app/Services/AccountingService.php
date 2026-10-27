@@ -59,24 +59,32 @@ class AccountingService
                     $q->where('application_no', $wCode)->orWhere('application_no', $altWCode);
                 })
                 ->where('status', 'APPROVED')
-                ->where('is_used', true)
                 ->first();
         }
 
-        // If waiver has explicit admission fee override — use it directly
-        if ($waiverApp && $waiverApp->approved_admission_fee !== null
+        // Determine approved fee directly from admission form or waiver application
+        $approvedFee = null;
+        if ($admission->approved_admission_fee !== null && (float)$admission->approved_admission_fee >= 0) {
+            $approvedFee = (float) $admission->approved_admission_fee;
+        } elseif ($waiverApp && $waiverApp->approved_admission_fee !== null
             && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
-            $approvedFee    = (float) $waiverApp->approved_admission_fee;
-            $discountAmount = max(0, $feeRate - $approvedFee);
-            $payableAmount  = $approvedFee;
+            $approvedFee = (float) $waiverApp->approved_admission_fee;
+        }
+
+        // If waiver or admission form has explicit admission fee override — use it directly
+        if ($approvedFee !== null) {
+            $payableAmount  = min($feeRate, $approvedFee);
+            $discountAmount = max(0, $feeRate - $payableAmount);
         } else {
             // Percentage or fixed discount from admission form
-            $discountAmount = 0.00;
-            if (($admission->discount_type ?? 'PERCENTAGE') === 'FIXED') {
+            $effectiveDisc = (float) ($admission->effective_discount_amount ?? 0);
+            if ($effectiveDisc > 0) {
+                $discountAmount = min($feeRate, $effectiveDisc);
+            } elseif (($admission->discount_type ?? 'PERCENTAGE') === 'FIXED') {
                 $val = $admission->discount_amount > 0 ? $admission->discount_amount : $admission->discount_percent;
                 $discountAmount = min($feeRate, (float)$val);
             } else {
-                $discountPercent = (float)($admission->discount_percent ?? 0);
+                $discountPercent = (float)($admission->effective_discount_percent ?? $admission->discount_percent ?? 0);
                 $discountAmount  = round(($feeRate * $discountPercent) / 100, 2);
             }
             $payableAmount = max(0, $feeRate - $discountAmount);
@@ -85,6 +93,10 @@ class AccountingService
         // Determine Paid, Due, and Status
         if ($paidAmountOverride !== null) {
             $finalPaidAmount = max(0.00, round((float) $paidAmountOverride, 2));
+            // Safeguard: If finalPaidAmount was set to the nominal course fee by mistake but student had an approved waiver fee, cap at payable amount
+            if ($payableAmount > 0 && $finalPaidAmount > $payableAmount && $approvedFee !== null) {
+                $finalPaidAmount = $payableAmount;
+            }
             if ($payableAmount <= 0) {
                 $finalPaidAmount = 0.00;
                 $finalDueAmount  = 0.00;
@@ -481,6 +493,7 @@ class AccountingService
             $feeTitle       = "{$feeLabel} — " . ($course ? $course->name : '') . " ({$targetPackage->name})";
             $discountAmount = 0.00;
         } else {
+                $feeLabel       = ($courseType === 'SUBJECT_BASED') ? 'Course Tuition Fee' : 'Semester Tuition Fee';
                 // Fallback: FeeStructure lookup
                 $feeRate  = (float)(FeeStructure::where('category', 'SEMESTER')
                     ->where(function ($q) use ($enrollment) {

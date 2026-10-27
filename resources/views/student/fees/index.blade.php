@@ -333,7 +333,7 @@
                                     <td style="padding:9px 14px;text-align:center" id="particularDueCell_{{ $p['sl'] }}">
                                         @if($p['is_paid'])
                                             @php
-                                                $dispPaid = ($p['paid_amt'] ?? 0) > 0 ? $p['paid_amt'] : ($p['due'] <= 0 ? ($p['amount'] ?? 0) : 0);
+                                                $dispPaid = ($p['paid_amt'] ?? 0) > 0 ? $p['paid_amt'] : ($p['due'] <= 0 ? ($p['payable_amount'] ?? $p['amount'] ?? 0) : 0);
                                             @endphp
                                             <div style="display:inline-flex;align-items:center;gap:6px">
                                                 <span id="particularDueVal_{{ $p['sl'] }}"

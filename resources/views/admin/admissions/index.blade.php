@@ -381,9 +381,21 @@
                         </td>
                         <td class="td-primary">
                             <strong style="font-size:12px;color:#0f172a">{{ $adm->student->name ?? '—' }}</strong>
-                            <div class="td-muted" style="font-size:10.5px">{{ $adm->student->phone ?? '—' }}</div>
                             @if($adm->waiver_code)
-                                <span class="badge badge-active no-dot" style="font-size:9px;padding:1px 4px;margin-top:1px"><i class="fa-solid fa-gift"></i> {{ $adm->waiver_code }} ({{ $adm->discount_percent }}%)</span>
+                                @php
+                                    $admPct = round($adm->effective_discount_percent);
+                                    $admAmt = $adm->effective_discount_amount;
+                                @endphp
+                                <span class="badge badge-active no-dot" style="font-size:9px;padding:1px 4px;margin-top:1px">
+                                    <i class="fa-solid fa-gift"></i> {{ $adm->waiver_code }} 
+                                    @if($admPct > 0)
+                                        ({{ $admPct }}%)
+                                    @elseif($admAmt > 0)
+                                        (৳{{ number_format($admAmt, 0) }})
+                                    @else
+                                        (Waiver)
+                                    @endif
+                                </span>
                             @endif
                         </td>
                         <td>
@@ -466,7 +478,20 @@
                             <strong style="font-size:12px;color:#0f172a">{{ $pub->student->name ?? '—' }}</strong>
                             <div class="td-muted" style="font-size:10.5px">{{ $pub->student->phone ?? '—' }}</div>
                             @if($pub->waiver_code)
-                                <span class="badge badge-active no-dot" style="font-size:9px;padding:1px 4px;margin-top:1px"><i class="fa-solid fa-gift"></i> {{ $pub->waiver_code }} ({{ $pub->discount_percent }}%)</span>
+                                @php
+                                    $pubPct = round($pub->effective_discount_percent);
+                                    $pubAmt = $pub->effective_discount_amount;
+                                @endphp
+                                <span class="badge badge-active no-dot" style="font-size:9px;padding:1px 4px;margin-top:1px">
+                                    <i class="fa-solid fa-gift"></i> {{ $pub->waiver_code }} 
+                                    @if($pubPct > 0)
+                                        ({{ $pubPct }}%)
+                                    @elseif($pubAmt > 0)
+                                        (৳{{ number_format($pubAmt, 0) }})
+                                    @else
+                                        (Waiver)
+                                    @endif
+                                </span>
                             @endif
                         </td>
                         <td>

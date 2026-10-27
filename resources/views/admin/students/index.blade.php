@@ -308,10 +308,26 @@
             text-align: left;
         }
         .dropdown-menu.open { display: block !important; }
-        .table-wrapper:has(.dropdown-menu.open),
-        .card:has(.dropdown-menu.open),
-        td:has(.dropdown-menu.open) {
-            overflow: visible !important;
+        .table-wrapper {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            width: 100% !important;
+            display: block;
+            position: relative;
+        }
+        .table-wrapper::-webkit-scrollbar {
+            height: 7px;
+        }
+        .table-wrapper::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .table-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
         .dropdown-item {
             display: flex;
@@ -665,7 +681,7 @@
         <!-- Students Table -->
         <div class="card" style="box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);border: 1px solid #e2e8f0;border-radius:14px">
             <div class="table-wrapper">
-                <table style="width:100%;margin-bottom:0">
+                <table style="min-width:1100px;width:100%;margin-bottom:0;border-collapse:collapse">
                     <thead style="background:#f8fafc;border-bottom:1px solid #e2e8f0">
                         <tr>
                             <th style="font-weight:700;color:#334155;padding:14px 16px;white-space:nowrap">স্টুডেন্ট আইডি</th>

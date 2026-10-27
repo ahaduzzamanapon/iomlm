@@ -16,11 +16,6 @@
             padding: 4px 0;
         }
         .dropdown-menu.open { display: block !important; }
-        .table-wrapper:has(.dropdown-menu.open),
-        .card:has(.dropdown-menu.open),
-        td:has(.dropdown-menu.open) {
-            overflow: visible !important;
-        }
     </style>
 
     <div class="page-header">

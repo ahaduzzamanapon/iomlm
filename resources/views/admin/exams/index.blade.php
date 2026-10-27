@@ -17,11 +17,6 @@
             text-align: left;
         }
         .dropdown-menu.open { display: block !important; }
-        .table-wrapper:has(.dropdown-menu.open),
-        .card:has(.dropdown-menu.open),
-        td:has(.dropdown-menu.open) {
-            overflow: visible !important;
-        }
         .dropdown-item {
             display: flex;
             align-items: center;

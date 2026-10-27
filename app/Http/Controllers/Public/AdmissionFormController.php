@@ -14,6 +14,7 @@ use App\Models\Division;
 use App\Models\Enrollment;
 use App\Models\GatewayTransaction;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Religion;
 use App\Models\Student;
 use App\Models\User;
@@ -23,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class AdmissionFormController extends Controller
 {
@@ -343,6 +345,7 @@ class AdmissionFormController extends Controller
         // Check Waiver / Coupon Code
         $discountAmount = 0.0;
         $discountPercent = 0.0;
+        $discountType = 'PERCENTAGE';
         $waiverCode = null;
 
         if ($request->filled('waiver_code')) {
@@ -371,9 +374,12 @@ class AdmissionFormController extends Controller
                     $approvedFee = (float) $waiverApp->approved_admission_fee;
                     $payableAmount = min($baseFee, $approvedFee);
                     $discountAmount = max(0, $baseFee - $payableAmount);
+                    $discountPercent = $baseFee > 0 ? round(($discountAmount / $baseFee) * 100, 2) : 0.0;
+                    $discountType = 'FIXED';
                 } else {
                     $discountPercent = (float) ($waiverApp->approved_discount_percent ?? 0);
                     $discountAmount = round(($baseFee * $discountPercent) / 100, 2);
+                    $discountType = 'PERCENTAGE';
                 }
 
                 $waiverApp->update([
@@ -397,8 +403,10 @@ class AdmissionFormController extends Controller
 
                     if ($coupon->discount_type === 'PERCENT') {
                         $discountPercent = (float) $coupon->discount_amount;
+                        $discountType = 'PERCENTAGE';
                     } else {
                         $discountPercent = $baseFee > 0 ? round(($discountAmount / $baseFee) * 100, 2) : 0;
+                        $discountType = 'FIXED';
                     }
 
                     // Increment coupon usage
@@ -413,6 +421,7 @@ class AdmissionFormController extends Controller
 
         $form->update([
             'waiver_code' => $waiverCode,
+            'discount_type' => $discountType,
             'discount_percent' => $discountPercent,
             'discount_amount' => $discountAmount,
         ]);
@@ -424,7 +433,7 @@ class AdmissionFormController extends Controller
             $submittedTrxId = strtoupper(trim((string)$request->input('manual_trx_id', '')));
             $paymentMethod = trim((string)$request->input('manual_payment_method', ''));
 
-            $request->validate([
+            $validator = Validator::make($request->all(), [
                 'manual_payment_method' => 'required|string|max:50',
                 'manual_sender_phone'   => 'required|string|max:30',
                 'manual_paid_amount'    => 'required|numeric|min:1',
@@ -452,9 +461,15 @@ class AdmissionFormController extends Controller
                         // 2. Prevent duplicate TrxID (Requirement 3)
                         $isDuplicate = AdmissionForm::where('manual_trx_id', $submittedTrxId)
                             ->where('id', '!=', $form->id)
+                            ->where('status', '!=', 'REJECTED')
                             ->exists()
-                            || GatewayTransaction::where('gateway_trx_id', $submittedTrxId)->exists()
-                            || GatewayTransaction::where('tran_id', $submittedTrxId)->exists();
+                            || GatewayTransaction::where(function ($q) use ($submittedTrxId) {
+                                $q->where('gateway_trx_id', $submittedTrxId)->orWhere('tran_id', $submittedTrxId);
+                            })->where('status', 'SUCCESS')->exists()
+                            || Payment::where('transaction_id', $submittedTrxId)
+                                ->where(function ($q) {
+                                    $q->whereNull('status')->orWhere('status', '!=', 'REJECTED');
+                                })->exists();
 
                         if ($isDuplicate) {
                             $fail("এই ট্রাঞ্জেকশন আইডিটি ({$submittedTrxId}) ইতিমধ্যে সিস্টেমে অন্য একটি আবেদনের জন্য ব্যবহৃত হয়েছে। একই TrxID দিয়ে একাধিকবার আবেদন করা যাবে না।");
@@ -470,6 +485,11 @@ class AdmissionFormController extends Controller
                 'manual_paid_amount.numeric'     => 'পরিশোধিত টাকার পরিমাণ অবশ্যই সংখ্যা হতে হবে।',
                 'manual_paid_amount.min'         => 'পরিশোধিত টাকার পরিমাণ কমপক্ষে ১ টাকা হতে হবে।',
             ]);
+
+            if ($validator->fails()) {
+                $firstErr = $validator->errors()->first();
+                return back()->withInput()->withErrors($validator)->with('error', $firstErr);
+            }
 
             $wasTrashed = in_array($form->status, ['TRASH', 'REJECTED']);
             $form->update([
@@ -809,5 +829,47 @@ class AdmissionFormController extends Controller
         }
 
         return response()->json(['exists' => false]);
+    }
+
+    /**
+     * AJAX endpoint to check if a manual transaction ID (TrxID) is duplicate in real-time.
+     */
+    public function checkTrxIdAjax(Request $request)
+    {
+        $trxId = strtoupper(trim((string)$request->input('trx_id', '')));
+        if (!$trxId) {
+            return response()->json(['valid' => false, 'duplicate' => false]);
+        }
+
+        $formId = null;
+        if ($request->filled('application_no')) {
+            $formId = AdmissionForm::where('application_no', $request->input('application_no'))->value('id');
+        } elseif ($request->filled('form_id')) {
+            $formId = (int) $request->input('form_id');
+        }
+
+        $isDuplicate = AdmissionForm::where('manual_trx_id', $trxId)
+            ->when($formId, fn($q) => $q->where('id', '!=', $formId))
+            ->where('status', '!=', 'REJECTED')
+            ->exists()
+            || GatewayTransaction::where(function ($q) use ($trxId) {
+                $q->where('gateway_trx_id', $trxId)->orWhere('tran_id', $trxId);
+            })->where('status', 'SUCCESS')->exists()
+            || Payment::where('transaction_id', $trxId)
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', '!=', 'REJECTED');
+                })->exists();
+
+        if ($isDuplicate) {
+            return response()->json([
+                'duplicate' => true,
+                'message'   => "এই ট্রাঞ্জেকশন আইডিটি ({$trxId}) ইতিমধ্যে সিস্টেমে অন্য একটি আবেদনের জন্য ব্যবহৃত হয়েছে। একই TrxID দিয়ে একাধিকবার আবেদন করা যাবে না।",
+            ]);
+        }
+
+        return response()->json([
+            'duplicate' => false,
+            'message'   => 'সঠিক ও ব্যবহারযোগ্য TrxID।',
+        ]);
     }
 }

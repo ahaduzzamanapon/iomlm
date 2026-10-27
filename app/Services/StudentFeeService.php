@@ -585,55 +585,11 @@ class StudentFeeService
         $selectedSemesterInvoice = null;
 
         if ($selectedSemesterId === 'admission') {
-            $admInv = $admissionInvoices->first();
-            $admDue = (float) $admissionInvoices->sum('due_amount');
-            $admPaid = (float) $admissionInvoices->sum('paid_amount');
-            $admPayable = (float) $admissionInvoices->sum('payable_amount');
-            $pkgAdmItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'admission_fee' || str_contains(mb_strtolower($it->label ?? ''), 'admission'));
-            $nominalAmt = (float) ($admInv?->amount > 0 ? $admInv->amount : ($admPayable > 0 ? $admPayable : ($pkgAdmItem?->amount_per_unit ?: ($course?->admission_fee ?: 1500))));
-
-            $admCustom = $admInv?->custom_particulars['Admission Fee (ভর্তি ফি)'] ?? null;
-            if ($admCustom) {
-                $nominalAmt = isset($admCustom['amount']) ? (float)$admCustom['amount'] : $nominalAmt;
-                $admDue     = (float) $admCustom['due'];
-                $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
+            $admItem = $this->resolveAdmissionFeeItemData($student, $admissionInvoices, $studentFeePackage, $course);
+            if ($admItem) {
+                $step1Particulars[] = array_merge(['sl' => 1, 'is_added' => false], $admItem);
+                $selectedSemesterInvoice = $admissionInvoices->first();
             }
-
-            $actualPmtSum = $admInv ? (float) $admInv->payments()->sum('amount') : 0.0;
-            if ($actualPmtSum > 0) {
-                $admPaid = $actualPmtSum;
-            }
-            $isPaid = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
-            $paidAmt = $admPaid;
-            if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
-                $paidAmt = 0.0;
-            } elseif ($isPaid && $paidAmt <= 0) {
-                $paidAmt = $admPayable > 0 ? $admPayable : $nominalAmt;
-            }
-
-            $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
-            $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
-            $admPaidAt     = $admCustom['paid_at'] ?? ($admPmt?->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : ($admPmt?->created_at ? $admPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null)));
-            $admMethod     = $admCustom['payment_method'] ?? ($admPmt?->payment_method ?? null);
-
-            $step1Particulars[] = [
-                'sl'               => 1,
-                'name'             => 'Admission Fee (ভর্তি ফি)',
-                'amount'           => $nominalAmt,
-                'paid_amt'         => $paidAmt,
-                'due'              => $admDue,
-                'is_paid'          => $isPaid,
-                'is_added'         => false,
-                'invoice_id'       => $admInv?->id,
-                'invoice_no'       => $admInv?->invoice_no,
-                'paid_by_name'     => $admPaidByName,
-                'paid_at'          => $admPaidAt,
-                'payment_method'   => $admMethod,
-                'reverted_by_name' => $admCustom['reverted_by_name'] ?? null,
-                'reverted_at'      => $admCustom['reverted_at'] ?? null,
-                'revert_reason'    => $admCustom['revert_reason'] ?? null,
-            ];
-            $selectedSemesterInvoice = $admInv;
         } elseif ($courseType === 'SEMESTER_BASED') {
             $selectedSemInvoices = collect($invoicesBySemester[$selectedSemesterId] ?? []);
             $selectedSemesterInvoice = $selectedSemInvoices->first();
@@ -666,54 +622,10 @@ class StudentFeeService
 
             // Semester 1: Prepend Admission Fee row
             if (($selectedSemester?->sequence_no ?? 1) == 1) {
-                $admInv = $admissionInvoices->first();
-                $admDue = (float) $admissionInvoices->sum('due_amount');
-                $admPaid = (float) $admissionInvoices->sum('paid_amount');
-                $admPayable = (float) $admissionInvoices->sum('payable_amount');
-                $pkgAdmItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'admission_fee' || str_contains(mb_strtolower($it->label ?? ''), 'admission'));
-                $nominalAmt = (float) ($admInv?->amount > 0 ? $admInv->amount : ($admPayable > 0 ? $admPayable : ($pkgAdmItem?->amount_per_unit ?: ($course?->admission_fee ?: 1500))));
-
-                $admCustom = $admInv?->custom_particulars['Admission Fee (ভর্তি ফি)'] ?? null;
-                if ($admCustom) {
-                    $nominalAmt = isset($admCustom['amount']) ? (float)$admCustom['amount'] : $nominalAmt;
-                    $admDue     = (float) $admCustom['due'];
-                    $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
+                $admItem = $this->resolveAdmissionFeeItemData($student, $admissionInvoices, $studentFeePackage, $course);
+                if ($admItem) {
+                    $templateItems[] = $admItem;
                 }
-
-                $actualPmtSum = $admInv ? (float) $admInv->payments()->sum('amount') : 0.0;
-                if ($actualPmtSum > 0) {
-                    $admPaid = $actualPmtSum;
-                }
-                $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
-                $paidAmt = $admPaid;
-                if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
-                    $paidAmt = 0.0;
-                } elseif ($isPaid && $paidAmt <= 0) {
-                    $paidAmt = $admPayable > 0 ? $admPayable : $nominalAmt;
-                }
-
-                $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
-                $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
-                $admPaidAt     = $admCustom['paid_at'] ?? ($admPmt?->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : ($admPmt?->created_at ? $admPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null)));
-                $admMethod     = $admCustom['payment_method'] ?? ($admPmt?->payment_method ?? null);
-
-                $templateItems[] = [
-                    'name'             => 'Admission Fee (ভর্তি ফি)',
-                    'default_amount'   => $nominalAmt,
-                    'is_admission'     => true,
-                    'adm_amount'       => $nominalAmt,
-                    'adm_paid'         => $paidAmt,
-                    'adm_due'          => $admDue,
-                    'adm_is_paid'      => $isPaid,
-                    'invoice_id'       => $admInv?->id,
-                    'invoice_no'       => $admInv?->invoice_no,
-                    'paid_by_name'     => $admPaidByName,
-                    'paid_at'          => $admPaidAt,
-                    'payment_method'   => $admMethod,
-                    'reverted_by_name' => $admCustom['reverted_by_name'] ?? null,
-                    'reverted_at'      => $admCustom['reverted_at'] ?? null,
-                    'revert_reason'    => $admCustom['revert_reason'] ?? null,
-                ];
             }
 
             // Semester 3: Prepend 1st Annual Fee row
@@ -966,55 +878,9 @@ class StudentFeeService
             $templateItems = [];
 
             // 1. Prepend Admission Fee row
-            $admInv = $admissionInvoices->first();
-            $admDue = (float) $admissionInvoices->sum('due_amount');
-            $admPaid = (float) $admissionInvoices->sum('paid_amount');
-            $admPayable = (float) $admissionInvoices->sum('payable_amount');
-            $pkgAdmItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'admission_fee' || str_contains(mb_strtolower($it->label ?? ''), 'admission'));
-            $nominalAmt = (float) ($admInv?->amount > 0 ? $admInv->amount : ($admPayable > 0 ? $admPayable : ($pkgAdmItem?->amount_per_unit ?: ($course?->admission_fee ?: 0))));
-
-            $admCustom = $admInv?->custom_particulars['Admission Fee (ভর্তি ফি)'] ?? null;
-            if ($admCustom) {
-                $nominalAmt = isset($admCustom['amount']) ? (float)$admCustom['amount'] : $nominalAmt;
-                $admDue     = (float) $admCustom['due'];
-                $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
-            }
-
-            $actualPmtSum = $admInv ? (float) $admInv->payments()->sum('amount') : 0.0;
-            if ($actualPmtSum > 0) {
-                $admPaid = $actualPmtSum;
-            }
-            $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
-            $paidAmt = $admPaid;
-            if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
-                $paidAmt = 0.0;
-            } elseif ($isPaid && $paidAmt <= 0) {
-                $paidAmt = $admPayable > 0 ? $admPayable : $nominalAmt;
-            }
-
-            $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
-            $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
-            $admPaidAt     = $admCustom['paid_at'] ?? ($admPmt?->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : ($admPmt?->created_at ? $admPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null)));
-            $admMethod     = $admCustom['payment_method'] ?? ($admPmt?->payment_method ?? null);
-
-            if ($admInv || $nominalAmt > 0) {
-                $templateItems[] = [
-                    'name'             => 'Admission Fee (ভর্তি ফি)',
-                    'default_amount'   => $nominalAmt,
-                    'is_admission'     => true,
-                    'adm_amount'       => $nominalAmt,
-                    'adm_paid'         => $paidAmt,
-                    'adm_due'          => $admDue,
-                    'adm_is_paid'      => $isPaid,
-                    'invoice_id'       => $admInv?->id,
-                    'invoice_no'       => $admInv?->invoice_no,
-                    'paid_by_name'     => $admPaidByName,
-                    'paid_at'          => $admPaidAt,
-                    'payment_method'   => $admMethod,
-                    'reverted_by_name' => $admCustom['reverted_by_name'] ?? null,
-                    'reverted_at'      => $admCustom['reverted_at'] ?? null,
-                    'revert_reason'    => $admCustom['revert_reason'] ?? null,
-                ];
+            $admItem = $this->resolveAdmissionFeeItemData($student, $admissionInvoices, $studentFeePackage, $course);
+            if ($admItem) {
+                $templateItems[] = $admItem;
             }
 
             // 2. Resolve Monthly Tuition Rate & Term Fees from Student Fee Package / Course
@@ -1738,13 +1604,19 @@ class StudentFeeService
         }
 
         // 3. User intention handling:
-        // If admin sets 0 OR sets an amount matching currentPaid -> remaining due is waived (Due = 0, is_paid = true)
-        $finalDue = $newDue;
-        if ($newDue == 0.0 || ($currentPaid > 0 && abs($newDue - $currentPaid) < 0.01)) {
+        // If row is already paid (oldDue <= 0 and currentPaid > 0) and admin enters a new amount:
+        // they are adjusting the paid amount (e.g. from 1500 to 700)
+        if ($oldDue <= 0 && $currentPaid > 0 && $newDue > 0 && abs($newDue - $currentPaid) >= 0.01) {
+            $currentPaid = $newDue;
             $finalDue = 0.0;
+            $diff = 0.0;
+        } elseif ($newDue == 0.0 || ($currentPaid > 0 && abs($newDue - $currentPaid) < 0.01)) {
+            $finalDue = 0.0;
+            $diff = $finalDue - $oldDue;
+        } else {
+            $finalDue = $newDue;
+            $diff = $finalDue - $oldDue;
         }
-
-        $diff = $finalDue - $oldDue;
 
         // Total nominal amount for this particular
         $origAmt = isset($custom[$pName]['amount']) ? (float)$custom[$pName]['amount'] : ($oldDue + $currentPaid);
@@ -2335,4 +2207,114 @@ class StudentFeeService
             'invoice'     => $invoice->fresh(),
         ];
     }
+
+    /**
+     * Resolves the Admission Fee item data with full Poor Fund / Waiver awareness,
+     * ensuring that if a student paid a discounted/approved fee (e.g. 700 Tk),
+     * it accurately shows 700 as paid and 1,500 as the original nominal fee.
+     */
+    private function resolveAdmissionFeeItemData($student, $admissionInvoices, $studentFeePackage, $course): ?array
+    {
+        $admInv = $admissionInvoices->first();
+        $admDue = (float) $admissionInvoices->sum('due_amount');
+        $admPaid = (float) $admissionInvoices->sum('paid_amount');
+        $admPayable = (float) $admissionInvoices->sum('payable_amount');
+        $pkgAdmItem = $studentFeePackage?->items?->first(fn($it) => $it->feeHead?->slug === 'admission_fee' || str_contains(mb_strtolower($it->label ?? ''), 'admission'));
+        $courseAdmFee = (float) ($course?->admission_fee ?: ($pkgAdmItem?->amount_per_unit ?: 1500));
+        $nominalAmt = (float) ($admInv?->amount > 0 ? $admInv->amount : ($courseAdmFee > 0 ? $courseAdmFee : 1500));
+
+        // 1. Check student's AdmissionForm & WaiverApplication for poor fund / approved fee
+        $linkedAdm = $student->admissionForm ?? \App\Models\AdmissionForm::where('student_id', $student->id)->latest()->first();
+        $waiverApprovedFee = null;
+        if ($linkedAdm) {
+            if ($linkedAdm->approved_admission_fee !== null && (float)$linkedAdm->approved_admission_fee >= 0) {
+                $waiverApprovedFee = (float) $linkedAdm->approved_admission_fee;
+            } elseif ($linkedAdm->waiver_code) {
+                $wCode = $linkedAdm->waiver_code;
+                $altWCode = str_starts_with($wCode, 'PF-')
+                    ? str_replace('PF-', 'POOR-', $wCode)
+                    : (str_starts_with($wCode, 'POOR-') ? str_replace('POOR-', 'PF-', $wCode) : $wCode);
+                $wApp = \App\Models\WaiverApplication::where(function ($q) use ($wCode, $altWCode) {
+                        $q->where('application_no', $wCode)->orWhere('application_no', $altWCode);
+                    })
+                    ->where('status', 'APPROVED')
+                    ->whereIn('apply_for', ['ADMISSION_FEE', 'BOTH'])
+                    ->whereNotNull('approved_admission_fee')
+                    ->first();
+                if ($wApp) {
+                    $waiverApprovedFee = (float) $wApp->approved_admission_fee;
+                }
+            }
+        }
+
+        // If approved fee is less than nominal, ensure nominalAmt represents the full base fee (1500)
+        if ($waiverApprovedFee !== null && $waiverApprovedFee < $courseAdmFee && $courseAdmFee > 0) {
+            $nominalAmt = $courseAdmFee;
+        }
+
+        // 2. Custom Particulars override
+        $admCustom = $admInv?->custom_particulars['Admission Fee (ভর্তি ফি)'] ?? null;
+        if ($admCustom) {
+            $nominalAmt = isset($admCustom['amount']) ? (float)$admCustom['amount'] : $nominalAmt;
+            $admDue     = (float) $admCustom['due'];
+            $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
+        }
+
+        // 3. Payments lookup
+        $actualPmtSum = $admInv ? (float) $admInv->payments()->where('status', 'APPROVED')->sum('amount') : 0.0;
+        if ($actualPmtSum > 0 && !$admCustom) {
+            $admPaid = $actualPmtSum;
+        }
+
+        // 4. Poor fund safeguard: If invoice recorded full nominal 1500 as paid/payable by mistake,
+        // but student only paid/was approved for waiverApprovedFee (e.g. 700):
+        if ($waiverApprovedFee !== null && $waiverApprovedFee > 0 && !$admCustom) {
+            $manualPaid = $linkedAdm ? (float)($linkedAdm->manual_paid_amount ?? 0) : 0;
+            if ($manualPaid > 0 && abs($manualPaid - $waiverApprovedFee) < 0.01) {
+                $admPaid = $manualPaid;
+            } elseif ($admPaid >= $nominalAmt && $nominalAmt > $waiverApprovedFee) {
+                // If invoice or payment recorded 1500, cap admPaid to approved fee
+                $admPaid = $waiverApprovedFee;
+            }
+            if ($admPayable > $waiverApprovedFee) {
+                $admPayable = $waiverApprovedFee;
+            }
+        }
+
+        $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
+        $paidAmt = $admPaid;
+        if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
+            $paidAmt = 0.0;
+        } elseif ($isPaid && $paidAmt <= 0) {
+            $paidAmt = $admPayable > 0 ? $admPayable : ($waiverApprovedFee ?: $nominalAmt);
+        }
+
+        $admPmt = $admInv?->payments()->with('receivedBy')->latest()->first();
+        $admPaidByName = $admCustom['paid_by_name'] ?? ($admPmt?->receivedBy?->name ?? ($isPaid ? ($student->user?->name ?? 'শিক্ষার্থী (অনলাইন)') : null));
+        $admPaidAt     = $admCustom['paid_at'] ?? ($admPmt?->paid_at ? $admPmt->paid_at->format('d M Y, h:i A') : ($admPmt?->created_at ? $admPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null)));
+        $admMethod     = $admCustom['payment_method'] ?? ($admPmt?->payment_method ?? null);
+
+        if (!$admInv && $nominalAmt <= 0) {
+            return null;
+        }
+
+        return [
+            'name'             => 'Admission Fee (ভর্তি ফি)',
+            'default_amount'   => $nominalAmt,
+            'is_admission'     => true,
+            'adm_amount'       => $nominalAmt,
+            'adm_paid'         => $paidAmt,
+            'adm_due'          => $admDue,
+            'adm_is_paid'      => $isPaid,
+            'invoice_id'       => $admInv?->id,
+            'invoice_no'       => $admInv?->invoice_no,
+            'paid_by_name'     => $admPaidByName,
+            'paid_at'          => $admPaidAt,
+            'payment_method'   => $admMethod,
+            'reverted_by_name' => $admCustom['reverted_by_name'] ?? null,
+            'reverted_at'      => $admCustom['reverted_at'] ?? null,
+            'revert_reason'    => $admCustom['revert_reason'] ?? null,
+        ];
+    }
 }
+

@@ -375,9 +375,30 @@
         </div>
     </div>
 
-    @if(session('error'))
-    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#991b1b">
-        <i class="fa-solid fa-circle-exclamation"></i> {{ session('error') }}
+    @php
+        $hasErrors = isset($errors) && $errors instanceof \Illuminate\Support\ViewErrorBag && $errors->any();
+        $hasTrxError = isset($errors) && $errors instanceof \Illuminate\Support\ViewErrorBag && $errors->has('manual_trx_id');
+        $trxErrorMessage = $hasTrxError ? $errors->first('manual_trx_id') : '';
+    @endphp
+
+    @if(session('error') || $hasErrors)
+    <div style="background:#fef2f2;border:1.5px solid #ef4444;border-radius:10px;padding:14px 18px;margin-bottom:20px;font-size:14px;color:#991b1b;box-shadow:0 4px 6px -1px rgba(239,68,68,0.1);font-family:'Kalpurush',sans-serif">
+        <div style="font-weight:700;display:flex;align-items:center;gap:8px;font-size:15px;color:#b91c1c;margin-bottom:4px">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:18px;color:#dc2626"></i>
+            <span>পেমেন্ট তথ্য যাচাইকরণে ত্রুটি হয়েছে:</span>
+        </div>
+        <div style="padding-left:26px;line-height:1.6">
+            @if(session('error'))
+                <div style="font-weight:700">{{ session('error') }}</div>
+            @endif
+            @if($hasErrors)
+                @foreach($errors->all() as $err)
+                    @if(!session('error') || $err !== session('error'))
+                        <div>• {{ $err }}</div>
+                    @endif
+                @endforeach
+            @endif
+        </div>
     </div>
     @endif
 
@@ -447,7 +468,7 @@
                     <span>৳ <span id="summary-base-fee">{{ number_format($baseFee, 2) }}</span></span>
                 </div>
                 <div class="fee-row" id="summary-discount-row" style="{{ $discountAmount > 0 ? 'display:flex;' : 'display:none;' }}color:#047857">
-                    <span>কুপন / স্কলারশিপ ছাড়:</span>
+                    <span><span id="summary-discount-label">কুপন / স্কলারশিপ ছাড়{{ $form->effective_discount_percent > 0 ? ' (' . round($form->effective_discount_percent) . '%)' : '' }}</span>:</span>
                     <span>- ৳ <span id="summary-discount-fee">{{ number_format($discountAmount, 2) }}</span></span>
                 </div>
                 <div class="fee-row total-row">
@@ -498,9 +519,9 @@
                     @endif
 
                     {{-- Prior Merchant Payment Option --}}
-                    <label class="payment-card {{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) ? 'selected' : '' }}" onclick="selectGatewayCard(this)" id="card-gateway-manual">
+                    <label class="payment-card {{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) || $hasErrors ? 'selected' : '' }}" onclick="selectGatewayCard(this)" id="card-gateway-manual">
                         <input type="radio" name="payment_gateway" value="manual" id="radio-gateway-manual"
-                               {{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) ? 'checked' : '' }}>
+                               {{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) || $hasErrors ? 'checked' : '' }}>
                         <div style="flex:1">
                             <div class="gateway-header">
                                 <span style="font-weight:700;color:#047857;display:flex;align-items:center;gap:6px;font-size:14px">
@@ -516,7 +537,7 @@
                 </div>
 
                 {{-- Manual Merchant Payment Fields --}}
-                <div id="manual-payment-details" style="{{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) ? 'display:block;' : 'display:none;' }}background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:16px;margin-top:14px;font-family:'Kalpurush',sans-serif">
+                <div id="manual-payment-details" style="{{ old('payment_gateway') === 'manual' || (!$sslActive && !$bkashActive) || $hasErrors ? 'display:block;' : 'display:none;' }}background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:16px;margin-top:14px;font-family:'Kalpurush',sans-serif">
                     {{-- Prominent bKash Merchant Banner (Requirement 1) --}}
                     <div style="background:#ffffff;border:1.5px dashed #059669;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
                         <div style="display:flex;align-items:center;gap:10px">
@@ -584,10 +605,14 @@
                             </label>
                             <input type="text" name="manual_trx_id" id="manual_trx_id" value="{{ old('manual_trx_id') }}" placeholder="যেমন: BD74J9K2L1"
                                    maxlength="10" autocomplete="off"
-                                   style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:14px;font-family:monospace;font-weight:700;background:#fff;text-transform:uppercase"
+                                   style="width:100%;padding:8px 10px;border:{{ $hasTrxError ? '1.5px solid #dc2626' : '1px solid #cbd5e1' }};border-radius:6px;font-size:14px;font-family:monospace;font-weight:700;background:{{ $hasTrxError ? '#fef2f2' : '#fff' }};text-transform:uppercase"
                                    oninput="handleTrxInput(this)">
-                            <div id="trx-counter-msg" style="font-size:11px;margin-top:3px;font-weight:600;color:#64748b">
-                                বিকাশ TrxID অবশ্যই ঠিক ১০ ডিজিট/অক্ষরের হতে হবে।
+                            <div id="trx-counter-msg" style="font-size:11.5px;margin-top:4px;font-weight:600;color:{{ $hasTrxError ? '#dc2626' : '#64748b' }};line-height:1.5">
+                                @if($hasTrxError)
+                                    <i class="fa-solid fa-triangle-exclamation"></i> {{ $trxErrorMessage }}
+                                @else
+                                    বিকাশ TrxID অবশ্যই ঠিক ১০ ডিজিট/অক্ষরের হতে হবে।
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -626,7 +651,7 @@ let currentBaseFee = {{ (float)$baseFee }};
 let currentDiscountAmount = {{ (float)$discountAmount }};
 let waiverApprovedFee = null;
 let couponFixedDiscount = 0;
-let currentDiscountPercent = {{ (float)($form->discount_percent ?? 0) }};
+let currentDiscountPercent = {{ (float)($form->effective_discount_percent ?? $form->discount_percent ?? 0) }};
 
 function selectGatewayCard(cardElement) {
     document.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
@@ -682,8 +707,9 @@ function applyWaiverCode() {
                 } else if (data.approved_admission_fee !== null && (data.apply_for === 'ADMISSION_FEE' || data.apply_for === 'BOTH')) {
                     couponFixedDiscount = 0;
                     waiverApprovedFee = parseFloat(data.approved_admission_fee);
-                    currentDiscountPercent = 0;
-                    info += ` (নির্ধারিত ভর্তি ফি: ৳${waiverApprovedFee})`;
+                    const calcDisc = Math.max(0, currentBaseFee - waiverApprovedFee);
+                    currentDiscountPercent = currentBaseFee > 0 ? Math.round((calcDisc / currentBaseFee) * 100) : 0;
+                    info += ` (নির্ধারিত ভর্তি ফি: ৳${waiverApprovedFee}${currentDiscountPercent > 0 ? ', ' + currentDiscountPercent + '% ছাড়' : ''})`;
                 } else if (data.discount_percent > 0) {
                     couponFixedDiscount = 0;
                     waiverApprovedFee = null;
@@ -727,6 +753,9 @@ function updateFees() {
     if (currentDiscountAmount > 0) {
         discountRow.style.display = 'flex';
         document.getElementById('summary-discount-fee').innerText = currentDiscountAmount.toFixed(2);
+        const percentText = currentDiscountPercent > 0 ? ` (${Math.round(currentDiscountPercent)}%)` : '';
+        const discLabel = document.getElementById('summary-discount-label');
+        if (discLabel) discLabel.innerText = 'কুপন / স্কলারশিপ ছাড়' + percentText;
     } else {
         discountRow.style.display = 'none';
     }
@@ -763,6 +792,11 @@ function copyMerchantNumber(btn) {
     });
 }
 
+let isTrxDuplicate = {{ $hasTrxError ? 'true' : 'false' }};
+let trxCheckTimeout = null;
+let lastCheckedTrxVal = '';
+const currentApplicationNo = '{{ $form->application_no }}';
+
 function handlePaymentMethodChange() {
     const methodSelect = document.getElementById('manual_payment_method');
     const method = methodSelect ? methodSelect.value : 'bKash';
@@ -777,7 +811,7 @@ function handlePaymentMethodChange() {
     }
 }
 
-function handleTrxInput(input) {
+function handleTrxInput(input, fromInit = false) {
     if (!input) return;
     input.value = input.value.toUpperCase().replace(/\s+/g, '');
     const methodSelect = document.getElementById('manual_payment_method');
@@ -787,45 +821,103 @@ function handleTrxInput(input) {
 
     if (!msg) return;
 
+    if (trxCheckTimeout) {
+        clearTimeout(trxCheckTimeout);
+        trxCheckTimeout = null;
+    }
+
+    // Preserve initial server error if unchanged
+    if (fromInit && isTrxDuplicate) {
+        input.style.borderColor = '#dc2626';
+        input.style.background = '#fef2f2';
+        return;
+    }
+
     if (method === 'bKash') {
         const len = val.length;
         if (len === 0) {
+            isTrxDuplicate = false;
             msg.style.color = '#64748b';
             msg.innerHTML = 'বিকাশ TrxID অবশ্যই ঠিক ১০ ডিজিট/অক্ষরের হতে হবে।';
             input.style.borderColor = '#cbd5e1';
+            input.style.background = '#fff';
         } else if (len === 10) {
             if (/^[A-Z0-9]{10}$/.test(val)) {
-                msg.style.color = '#047857';
-                msg.innerHTML = '✓ সঠিক ১০ ডিজিটের বিকাশ TrxID (১০/১০)';
-                input.style.borderColor = '#059669';
+                checkTrxDuplicateAjax(val, input, msg);
             } else {
+                isTrxDuplicate = false;
                 msg.style.color = '#dc2626';
                 msg.innerHTML = '⚠ TrxID-তে শুধুমাত্র ইংরেজি বড় অক্ষর ও সংখ্যা দিন।';
                 input.style.borderColor = '#dc2626';
+                input.style.background = '#fef2f2';
             }
         } else {
+            isTrxDuplicate = false;
             msg.style.color = '#dc2626';
             msg.innerHTML = `⚠ বিকাশ TrxID অবশ্যই ১০ অক্ষরের হতে হবে (বর্তমানে ${len}/১০)।`;
             input.style.borderColor = '#dc2626';
+            input.style.background = '#fff';
         }
     } else {
         if (val.length >= 6) {
-            msg.style.color = '#047857';
-            msg.innerHTML = `✓ ট্রাঞ্জেকশন আইডি (${val.length} অক্ষর)`;
-            input.style.borderColor = '#059669';
+            checkTrxDuplicateAjax(val, input, msg);
         } else {
+            isTrxDuplicate = false;
             msg.style.color = '#64748b';
             msg.innerHTML = 'পেমেন্ট নিশ্চিতকরণের এসএমএস থেকে প্রাপ্ত TrxID প্রদান করুন।';
             input.style.borderColor = '#cbd5e1';
+            input.style.background = '#fff';
         }
     }
+}
+
+function checkTrxDuplicateAjax(val, input, msg) {
+    if (lastCheckedTrxVal === val && !isTrxDuplicate) {
+        msg.style.color = '#047857';
+        msg.innerHTML = '✓ সঠিক ও ব্যবহারযোগ্য বিকাশ TrxID (১০/১০)';
+        input.style.borderColor = '#059669';
+        input.style.background = '#fff';
+        return;
+    }
+
+    msg.style.color = '#0284c7';
+    msg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ট্রাঞ্জেকশন আইডি যাচাই করা হচ্ছে...';
+    input.style.borderColor = '#0284c7';
+
+    trxCheckTimeout = setTimeout(() => {
+        fetch(`/apply/check-trx-id?trx_id=${encodeURIComponent(val)}&application_no=${encodeURIComponent(currentApplicationNo)}`)
+            .then(res => res.json())
+            .then(data => {
+                lastCheckedTrxVal = val;
+                if (data.duplicate) {
+                    isTrxDuplicate = true;
+                    msg.style.color = '#dc2626';
+                    msg.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>সতর্কতা:</strong> ${data.message}`;
+                    input.style.borderColor = '#dc2626';
+                    input.style.background = '#fef2f2';
+                } else {
+                    isTrxDuplicate = false;
+                    msg.style.color = '#047857';
+                    msg.innerHTML = '✓ সঠিক ও ব্যবহারযোগ্য বিকাশ TrxID (১০/১০)';
+                    input.style.borderColor = '#059669';
+                    input.style.background = '#fff';
+                }
+            })
+            .catch(() => {
+                isTrxDuplicate = false;
+                msg.style.color = '#047857';
+                msg.innerHTML = '✓ সঠিক ১০ ডিজিটের বিকাশ TrxID (১০/১০)';
+                input.style.borderColor = '#059669';
+                input.style.background = '#fff';
+            });
+    }, 250);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     const paymentForm = document.getElementById('paymentForm');
     const trxInput = document.getElementById('manual_trx_id');
     if (trxInput) {
-        handleTrxInput(trxInput);
+        handleTrxInput(trxInput, true);
     }
 
     if (paymentForm) {
@@ -867,6 +959,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (!trxVal) {
                     e.preventDefault();
                     alert('অনুগ্রহ করে ট্রাঞ্জেকশন আইডি (TrxID) প্রদান করুন।');
+                    document.getElementById('manual_trx_id').focus();
+                    return false;
+                }
+
+                if (isTrxDuplicate) {
+                    e.preventDefault();
+                    alert(`সতর্কতা: এই ট্রাঞ্জেকশন আইডিটি (${trxVal}) ইতিমধ্যে অন্য একটি আবেদনে ব্যবহৃত হয়েছে!\n\nএকই TrxID একাধিকবার ব্যবহার করা যাবে না। অনুগ্রহ করে আপনার নতুন ও সঠিক TrxID দিন।`);
                     document.getElementById('manual_trx_id').focus();
                     return false;
                 }

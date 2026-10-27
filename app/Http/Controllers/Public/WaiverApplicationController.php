@@ -309,7 +309,8 @@ class WaiverApplicationController extends Controller
             }
         }
 
-        $targetCourseId = $request->query('course_id');
+        $targetCourseId = $request->query('course_id') ?: $app->course_id;
+        $targetCourse = null;
         if ($targetCourseId) {
             $targetCourse = \App\Models\Course::find($targetCourseId);
             if ($targetCourse && !$targetCourse->is_poor_fund_applicable) {
@@ -321,11 +322,20 @@ class WaiverApplicationController extends Controller
             }
         }
 
+        // Calculate effective discount percent if approved_admission_fee is set
+        $calcDiscountPercent = (float) ($app->approved_discount_percent ?? 0);
+        if ($targetCourse && $app->approved_admission_fee !== null) {
+            $baseCourseFee = (float) ($targetCourse->admission_fee ?? 0);
+            if ($baseCourseFee > 0 && $baseCourseFee > (float) $app->approved_admission_fee) {
+                $calcDiscountPercent = round((($baseCourseFee - (float) $app->approved_admission_fee) / $baseCourseFee) * 100, 2);
+            }
+        }
+
         // Build approval message based on apply_for type
         $applyFor = $app->apply_for ?? 'BOTH';
         $msgParts = [];
         if (in_array($applyFor, ['ADMISSION_FEE', 'BOTH']) && $app->approved_admission_fee !== null) {
-            $msgParts[] = 'ভর্তি ফি: ৳' . number_format($app->approved_admission_fee, 0);
+            $msgParts[] = 'ভর্তি ফি: ৳' . number_format($app->approved_admission_fee, 0) . ($calcDiscountPercent > 0 ? " ({$calcDiscountPercent}% ছাড়)" : '');
         }
         if (in_array($applyFor, ['TUITION_FEE', 'BOTH']) && $app->approved_package_id) {
             $pkg = \App\Models\CourseFeePackage::find($app->approved_package_id);
@@ -342,10 +352,11 @@ class WaiverApplicationController extends Controller
             'application_no'            => $app->application_no,
             'approved_admission_fee'    => $app->approved_admission_fee,
             'approved_package_id'       => $app->approved_package_id,
-            // Legacy fields (kept for backward compat with apply form)
+            // Legacy & computed fields (kept for backward compat with apply form)
             'discount_type'             => $app->discount_type ?? 'PERCENTAGE',
             'approved_discount_value'   => $app->approved_discount_value ?? 0,
-            'approved_discount_percent' => $app->approved_discount_percent ?? 0,
+            'approved_discount_percent' => $calcDiscountPercent,
+            'discount_percent'          => $calcDiscountPercent,
             'full_name'                 => $app->full_name,
             'email'                     => $app->email,
             'phone'                     => $app->phone,

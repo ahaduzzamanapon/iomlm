@@ -1466,24 +1466,88 @@
         }
 
         function toggleDropdown(id) {
-            const m = document.getElementById(id), open = m.classList.contains('open');
-            document.querySelectorAll('.dropdown-menu.open').forEach(x => x.classList.remove('open'));
+            const m = document.getElementById(id);
+            if (!m) return;
+            const open = m.classList.contains('open');
+            document.querySelectorAll('.dropdown-menu.open').forEach(x => {
+                x.classList.remove('open');
+                x.style.position = '';
+                x.style.top = '';
+                x.style.left = '';
+                x.style.bottom = '';
+                x.style.right = '';
+                x.style.zIndex = '';
+            });
+
             if (!open) {
                 m.classList.add('open');
-                const rect = m.getBoundingClientRect();
-                const winHeight = window.innerHeight || document.documentElement.clientHeight;
-                if (rect.bottom > winHeight - 10 && rect.top > rect.height) {
-                    m.style.top = 'auto';
-                    m.style.bottom = 'calc(100% + 6px)';
+                const inTable = m.closest('.table-wrapper') || m.closest('table');
+                const btn = m.closest('.dropdown')?.querySelector('button') || m.previousElementSibling;
+
+                if (inTable && btn) {
+                    const btnRect = btn.getBoundingClientRect();
+                    m.style.position = 'fixed';
+                    m.style.zIndex = '99999';
+
+                    const menuWidth = m.offsetWidth || 195;
+                    const menuHeight = m.offsetHeight || 220;
+                    const winWidth = window.innerWidth || document.documentElement.clientWidth;
+                    const winHeight = window.innerHeight || document.documentElement.clientHeight;
+
+                    let leftPos = btnRect.right - menuWidth;
+                    if (leftPos < 10) {
+                        leftPos = Math.max(10, btnRect.left);
+                    }
+                    if (leftPos + menuWidth > winWidth - 10) {
+                        leftPos = Math.max(10, winWidth - menuWidth - 10);
+                    }
+                    m.style.left = leftPos + 'px';
+                    m.style.right = 'auto';
+
+                    if (btnRect.bottom + menuHeight > winHeight - 10 && btnRect.top > menuHeight + 10) {
+                        m.style.top = (btnRect.top - menuHeight - 4) + 'px';
+                        m.style.bottom = 'auto';
+                    } else {
+                        m.style.top = (btnRect.bottom + 4) + 'px';
+                        m.style.bottom = 'auto';
+                    }
                 } else {
-                    m.style.top = 'calc(100% + 6px)';
-                    m.style.bottom = 'auto';
+                    const rect = m.getBoundingClientRect();
+                    const winHeight = window.innerHeight || document.documentElement.clientHeight;
+                    if (rect.bottom > winHeight - 10 && rect.top > rect.height) {
+                        m.style.top = 'auto';
+                        m.style.bottom = 'calc(100% + 6px)';
+                    } else {
+                        m.style.top = 'calc(100% + 6px)';
+                        m.style.bottom = 'auto';
+                    }
                 }
             }
         }
         document.addEventListener('click', function (e) {
-            if (!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown-menu.open').forEach(x => x.classList.remove('open'));
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu.open').forEach(x => {
+                    x.classList.remove('open');
+                    x.style.position = '';
+                    x.style.top = '';
+                    x.style.left = '';
+                    x.style.bottom = '';
+                    x.style.right = '';
+                    x.style.zIndex = '';
+                });
+            }
         });
+        window.addEventListener('scroll', function () {
+            document.querySelectorAll('.dropdown-menu.open').forEach(x => {
+                x.classList.remove('open');
+                x.style.position = '';
+                x.style.top = '';
+                x.style.left = '';
+                x.style.bottom = '';
+                x.style.right = '';
+                x.style.zIndex = '';
+            });
+        }, true);
 
         /* ── Tree toggle ── */
         function treeToggle(header) {

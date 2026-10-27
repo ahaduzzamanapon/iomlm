@@ -44,4 +44,75 @@ class AdmissionForm extends Model
     {
         return $this->source === 'PUBLIC';
     }
+
+    public function waiverApplication()
+    {
+        return $this->hasOne(WaiverApplication::class, 'application_no', 'waiver_code');
+    }
+
+    /**
+     * Get effective discount percentage
+     */
+    public function getEffectiveDiscountPercentAttribute(): float
+    {
+        if ((float) $this->discount_percent > 0) {
+            return (float) $this->discount_percent;
+        }
+
+        if ($this->waiver_code) {
+            $wApp = WaiverApplication::where('application_no', $this->waiver_code)->first();
+            if ($wApp) {
+                if ((float) $wApp->approved_discount_percent > 0) {
+                    return (float) $wApp->approved_discount_percent;
+                }
+                if ($wApp->approved_admission_fee !== null) {
+                    $courseFee = (float) ($this->interestedCourse?->admission_fee ?? 0);
+                    $batchFee = ($this->batch && (float) $this->batch->admission_fee > 0) ? (float) $this->batch->admission_fee : $courseFee;
+                    if ($batchFee > 0 && $batchFee > (float) $wApp->approved_admission_fee) {
+                        return round((($batchFee - (float) $wApp->approved_admission_fee) / $batchFee) * 100, 2);
+                    }
+                }
+            }
+        }
+
+        if ((float) $this->discount_amount > 0) {
+            $courseFee = (float) ($this->interestedCourse?->admission_fee ?? 0);
+            $batchFee = ($this->batch && (float) $this->batch->admission_fee > 0) ? (float) $this->batch->admission_fee : $courseFee;
+            if ($batchFee > 0) {
+                return round(((float) $this->discount_amount / $batchFee) * 100, 2);
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Get effective discount amount
+     */
+    public function getEffectiveDiscountAmountAttribute(): float
+    {
+        if ((float) $this->discount_amount > 0) {
+            return (float) $this->discount_amount;
+        }
+
+        $courseFee = (float) ($this->interestedCourse?->admission_fee ?? 0);
+        $batchFee = ($this->batch && (float) $this->batch->admission_fee > 0) ? (float) $this->batch->admission_fee : $courseFee;
+
+        if ($this->waiver_code) {
+            $wApp = WaiverApplication::where('application_no', $this->waiver_code)->first();
+            if ($wApp && $wApp->approved_admission_fee !== null && in_array($wApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
+                if ($batchFee > 0) {
+                    $payable = min($batchFee, (float) $wApp->approved_admission_fee);
+                    return max(0, $batchFee - $payable);
+                }
+            }
+        }
+
+        $effectivePercent = $this->effective_discount_percent;
+        if ($effectivePercent > 0 && $batchFee > 0) {
+            return round(($batchFee * $effectivePercent) / 100, 2);
+        }
+
+        return 0.0;
+    }
 }

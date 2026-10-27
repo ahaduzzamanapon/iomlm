@@ -213,7 +213,21 @@ class AdmissionController extends Controller
                 if ($waiverApp && $waiverApp->status === 'APPROVED' && !$waiverApp->is_used) {
                     $waiverCode = $waiverApp->application_no;
                     if (empty($validated['discount_percent'])) {
-                        $validated['discount_percent'] = $waiverApp->approved_discount_percent;
+                        if ($waiverApp->approved_admission_fee !== null && in_array($waiverApp->apply_for, ['ADMISSION_FEE', 'BOTH'])) {
+                            $targetCourse = Course::find($validated['interested_course_id']);
+                            $targetBatch = !empty($validated['batch_id']) ? Batch::find($validated['batch_id']) : null;
+                            $baseCourseFee = (float)($targetCourse?->admission_fee ?? 0);
+                            $baseFee = ($targetBatch && (float)$targetBatch->admission_fee > 0) ? (float)$targetBatch->admission_fee : $baseCourseFee;
+                            $approvedFee = (float)$waiverApp->approved_admission_fee;
+                            $payable = min($baseFee, $approvedFee);
+                            $discAmount = max(0, $baseFee - $payable);
+                            $validated['discount_amount'] = $discAmount;
+                            $validated['discount_type'] = 'FIXED';
+                            $validated['discount_percent'] = $baseFee > 0 ? round(($discAmount / $baseFee) * 100, 2) : 0;
+                        } else {
+                            $validated['discount_percent'] = (float)($waiverApp->approved_discount_percent ?? 0);
+                            $validated['discount_type'] = 'PERCENTAGE';
+                        }
                     }
                 }
             }
@@ -315,6 +329,8 @@ class AdmissionController extends Controller
                 'attempt_no'              => 1,
                 'lead_source'             => $validated['lead_source'] ?? 'Direct',
                 'discount_percent'        => $validated['discount_percent'] ?? 0,
+                'discount_type'           => $validated['discount_type'] ?? 'PERCENTAGE',
+                'discount_amount'         => $validated['discount_amount'] ?? 0,
                 'waiver_code'             => $waiverCode,
                 'status'                  => 'PENDING',
                 'notes'                   => $validated['notes'] ?? null,
