@@ -196,7 +196,7 @@ class OnlineSupportController extends Controller
         $ticket = SupportTicket::where('uuid', $uuid)->firstOrFail();
 
         if ($ticket->status === 'CLOSED') {
-            return response()->json(['error' => 'এই টিকিটটি বন্ধ করা হয়েছে।'], 422);
+            return response()->json(['error' => 'এই টিকিটটি বন্ধ করা হয়েছে, আর নতুন কোনো বার্তা পাঠানো যাবে না।'], 422);
         }
 
         $request->validate([
@@ -217,6 +217,9 @@ class OnlineSupportController extends Controller
             'attachment_path' => $attachmentPath,
         ]);
 
+        // Student replied again -> mark status back to PENDING
+        $ticket->update(['status' => 'PENDING']);
+
         return response()->json(['success' => true, 'message' => $msg]);
     }
 
@@ -228,15 +231,17 @@ class OnlineSupportController extends Controller
         $ticket = SupportTicket::where('uuid', $uuid)->firstOrFail();
 
         $request->validate([
-            'rating'   => 'required|integer|min:1|max:5',
+            'rating'   => 'nullable|integer|min:1|max:5',
             'feedback' => 'nullable|string|max:500',
         ]);
 
+        $rating = (int) ($request->input('rating') ?: 5);
+
         $ticket->update([
-            'rating'   => $request->input('rating'),
+            'rating'   => $rating,
             'feedback' => $request->input('feedback'),
         ]);
 
-        return back()->with('success', 'আপনার মূল্যায়নের জন্য ধন্যবাদ!');
+        return back()->with('success', 'আপনার মূল্যবান ফিডব্যাকের জন্য ধন্যবাদ!');
     }
 }

@@ -24,10 +24,19 @@
                 <i class="fa-solid fa-user-pen"></i> ইমেইল/মোবাইল এডিট
             </button>
             @if($waiverApplication->status === 'APPROVED')
+                <button type="button" class="btn btn-primary btn-lg" onclick="openModal('editApprovedWaiverModal')" style="display:inline-flex;align-items:center;gap:6px;background:#4f46e5;border-color:#4f46e5;font-family:'Kalpurush',sans-serif;">
+                    <i class="fa-solid fa-pen-to-square"></i> অনুমোদিত ফি ও প্যাকেজ এডিট
+                </button>
+                <form method="POST" action="{{ route('admin.waiver-applications.send-update-email', $waiverApplication) }}" style="display:inline;margin:0" onsubmit="return confirm('{{ $waiverApplication->full_name }}-এর ইমেইলে ({{ $waiverApplication->email }}) সংশোধিত ফি ও কুপনের আপডেট নোটিশ মেইল পাঠাতে চান?')">
+                    @csrf
+                    <button type="submit" class="btn btn-outline btn-lg" style="display:inline-flex;align-items:center;gap:6px;border-color:#0891b2;color:#0891b2;background:#ecfeff;font-family:'Kalpurush',sans-serif;">
+                        <i class="fa-solid fa-envelope-circle-check"></i> আপডেট মেইল পাঠান
+                    </button>
+                </form>
                 <form method="POST" action="{{ route('admin.waiver-applications.resend-email', $waiverApplication) }}" style="display:inline;margin:0" onsubmit="return confirm('{{ $waiverApplication->full_name }}-এর ইমেইলে ({{ $waiverApplication->email }}) পুওর ফান্ড কনফার্মেশন ও কুপন কোড পুনরায় পাঠাতে চান?')">
                     @csrf
-                    <button type="submit" class="btn btn-primary btn-lg" style="display:inline-flex;align-items:center;gap:6px;background:#059669;border-color:#059669;font-family:'Kalpurush',sans-serif;">
-                        <i class="fa-solid fa-paper-plane"></i> কনফার্মেশন মেইল পাঠান (Resend)
+                    <button type="submit" class="btn btn-outline btn-lg" style="display:inline-flex;align-items:center;gap:6px;background:#f0fdf4;border-color:#059669;color:#059669;font-family:'Kalpurush',sans-serif;">
+                        <i class="fa-solid fa-paper-plane"></i> কনফার্মেশন মেইল (Resend)
                     </button>
                 </form>
             @endif
@@ -122,7 +131,12 @@
             <div class="card-body">
                 @if($waiverApplication->status === 'APPROVED')
                     <div class="alert alert-success">
-                        <strong style="font-size:16px">Waiver Approved</strong><br>
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                            <strong style="font-size:16px">Waiver Approved</strong>
+                            <button type="button" class="btn btn-sm btn-outline" onclick="openModal('editApprovedWaiverModal')" style="font-family:'Kalpurush',sans-serif;border-color:#059669;color:#059669;background:#ecfdf5;font-size:12px;padding:3px 10px;cursor:pointer">
+                                <i class="fa-solid fa-pen-to-square"></i> ফি বা প্যাকেজ পরিবর্তন করুন
+                            </button>
+                        </div>
                         <div style="margin-top:8px;font-size:13px">
 
                             @if(in_array($applyFor, ['ADMISSION_FEE', 'BOTH']) && $waiverApplication->approved_admission_fee !== null)
@@ -315,14 +329,114 @@
         </div>
     </div>
 
+    {{-- ═══ EDIT APPROVED WAIVER MODAL ═══ --}}
+    <div class="modal-overlay" id="editApprovedWaiverModal">
+        <div class="modal" style="max-width:560px;font-family:'Kalpurush',sans-serif;">
+            <div class="modal-header" style="background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff">
+                <span class="modal-title" style="color:#fff;display:flex;align-items:center;gap:8px;font-size:16px">
+                    <i class="fa-solid fa-pen-to-square"></i> অনুমোদিত ফি ও প্যাকেজ এডিট (Edit Approved Waiver)
+                </span>
+                <button class="modal-close" onclick="closeModal('editApprovedWaiverModal')" style="color:#fff">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.waiver-applications.update-approval', $waiverApplication) }}">
+                @csrf
+                @method('PATCH')
+                <div class="modal-body" style="display:flex;flex-direction:column;gap:16px;padding:22px">
+                    {{-- 1. Waiver Type Selection --}}
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:700;color:#334155;margin-bottom:6px;display:block">
+                            ছাড়ের আওতা / Waiver Type <span class="required" style="color:#ef4444">*</span>
+                        </label>
+                        <select name="apply_for" id="edit_apply_for" class="form-control" required onchange="toggleEditWaiverSections(this.value)" style="width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px">
+                            <option value="BOTH" {{ old('apply_for', $waiverApplication->apply_for) === 'BOTH' ? 'selected' : '' }}>ভর্তি ও মাসিক ফি উভয়ই (Both Admission & Tuition)</option>
+                            <option value="ADMISSION_FEE" {{ old('apply_for', $waiverApplication->apply_for) === 'ADMISSION_FEE' ? 'selected' : '' }}>শুধুমাত্র ভর্তি ফি (Admission Fee Only)</option>
+                            <option value="TUITION_FEE" {{ old('apply_for', $waiverApplication->apply_for) === 'TUITION_FEE' ? 'selected' : '' }}>শুধুমাত্র মাসিক ফি / প্যাকেজ (Tuition Fee / Package Only)</option>
+                        </select>
+                    </div>
+
+                    {{-- 2. Admission Fee Section --}}
+                    <div id="edit_admission_fee_section" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;">
+                        <div style="font-weight:700;color:#166534;margin-bottom:8px;font-size:13.5px;display:flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-money-bill-wave"></i> অনুমোদিত ভর্তি ফি (Admission Fee) <span class="required" style="color:#ef4444">*</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0">
+                            <input type="number" name="approved_admission_fee" id="edit_approved_admission_fee" class="form-control"
+                                value="{{ old('approved_admission_fee', $waiverApplication->approved_admission_fee ?? $waiverApplication->convenient_admission_fee ?? 0) }}"
+                                min="0" step="1" placeholder="e.g. 700" style="width:100%;padding:10px 12px;border:1.5px solid #86efac;border-radius:8px;font-size:15px;font-weight:700;color:#166534">
+                            <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:12px;color:#64748b">
+                                <span>আবেদনকারী চেয়েছেন: <strong>৳{{ number_format($waiverApplication->convenient_admission_fee ?? 0, 0) }}</strong></span>
+                                <span>কোর্স রেগুলার ফি: <strong>৳{{ number_format($waiverApplication->course?->admission_fee ?? 1500, 0) }}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- 3. Fee Package / Structure Section --}}
+                    <div id="edit_package_section" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 16px;">
+                        <div style="font-weight:700;color:#92400e;margin-bottom:8px;font-size:13.5px;display:flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-box-open"></i> অনুমোদিত ফি প্যাকেজ / স্ট্রাকচার (Fee Package) <span class="required" style="color:#ef4444">*</span>
+                        </div>
+                        @if($coursePackages->isEmpty())
+                            <div style="color:#dc2626;font-size:12.5px;background:#fef2f2;padding:10px;border-radius:6px;border:1px solid #fecaca">
+                                এই কোর্সে কোনো Fee Package পাওয়া যায়নি।
+                            </div>
+                        @else
+                            <div class="form-group" style="margin-bottom:0">
+                                <select name="approved_package_id" id="edit_approved_package_id" class="form-control" onchange="showEditPackageDetail(this)" style="width:100%;padding:9px 12px;border:1.5px solid #fcd34d;border-radius:8px;font-size:14px">
+                                    <option value="">-- প্যাকেজ নির্বাচন করুন --</option>
+                                    @foreach($coursePackages as $pkg)
+                                        <option value="{{ $pkg->id }}"
+                                            data-total="{{ $pkg->total }}"
+                                            data-items="{{ $pkg->items->map(fn($i) => ($i->label ?: $i->feeHead?->name).': ৳'.number_format($i->total_amount,0))->join(' | ') }}"
+                                            {{ (string)old('approved_package_id', $waiverApplication->approved_package_id) === (string)$pkg->id ? 'selected' : '' }}>
+                                            {{ $pkg->course?->name ? ($pkg->course->name.' — ') : '' }}{{ $pkg->name }}
+                                            — ৳{{ number_format($pkg->total, 0) }} total
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div id="editPkgDetailBox" style="display:none;margin-top:8px;font-size:12px;color:var(--text-muted);background:#f8fafc;padding:8px 12px;border-radius:6px;border:1px solid #e2e8f0"></div>
+                                <div style="margin-top:6px;font-size:12px;color:#64748b">
+                                    আবেদনকারীর প্রস্তাবিত মাসিক ফি: <strong>৳{{ number_format($waiverApplication->convenient_monthly_fee ?? 0, 0) }}/মাস</strong>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- 4. Reviewer Notes --}}
+                    <div class="form-group" style="margin-bottom:0">
+                        <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;display:block">
+                            কমিটি নোট / মন্তব্য (Reviewer Notes)
+                        </label>
+                        <textarea name="reviewer_notes" class="form-control" rows="2" placeholder="ফি বা প্যাকেজ পরিবর্তনের কারণ / মন্তব্য..." style="width:100%;padding:10px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13.5px">{{ old('reviewer_notes', $waiverApplication->reviewer_notes) }}</textarea>
+                    </div>
+
+                    {{-- 5. Send Email Checkbox --}}
+                    <label style="display:flex;align-items:center;gap:10px;font-size:13.5px;cursor:pointer;margin-top:2px;padding:12px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+                        <input type="checkbox" name="send_email" value="1" checked style="width:18px;height:18px;accent-color:#16a34a;cursor:pointer">
+                        <span style="color:#166534">
+                            <strong>আবেদনকারীকে সংশোধিত ফির আপডেট ইমেইল পাঠান</strong><br>
+                            <small style="color:#475569">ইমেইল: {{ $waiverApplication->email }} (সংশোধিত ভর্তি ফি ও প্যাকেজের বিবরণসহ আপডেট নোটিশ যাবে)</small>
+                        </span>
+                    </label>
+                </div>
+                <div class="modal-footer" style="padding:14px 22px;background:#f8fafc;display:flex;justify-content:flex-end;gap:10px">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('editApprovedWaiverModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary" style="background:#4f46e5;border-color:#4f46e5;font-weight:600">
+                        <i class="fa-solid fa-check"></i> পরিবর্তন সংরক্ষণ করুন (Save & Update)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
     function showPackageDetail(sel) {
+        if (!sel) return;
         const opt = sel.options[sel.selectedIndex];
         const box = document.getElementById('pkgDetailBox');
         if (!box) return;
-        const items = opt.dataset.items;
-        const total = opt.dataset.total;
+        const items = opt ? opt.dataset.items : null;
+        const total = opt ? opt.dataset.total : null;
         if (sel.value && items) {
             box.style.display = 'block';
             box.innerHTML = '<strong>Fee Items:</strong> ' + items + '<br><strong>Total Package Price:</strong> <span style="color:#047857;font-weight:700">৳' + Number(total || 0).toLocaleString() + '</span>';
@@ -330,10 +444,56 @@
             box.style.display = 'none';
         }
     }
+
+    function showEditPackageDetail(sel) {
+        if (!sel) return;
+        const opt = sel.options[sel.selectedIndex];
+        const box = document.getElementById('editPkgDetailBox');
+        if (!box) return;
+        const items = opt ? opt.dataset.items : null;
+        const total = opt ? opt.dataset.total : null;
+        if (sel.value && items) {
+            box.style.display = 'block';
+            box.innerHTML = '<strong>Fee Items:</strong> ' + items + '<br><strong>Total Package Price:</strong> <span style="color:#047857;font-weight:700">৳' + Number(total || 0).toLocaleString() + '</span>';
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    function toggleEditWaiverSections(val) {
+        const admSec = document.getElementById('edit_admission_fee_section');
+        const pkgSec = document.getElementById('edit_package_section');
+        const admInput = document.getElementById('edit_approved_admission_fee');
+        const pkgSelect = document.getElementById('edit_approved_package_id');
+
+        if (val === 'ADMISSION_FEE') {
+            if (admSec) admSec.style.display = 'block';
+            if (admInput) admInput.required = true;
+            if (pkgSec) pkgSec.style.display = 'none';
+            if (pkgSelect) pkgSelect.required = false;
+        } else if (val === 'TUITION_FEE') {
+            if (admSec) admSec.style.display = 'none';
+            if (admInput) admInput.required = false;
+            if (pkgSec) pkgSec.style.display = 'block';
+            if (pkgSelect) pkgSelect.required = true;
+        } else { // BOTH
+            if (admSec) admSec.style.display = 'block';
+            if (admInput) admInput.required = true;
+            if (pkgSec) pkgSec.style.display = 'block';
+            if (pkgSelect) pkgSelect.required = true;
+        }
+    }
+
     // Trigger on load for default selected
     document.addEventListener('DOMContentLoaded', function() {
-        const sel = document.querySelector('select[name="approved_package_id"]');
+        const sel = document.querySelector('#approveWaiverModal select[name="approved_package_id"]');
         if (sel) showPackageDetail(sel);
+
+        const editSel = document.getElementById('edit_approved_package_id');
+        if (editSel) showEditPackageDetail(editSel);
+
+        const editApplyFor = document.getElementById('edit_apply_for');
+        if (editApplyFor) toggleEditWaiverSections(editApplyFor.value);
     });
     </script>
     @endpush

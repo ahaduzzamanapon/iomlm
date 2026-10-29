@@ -30,21 +30,29 @@
     @endif
 
     @if($submission->status === 'AUTO_SUBMITTED_VIOLATION')
-        <div style="background:#fef2f2;border:1.5px solid #fecaca;color:#991b1b;padding:16px 20px;border-radius:10px;margin-bottom:20px;font-size:13px;display:flex;align-items:flex-start;gap:12px">
+        <div style="background:#fef2f2;border:1.5px solid #fecaca;color:#991b1b;padding:16px 20px;border-radius:10px;margin-bottom:20px;font-size:13px;display:flex;align-items:flex-start;gap:12px;font-family:'Kalpurush',sans-serif">
             <i class="fa-solid fa-triangle-exclamation" style="font-size:22px;color:#dc2626;flex-shrink:0;margin-top:2px"></i>
             <div>
                 <strong style="font-size:14px">Anti-Cheating Notice:</strong>
                 <div style="margin-top:2px">পরীক্ষা চলাকালীন অনিচ্ছাকৃত বা নিষিদ্ধ ট্যাব সুইচের ({{ $submission->tab_switch_count }} বার) কারণে এই পরীক্ষাটি স্বয়ংক্রিয়ভাবে জমা (Auto Submitted) হয়েছে।</div>
             </div>
         </div>
+    @elseif($submission->status === 'AUTO_SUBMITTED_TIMEOUT')
+        <div style="background:#fffbeb;border:1.5px solid #fde68a;color:#92400e;padding:16px 20px;border-radius:10px;margin-bottom:20px;font-size:13px;display:flex;align-items:flex-start;gap:12px;font-family:'Kalpurush',sans-serif">
+            <i class="fa-solid fa-clock-rotate-left" style="font-size:22px;color:#d97706;flex-shrink:0;margin-top:2px"></i>
+            <div>
+                <strong style="font-size:14px">সময় সমাপ্তি নোটিশ (Time Expired):</strong>
+                <div style="margin-top:2px">পরীক্ষার নির্ধারিত সময়সীমা শেষ হয়ে যাওয়ায় আপনার উত্তরপত্রটি স্বয়ংক্রিয়ভাবে জমা (Auto Submitted) নেওয়া হয়েছে।</div>
+            </div>
+        </div>
     @endif
 
-    {{-- Appeal to Re-Exam Section --}}
+    {{-- Reset / Appeal to Re-Exam Section --}}
     @if(isset($latestAppeal) && $latestAppeal && $latestAppeal->isApproved())
-        <div style="background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 1px 4px rgba(16,185,129,0.1)">
+        <div style="background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 1px 4px rgba(16,185,129,0.1);font-family:'Kalpurush',sans-serif">
             <div>
                 <div style="font-weight:800;color:#065f46;font-size:15px;display:flex;align-items:center;gap:8px">
-                    <i class="fa-solid fa-circle-check" style="color:#059669;font-size:18px"></i> পুনরায় পরীক্ষার আবেদন অনুমোদিত হয়েছে! (Appeal Approved)
+                    <i class="fa-solid fa-circle-check" style="color:#059669;font-size:18px"></i> এক্সাম রিসেটের আবেদন অনুমোদিত হয়েছে! (Reset Approved)
                 </div>
                 <p style="margin:4px 0 0;font-size:12px;color:#047857">
                     অনুমোদনের তারিখ: {{ $latestAppeal->reviewed_at?->format('d M Y, h:i A') }}
@@ -71,14 +79,14 @@
             @endif
         </div>
     @elseif(isset($latestAppeal) && $latestAppeal && $latestAppeal->isPending())
-        <div style="background:#fefce8;border:1.5px solid #fef08a;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div style="background:#fefce8;border:1.5px solid #fef08a;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'Kalpurush',sans-serif">
             <div>
                 <div style="font-weight:700;color:#854d0e;font-size:14px;display:flex;align-items:center;gap:8px">
-                    <i class="fa-solid fa-hourglass-half" style="color:#ca8a04"></i> পুনরায় পরীক্ষার আবেদন পর্যালোচনায় রয়েছে (Appeal Pending)
+                    <i class="fa-solid fa-hourglass-half" style="color:#ca8a04"></i> এক্সাম রিসেটের আবেদন পর্যালোচনায় রয়েছে (Reset Pending)
                 </div>
                 <p style="margin:4px 0 0;font-size:12px;color:#a16207">
                     আবেদনের কারণ: "{{ $latestAppeal->reason }}" (জমার সময়: {{ $latestAppeal->created_at->format('d M Y, h:i A') }})
-                    <br>এডমিন বা সংশ্লিষ্ট শিক্ষক আবেদনটি অনুমোদন করলে আপনি পুনরায় পরীক্ষা দিতে পারবেন।
+                    <br>কর্তৃপক্ষ আবেদনটি অনুমোদন করলে আপনি পুনরায় পরীক্ষা দিতে পারবেন।
                 </p>
             </div>
             <span class="badge badge-warning no-dot" style="background:#fde047;color:#713f12;font-size:12px;padding:6px 14px;border-radius:20px;font-weight:700">
@@ -86,33 +94,45 @@
             </span>
         </div>
     @elseif(isset($latestAppeal) && $latestAppeal && $latestAppeal->isRejected())
-        <div style="background:#fff1f2;border:1.5px solid #fecdd3;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div style="background:#fff1f2;border:1.5px solid #fecdd3;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'Kalpurush',sans-serif">
             <div>
                 <div style="font-weight:700;color:#9f1239;font-size:14px;display:flex;align-items:center;gap:8px">
-                    <i class="fa-solid fa-circle-xmark" style="color:#e11d48"></i> পুনরায় পরীক্ষার আবেদনটি গৃহীত হয়নি (Appeal Rejected)
+                    <i class="fa-solid fa-circle-xmark" style="color:#e11d48"></i> এক্সাম রিসেটের আবেদনটি গৃহীত হয়নি (Reset Rejected)
                 </div>
                 <p style="margin:4px 0 0;font-size:12px;color:#be123c">
                     পর্যালোচনার তারিখ: {{ $latestAppeal->reviewed_at?->format('d M Y, h:i A') }}
                     @if($latestAppeal->admin_remarks) &middot; কারণ: "{{ $latestAppeal->admin_remarks }}" @endif
                 </p>
             </div>
-            <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('appealModal').style.display='flex'" style="border-color:#f43f5e;color:#e11d48;font-weight:700">
-                <i class="fa-solid fa-rotate-right"></i> নতুন কারণ উল্লেখ করে পুনরায় আপিল করুন
-            </button>
+            @if($exam->canApplyForReset())
+                <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('appealModal').style.display='flex'" style="border-color:#f43f5e;color:#e11d48;font-weight:700">
+                    <i class="fa-solid fa-rotate-left"></i> এক্সাম রিসেট
+                </button>
+            @else
+                <button type="button" class="btn btn-sm btn-disabled" disabled style="background:#f1f5f9;color:#94a3b8;border:1px solid #cbd5e1;cursor:not-allowed;font-size:12px;padding:6px 12px;border-radius:6px;opacity:0.75" title="রিসেট আবেদনের নির্ধারিত সময়সীমা শেষ">
+                    <i class="fa-solid fa-ban"></i> এক্সাম রিসেট
+                </button>
+            @endif
         </div>
     @else
-        <div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div style="background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'Kalpurush',sans-serif">
             <div>
                 <div style="font-weight:700;color:#1e293b;font-size:14px;display:flex;align-items:center;gap:8px">
                     <i class="fa-solid fa-shield-halved" style="color:#6366f1"></i> কোনো সমস্যার কারণে পরীক্ষা ব্যাহত হয়েছে?
                 </div>
                 <p style="margin:4px 0 0;font-size:12px;color:#64748b">
-                    অনিচ্ছাকৃত ট্যাব সুইচ, বিদ্যুৎ বিভ্রাট, ইন্টারনেট বিচ্ছিন্নতা বা কোনো অনিবার্য কারণে পরীক্ষা ক্ষতিগ্রস্ত হলে পুনরায় পরীক্ষার আবেদন করতে পারেন।
+                    অনিচ্ছাকৃত ট্যাব সুইচ, বিদ্যুৎ বিভ্রাট, ইন্টারনেট বিচ্ছিন্নতা বা কোনো অনিবার্য কারণে পরীক্ষা ক্ষতিগ্রস্ত হলে এক্সাম রিসেটের আবেদন করতে পারেন।
                 </p>
             </div>
-            <button type="button" class="btn btn-outline" onclick="document.getElementById('appealModal').style.display='flex'" style="border-color:#6366f1;color:#6366f1;font-weight:700;display:inline-flex;align-items:center;gap:6px">
-                <i class="fa-solid fa-file-signature"></i> রি-এক্সামের জন্য আপিল করুন (Appeal to Re-Exam)
-            </button>
+            @if($exam->canApplyForReset())
+                <button type="button" class="btn btn-outline" onclick="document.getElementById('appealModal').style.display='flex'" style="border-color:#6366f1;color:#6366f1;font-weight:700;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fa-solid fa-rotate-left"></i> এক্সাম রিসেট (Exam Reset)
+                </button>
+            @else
+                <button type="button" class="btn btn-disabled" disabled style="background:#f1f5f9;color:#94a3b8;border:1px solid #cbd5e1;cursor:not-allowed;font-size:12px;padding:8px 16px;border-radius:6px;opacity:0.75" title="রিসেটের আবেদনের নির্ধারিত সময়সীমা শেষ হয়ে গেছে">
+                    <i class="fa-solid fa-ban"></i> এক্সাম রিসেটের সময় শেষ
+                </button>
+            @endif
         </div>
     @endif
 
@@ -272,12 +292,12 @@
         </div>
     </div>
 
-    {{-- Appeal for Re-Exam Modal --}}
-    <div id="appealModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;backdrop-filter:blur(2px)">
+    {{-- Reset for Re-Exam Modal --}}
+    <div id="appealModal" class="modal-overlay" onclick="if(event.target===this) this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;backdrop-filter:blur(2px);font-family:'Kalpurush',sans-serif">
         <div class="modal" style="background:#fff;border-radius:12px;max-width:540px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.25);overflow:hidden;animation:fadeIn 0.2s ease-out">
             <div style="padding:16px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
                 <h3 style="margin:0;font-size:16px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:8px">
-                    <i class="fa-solid fa-file-signature" style="color:#6366f1"></i> পুনরায় পরীক্ষার আবেদন (Appeal for Re-Exam)
+                    <i class="fa-solid fa-rotate-left" style="color:#6366f1"></i> এক্সাম রিসেটের আবেদন (Exam Reset Request)
                 </h3>
                 <button type="button" onclick="document.getElementById('appealModal').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;line-height:1">&times;</button>
             </div>
@@ -292,18 +312,18 @@
 
                 <div style="margin-bottom:16px">
                     <label style="display:block;font-size:13px;font-weight:700;color:#1e293b;margin-bottom:6px">
-                        আবেদনের কারণ (Reason for Re-Exam) <span style="color:#e11d48">*</span>
+                        রিসেটের কারণ (Reason for Exam Reset) <span style="color:#e11d48">*</span>
                     </label>
                     <textarea name="reason" rows="4" required placeholder="কেন পুনরায় পরীক্ষা দিতে চাচ্ছেন তার সুনির্দিষ্ট ও যৌক্তিক কারণ লিখুন (যেমন: অনিচ্ছাকৃত ট্যাব সুইচ, বিদ্যুৎ বিভ্রাট, ডিভাইস ক্র্যাশ ইত্যাদি)..." style="width:100%;border:1.5px solid #cbd5e1;border-radius:8px;padding:10px 12px;font-size:13px;box-sizing:border-box;font-family:inherit;outline:none"></textarea>
                     <small style="color:#64748b;font-size:11px;margin-top:5px;display:block">
-                        <i class="fa-solid fa-circle-info" style="color:#6366f1"></i> শিক্ষক বা এডমিন আপনার কারণ পর্যালোচনা করে অনুমোদন দিলে আপনার বর্তমান খাতা রিসেট হবে এবং আপনি নতুন করে পরীক্ষা দিতে পারবেন।
+                        <i class="fa-solid fa-circle-info" style="color:#6366f1"></i> এডমিন আপনার কারণ পর্যালোচনা করে অনুমোদন দিলে আপনার বর্তমান খাতা রিসেট হবে এবং আপনি নতুন করে পরীক্ষা দিতে পারবেন।
                     </small>
                 </div>
 
                 <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
                     <button type="button" class="btn btn-outline" onclick="document.getElementById('appealModal').style.display='none'">বাতিল</button>
                     <button type="submit" class="btn btn-primary" style="background:#6366f1;display:inline-flex;align-items:center;gap:6px;font-weight:700">
-                        <i class="fa-solid fa-paper-plane"></i> আবেদন জমা দিন
+                        <i class="fa-solid fa-paper-plane"></i> রিসেটের আবেদন জমা দিন
                     </button>
                 </div>
             </form>

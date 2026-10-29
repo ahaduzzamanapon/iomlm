@@ -21,3 +21,10 @@ Schedule::command('payment:reconcile-pending --minutes=3')
     ->withoutOverlapping()
     ->runInBackground();
 
+// ✅ Daily Morning Class Reminder to students via Email & Notification at 07:00 AM
+Schedule::command('classes:send-daily-reminders')
+    ->dailyAt('07:00')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+

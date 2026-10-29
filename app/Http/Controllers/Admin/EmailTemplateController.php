@@ -41,7 +41,12 @@ class EmailTemplateController extends Controller
             $query->where('category', $request->category);
         }
 
-        $templates = $query->orderBy('category')
+        if ($request->filled('type') && $request->type !== 'ALL_TYPES') {
+            $query->where('type', $request->type);
+        }
+
+        $templates = $query->orderBy('type')
+            ->orderBy('category')
             ->orderBy('is_system')
             ->orderBy('name')
             ->paginate(20)
@@ -60,14 +65,16 @@ class EmailTemplateController extends Controller
         }])->orderBy('name')->get();
 
         $batches = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
+        $defaultType = request()->input('type', 'EMAIL');
 
-        return view('admin.email_templates.create', compact('courses', 'batches'));
+        return view('admin.email_templates.create', compact('courses', 'batches', 'defaultType'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name'       => 'required|string|max:190',
+            'type'       => 'nullable|string|in:EMAIL,SMS',
             'category'   => 'required|string|in:EXAM,FEES,CLASS,HOLIDAY,ADMISSION,GENERAL',
             'course_id'  => 'nullable|exists:courses,id',
             'batch_id'   => 'nullable|exists:batches,id',
@@ -77,29 +84,34 @@ class EmailTemplateController extends Controller
             'is_active'  => 'nullable|boolean',
         ]);
 
+        $type = $validated['type'] ?? 'EMAIL';
+
         $template = EmailTemplate::create([
             'name'       => $validated['name'],
+            'type'       => $type,
             'category'   => $validated['category'],
             'course_id'  => $validated['course_id'] ?? null,
             'batch_id'   => $validated['batch_id'] ?? null,
             'gender'     => $validated['gender'] ?? 'All',
-            'subject'    => $validated['subject'] ?? null,
+            'subject'    => $type === 'SMS' ? ($validated['subject'] ?? null) : ($validated['subject'] ?? 'ভর্তি নিশ্চিতকরণ'),
             'content'    => $validated['content'],
             'is_system'  => false,
             'is_active'  => $request->has('is_active') ? $request->boolean('is_active') : true,
             'created_by' => auth()->id(),
         ]);
 
+        $typeLabel = $type === 'SMS' ? 'এসএমএস' : 'ইমেইল';
+
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success'  => true,
-                'message'  => 'নতুন ইমেইল টেমপ্লেট সফলভাবে সংরক্ষিত হয়েছে!',
+                'message'  => "নতুন {$typeLabel} টেমপ্লেট সফলভাবে সংরক্ষিত হয়েছে!",
                 'template' => $template->load(['course', 'batch']),
             ]);
         }
 
         return redirect()->route('admin.email-templates.index')
-            ->with('success', "নতুন ইমেইল টেমপ্লেট '{$template->name}' সফলভাবে সংরক্ষিত হয়েছে!");
+            ->with('success', "নতুন {$typeLabel} টেমপ্লেট '{$template->name}' সফলভাবে সংরক্ষিত হয়েছে!");
     }
 
     public function edit(EmailTemplate $emailTemplate)
@@ -117,6 +129,7 @@ class EmailTemplateController extends Controller
     {
         $validated = $request->validate([
             'name'       => 'required|string|max:190',
+            'type'       => 'nullable|string|in:EMAIL,SMS',
             'category'   => 'required|string|in:EXAM,FEES,CLASS,HOLIDAY,ADMISSION,GENERAL',
             'course_id'  => 'nullable|exists:courses,id',
             'batch_id'   => 'nullable|exists:batches,id',
@@ -126,27 +139,32 @@ class EmailTemplateController extends Controller
             'is_active'  => 'nullable|boolean',
         ]);
 
+        $type = $validated['type'] ?? $emailTemplate->type ?? 'EMAIL';
+
         $emailTemplate->update([
             'name'       => $validated['name'],
+            'type'       => $type,
             'category'   => $validated['category'],
             'course_id'  => $validated['course_id'] ?? null,
             'batch_id'   => $validated['batch_id'] ?? null,
             'gender'     => $validated['gender'] ?? 'All',
-            'subject'    => $validated['subject'] ?? null,
+            'subject'    => $type === 'SMS' ? ($validated['subject'] ?? null) : ($validated['subject'] ?? 'ভর্তি নিশ্চিতকরণ'),
             'content'    => $validated['content'],
             'is_active'  => $request->has('is_active') ? $request->boolean('is_active') : true,
         ]);
 
+        $typeLabel = $type === 'SMS' ? 'এসএমএস' : 'ইমেইল';
+
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success'  => true,
-                'message'  => 'ইমেইল টেমপ্লেট সফলভাবে আপডেট করা হয়েছে!',
+                'message'  => "{$typeLabel} টেমপ্লেট সফলভাবে আপডেট করা হয়েছে!",
                 'template' => $emailTemplate->load(['course', 'batch']),
             ]);
         }
 
         return redirect()->route('admin.email-templates.index')
-            ->with('success', "ইমেইল টেমপ্লেট '{$emailTemplate->name}' সফলভাবে আপডেট করা হয়েছে!");
+            ->with('success', "{$typeLabel} টেমপ্লেট '{$emailTemplate->name}' সফলভাবে আপডেট করা হয়েছে!");
     }
 
     public function destroy(EmailTemplate $emailTemplate, Request $request)
@@ -177,6 +195,10 @@ class EmailTemplateController extends Controller
 
         if ($request->filled('category')) {
             $query->where('category', $request->category);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
         }
 
         if ($request->filled('course_id')) {

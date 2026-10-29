@@ -21,7 +21,7 @@ class AdminSupportTicketController extends Controller
 
         $query = SupportTicket::with('department', 'assignedAgent', 'latestMessage')->latest();
 
-        if ($status !== 'ALL' && in_array($status, ['PENDING', 'IN_PROGRESS', 'CLOSED'])) {
+        if ($status !== 'ALL' && in_array($status, ['PENDING', 'IN_PROGRESS', 'SOLVED', 'CLOSED'])) {
             $query->where('status', $status);
         }
 
@@ -46,6 +46,7 @@ class AdminSupportTicketController extends Controller
         $totalCount      = SupportTicket::count();
         $pendingCount    = SupportTicket::where('status', 'PENDING')->count();
         $activeCount     = SupportTicket::where('status', 'IN_PROGRESS')->count();
+        $solvedCount     = SupportTicket::where('status', 'SOLVED')->count();
         $closedCount     = SupportTicket::where('status', 'CLOSED')->count();
         $avgRating       = round(SupportTicket::whereNotNull('rating')->avg('rating') ?? 0, 1);
 
@@ -53,7 +54,7 @@ class AdminSupportTicketController extends Controller
         $supportAgents = User::whereIn('role', ['support_agent', 'support', 'admin'])->get();
 
         return view('admin.support.tickets', compact(
-            'tickets', 'totalCount', 'pendingCount', 'activeCount', 'closedCount',
+            'tickets', 'totalCount', 'pendingCount', 'activeCount', 'solvedCount', 'closedCount',
             'avgRating', 'departments', 'supportAgents', 'status', 'departmentId', 'search'
         ));
     }
@@ -81,7 +82,7 @@ class AdminSupportTicketController extends Controller
 
         $query = SupportTicket::with('department', 'assignedAgent')->latest();
 
-        if ($status !== 'ALL' && in_array($status, ['PENDING', 'IN_PROGRESS', 'CLOSED'])) {
+        if ($status !== 'ALL' && in_array($status, ['PENDING', 'IN_PROGRESS', 'SOLVED', 'CLOSED'])) {
             $query->where('status', $status);
         }
         if ($departmentId) {

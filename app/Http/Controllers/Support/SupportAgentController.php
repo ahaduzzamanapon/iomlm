@@ -29,7 +29,7 @@ class SupportAgentController extends Controller
             ->whereIn('department_id', $myDepartmentIds)
             ->latest();
 
-        if ($statusFilter !== 'ALL' && in_array($statusFilter, ['PENDING', 'IN_PROGRESS', 'CLOSED'])) {
+        if ($statusFilter !== 'ALL' && in_array($statusFilter, ['PENDING', 'IN_PROGRESS', 'SOLVED', 'CLOSED'])) {
             $ticketQuery->where('status', $statusFilter);
         }
 
@@ -38,7 +38,7 @@ class SupportAgentController extends Controller
         // Stats
         $pendingCount    = SupportTicket::whereIn('department_id', $myDepartmentIds)->where('status', 'PENDING')->count();
         $myActiveCount   = SupportTicket::where('assigned_agent_id', $agent->id)->where('status', 'IN_PROGRESS')->count();
-        $myResolvedCount = SupportTicket::where('assigned_agent_id', $agent->id)->where('status', 'CLOSED')->count();
+        $myResolvedCount = SupportTicket::where('assigned_agent_id', $agent->id)->whereIn('status', ['SOLVED', 'CLOSED'])->count();
 
         $myDepartments   = SupportDepartment::whereIn('id', $myDepartmentIds)->get();
 
@@ -61,7 +61,7 @@ class SupportAgentController extends Controller
             ->whereIn('department_id', $myDepartmentIds)
             ->latest();
 
-        if ($statusFilter !== 'ALL' && in_array($statusFilter, ['PENDING', 'IN_PROGRESS', 'CLOSED'])) {
+        if ($statusFilter !== 'ALL' && in_array($statusFilter, ['PENDING', 'IN_PROGRESS', 'SOLVED', 'CLOSED'])) {
             $ticketQuery->where('status', $statusFilter);
         }
 
@@ -86,7 +86,7 @@ class SupportAgentController extends Controller
 
         $pendingCount    = SupportTicket::whereIn('department_id', $myDepartmentIds)->where('status', 'PENDING')->count();
         $myActiveCount   = SupportTicket::where('assigned_agent_id', $agent->id)->where('status', 'IN_PROGRESS')->count();
-        $myResolvedCount = SupportTicket::where('assigned_agent_id', $agent->id)->where('status', 'CLOSED')->count();
+        $myResolvedCount = SupportTicket::where('assigned_agent_id', $agent->id)->whereIn('status', ['SOLVED', 'CLOSED'])->count();
 
         return response()->json([
             'pendingCount'    => $pendingCount,
@@ -445,6 +445,11 @@ class SupportAgentController extends Controller
             'message'         => $request->input('message') ?? '📎 ফাইল সংযুক্ত করা হয়েছে',
             'attachment_path' => $attachmentPath,
         ]);
+
+        // Agent replied -> update status to SOLVED so it is no longer pending
+        if ($ticket->status !== 'CLOSED') {
+            $ticket->update(['status' => 'SOLVED']);
+        }
 
         return response()->json(['success' => true, 'message' => $msg]);
     }

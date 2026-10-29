@@ -65,8 +65,9 @@ class ProfileController extends Controller
             'photo'                   => 'nullable|image|max:3072',
             'avatar_preset'           => 'nullable|string|max:255',
 
-            // Expatriate
+            // Residence & Nationality
             'is_expatriate'           => 'nullable',
+            'is_international'        => 'nullable',
             'country_of_residence'    => 'nullable|string|max:100',
 
             // Guardian
@@ -100,7 +101,18 @@ class ProfileController extends Controller
         ]);
 
         $validated['is_expatriate'] = $request->boolean('is_expatriate');
-        if (!$validated['is_expatriate']) {
+        $validated['is_international'] = $request->boolean('is_international');
+
+        // If international student, clear BD division & district, ensure permanent_address matches address
+        if ($validated['is_international']) {
+            $validated['present_division_id'] = null;
+            $validated['present_district_id'] = null;
+            $validated['permanent_division_id'] = null;
+            $validated['permanent_district_id'] = null;
+            if (empty($validated['permanent_address']) && !empty($validated['address'])) {
+                $validated['permanent_address'] = $validated['address'];
+            }
+        } elseif (!$validated['is_expatriate']) {
             $validated['country_of_residence'] = null;
         }
 

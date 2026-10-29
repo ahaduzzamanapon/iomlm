@@ -220,6 +220,16 @@ class FinalMark extends Model
     }
 
     /**
+     * Get gender-based merit description (e.g. ভাইদের মধ্যে ১ম স্থান / বোনদের মধ্যে ১ম স্থান)
+     */
+    public function getGenderMeritTextAttribute(): ?string
+    {
+        if (!$this->merit_position) return null;
+        $isSister = $this->student?->isSister() ?? false;
+        return ($isSister ? 'বোনদের মধ্যে ' : 'ভাইদের মধ্যে ') . $this->merit_rank_bengali . ' স্থান';
+    }
+
+    /**
      * Get dynamic conversion criteria from settings, with defaults.
      */
     public static function getCriteria(): array
@@ -268,6 +278,17 @@ class FinalMark extends Model
             );
         }
 
+        // Auto-compute attendance mark if student is Facebook Live approved (unless explicitly passed)
+        if (!isset($updates['attendance_converted'])) {
+            $st = $this->student ?? Student::find($this->student_id);
+            if ($st && $st->facebook_live_approved) {
+                $attConv = $this->calculateFacebookLiveAttendance();
+                $this->attendance_converted = $attConv;
+                $attMax = (float) ($criteria['attendance_convert'] ?? self::ATTENDANCE_CONVERT);
+                $this->attendance_percent = $attMax > 0 ? round(($attConv / $attMax) * 100, 2) : 0.0;
+            }
+        }
+
         // Semester Total Mark out of 100:
         // CT converted (20) + Midterm converted (30) + Final converted (40) + Semester Attendance (10)
         // Tamrin marks are exam-wise components of CT, Midterm, and Final exams.
@@ -299,6 +320,78 @@ class FinalMark extends Model
     }
 
     /**
+     * Calculate attendance mark for Facebook Live approved students.
+     * Rule: Attendance mark is 10% of the student's exam/subject score out of 100.
+     * Example: 100 -> 10 marks, 90 -> 9 marks, 85 -> 8.5 marks.
+     */
+    public function calculateFacebookLiveAttendance(): float
+    {
+        $criteria = self::getCriteria();
+        $attMax = (float) ($criteria['attendance_convert'] ?? self::ATTENDANCE_CONVERT); // 10.0
+
+        $ctConv  = $this->class_test_converted;
+        $midConv = $this->midterm_converted;
+        $finConv = $this->final_converted;
+
+        $examConvSum = 0;
+        $examConvFull = 0;
+
+        if ($ctConv !== null) {
+            $examConvSum += (float) $ctConv;
+            $examConvFull += (float) ($criteria['class_test_convert'] ?? self::CLASS_TEST_CONVERT); // 20
+        }
+        if ($midConv !== null) {
+            $examConvSum += (float) $midConv;
+            $examConvFull += (float) ($criteria['midterm_convert'] ?? self::MIDTERM_CONVERT); // 30
+        }
+        if ($finConv !== null) {
+            $examConvSum += (float) $finConv;
+            $examConvFull += (float) ($criteria['final_convert'] ?? self::FINAL_CONVERT); // 40
+        }
+
+        $scoreOutOf100 = null;
+        if ($examConvFull > 0) {
+            $scoreOutOf100 = ($examConvSum / $examConvFull) * 100;
+        } elseif ($this->final_obtained !== null) {
+            $scoreOutOf100 = (float) $this->final_obtained;
+        } elseif ($this->midterm_obtained !== null) {
+            $scoreOutOf100 = ((float) $this->midterm_obtained / self::MIDTERM_FULL) * 100;
+        } elseif ($this->class_test_obtained !== null) {
+            $scoreOutOf100 = ((float) $this->class_test_obtained / self::CLASS_TEST_FULL) * 100;
+        } else {
+            // Check Result records for exams in this subject
+            $results = Result::where('student_id', $this->student_id)
+                ->whereHas('exam', function ($q) {
+                    $q->where('subject_id', $this->subject_id);
+                })
+                ->with('exam')
+                ->get();
+
+            if ($results->isNotEmpty()) {
+                $totObtained = 0;
+                $totFull = 0;
+                foreach ($results as $res) {
+                    if ($res->exam && (float)$res->exam->full_marks > 0) {
+                        $totObtained += (float)$res->marks;
+                        $totFull += (float)$res->exam->full_marks;
+                    }
+                }
+                if ($totFull > 0) {
+                    $scoreOutOf100 = ($totObtained / $totFull) * 100;
+                }
+            }
+        }
+
+        if ($scoreOutOf100 === null) {
+            return 0.0;
+        }
+
+        // 10% of score (100 -> 10, 90 -> 9, 85 -> 8.5)
+        $attMark = round(($scoreOutOf100 / 100) * $attMax, 2);
+        return max(0.0, min($attMax, $attMark));
+    }
+
+    /**
      * Automatically recalculate merit ranks for all final marks in a batch + subject + semester
      */
     public static function recalculateMeritRanks($batchId, $subjectId, $semesterId = null): void
@@ -312,10 +405,12 @@ class FinalMark extends Model
             });
         }
 
-        $marks = $query->orderByDesc('total_mark')->get();
-        $rank = 1;
+        $marks = $query->with('student')->orderByDesc('total_mark')->get();
+        $brotherRank = 1;
+        $sisterRank = 1;
         foreach ($marks as $mark) {
-            $mark->merit_position = $rank++;
+            $isSister = $mark->student?->isSister() ?? false;
+            $mark->merit_position = $isSister ? $sisterRank++ : $brotherRank++;
             $mark->saveQuietly();
         }
     }

@@ -307,14 +307,20 @@ class PromotionController extends Controller
             'to_semester_id'   => 'required|exists:semesters,id',
             'student_ids'      => 'required|array',
             'student_ids.*'    => 'exists:students,id',
+            'decision'         => 'nullable|in:PROMOTED,FORCE_PROMOTED',
+            'notes'            => 'nullable|string',
         ]);
 
         $toSem = Semester::findOrFail($request->to_semester_id);
         $fromSem = Semester::find($request->from_semester_id);
         $promotedCount = 0;
         $adminId = auth()->id();
+        $decision = $request->input('decision', 'PROMOTED');
+        $notes = $request->input('notes') ?? ($decision === 'FORCE_PROMOTED'
+            ? 'বাল্ক ফোর্স প্রমোশন: অ্যাডমিন কর্তৃক বিশেষ বিবেচনায় পরবর্তী সেমিস্টারে উত্তীর্ণ।'
+            : 'বাল্ক প্রমোশন: সকল ক্রাইটেরিয়া পূরণ সাপেক্ষে পরবর্তী সেমিস্টারে উত্তীর্ণ।');
 
-        DB::transaction(function () use ($request, $toSem, $adminId, &$promotedCount) {
+        DB::transaction(function () use ($request, $toSem, $adminId, $decision, $notes, &$promotedCount) {
             foreach ($request->student_ids as $studentId) {
                 $student = Student::find($studentId);
                 if (!$student) continue;
@@ -322,7 +328,7 @@ class PromotionController extends Controller
                 $enrollment = $student->enrollments()
                     ->where('batch_id', $request->batch_id)
                     ->where('status', 'ACTIVE')
-                    ->first();
+                    ->first() ?? $student->enrollments()->where('status', 'ACTIVE')->first();
 
                 // Prevent duplicate promotion
                 $exists = PromotionRecord::where('student_id', $studentId)
@@ -336,9 +342,9 @@ class PromotionController extends Controller
                         'enrollment_id'    => $enrollment?->id,
                         'from_semester_id' => $request->from_semester_id,
                         'to_semester_id'   => $toSem->id,
-                        'decision'         => 'PROMOTED',
+                        'decision'         => $decision,
                         'decided_by'       => $adminId,
-                        'notes'            => 'বাল্ক প্রমোশন: সকল ক্রাইটেরিয়া পূরণ সাপেক্ষে পরবর্তী সেমিস্টারে উত্তীর্ণ।',
+                        'notes'            => $notes,
                     ]);
 
                     if ($enrollment) {
@@ -347,6 +353,16 @@ class PromotionController extends Controller
                     }
                     $promotedCount++;
                 }
+            }
+
+            if ($promotedCount > 0) {
+                \App\Models\BatchSemesterPosition::updateOrCreate(
+                    ['batch_id' => $request->batch_id],
+                    [
+                        'current_semester_id' => $toSem->id,
+                        'started_at'          => now(),
+                    ]
+                );
             }
         });
 

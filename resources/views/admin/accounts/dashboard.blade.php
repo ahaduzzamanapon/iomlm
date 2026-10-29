@@ -51,22 +51,103 @@
     </div>
 
     {{-- Course Activation Fee Automation Banner --}}
-    <div class="card" style="margin-bottom:24px;border:1px solid #fde68a;background:#fffbeb;font-family:'Kalpurush',sans-serif">
-        <div style="padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
-            <div style="display:flex;align-items:center;gap:12px">
-                <i class="fa-solid fa-clock-rotate-left" style="font-size:24px;color:#d97706"></i>
+    <div class="card" style="margin-bottom:24px;border:1.5px solid #fde68a;background:#fffbeb;font-family:'Kalpurush',sans-serif;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+        <div style="padding:16px 20px">
+            <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px">
+                <i class="fa-solid fa-bolt" style="font-size:24px;color:#d97706;margin-top:2px"></i>
                 <div>
-                    <strong style="font-size:15px;color:#92400e">কোর্স এক্টিভিশন ফি (৳১০০) অটোমেশন</strong>
-                    <div style="font-size:13px;color:#78350f">
-                        প্রতি মাসের ১০ তারিখের মধ্যে চলতি মাসের বেতন পরিশোধ না করলে বকেয়া শিক্ষার্থীদের পোর্টালে ১০০ টাকার “কোর্স এক্টিভিশন ফি” যুক্ত করার নিয়ম।
+                    <strong style="font-size:16px;color:#92400e">কোর্স এক্টিভেশন ফি ও পোর্টাল এক্সেস অটোমেশন</strong>
+                    <div style="font-size:13px;color:#78350f;margin-top:2px;line-height:1.5">
+                        নির্দিষ্ট কোর্স, ব্যাচ (একসাথে সব ব্যাচ বা নির্দিষ্ট ব্যাচ) ও মাস-বছর সিলেক্ট করে এক্টিভেশন ফি প্রয়োগ করুন। <strong>যাদের ওই মাসের বেতন আনপেইড (বকেয়া) থাকবে শুধু তাদের এক্টিভেশন ফি যুক্ত হবে এবং তাদের পোর্টাল এক্সেস অফ হয়ে যাবে।</strong> শিক্ষার্থী ফি পেমেন্ট করলে তাৎক্ষণিকভাবে অটো এক্সেস অন হয়ে যাবে।
                     </div>
                 </div>
             </div>
-            <form action="{{ route('admin.accounts.apply-activation-fees') }}" method="POST" onsubmit="return confirm('আপনি কি চলতি মাসের সকল বকেয়া শিক্ষার্থীর পোর্টালে ১০০ টাকার কোর্স এক্টিভিশন ফি প্রয়োগ করতে চান?')">
+
+            <form action="{{ route('admin.accounts.apply-activation-fees') }}" method="POST" id="activationFeeForm">
                 @csrf
-                <button type="submit" class="btn btn-warning" style="font-weight:700;background:#d97706;border-color:#b45309;color:#fff">
-                    <i class="fa-solid fa-bolt"></i> এক্টিভিশন ফি প্রয়োগ করুন (৳১০০)
-                </button>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;align-items:flex-end;background:#fef3c7;padding:14px;border-radius:10px;border:1px solid #fde68a">
+                    {{-- 1. Course Selection --}}
+                    <div>
+                        <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
+                            কোর্স নির্বাচন <span style="color:#dc2626">*</span>
+                        </label>
+                        <select name="course_id" id="activationCourseSelect" class="form-control" required style="font-size:13px;height:38px;background:#fff">
+                            <option value="">-- কোর্স নির্বাচন করুন --</option>
+                            <option value="all">সকল কোর্স (All Courses)</option>
+                            @foreach($courses ?? [] as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- 2. Batch Selection (All or Individual) --}}
+                    <div>
+                        <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
+                            ব্যাচ নির্বাচন (সব ব্যাচ বা নির্দিষ্ট)
+                        </label>
+                        <select name="batch_id" id="activationBatchSelect" class="form-control" style="font-size:13px;height:38px;background:#fff">
+                            <option value="all">সব ব্যাচ (একসাথে সব ব্যাচে প্রয়োগ)</option>
+                            @foreach($batches ?? [] as $b)
+                                <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">
+                                    {{ $b->name }} @if($b->course) ({{ $b->course->name }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- 3. Month Selection --}}
+                    <div>
+                        <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
+                            বেতনের মাস <span style="color:#dc2626">*</span>
+                        </label>
+                        @php $currM = now()->month; @endphp
+                        <select name="month" class="form-control" style="font-size:13px;height:38px;background:#fff">
+                            @foreach([
+                                1 => 'জানুয়ারি (Jan)',
+                                2 => 'ফেব্রুয়ারি (Feb)',
+                                3 => 'মার্চ (Mar)',
+                                4 => 'এপ্রিল (Apr)',
+                                5 => 'মে (May)',
+                                6 => 'জুন (Jun)',
+                                7 => 'জুলাই (Jul)',
+                                8 => 'আগস্ট (Aug)',
+                                9 => 'সেপ্টেম্বর (Sep)',
+                                10 => 'অক্টোবর (Oct)',
+                                11 => 'নভেম্বর (Nov)',
+                                12 => 'ডিসেম্বর (Dec)'
+                            ] as $mNum => $mLabel)
+                                <option value="{{ $mNum }}" {{ $currM == $mNum ? 'selected' : '' }}>{{ $mLabel }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- 4. Year Selection --}}
+                    <div>
+                        <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
+                            বছর <span style="color:#dc2626">*</span>
+                        </label>
+                        @php $currY = now()->year; @endphp
+                        <select name="year" class="form-control" style="font-size:13px;height:38px;background:#fff">
+                            @foreach([$currY - 1, $currY, $currY + 1, $currY + 2] as $yVal)
+                                <option value="{{ $yVal }}" {{ $currY == $yVal ? 'selected' : '' }}>{{ $yVal }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- 5. Amount & Submit --}}
+                    <div style="display:flex;gap:8px;align-items:flex-end">
+                        <div style="width:90px">
+                            <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
+                                ফি (টাকা)
+                            </label>
+                            <input type="number" name="amount" class="form-control" value="100" min="1" step="1" required
+                                style="font-size:13px;height:38px;background:#fff;font-weight:700" title="এক্টিভেশন ফি এর পরিমাণ">
+                        </div>
+                        <button type="submit" class="btn btn-warning" style="font-weight:700;background:#d97706;border-color:#b45309;color:#fff;height:38px;white-space:nowrap;padding:0 16px;display:inline-flex;align-items:center;gap:6px">
+                            <i class="fa-solid fa-bolt"></i> এক্টিভেশন ফি প্রয়োগ ও পোর্টাল অফ
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
@@ -321,6 +402,47 @@
         document.getElementById('collectForm').action = '/admin/accounts/invoices/' + invoiceId + '/collect';
         openModal('collectModal');
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const courseSelect = document.getElementById('activationCourseSelect');
+        const batchSelect  = document.getElementById('activationBatchSelect');
+
+        if (courseSelect && batchSelect) {
+            courseSelect.addEventListener('change', function() {
+                const selectedCourseId = this.value;
+                const options = batchSelect.querySelectorAll('option');
+
+                options.forEach(opt => {
+                    if (opt.value === 'all') {
+                        opt.style.display = '';
+                        opt.selected = true;
+                        return;
+                    }
+                    const courseId = opt.getAttribute('data-course-id');
+                    if (!selectedCourseId || selectedCourseId === 'all' || courseId === selectedCourseId) {
+                        opt.style.display = '';
+                    } else {
+                        opt.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        const actForm = document.getElementById('activationFeeForm');
+        if (actForm) {
+            actForm.addEventListener('submit', function(e) {
+                const courseText = courseSelect.options[courseSelect.selectedIndex]?.text || '';
+                const batchText  = batchSelect.options[batchSelect.selectedIndex]?.text || '';
+                const confirmMsg = '⚠️ নিশ্চিতকরণ:\n' +
+                    'নির্বাচিত [' + courseText + ' - ' + batchText + '] এর যে সকল শিক্ষার্থীর উক্ত মাসের বেতন আনপেইড (বকেয়া) রয়েছে, শুধুমাত্র তাদের পোর্টালে এক্টিভেশন ফি যুক্ত হবে এবং তাদের পোর্টাল এক্সেস অফ হয়ে যাবে।\n\n' +
+                    'শিক্ষার্থী ফি পরিশোধ করা মাত্রই তাদের পোর্টাল এক্সেস স্বয়ংক্রিয়ভাবে অটো অন হবে।\n\nআপনি কি নিশ্চিত?';
+                if (!confirm(confirmMsg)) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+    });
     </script>
     @endpush
 </x-admin-layout>

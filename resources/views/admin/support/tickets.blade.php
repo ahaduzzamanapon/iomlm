@@ -22,33 +22,35 @@
     @endif
 
     {{-- Overall Stats --}}
-    <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr); margin-bottom: 24px;">
+    <div class="stats-grid" style="grid-template-columns: repeat(6, 1fr); margin-bottom: 24px;">
         <div class="stat-card" style="border-left: 4px solid #6366f1">
-            
             <div class="stat-info">
                 <div class="stat-value">{{ $totalCount }}</div>
                 <div class="stat-label">Total Tickets</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #f59e0b">
-            
             <div class="stat-info">
                 <div class="stat-value" style="color:#b45309">{{ $pendingCount }}</div>
                 <div class="stat-label">Pending Queue</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #0284c7">
-            
             <div class="stat-info">
                 <div class="stat-value" style="color:#0369a1">{{ $activeCount }}</div>
                 <div class="stat-label">Active Chats</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #10b981">
-            
             <div class="stat-info">
-                <div class="stat-value" style="color:#047857">{{ $closedCount }}</div>
-                <div class="stat-label">Resolved / Closed</div>
+                <div class="stat-value" style="color:#047857">{{ $solvedCount ?? 0 }}</div>
+                <div class="stat-label">Solved</div>
+            </div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #64748b">
+            <div class="stat-info">
+                <div class="stat-value" style="color:#475569">{{ $closedCount }}</div>
+                <div class="stat-label">Closed</div>
             </div>
         </div>
         <div class="stat-card" style="border-left: 4px solid #ec4899">
@@ -81,6 +83,7 @@
                     <option value="ALL" {{ $status === 'ALL' ? 'selected' : '' }}>All Status</option>
                     <option value="PENDING" {{ $status === 'PENDING' ? 'selected' : '' }}>Pending Queue</option>
                     <option value="IN_PROGRESS" {{ $status === 'IN_PROGRESS' ? 'selected' : '' }}>Active Chat</option>
+                    <option value="SOLVED" {{ $status === 'SOLVED' ? 'selected' : '' }}>Solved</option>
                     <option value="CLOSED" {{ $status === 'CLOSED' ? 'selected' : '' }}>Closed</option>
                 </select>
             </div>
@@ -154,6 +157,8 @@
                         <td>
                             @if($t->status === 'PENDING')
                                 <span class="badge badge-pending"><i class="fa-solid fa-clock" style="margin-right:4px"></i> Pending</span>
+                            @elseif($t->status === 'SOLVED')
+                                <span class="badge badge-success" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0"><i class="fa-solid fa-circle-check" style="margin-right:4px"></i> Solved</span>
                             @elseif($t->status === 'IN_PROGRESS')
                                 <span class="badge badge-running"><i class="fa-solid fa-circle-dot" style="color:#10b981;margin-right:4px"></i> Active Chat</span>
                             @else

@@ -148,7 +148,7 @@
             <a href="{{ route('admin.course-transfers.index', array_merge(request()->query(), ['status' => 'COMPLETED'])) }}" class="tab-btn-ct {{ $statusFilter === 'COMPLETED' ? 'active' : '' }}">
                 <i class="fa-solid fa-check-double"></i> সম্পন্ন ({{ $completedCount }})
             </a>
-            <a href="{{ route('admin.course-transfers.index', array_merge(request()->query(), ['status' => 'REJECTED'])) }}" class="tab-btn-ct {{ $statusFilter === 'REJECTED' ? 'active' : '' }}">
+            <a href="{{ route('admin.course-transfers.index', array_merge(request()->query(), ['status' => 'CANCELLED_OR_REJECTED'])) }}" class="tab-btn-ct {{ in_array($statusFilter, ['REJECTED', 'CANCELLED', 'CANCELLED_OR_REJECTED']) ? 'active' : '' }}">
                 বাতিলকৃত ({{ $rejectedCount }})
             </a>
         </div>
@@ -272,7 +272,9 @@
                             <span class="badge-completed"><i class="fa-solid fa-check-double"></i> স্থানান্তরিত</span>
                             <div style="font-size:10px;color:#15803d;margin-top:2px">{{ $tr->completed_at?->format('d M Y') }}</div>
                         @elseif($tr->status === 'REJECTED')
-                            <span class="badge-rejected"><i class="fa-solid fa-xmark"></i> বাতিলকৃত</span>
+                            <span class="badge-rejected"><i class="fa-solid fa-xmark"></i> প্রত্যাখ্যাত/বাতিল</span>
+                        @elseif($tr->status === 'CANCELLED')
+                            <span class="badge-rejected" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca"><i class="fa-solid fa-ban"></i> বাতিলকৃত</span>
                         @else
                             <span class="badge badge-secondary no-dot">{{ $tr->status }}</span>
                         @endif
@@ -299,6 +301,13 @@
                             <span style="font-size:12px;color:#059669;font-weight:700">
                                 <i class="fa-solid fa-circle-check"></i> সম্পূর্ণ
                             </span>
+                        @elseif(in_array($tr->status, ['CANCELLED', 'REJECTED']))
+                            <form method="POST" action="{{ route('admin.course-transfers.restore', $tr) }}" style="display:inline" onsubmit="return confirm('আপনি কি এই কোর্স পরিবর্তনের আবেদনটি পুনরায় চালু (রিস্টোর) করতে চান?');">
+                                @csrf
+                                <button type="submit" class="btn btn-sm" style="background:#ecfdf5;border:1.5px solid #059669;color:#065f46;font-weight:700;padding:5px 12px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:5px" title="আবেদন রিস্টোর করুন">
+                                    <i class="fa-solid fa-rotate-left"></i> রিস্টোর
+                                </button>
+                            </form>
                         @else
                             <span style="font-size:12px;color:#94a3b8">—</span>
                         @endif

@@ -7,6 +7,8 @@
                 Ticket: {{ $ticket->ticket_no }}
                 @if($ticket->status === 'PENDING')
                     <span class="badge badge-pending">⏳ Pending Queue</span>
+                @elseif($ticket->status === 'SOLVED')
+                    <span class="badge badge-success" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0">✓ Solved</span>
                 @elseif($ticket->status === 'IN_PROGRESS')
                     <span class="badge badge-running">Active Chat</span>
                 @else

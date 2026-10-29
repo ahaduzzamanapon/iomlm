@@ -112,22 +112,28 @@
                     <input type="text" name="education_qualification" class="form-control" value="{{ old('education_qualification', $student->education_qualification) }}">
                 </div>
 
-                {{-- Expatriate Information --}}
-                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px">
-                    <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#065f46;cursor:pointer;margin:0">
-                        <input type="checkbox" name="is_expatriate" id="admin_is_expatriate" value="1" onchange="document.getElementById('admin_country_wrapper').style.display = this.checked ? 'block' : 'none'" {{ old('is_expatriate', $student->is_expatriate) ? 'checked' : '' }} style="accent-color:#047857;cursor:pointer">
-                        <span>প্রবাসী শিক্ষার্থী (Expatriate Student)</span>
-                    </label>
-                    <div id="admin_country_wrapper" style="margin-top:10px;{{ old('is_expatriate', $student->is_expatriate) ? '' : 'display:none;' }}">
-                        <label style="font-size:12px;font-weight:600;color:#065f46;display:block;margin-bottom:3px">বসবাসরত দেশ (Country of Residence)</label>
-                        <input type="text" name="country_of_residence" class="form-control" value="{{ old('country_of_residence', $student->country_of_residence) }}" placeholder="যেমন: সৌদি আরব, মালয়েশিয়া, কাতার">
+                {{-- Residence & Nationality Information --}}
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:14px">
+                    <div style="display:flex;gap:20px;flex-wrap:wrap">
+                        <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#065f46;cursor:pointer;margin:0">
+                            <input type="checkbox" name="is_expatriate" id="admin_is_expatriate" value="1" onchange="adminToggleExpatriate(this)" {{ old('is_expatriate', $student->is_expatriate) ? 'checked' : '' }} style="accent-color:#047857;cursor:pointer">
+                            <span>প্রবাসী শিক্ষার্থী (Expatriate Student)</span>
+                        </label>
+                        <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#3730a3;cursor:pointer;margin:0">
+                            <input type="checkbox" name="is_international" id="admin_is_international" value="1" onchange="adminToggleInternational(this)" {{ old('is_international', $student->is_international) ? 'checked' : '' }} style="accent-color:#4f46e5;cursor:pointer">
+                            <span>ইন্টারন্যাশনাল শিক্ষার্থী (International Student)</span>
+                        </label>
+                    </div>
+                    <div id="admin_country_wrapper" style="margin-top:10px;{{ (old('is_expatriate', $student->is_expatriate) || old('is_international', $student->is_international)) ? '' : 'display:none;' }}">
+                        <label style="font-size:12px;font-weight:600;color:#0f172a;display:block;margin-bottom:3px">বসবাসরত দেশের নাম (Country Name)</label>
+                        <input type="text" name="country_of_residence" id="admin_country_of_residence" class="form-control" value="{{ old('country_of_residence', $student->country_of_residence) }}" placeholder="যেমন: ভারত (India), সৌদি আরব, কাতার">
                     </div>
                 </div>
 
                 {{-- Present Address with Division and District --}}
                 <div style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px">
-                    <div style="font-weight:700;font-size:13px;color:#047857;margin-bottom:8px">বর্তমান ঠিকানা (Present Address)</div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+                    <div style="font-weight:700;font-size:13px;color:#047857;margin-bottom:8px" id="admin_present_heading">{{ old('is_international', $student->is_international) ? 'ঠিকানা (Address)' : 'বর্তমান ঠিকানা (Present Address)' }}</div>
+                    <div id="admin_present_geo_wrapper" style="display:{{ old('is_international', $student->is_international) ? 'none' : 'grid' }};grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
                         <div>
                             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">বিভাগ</label>
                             <select name="present_division_id" id="admin_present_division" class="form-control" onchange="adminLoadDistricts('present', this.value)">
@@ -144,19 +150,19 @@
                             </select>
                         </div>
                     </div>
-                    <label style="font-weight:600;font-size:12px;display:block;margin-bottom:3px">বিস্তারিত বর্তমান ঠিকানা</label>
+                    <label id="admin_present_address_label" style="font-weight:600;font-size:12px;display:block;margin-bottom:3px">{{ old('is_international', $student->is_international) ? 'আন্তর্জাতিক বিস্তারিত ঠিকানা' : 'বিস্তারিত বর্তমান ঠিকানা' }}</label>
                     <textarea name="address" id="admin_present_address" class="form-control" rows="2">{{ old('address', $student->address) }}</textarea>
                 </div>
 
                 {{-- Permanent Address with Division and District --}}
-                <div style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px">
+                <div id="admin_permanent_address_card" style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px;{{ old('is_international', $student->is_international) ? 'display:none;' : '' }}">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                         <div style="font-weight:700;font-size:13px;color:#047857">স্থায়ী ঠিকানা (Permanent Address)</div>
                         <button type="button" onclick="adminCopyAddress()" style="background:none;border:none;color:#047857;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">
                             বর্তমান ঠিকানার অনুরূপ কপি করুন
                         </button>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+                    <div id="admin_permanent_geo_wrapper" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
                         <div>
                             <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">বিভাগ</label>
                             <select name="permanent_division_id" id="admin_permanent_division" class="form-control" onchange="adminLoadDistricts('permanent', this.value)">
@@ -217,6 +223,58 @@
             }
         }
 
+        function adminToggleExpatriate(cb) {
+            const intCb = document.getElementById('admin_is_international');
+            if (cb.checked && intCb && intCb.checked) {
+                intCb.checked = false;
+                adminApplyInternationalState(false);
+            }
+            adminApplyExpatriateState(cb.checked);
+        }
+
+        function adminToggleInternational(cb) {
+            const expCb = document.getElementById('admin_is_expatriate');
+            if (cb.checked && expCb && expCb.checked) {
+                expCb.checked = false;
+                adminApplyExpatriateState(false);
+            }
+            adminApplyInternationalState(cb.checked);
+        }
+
+        function adminApplyExpatriateState(active) {
+            const wrapper = document.getElementById('admin_country_wrapper');
+            const intCb = document.getElementById('admin_is_international');
+            if (active) {
+                if (wrapper) wrapper.style.display = 'block';
+            } else if (!intCb || !intCb.checked) {
+                if (wrapper) wrapper.style.display = 'none';
+            }
+        }
+
+        function adminApplyInternationalState(active) {
+            const wrapper = document.getElementById('admin_country_wrapper');
+            const presGeo = document.getElementById('admin_present_geo_wrapper');
+            const permCard = document.getElementById('admin_permanent_address_card');
+            const presLabel = document.getElementById('admin_present_address_label');
+            const presHeading = document.getElementById('admin_present_heading');
+            if (active) {
+                if (wrapper) wrapper.style.display = 'block';
+                if (presGeo) presGeo.style.display = 'none';
+                if (permCard) permCard.style.display = 'none';
+                if (presLabel) presLabel.textContent = 'আন্তর্জাতিক বিস্তারিত ঠিকানা';
+                if (presHeading) presHeading.textContent = 'ঠিকানা (Address)';
+            } else {
+                const expCb = document.getElementById('admin_is_expatriate');
+                if (!expCb || !expCb.checked) {
+                    if (wrapper) wrapper.style.display = 'none';
+                }
+                if (presGeo) presGeo.style.display = 'grid';
+                if (permCard) permCard.style.display = 'block';
+                if (presLabel) presLabel.textContent = 'বিস্তারিত বর্তমান ঠিকানা';
+                if (presHeading) presHeading.textContent = 'বর্তমান ঠিকানা (Present Address)';
+            }
+        }
+
         function adminCopyAddress() {
             const presDiv = document.getElementById('admin_present_division');
             const permDiv = document.getElementById('admin_permanent_division');
@@ -234,6 +292,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const adminInt = document.getElementById('admin_is_international');
+            if (adminInt && adminInt.checked) {
+                adminApplyInternationalState(true);
+            } else {
+                const adminExp = document.getElementById('admin_is_expatriate');
+                if (adminExp && adminExp.checked) {
+                    adminApplyExpatriateState(true);
+                }
+            }
+
             const presDiv = document.getElementById('admin_present_division');
             if (presDiv && presDiv.value) {
                 adminLoadDistricts('present', presDiv.value, '{{ old('present_district_id', $student->present_district_id) }}');

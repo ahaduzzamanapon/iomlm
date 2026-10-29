@@ -55,8 +55,11 @@
                         <td><span class="badge badge-{{ strtolower($ret->status) }}">{{ ucfirst(strtolower($ret->status)) }}</span></td>
                         <td style="text-align:right">
                             @if($ret->status === 'PENDING')
-                                <button class="btn btn-success btn-sm"
-                                    onclick="openApproveRetake({{ $ret->id }}, @json($ret->student->name ?? ''), @json($ret->subject->name ?? ''))">
+                                <button type="button" class="btn btn-success btn-sm btn-approve-retake"
+                                    data-id="{{ $ret->id }}"
+                                    data-student="{{ $ret->student->name ?? '—' }}"
+                                    data-subject="{{ $ret->subject->name ?? '—' }}"
+                                    onclick="openApproveRetakeFromBtn(this)">
                                     Approve & Set Fee
                                 </button>
                             @else
@@ -73,11 +76,11 @@
     </div>
 
     <!-- Create Retake Modal -->
-    <div class="modal-overlay" id="addRetakeModal">
+    <div class="modal-overlay" id="addRetakeModal" onclick="if(event.target===this) closeModal('addRetakeModal')">
         <div class="modal">
             <div class="modal-header">
                 <span class="modal-title">Register Subject Retake</span>
-                <button class="modal-close" onclick="closeModal('addRetakeModal')">&times;</button>
+                <button type="button" class="modal-close" onclick="closeModal('addRetakeModal')">&times;</button>
             </div>
             <form method="POST" action="{{ route('admin.retakes.store') }}">
                 @csrf
@@ -152,11 +155,11 @@
     </div>
 
     <!-- Approve Retake Modal -->
-    <div class="modal-overlay" id="approveRetakeModal">
+    <div class="modal-overlay" id="approveRetakeModal" onclick="if(event.target===this) closeModal('approveRetakeModal')">
         <div class="modal" style="max-width:450px;font-family: 'Kalpurush', sans-serif;">
             <div class="modal-header">
                 <span class="modal-title">রিটেক অনুমোদন ও ফি নির্ধারণ</span>
-                <button class="modal-close" onclick="closeModal('approveRetakeModal')">&times;</button>
+                <button type="button" class="modal-close" onclick="closeModal('approveRetakeModal')">&times;</button>
             </div>
             <form method="POST" id="approveRetakeForm">
                 @csrf @method('PATCH')
@@ -166,12 +169,12 @@
                     </div>
                     <div class="form-group">
                         <label>রিটেক ফি (৳ টাকা) <span class="required">*</span></label>
-                        <input type="number" name="retake_fee" class="form-control" min="0" placeholder="যেমন: ১৫০০" required>
+                        <input type="number" name="retake_fee" id="ar_fee" class="form-control" min="0" placeholder="যেমন: ১৫০০" required>
                         <small style="color:var(--text-muted);font-size:12px">এই পরিমাণ টাকা শিক্ষার্থীর একাউন্টে ইনভয়েস হিসেবে যুক্ত হবে।</small>
                     </div>
                     <div class="form-group">
                         <label>নোট (ঐচ্ছিক)</label>
-                        <textarea name="notes" class="form-control" rows="2" placeholder="অনুমোদন সংক্রান্ত নোট..."></textarea>
+                        <textarea name="notes" id="ar_notes" class="form-control" rows="2" placeholder="অনুমোদন সংক্রান্ত নোট..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -184,12 +187,67 @@
 
     @push('scripts')
     <script>
+    function openModal(id) {
+        if (window.openModal && typeof window.openModal === 'function' && window.openModal !== openModal) {
+            window.openModal(id);
+            return;
+        }
+        const m = typeof id === 'string' ? document.getElementById(id) : id;
+        if (!m) return;
+        m.classList.add('open', 'active', 'show');
+        m.style.display = 'flex';
+        m.style.pointerEvents = 'auto';
+        m.style.opacity = '1';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+        if (window.closeModal && typeof window.closeModal === 'function' && window.closeModal !== closeModal) {
+            window.closeModal(id);
+            return;
+        }
+        const m = typeof id === 'string' ? document.getElementById(id) : id;
+        if (!m) return;
+        m.classList.remove('open', 'active', 'show');
+        m.style.display = 'none';
+        m.style.pointerEvents = '';
+        m.style.opacity = '';
+        document.body.style.overflow = '';
+    }
+
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+
+    function openApproveRetakeFromBtn(btn) {
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const student = btn.getAttribute('data-student') || '';
+        const subject = btn.getAttribute('data-subject') || '';
+        openApproveRetake(id, student, subject);
+    }
+
     function openApproveRetake(id, student, subject) {
-        document.getElementById('approveRetakeForm').action = '/admin/retakes/' + id + '/approve';
-        document.getElementById('ar_student').textContent = student;
-        document.getElementById('ar_subject').textContent = subject;
+        const form = document.getElementById('approveRetakeForm');
+        if (form) {
+            form.action = "{{ url('admin/retakes') }}/" + id + "/approve";
+        }
+        const studentEl = document.getElementById('ar_student');
+        if (studentEl) studentEl.textContent = student || '—';
+        const subjectEl = document.getElementById('ar_subject');
+        if (subjectEl) subjectEl.textContent = subject || '—';
         openModal('approveRetakeModal');
     }
+
+    window.openApproveRetake = openApproveRetake;
+    window.openApproveRetakeFromBtn = openApproveRetakeFromBtn;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-approve-retake').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openApproveRetakeFromBtn(this);
+            });
+        });
+    });
 
     // Retake student live search functionality
     (function() {

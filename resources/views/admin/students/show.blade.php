@@ -369,6 +369,13 @@
                             </span>
                         @endif
 
+                        {{-- Facebook Live Approval Badge --}}
+                        @if($student->facebook_live_approved)
+                            <span class="access-badge" style="background:#1877f2;color:#fff;border:1px solid #60a5fa" title="ফেসবুক লাইভ ক্লাসের জন্য অনুমোদিত (১০% হারে এটেন্ডেন্স মার্ক অটো যুক্ত)">
+                                <i class="fa-brands fa-facebook"></i> এফবি লাইভ (১০% এটেন্ডেন্স)
+                            </span>
+                        @endif
+
                         @if($student->gender)
                             <span class="hero-code-badge" style="background:rgba(255,255,255,0.1)">
                                 {{ $student->gender === 'MALE' ? 'পুরুষ' : ($student->gender === 'FEMALE' ? 'মহিলা' : $student->gender) }}
@@ -393,6 +400,15 @@
                     <button type="submit" class="btn-hero {{ ($student->has_course_access ?? true) ? 'btn-hero-outline' : 'btn-hero-emerald' }}" title="কোর্স অ্যাক্সেস অন/অফ করুন">
                         <i class="fa-solid fa-power-off"></i> 
                         {{ ($student->has_course_access ?? true) ? 'অ্যাক্সেস বন্ধ করুন' : 'অ্যাক্সেস চালু করুন' }}
+                    </button>
+                </form>
+
+                {{-- Facebook Live Approval Toggle Action --}}
+                <form method="POST" action="{{ route('admin.students.toggle-facebook-live', $student) }}" style="display:inline" onsubmit="return confirm('{{ $student->facebook_live_approved ? 'আপনি কি এই শিক্ষার্থীর ফেসবুক লাইভ এপ্রুভাল প্রত্যাহার করতে চান?' : 'আপনি কি এই শিক্ষার্থীর ফেসবুক লাইভ এপ্রুভাল অনুমোদন করতে চান? (এপ্রুভাল দিলে প্রতিটা সাবজেক্টের মোট মার্কের ১০% হারে এটেন্ডেন্স মার্ক অটো যোগ হবে)' }}');">
+                    @csrf
+                    <button type="submit" class="btn-hero" style="{{ $student->facebook_live_approved ? 'background:#eff6ff;color:#1877f2;border:1.5px solid #1877f2;' : 'background:#1877f2;color:#fff;border:1.5px solid #1877f2;' }}" title="ফেসবুক লাইভ ক্লাসের জন্য এপ্রুভাল দিন বা বাতিল করুন">
+                        <i class="fa-brands fa-facebook"></i>
+                        {{ $student->facebook_live_approved ? 'এফবি লাইভ প্রত্যাহার' : 'ফেসবুক লাইভ এপ্রুভাল' }}
                     </button>
                 </form>
 
@@ -509,6 +525,23 @@
                             <span class="detail-label">বর্তমান পেশা:</span>
                             <span class="detail-value">{{ $student->occupation ?? '—' }}</span>
                         </div>
+                        <div class="detail-row">
+                            <span class="detail-label">ক্লাসের মাধ্যম:</span>
+                            <span class="detail-value">
+                                @if($student->facebook_live_approved)
+                                    <span class="badge" style="background:#dbeafe;color:#1d4ed8;font-weight:700">
+                                        <i class="fa-brands fa-facebook"></i> ফেসবুক লাইভ (১০% অটো এটেন্ডেন্স সক্রিয়)
+                                    </span>
+                                    @if($student->facebook_live_approved_at)
+                                        <small style="color:var(--text-muted);margin-left:6px">অনুমোদন: {{ $student->facebook_live_approved_at->format('d M Y') }}</small>
+                                    @endif
+                                @else
+                                    <span class="badge" style="background:#f1f5f9;color:#475569">
+                                        <i class="fa-solid fa-video"></i> সাধারণ (জুম মিটিং)
+                                    </span>
+                                @endif
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -543,26 +576,33 @@
                         <div class="detail-row">
                             <span class="detail-label">আবাসিক স্ট্যাটাস:</span>
                             <span class="detail-value">
-                                @if($student->is_expatriate)
-                                    <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;padding:3px 10px;border-radius:12px">
+                                @if($student->is_international)
+                                    <span class="badge" style="background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;font-size:12px;padding:3px 10px;border-radius:12px;font-family:'Kalpurush',sans-serif">
+                                        <i class="fa-solid fa-earth-asia"></i> ইন্টারন্যাশনাল শিক্ষার্থী (দেশ: {{ $student->country_of_residence ?: 'ভারত' }})
+                                    </span>
+                                @elseif($student->is_expatriate)
+                                    <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:12px;padding:3px 10px;border-radius:12px;font-family:'Kalpurush',sans-serif">
                                         <i class="fa-solid fa-plane"></i> প্রবাসী (বসবাসরত দেশ: {{ $student->country_of_residence ?: 'বিদেশ' }})
                                     </span>
                                 @else
-                                    <span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:12px;padding:3px 10px;border-radius:12px">
+                                    <span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:12px;padding:3px 10px;border-radius:12px;font-family:'Kalpurush',sans-serif">
                                         🇧🇩 দেশীয় শিক্ষার্থী (বাংলাদেশ)
                                     </span>
                                 @endif
                             </span>
                         </div>
                         <div class="detail-row">
-                            <span class="detail-label">বর্তমান ঠিকানা:</span>
+                            <span class="detail-label">{{ $student->is_international ? 'ঠিকানা:' : 'বর্তমান ঠিকানা:' }}</span>
                             <span class="detail-value">
-                                @if($student->presentDistrict || $student->presentDivision)
+                                @if(!$student->is_international && ($student->presentDistrict || $student->presentDivision))
                                     <span style="display:block;font-weight:700;color:#047857"><i class="fa-solid fa-location-dot"></i> {{ $student->presentDistrict?->name ? ($student->presentDistrict->name . ', ' . ($student->presentDivision?->name ?? '')) : '' }}</span>
+                                @elseif($student->is_international && $student->country_of_residence)
+                                    <span style="display:block;font-weight:700;color:#4338ca"><i class="fa-solid fa-earth-asia"></i> দেশ: {{ $student->country_of_residence }}</span>
                                 @endif
                                 {{ $student->address ?? '—' }}
                             </span>
                         </div>
+                        @if(!$student->is_international)
                         <div class="detail-row">
                             <span class="detail-label">স্থায়ী ঠিকানা:</span>
                             <span class="detail-value">
@@ -572,6 +612,7 @@
                                 {{ $student->permanent_address ?? ($student->address ?? '—') }}
                             </span>
                         </div>
+                        @endif
                         <div class="detail-row">
                             <span class="detail-label">শিক্ষাগত যোগ্যতা:</span>
                             <span class="detail-value">{{ $student->education_qualification ?? '—' }}</span>
@@ -807,6 +848,11 @@
                                 </td>
                                 <td style="padding:10px 16px;text-align:center">
                                     {{ $fm->attendance_converted }}
+                                    @if($student->facebook_live_approved)
+                                        <div style="font-size:11px;color:#1877f2;font-weight:700" title="ফেসবুক লাইভ ক্লাসের উপস্থিতি (মোট প্রাপ্ত নম্বরের ১০% হারে অটো যুক্ত)">
+                                            <i class="fa-brands fa-facebook"></i> ১০% অটো
+                                        </div>
+                                    @endif
                                 </td>
                                 <td style="padding:10px 16px;text-align:center;font-weight:700;color:#2563eb">
                                     {{ number_format($fm->total_mark, 1) }}
@@ -1088,22 +1134,28 @@
                         <input type="text" name="education_qualification" class="form-control" value="{{ old('education_qualification', $student->education_qualification) }}">
                     </div>
 
-                    {{-- Expatriate Information --}}
-                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px">
-                        <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#065f46;cursor:pointer;margin:0">
-                            <input type="checkbox" name="is_expatriate" id="admin_is_expatriate" value="1" onchange="document.getElementById('admin_country_wrapper').style.display = this.checked ? 'block' : 'none'" {{ old('is_expatriate', $student->is_expatriate) ? 'checked' : '' }} style="accent-color:#047857;cursor:pointer">
-                            <span>প্রবাসী শিক্ষার্থী (Expatriate Student)</span>
-                        </label>
-                        <div id="admin_country_wrapper" style="margin-top:10px;{{ old('is_expatriate', $student->is_expatriate) ? '' : 'display:none;' }}">
-                            <label style="font-size:12px;font-weight:600;color:#065f46;display:block;margin-bottom:3px">বসবাসরত দেশ (Country of Residence)</label>
-                            <input type="text" name="country_of_residence" class="form-control" value="{{ old('country_of_residence', $student->country_of_residence) }}" placeholder="যেমন: সৌদি আরব, মালয়েশিয়া, কাতার">
+                    {{-- Residence & Nationality Information --}}
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:14px">
+                        <div style="display:flex;gap:20px;flex-wrap:wrap">
+                            <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#065f46;cursor:pointer;margin:0">
+                                <input type="checkbox" name="is_expatriate" id="admin_is_expatriate" value="1" onchange="adminToggleExpatriate(this)" {{ old('is_expatriate', $student->is_expatriate) ? 'checked' : '' }} style="accent-color:#047857;cursor:pointer">
+                                <span>প্রবাসী শিক্ষার্থী (Expatriate)</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#3730a3;cursor:pointer;margin:0">
+                                <input type="checkbox" name="is_international" id="admin_is_international" value="1" onchange="adminToggleInternational(this)" {{ old('is_international', $student->is_international) ? 'checked' : '' }} style="accent-color:#4f46e5;cursor:pointer">
+                                <span>ইন্টারন্যাশনাল শিক্ষার্থী (International Student)</span>
+                            </label>
+                        </div>
+                        <div id="admin_country_wrapper" style="margin-top:10px;{{ (old('is_expatriate', $student->is_expatriate) || old('is_international', $student->is_international)) ? '' : 'display:none;' }}">
+                            <label style="font-size:12px;font-weight:600;color:#0f172a;display:block;margin-bottom:3px">বসবাসরত দেশের নাম (Country Name)</label>
+                            <input type="text" name="country_of_residence" id="admin_country_of_residence" class="form-control" value="{{ old('country_of_residence', $student->country_of_residence) }}" placeholder="যেমন: ভারত (India), সৌদি আরব, কাতার">
                         </div>
                     </div>
 
                     {{-- Present Address with Division and District --}}
                     <div style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px">
-                        <div style="font-weight:700;font-size:13px;color:#047857;margin-bottom:8px">বর্তমান ঠিকানা (Present Address)</div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+                        <div style="font-weight:700;font-size:13px;color:#047857;margin-bottom:8px" id="admin_present_heading">{{ old('is_international', $student->is_international) ? 'ঠিকানা (Address)' : 'বর্তমান ঠিকানা (Present Address)' }}</div>
+                        <div id="admin_present_geo_wrapper" style="display:{{ old('is_international', $student->is_international) ? 'none' : 'grid' }};grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
                             <div>
                                 <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">বিভাগ</label>
                                 <select name="present_division_id" id="admin_present_division" class="form-control" onchange="adminLoadDistricts('present', this.value)">
@@ -1120,19 +1172,19 @@
                                 </select>
                             </div>
                         </div>
-                        <label style="font-weight:600;font-size:12px;display:block;margin-bottom:3px">বিস্তারিত বর্তমান ঠিকানা</label>
+                        <label id="admin_present_address_label" style="font-weight:600;font-size:12px;display:block;margin-bottom:3px">{{ old('is_international', $student->is_international) ? 'আন্তর্জাতিক বিস্তারিত ঠিকানা' : 'বিস্তারিত বর্তমান ঠিকানা' }}</label>
                         <textarea name="address" id="admin_present_address" class="form-control" rows="2">{{ old('address', $student->address) }}</textarea>
                     </div>
 
                     {{-- Permanent Address with Division and District --}}
-                    <div style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px">
+                    <div id="admin_permanent_address_card" style="margin-bottom:14px;border:1px solid #e2e8f0;padding:12px;border-radius:8px;{{ old('is_international', $student->is_international) ? 'display:none;' : '' }}">
                         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
                             <div style="font-weight:700;font-size:13px;color:#047857">স্থায়ী ঠিকানা (Permanent Address)</div>
                             <button type="button" onclick="adminCopyAddress()" style="background:none;border:none;color:#047857;font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">
                                 বর্তমান ঠিকানার অনুরূপ কপি করুন
                             </button>
                         </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+                        <div id="admin_permanent_geo_wrapper" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
                             <div>
                                 <label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">বিভাগ</label>
                                 <select name="permanent_division_id" id="admin_permanent_division" class="form-control" onchange="adminLoadDistricts('permanent', this.value)">
@@ -1469,6 +1521,58 @@
             }
         }
 
+        function adminToggleExpatriate(cb) {
+            const intCb = document.getElementById('admin_is_international');
+            if (cb.checked && intCb && intCb.checked) {
+                intCb.checked = false;
+                adminApplyInternationalState(false);
+            }
+            adminApplyExpatriateState(cb.checked);
+        }
+
+        function adminToggleInternational(cb) {
+            const expCb = document.getElementById('admin_is_expatriate');
+            if (cb.checked && expCb && expCb.checked) {
+                expCb.checked = false;
+                adminApplyExpatriateState(false);
+            }
+            adminApplyInternationalState(cb.checked);
+        }
+
+        function adminApplyExpatriateState(active) {
+            const wrapper = document.getElementById('admin_country_wrapper');
+            const intCb = document.getElementById('admin_is_international');
+            if (active) {
+                if (wrapper) wrapper.style.display = 'block';
+            } else if (!intCb || !intCb.checked) {
+                if (wrapper) wrapper.style.display = 'none';
+            }
+        }
+
+        function adminApplyInternationalState(active) {
+            const wrapper = document.getElementById('admin_country_wrapper');
+            const presGeo = document.getElementById('admin_present_geo_wrapper');
+            const permCard = document.getElementById('admin_permanent_address_card');
+            const presLabel = document.getElementById('admin_present_address_label');
+            const presHeading = document.getElementById('admin_present_heading');
+            if (active) {
+                if (wrapper) wrapper.style.display = 'block';
+                if (presGeo) presGeo.style.display = 'none';
+                if (permCard) permCard.style.display = 'none';
+                if (presLabel) presLabel.textContent = 'আন্তর্জাতিক বিস্তারিত ঠিকানা';
+                if (presHeading) presHeading.textContent = 'ঠিকানা (Address)';
+            } else {
+                const expCb = document.getElementById('admin_is_expatriate');
+                if (!expCb || !expCb.checked) {
+                    if (wrapper) wrapper.style.display = 'none';
+                }
+                if (presGeo) presGeo.style.display = 'grid';
+                if (permCard) permCard.style.display = 'block';
+                if (presLabel) presLabel.textContent = 'বিস্তারিত বর্তমান ঠিকানা';
+                if (presHeading) presHeading.textContent = 'বর্তমান ঠিকানা (Present Address)';
+            }
+        }
+
         function adminCopyAddress() {
             const presDiv = document.getElementById('admin_present_division');
             const permDiv = document.getElementById('admin_permanent_division');
@@ -1486,6 +1590,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const adminInt = document.getElementById('admin_is_international');
+            if (adminInt && adminInt.checked) {
+                adminApplyInternationalState(true);
+            } else {
+                const adminExp = document.getElementById('admin_is_expatriate');
+                if (adminExp && adminExp.checked) {
+                    adminApplyExpatriateState(true);
+                }
+            }
+
             const presDiv = document.getElementById('admin_present_division');
             if (presDiv && presDiv.value) {
                 adminLoadDistricts('present', presDiv.value, '{{ old('present_district_id', $student->present_district_id) }}');

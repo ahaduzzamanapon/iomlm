@@ -121,10 +121,18 @@
                         ফি পরিশোধ করা মাত্রই আপনার বর্তমান কোর্সের সংযোগ বন্ধ হয়ে নতুন কোর্সটি স্বয়ংক্রিয়ভাবে চালু হবে।
                     </div>
                 </div>
-                <div>
+                <div style="display:flex;align-items:center;gap:10px">
                     <a href="{{ route('student.fees.index') }}" class="btn btn-primary" style="padding:10px 20px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px">
                         <i class="fa-solid fa-credit-card"></i> ফি পরিশোধ করুন (Pay Fee)
                     </a>
+                    @if(!$activeRequest->invoice || $activeRequest->invoice->paid_amount == 0)
+                        <form method="POST" action="{{ route('student.course-transfers.cancel', $activeRequest) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে কোর্স পরিবর্তনের এই আবেদনটি প্রত্যাহার/বাতিল করতে চান? পরবর্তীতে প্রয়োজন হলে আবার রিস্টোর করতে পারবেন।');" style="display:inline">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fecaca;padding:9px 14px" title="বাতিল করুন">
+                                <i class="fa-solid fa-xmark"></i> বাতিল
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
         @else
@@ -132,7 +140,7 @@
                 <div style="font-size:12px;color:#64748b">
                     আবেদনের তারিখ: {{ $activeRequest->created_at->format('d M Y, h:i A') }} | কারণ: {{ $activeRequest->reason }}
                 </div>
-                <form method="POST" action="{{ route('student.course-transfers.cancel', $activeRequest) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে কোর্স পরিবর্তনের এই আবেদনটি প্রত্যাহার করতে চান?');">
+                <form method="POST" action="{{ route('student.course-transfers.cancel', $activeRequest) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে কোর্স পরিবর্তনের এই আবেদনটি প্রত্যাহার করতে চান? পরবর্তীতে প্রয়োজন হলে আবার রিস্টোর করতে পারবেন।');">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-outline btn-sm" style="color:#dc2626;border-color:#fecaca">
                         <i class="fa-solid fa-xmark"></i> আবেদন বাতিল করুন
@@ -141,6 +149,22 @@
             </div>
         @endif
     </div>
+    @endif
+
+    {{-- Restorable Cancelled Application Notice --}}
+    @if(!$activeRequest && $transfers->isNotEmpty() && $transfers->first()->status === 'CANCELLED')
+        <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 18px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-family:'Kalpurush',sans-serif">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#92400e">
+                <i class="fa-solid fa-circle-info" style="font-size:18px;color:#d97706"></i>
+                <span>আপনার পূর্ববর্তী কোর্স পরিবর্তনের আবেদনটি <strong>বাতিলকৃত</strong> অবস্থায় রয়েছে। আপনি চাইলে আবেদনটি পুনরায় চালু (রিস্টোর) করতে পারেন অথবা নিচে নতুন আবেদন করতে পারেন।</span>
+            </div>
+            <form method="POST" action="{{ route('student.course-transfers.restore', $transfers->first()) }}" onsubmit="return confirm('আপনি কি বাতিলকৃত এই আবেদনটি পুনরায় চালু (রিস্টোর) করতে চান?');">
+                @csrf
+                <button type="submit" class="btn btn-sm" style="background:#047857;color:#fff;border:none;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+                    <i class="fa-solid fa-rotate-left"></i> পূর্বের আবেদন রিস্টোর করুন
+                </button>
+            </form>
+        </div>
     @endif
 
     <div class="grid-2">
@@ -281,6 +305,7 @@
                         <th style="padding:10px 14px">নতুন কোর্স ও ব্যাচ</th>
                         <th style="padding:10px 14px">ট্রান্সফার ফি</th>
                         <th style="padding:10px 14px">স্ট্যাটাস</th>
+                        <th style="padding:10px 14px;text-align:right">অ্যাকশন</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -316,16 +341,37 @@
                                 <span style="background:#e0f2fe;color:#0369a1;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700">ফি বকেয়া</span>
                             @elseif($tr->status === 'COMPLETED')
                                 <span style="background:#dcfce7;color:#166534;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700"><i class="fa-solid fa-check"></i> সম্পন্ন</span>
+                            @elseif($tr->status === 'CANCELLED')
+                                <span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700"><i class="fa-solid fa-ban"></i> বাতিলকৃত</span>
                             @elseif($tr->status === 'REJECTED')
-                                <span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700">বাতিলকৃত</span>
+                                <span style="background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700">প্রত্যাখ্যাত</span>
                             @else
                                 <span style="background:#f1f5f9;color:#64748b;padding:3px 8px;border-radius:10px;font-size:11px">{{ $tr->status }}</span>
+                            @endif
+                        </td>
+                        <td style="padding:12px 14px;text-align:right">
+                            @if($tr->status === 'CANCELLED')
+                                <form method="POST" action="{{ route('student.course-transfers.restore', $tr) }}" onsubmit="return confirm('আপনি কি এই বাতিলকৃত আবেদনটি পুনরায় চালু (রিস্টোর) করতে চান?');" style="display:inline-block">
+                                    @csrf
+                                    <button type="submit" class="btn btn-sm" style="background:#ecfdf5;border:1.5px solid #059669;color:#065f46;font-weight:700;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'Kalpurush',sans-serif;font-size:12px;display:inline-flex;align-items:center;gap:4px" title="আবেদন রিস্টোর করুন">
+                                        <i class="fa-solid fa-rotate-left"></i> রিস্টোর করুন
+                                    </button>
+                                </form>
+                            @elseif($tr->status === 'PENDING')
+                                <form method="POST" action="{{ route('student.course-transfers.cancel', $tr) }}" onsubmit="return confirm('আপনি কি নিশ্চিত যে আবেদনটি বাতিল করতে চান? পরবর্তীতে প্রয়োজন হলে আবার রিস্টোর করতে পারবেন।');" style="display:inline-block">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-sm" style="background:#fff;border:1px solid #fca5a5;color:#dc2626;font-weight:600;padding:4px 8px;border-radius:6px;cursor:pointer;font-family:'Kalpurush',sans-serif;font-size:11.5px;display:inline-flex;align-items:center;gap:4px" title="আবেদন বাতিল করুন">
+                                        <i class="fa-solid fa-xmark"></i> বাতিল
+                                    </button>
+                                </form>
+                            @else
+                                <span style="color:#94a3b8;font-size:12px">—</span>
                             @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" style="text-align:center;padding:30px;color:#94a3b8">
+                        <td colspan="6" style="text-align:center;padding:30px;color:#94a3b8">
                             পূর্ববর্তী কোনো কোর্স পরিবর্তনের তথ্য পাওয়া যায়নি।
                         </td>
                     </tr>

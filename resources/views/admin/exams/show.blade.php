@@ -109,11 +109,30 @@
                         <tr style="border-bottom:1px solid #f1f5f9; transition:background .15s" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
                             <td style="padding:12px 10px; text-align:center">
                                 <span style="{{ $rankBg }} font-weight:900; padding:4px 10px; border-radius:14px; font-size:12px; display:inline-block">
-                                    {{ $medal }} {{ $item['merit_rank_bengali'] }}
+                                    {{ $medal }} {{ $item['gender_rank_bengali'] ?? $item['merit_rank_bengali'] }}
                                 </span>
+                                <div style="font-size:10.5px; color:{{ ($item['gender_group'] ?? '') === 'FEMALE' ? '#9d174d' : '#1e40af' }}; font-weight:800; margin-top:2px">
+                                    {{ ($item['gender_group'] ?? '') === 'FEMALE' ? 'বোনদের মধ্যে' : 'ভাইদের মধ্যে' }}
+                                </div>
+                                @if(!empty($item['overall_rank_bengali']))
+                                    <div style="font-size:10px; color:#64748b; font-weight:600">
+                                        (সামগ্রিক: {{ $item['overall_rank_bengali'] }})
+                                    </div>
+                                @endif
                             </td>
                             <td style="padding:12px 14px">
-                                <strong style="color:#0f172a; font-size:13.5px">{{ $stName }}</strong>
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+                                    <strong style="color:#0f172a; font-size:13.5px">{{ $stName }}</strong>
+                                    @if(($item['gender_group'] ?? '') === 'FEMALE')
+                                        <span style="font-size:10px; font-weight:800; background:#fce7f3; color:#be185d; border:1px solid #fbcfe8; padding:1px 6px; border-radius:10px">
+                                            🧕 বোন
+                                        </span>
+                                    @else
+                                        <span style="font-size:10px; font-weight:800; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; padding:1px 6px; border-radius:10px">
+                                            👨 ভাই
+                                        </span>
+                                    @endif
+                                </div>
                                 <div style="font-size:11.5px; color:#2563eb; font-weight:700; margin-top:2px">
                                     {{ $stRoll }}
                                 </div>
@@ -171,6 +190,11 @@
                                     onclick="openSingleMarksheetModal({
                                         studentName: '{{ addslashes($stName) }}',
                                         studentRoll: '{{ addslashes($stRoll) }}',
+                                        studentBranch: '{{ addslashes($item['gender_branch'] ?? ($st?->getGenderBranchTitle() ?? 'ভাই শাখা')) }}',
+                                        genderGroup: '{{ $item['gender_group'] ?? 'MALE' }}',
+                                        genderLabel: '{{ $item['gender_label'] ?? 'ভাই' }}',
+                                        genderMeritText: '{{ addslashes($item['gender_merit_text'] ?? '') }}',
+                                        overallRankBengali: '{{ $item['overall_rank_bengali'] ?? '' }}',
                                         examTitle: '{{ addslashes($exam->title) }}',
                                         examType: '{{ addslashes($exam->type) }}',
                                         subjectName: '{{ addslashes($exam->subject->name ?? '—') }}',
@@ -400,7 +424,7 @@
             </div>
 
             {{-- Printable Marksheet Body --}}
-            <div id="printableMarksheet" style="padding:32px; background:#fff; color:#0f172a">
+            <div id="printableMarksheet" style="padding:32px; background:#fff; color:#0f172a; font-family:'Kalpurush', sans-serif">
                 {{-- Letterhead --}}
                 <div style="text-align:center; border-bottom:2px solid #1e40af; padding-bottom:16px; margin-bottom:20px">
                     <div style="font-size:24px; font-weight:900; color:#1e40af; letter-spacing:0.5px">
@@ -421,6 +445,9 @@
                         <div id="smStudentName" style="font-size:16px; font-weight:800; color:#0f172a"></div>
                         <div style="font-size:12.5px; color:#2563eb; font-weight:700; margin-top:3px">
                             স্টুডেন্ট আইডি / রোল: <span id="smStudentRoll"></span>
+                        </div>
+                        <div style="font-size:12px; color:#475569; font-weight:700; margin-top:3px">
+                            শাখা / বিভাগ: <span id="smStudentBranch" style="font-weight:800"></span>
                         </div>
                     </div>
                     <div style="text-align:right">
@@ -483,7 +510,8 @@
                 <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:12px; padding:16px; margin-bottom:30px; display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; text-align:center">
                     <div>
                         <div style="font-size:12px; color:#065f46; font-weight:700">মেধাক্রম / স্থান</div>
-                        <div id="smRankBadge" style="font-size:18px; font-weight:900; color:#b45309; margin-top:2px"></div>
+                        <div id="smRankBadge" style="font-size:15px; font-weight:900; color:#b45309; margin-top:2px; line-height:1.3"></div>
+                        <div id="smOverallRankBadge" style="font-size:11px; color:#64748b; font-weight:700; margin-top:2px"></div>
                     </div>
                     <div>
                         <div style="font-size:12px; color:#065f46; font-weight:700">শতকরা প্রাপ্তি</div>
@@ -599,8 +627,24 @@
                 ? '<span style="color:#16a34a; font-weight:800">উত্তীর্ণ (PASS)</span>' 
                 : '<span style="color:#dc2626; font-weight:800">অনুত্তীর্ণ (FAIL)</span>';
 
-            // Badges
-            document.getElementById('smRankBadge').textContent = data.rankBengali;
+            // Branch & Badges
+            const brEl = document.getElementById('smStudentBranch');
+            if (brEl) {
+                brEl.innerHTML = data.genderGroup === 'FEMALE' 
+                    ? '<span style="color:#be185d">🧕 বোন শাখা (Sister Section)</span>' 
+                    : '<span style="color:#0284c7">👨 ভাই শাখা (Brother Section)</span>';
+            }
+
+            const rankEl = document.getElementById('smRankBadge');
+            if (rankEl) {
+                rankEl.textContent = data.genderMeritText || (data.rankBengali ? data.rankBengali + ' স্থান' : '—');
+            }
+
+            const overallRankEl = document.getElementById('smOverallRankBadge');
+            if (overallRankEl) {
+                overallRankEl.textContent = data.overallRankBengali ? '(সামগ্রিক মেধা: ' + data.overallRankBengali + ')' : '';
+            }
+
             document.getElementById('smPctBadge').textContent = data.percentage + '%';
             document.getElementById('smGradeBadge').textContent = data.grade;
             document.getElementById('smQawmiBadge').textContent = data.qawmiGrade;

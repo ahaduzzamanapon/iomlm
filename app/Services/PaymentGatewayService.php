@@ -780,9 +780,10 @@ class PaymentGatewayService
         // 6. Send admission confirmation SMS to student phone
         if (!empty($student->phone)) {
             try {
-                $smsMessage = $batch ? $batch->getEffectiveSmsTemplate() : '';
+                $smsTpl = \App\Models\EmailTemplate::resolveAdmissionSmsTemplate($courseId, $batchId, $gender);
+                $smsMessage = $smsTpl ? $smsTpl->content : ($batch ? $batch->getEffectiveSmsTemplate() : '');
                 if (empty($smsMessage)) {
-                    $smsMessage = "আলহামদুলিল্লাহ! IOM-এ আপনার ভর্তি নিশ্চিত হয়েছে। স্টুডেন্ট আইডি: {student_id}, পাসওয়ার্ড: {password}। লগইন: {login_url}";
+                    $smsMessage = "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM";
                 }
                 $compiledSms = str_replace(array_keys($replaceVars), array_values($replaceVars), $smsMessage);
                 app(\App\Services\SmsService::class)->send($student->phone, $compiledSms);

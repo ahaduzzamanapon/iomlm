@@ -70,12 +70,15 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::patch('waiver-applications/{waiverApplication}/approve', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'approve'])->name('waiver-applications.approve');
         Route::patch('waiver-applications/{waiverApplication}/reject', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'reject'])->name('waiver-applications.reject');
         Route::patch('waiver-applications/{waiverApplication}/contact', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'updateContact'])->name('waiver-applications.update-contact');
+        Route::patch('waiver-applications/{waiverApplication}/update-approval', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'updateApproval'])->name('waiver-applications.update-approval');
         Route::post('waiver-applications/{waiverApplication}/resend-email', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'resendEmail'])->name('waiver-applications.resend-email');
+        Route::post('waiver-applications/{waiverApplication}/send-update-email', [\App\Http\Controllers\Admin\WaiverApplicationController::class, 'sendUpdateEmail'])->name('waiver-applications.send-update-email');
     });
 
     // ── 4. Students ─────────────────────────────────────────────────────
     Route::middleware('admin.module:students')->group(function () {
         Route::get('students/export-csv', [\App\Http\Controllers\Admin\StudentController::class, 'exportCsv'])->name('students.export-csv');
+        Route::get('students/copy-data', [\App\Http\Controllers\Admin\StudentController::class, 'copyData'])->name('students.copy-data');
         Route::get('students/search-api', [\App\Http\Controllers\Admin\StudentController::class, 'searchApi'])->name('students.search-api');
         Route::resource('students', \App\Http\Controllers\Admin\StudentController::class);
         Route::get('students/{student}/impersonate', [\App\Http\Controllers\Admin\StudentController::class, 'impersonate'])->name('students.impersonate');
@@ -84,6 +87,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('students/{student}/certificate', [\App\Http\Controllers\Admin\StudentController::class, 'printCertificate'])->name('students.certificate');
         Route::get('students/{student}/id-card', [\App\Http\Controllers\Admin\StudentController::class, 'printIdCard'])->name('students.id-card');
         Route::post('students/{student}/toggle-course-access', [\App\Http\Controllers\Admin\StudentController::class, 'toggleCourseAccess'])->name('students.toggle-course-access');
+        Route::post('students/{student}/toggle-facebook-live', [\App\Http\Controllers\Admin\StudentController::class, 'toggleFacebookLive'])->name('students.toggle-facebook-live');
         Route::post('students/{student}/cancel-admission', [\App\Http\Controllers\Admin\StudentController::class, 'cancelAdmission'])->name('students.cancel-admission');
         Route::post('students/{student}/reset-password', [\App\Http\Controllers\Admin\StudentController::class, 'resetPassword'])->name('students.reset-password');
         Route::post('students/{student}/adjust-fee-structure', [\App\Http\Controllers\Admin\StudentController::class, 'adjustFeeStructure'])->name('students.adjust-fee-structure');
@@ -95,6 +99,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('batches/{batch}/generate-sessions', [\App\Http\Controllers\Admin\BatchController::class, 'generateTimeline'])->name('batches.generateTimeline');
         Route::post('batches/{batch}/split-students', [\App\Http\Controllers\Admin\BatchController::class, 'autoSplitStudents'])->name('batches.split-students');
         Route::post('enrollments/{enrollment}/set-group', [\App\Http\Controllers\Admin\BatchController::class, 'setStudentGroup'])->name('enrollments.set-group');
+        Route::post('classes/send-daily-reminders', [\App\Http\Controllers\Admin\ClassSessionController::class, 'sendDailyReminders'])->name('classes.send-reminders');
         Route::resource('classes', \App\Http\Controllers\Admin\ClassSessionController::class);
         Route::put('classes/{class}/schedule', [\App\Http\Controllers\Admin\ClassSessionController::class, 'updateSchedule'])->name('classes.updateSchedule');
         Route::post('classes/{class}/generate-zoom', [\App\Http\Controllers\Admin\ClassSessionController::class, 'generateZoomLink'])->name('classes.generateZoom');
@@ -153,6 +158,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('course-transfers/{courseTransfer}/approve', [\App\Http\Controllers\Admin\CourseTransferController::class, 'approve'])->name('course-transfers.approve');
         Route::post('course-transfers/{courseTransfer}/mark-paid', [\App\Http\Controllers\Admin\CourseTransferController::class, 'markPaid'])->name('course-transfers.mark-paid');
         Route::post('course-transfers/{courseTransfer}/reject', [\App\Http\Controllers\Admin\CourseTransferController::class, 'reject'])->name('course-transfers.reject');
+        Route::post('course-transfers/{courseTransfer}/restore', [\App\Http\Controllers\Admin\CourseTransferController::class, 'restore'])->name('course-transfers.restore');
 
         Route::resource('promotions', \App\Http\Controllers\Admin\PromotionController::class)->only(['index', 'store']);
         Route::post('promotions/bulk-promote', [\App\Http\Controllers\Admin\PromotionController::class, 'bulkPromote'])->name('promotions.bulk-promote');
@@ -167,6 +173,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::post('result-book/{finalMark}/override', [\App\Http\Controllers\Admin\ResultBookController::class, 'override'])->name('result-book.override');
         Route::post('result-book/publish-toggle', [\App\Http\Controllers\Admin\ResultBookController::class, 'publishToggle'])->name('result-book.publish-toggle');
         Route::post('result-book/manual-marks-bulk', [\App\Http\Controllers\Admin\ResultBookController::class, 'saveManualMarksBulk'])->name('result-book.manual-marks-bulk');
+        Route::get('result-book/manual-marks/template', [\App\Http\Controllers\Admin\ResultBookController::class, 'downloadManualMarksTemplate'])->name('result-book.manual-marks-template');
+        Route::post('result-book/manual-marks/import', [\App\Http\Controllers\Admin\ResultBookController::class, 'importManualMarksBulk'])->name('result-book.manual-marks-import');
         Route::post('result-book/auto-attendance', [\App\Http\Controllers\Admin\ResultBookController::class, 'autoAttendance'])->name('result-book.auto-attendance');
         Route::get('students/{student}/transcript', [\App\Http\Controllers\Admin\ResultBookController::class, 'transcript'])->name('students.transcript');
     });

@@ -20,47 +20,86 @@ class ExamController extends Controller
         return Student::where('user_id', auth()->id())->first();
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $student = $this->student();
         if (!$student) {
-            return view('student.exams.index', ['exams' => collect(), 'student' => null]);
+            return view('student.exams.index', [
+                'exams'                => collect(),
+                'student'              => null,
+                'subjects'             => collect(),
+                'selectedSubjectId'    => null,
+                'runningSemesterNames' => collect(),
+            ]);
         }
 
         $activeEnrollments = Enrollment::where('student_id', $student->id)
             ->where('status', 'ACTIVE')
-            ->with(['batch.course', 'course'])
+            ->with(['batch.course.semesters', 'course.semesters', 'batch.semesterPosition.currentSemester', 'semester'])
             ->get();
 
         if ($activeEnrollments->isEmpty()) {
             $activeEnrollments = Enrollment::where('student_id', $student->id)
-                ->with(['batch.course', 'course'])
+                ->whereNotIn('status', ['TRANSFERRED', 'CANCELLED', 'DROPPED'])
+                ->with(['batch.course.semesters', 'course.semesters', 'batch.semesterPosition.currentSemester', 'semester'])
                 ->get();
         }
 
-        $courseIds = $activeEnrollments->map(fn($e) => $e->course_id ?? $e->batch?->course_id)->filter()->unique()->values();
-        $batchIds = $activeEnrollments->pluck('batch_id')->filter()->unique()->values();
-        $semesterIds = $activeEnrollments->map(fn($e) => $e->semester_id ?? $e->batch?->semesterPosition?->current_semester_id)->filter()->unique()->values();
+        $enrolledSubjectIds   = collect();
+        $runningSemesterNames = collect();
+        $runningSemesterIds   = collect();
 
-        $enrolledSubjectIds = \App\Models\CourseSubjectMap::whereIn('course_id', $courseIds)
-            ->when($semesterIds->isNotEmpty(), function ($q) use ($semesterIds) {
-                $q->where(function ($sq) use ($semesterIds) {
-                    $sq->whereIn('semester_id', $semesterIds)
-                       ->orWhereNull('semester_id');
-                });
-            })
-            ->pluck('subject_id')
-            ->filter()
-            ->unique()
-            ->values();
+        foreach ($activeEnrollments as $enrollment) {
+            $course = $enrollment->course ?? $enrollment->batch?->course;
+            if (!$course) {
+                continue;
+            }
+
+            if ($course->type === 'SEMESTER_BASED') {
+                $runningSemester = $enrollment->semester
+                    ?? $enrollment->batch?->semesterPosition?->currentSemester
+                    ?? $course->semesters->sortBy('sequence_no')->first();
+
+                $runningSemesterId = $runningSemester?->id;
+
+                if ($runningSemester && !empty($runningSemester->name)) {
+                    $runningSemesterNames->push($runningSemester->name);
+                }
+
+                if ($runningSemesterId) {
+                    $runningSemesterIds->push($runningSemesterId);
+                    $subIds = \App\Models\CourseSubjectMap::where('course_id', $course->id)
+                        ->where('semester_id', $runningSemesterId)
+                        ->pluck('subject_id');
+                    $enrolledSubjectIds = $enrolledSubjectIds->merge($subIds);
+                }
+            } else {
+                $subIds = \App\Models\CourseSubjectMap::where('course_id', $course->id)
+                    ->pluck('subject_id');
+                $enrolledSubjectIds = $enrolledSubjectIds->merge($subIds);
+            }
+        }
+
+        $enrolledSubjectIds   = $enrolledSubjectIds->filter()->unique()->values();
+        $runningSemesterNames = $runningSemesterNames->unique()->values();
+        $runningSemesterIds   = $runningSemesterIds->unique()->values();
+
+        $subjects = \App\Models\Subject::whereIn('id', $enrolledSubjectIds)->orderBy('name')->get();
+        $selectedSubjectId = $request->query('subject_id');
 
         $attendeeExamIds = \App\Models\ExamAttendee::where('student_id', $student->id)->pluck('exam_id')->values();
 
-        if ($courseIds->isEmpty() && $attendeeExamIds->isEmpty()) {
-            return view('student.exams.index', ['exams' => collect(), 'student' => $student]);
+        if ($enrolledSubjectIds->isEmpty() && $attendeeExamIds->isEmpty()) {
+            return view('student.exams.index', [
+                'exams'                => collect(),
+                'student'              => $student,
+                'subjects'             => collect(),
+                'selectedSubjectId'    => null,
+                'runningSemesterNames' => $runningSemesterNames,
+            ]);
         }
 
-        $exams = Exam::with([
+        $examsQuery = Exam::with([
                 'subject',
                 'examQuestions',
                 'submissions' => function ($q) use ($student) {
@@ -70,30 +109,51 @@ class ExamController extends Controller
                     $q->where('student_id', $student->id);
                 }
             ])
-            ->where('status', '!=', 'CANCELLED')
-            ->where(function ($sub) use ($attendeeExamIds, $enrolledSubjectIds, $semesterIds) {
-                $hasCond = false;
-                if ($attendeeExamIds->isNotEmpty()) {
-                    $sub->whereIn('id', $attendeeExamIds);
-                    $hasCond = true;
-                }
-                if ($enrolledSubjectIds->isNotEmpty()) {
-                    $method = $hasCond ? 'orWhere' : 'where';
-                    $sub->$method(function ($sq) use ($enrolledSubjectIds, $semesterIds) {
-                        $sq->whereIn('subject_id', $enrolledSubjectIds);
-                        if ($semesterIds->isNotEmpty()) {
-                            $sq->where(function ($semQ) use ($semesterIds) {
-                                $semQ->whereIn('semester_id', $semesterIds)
-                                     ->orWhereNull('semester_id');
-                            });
-                        }
-                    });
-                }
-            })
-            ->latest()
-            ->get();
+            ->where('status', '!=', 'CANCELLED');
 
-        return view('student.exams.index', compact('exams', 'student'));
+        // Only show exams belonging to running semester (like Course Materials)
+        $examsQuery->where(function ($sub) use ($attendeeExamIds, $enrolledSubjectIds, $runningSemesterIds) {
+            $hasCond = false;
+            if ($attendeeExamIds->isNotEmpty()) {
+                $sub->whereIn('id', $attendeeExamIds);
+                $hasCond = true;
+            }
+            if ($enrolledSubjectIds->isNotEmpty()) {
+                $method = $hasCond ? 'orWhere' : 'where';
+                $sub->$method(function ($sq) use ($enrolledSubjectIds, $runningSemesterIds) {
+                    $sq->whereIn('subject_id', $enrolledSubjectIds);
+                    if ($runningSemesterIds->isNotEmpty()) {
+                        $sq->whereIn('semester_id', $runningSemesterIds);
+                    }
+                });
+            }
+        });
+
+        // Subject filter dropdown
+        if ($selectedSubjectId && $enrolledSubjectIds->contains((int)$selectedSubjectId)) {
+            $examsQuery->where('subject_id', (int)$selectedSubjectId);
+        } else {
+            $selectedSubjectId = null;
+        }
+
+        $exams = $examsQuery->latest()->get();
+
+        // Auto-submit any expired in-progress exam attempts
+        foreach ($exams as $ex) {
+            $sub = $ex->submissions->first();
+            if ($sub && $sub->status === 'IN_PROGRESS' && $sub->started_at) {
+                $duration = (int) ($ex->duration_minutes ?: 60);
+                $deadline = Carbon::parse($sub->started_at)->addMinutes($duration);
+                if (now()->gte($deadline)) {
+                    $this->autoSubmitExpiredSubmission($ex, $sub);
+                    $sub->refresh();
+                }
+            }
+        }
+
+        return view('student.exams.index', compact(
+            'exams', 'student', 'subjects', 'selectedSubjectId', 'runningSemesterNames'
+        ));
     }
 
     /**
@@ -171,14 +231,27 @@ class ExamController extends Controller
             }
         }
 
-        // Check if already submitted
+        // Check if already submitted or expired
         $existing = ExamSubmission::where('exam_id', $exam->id)
             ->where('student_id', $student?->id)
             ->first();
 
-        if ($existing && $existing->status !== 'IN_PROGRESS') {
-            return redirect()->route('student.exams.result', [$exam, $existing])
-                ->with('info', 'You have already submitted this exam.');
+        if ($existing) {
+            if ($existing->status !== 'IN_PROGRESS') {
+                return redirect()->route('student.exams.result', [$exam, $existing])
+                    ->with('info', 'You have already submitted this exam.');
+            }
+
+            // Check if duration has passed since started_at
+            if ($existing->started_at) {
+                $duration = (int) ($exam->duration_minutes ?: 60);
+                $deadline = Carbon::parse($existing->started_at)->addMinutes($duration);
+                if (now()->gte($deadline)) {
+                    $this->autoSubmitExpiredSubmission($exam, $existing);
+                    return redirect()->route('student.exams.result', [$exam, $existing])
+                        ->with('error', 'আপনার পরীক্ষার নির্ধারিত সময়সীমা অতিবাহিত হয়ে গেছে। প্রশ্নপত্র স্বয়ংক্রিয়ভাবে জমা (Auto-submitted) হয়েছে।');
+                }
+            }
         }
 
         $exam->load(['subject', 'examQuestions.question']);
@@ -356,12 +429,17 @@ class ExamController extends Controller
             $submission->save();
         }
 
-        // Load any already-saved answers
-        $savedAnswers = ExamAnswer::where('submission_id', $submission->id)
-            ->get()
-            ->keyBy('question_id');
+        // Calculate remaining seconds
+        $duration = (int) ($exam->duration_minutes ?: 60);
+        $deadline = Carbon::parse($submission->started_at)->addMinutes($duration);
+        $remainingSeconds = max(0, (int) $deadline->diffInSeconds(now(), false) * -1);
+        if ($remainingSeconds <= 0) {
+            $this->autoSubmitExpiredSubmission($exam, $submission);
+            return redirect()->route('student.exams.result', [$exam, $submission])
+                ->with('error', 'আপনার পরীক্ষার নির্ধারিত সময়সীমা অতিবাহিত হয়ে গেছে। প্রশ্নপত্র স্বয়ংক্রিয়ভাবে জমা (Auto-submitted) হয়েছে।');
+        }
 
-        return view('student.exams.take', compact('exam', 'submission', 'savedAnswers'));
+        return view('student.exams.take', compact('exam', 'submission', 'savedAnswers', 'remainingSeconds'));
     }
 
     /**
@@ -475,7 +553,7 @@ class ExamController extends Controller
     }
 
     /**
-     * Submit an appeal for Re-exam
+     * Submit an appeal / reset request for Re-exam
      */
     public function appeal(Request $request, Exam $exam)
     {
@@ -486,14 +564,19 @@ class ExamController extends Controller
             'submission_id' => 'nullable|integer',
         ]);
 
-        // Check if there is already a pending appeal
+        // Check if reset deadline has passed
+        if (!$exam->canApplyForReset()) {
+            return back()->with('error', 'এই পরীক্ষার জন্য এক্সাম রিসেট আবেদনের নির্ধারিত সময়সীমা শেষ হয়ে গেছে। আর আবেদন করা সম্ভব নয়।');
+        }
+
+        // Check if there is already a pending appeal/reset request
         $pending = ExamAppeal::where('exam_id', $exam->id)
             ->where('student_id', $student->id)
             ->where('status', 'PENDING')
             ->first();
 
         if ($pending) {
-            return back()->with('info', 'আপনার একটি আপিল ইতিমধ্যে পর্যালোচনায় রয়েছে। অনুগ্রহ করে অপেক্ষা করুন।');
+            return back()->with('info', 'আপনার একটি এক্সাম রিসেট আবেদন ইতিমধ্যে পর্যালোচনায় রয়েছে। অনুগ্রহ করে অপেক্ষা করুন।');
         }
 
         ExamAppeal::create([
@@ -504,7 +587,84 @@ class ExamController extends Controller
             'status'        => 'PENDING',
         ]);
 
-        return back()->with('success', 'পুনরায় পরীক্ষার জন্য আপনার আবেদনটি সফলভাবে জমা হয়েছে। এডমিন বা শিক্ষক এটি পর্যালোচনা করে অনুমোদন দিলে আপনি পুনরায় পরীক্ষা দিতে পারবেন।');
+        return back()->with('success', 'এক্সাম রিসেটের জন্য আপনার আবেদনটি সফলভাবে জমা হয়েছে। কর্তৃপক্ষ এটি পর্যালোচনা করে অনুমোদন দিলে আপনি পুনরায় পরীক্ষা দিতে পারবেন।');
+    }
+
+    /**
+     * Automatically grade and finalize an expired in-progress submission
+     */
+    public function autoSubmitExpiredSubmission(Exam $exam, ExamSubmission $submission)
+    {
+        $exam->load('examQuestions.question');
+
+        $assignedIds = $submission->assigned_question_ids;
+        if (!empty($assignedIds)) {
+            $eqMap = $exam->examQuestions->keyBy('question_id');
+            $questionsToGrade = collect($assignedIds)
+                ->map(fn($qid) => $eqMap->get($qid))
+                ->filter()
+                ->values();
+        } else {
+            $questionsToGrade = $exam->examQuestions;
+        }
+
+        $savedAnswers = ExamAnswer::where('submission_id', $submission->id)->get()->keyBy('question_id');
+        $correctCount = 0;
+        $wrongCount   = 0;
+        $totalEarned  = 0.00;
+
+        foreach ($questionsToGrade as $eq) {
+            $q = $eq->question;
+            if (!$q || $q->question_type === 'WRITTEN') {
+                continue;
+            }
+
+            $ans = $savedAnswers->get($q->id);
+            $selectedOpt = $ans ? strtolower(trim($ans->selected_option_id ?? '')) : '';
+            $shuffledData = $submission->shuffled_options[$q->id] ?? null;
+            $correctOpt = $shuffledData && !empty($shuffledData['correct_option_id'])
+                ? strtolower(trim($shuffledData['correct_option_id']))
+                : strtolower(trim($q->correct_option_id ?? ''));
+
+            if ($selectedOpt !== '') {
+                if ($selectedOpt === $correctOpt) {
+                    $correctCount++;
+                    $totalEarned += (float) $eq->marks;
+                } else {
+                    $wrongCount++;
+                }
+            }
+        }
+
+        $negativeRate     = (float) ($exam->negative_marking ?? 0.00);
+        $negativeDeducted = $wrongCount * $negativeRate;
+        $finalScore       = max(0, $totalEarned - $negativeDeducted);
+
+        $submission->update([
+            'mcq_score'               => $finalScore,
+            'total_score'             => $finalScore,
+            'correct_count'           => $correctCount,
+            'wrong_count'             => $wrongCount,
+            'negative_marks_deducted' => $negativeDeducted,
+            'status'                  => 'AUTO_SUBMITTED_TIMEOUT',
+            'submitted_at'            => now(),
+        ]);
+
+        $res = \App\Models\Result::firstOrNew([
+            'exam_id'    => $exam->id,
+            'student_id' => $submission->student_id,
+        ]);
+        if (!$res->exists) {
+            $res->attempt_no = 1;
+        }
+        $res->mcq_marks = $finalScore;
+        $totalExamMark = ($res->mcq_marks ?? 0) + ($res->written_marks ?? 0) + ($res->tamrin_marks ?? 0) + ($res->viva_marks ?? 0);
+        $res->marks  = $totalExamMark;
+        $res->status = $totalExamMark >= $exam->pass_marks ? 'PASS' : 'FAIL';
+        $pct = $exam->full_marks > 0 ? (($totalExamMark / $exam->full_marks) * 100) : 0;
+        $gInfo = \App\Models\FinalMark::calculateGrade($pct);
+        $res->grade = $gInfo['grade'];
+        $res->save();
     }
 
     /**

@@ -7,6 +7,7 @@ use App\Models\CourseTransfer;
 use App\Models\Course;
 use App\Models\Batch;
 use App\Models\Student;
+use App\Models\Enrollment;
 use App\Services\AccountingService;
 use App\Services\CourseTransferService;
 use Illuminate\Http\Request;
@@ -38,7 +39,11 @@ class CourseTransferController extends Controller
         ])->latest();
 
         if ($statusFilter) {
-            $query->where('status', $statusFilter);
+            if (in_array($statusFilter, ['CANCELLED_OR_REJECTED', 'REJECTED', 'CANCELLED'])) {
+                $query->whereIn('status', ['REJECTED', 'CANCELLED']);
+            } else {
+                $query->where('status', $statusFilter);
+            }
         }
 
         if ($courseFilter) {
@@ -71,7 +76,7 @@ class CourseTransferController extends Controller
         $pendingCount        = CourseTransfer::where('status', 'PENDING')->count();
         $waitingPaymentCount = CourseTransfer::where('status', 'APPROVED_PENDING_PAYMENT')->count();
         $completedCount      = CourseTransfer::where('status', 'COMPLETED')->count();
-        $rejectedCount       = CourseTransfer::where('status', 'REJECTED')->count();
+        $rejectedCount       = CourseTransfer::whereIn('status', ['REJECTED', 'CANCELLED'])->count();
 
         // Reference Data
         $courses = Course::where('is_active', true)
@@ -142,6 +147,7 @@ class CourseTransferController extends Controller
                         'amount'         => $feeRate,
                         'payable_amount' => $feeRate,
                         'due_amount'     => max(0, $feeRate - $courseTransfer->invoice->paid_amount),
+                        'status'         => 'UNPAID',
                     ]);
                     $invoice = $courseTransfer->invoice;
                 }
@@ -213,6 +219,57 @@ class CourseTransferController extends Controller
             }
 
             return back()->with('success', 'কোর্স পরিবর্তনের আবেদনটি বাতিল করা হয়েছে।');
+        });
+    }
+
+    /**
+     * Restore a cancelled or rejected course transfer application
+     */
+    public function restore(Request $request, CourseTransfer $courseTransfer)
+    {
+        if (!in_array($courseTransfer->status, ['CANCELLED', 'REJECTED'])) {
+            return back()->with('error', 'শুধুমাত্র বাতিলকৃত (Cancelled/Rejected) আবেদন রিস্টোর করা সম্ভব।');
+        }
+
+        // Check if student already has another active transfer
+        $hasActive = CourseTransfer::where('student_id', $courseTransfer->student_id)
+            ->where('id', '!=', $courseTransfer->id)
+            ->whereIn('status', ['PENDING', 'APPROVED_PENDING_PAYMENT'])
+            ->exists();
+
+        if ($hasActive) {
+            return back()->with('error', 'এই শিক্ষার্থীর ইতোমধ্যে একটি সক্রিয় কোর্স স্থানান্তর আবেদন প্রক্রিয়াধীন রয়েছে। একসাথে একাধিক আবেদন সক্রিয় করা সম্ভব নয়।');
+        }
+
+        $activeEnrollment = Enrollment::where('student_id', $courseTransfer->student_id)
+            ->where('status', 'ACTIVE')
+            ->latest()
+            ->first();
+
+        if (!$activeEnrollment) {
+            return back()->with('error', 'শিক্ষার্থীর কোনো সক্রিয় কোর্স পাওয়া যায়নি।');
+        }
+
+        if ($activeEnrollment->course_id === $courseTransfer->to_course_id) {
+            return back()->with('error', 'শিক্ষার্থী ইতোমধ্যে প্রার্থিত কোর্সে সক্রিয় আছেন।');
+        }
+
+        return DB::transaction(function () use ($courseTransfer, $activeEnrollment) {
+            $prevStatus = $courseTransfer->status;
+            $note = "\n[রিস্টোর: " . now()->format('d M Y, h:i A') . " - পূর্ববর্তী স্ট্যাটাস: {$prevStatus}]";
+
+            $courseTransfer->update([
+                'status'             => 'PENDING',
+                'from_course_id'     => $activeEnrollment->course_id,
+                'from_batch_id'      => $activeEnrollment->batch_id,
+                'from_enrollment_id' => $activeEnrollment->id,
+                'rejection_reason'   => null,
+                'admin_notes'        => trim(($courseTransfer->admin_notes ?? '') . $note),
+                'approved_by'        => null,
+                'approved_at'        => null,
+            ]);
+
+            return back()->with('success', "✅ শিক্ষার্থী '{$courseTransfer->student?->name}'-এর বাতিলকৃত কোর্স পরিবর্তনের আবেদনটি সফলভাবে রিস্টোর (পুনর্বহাল) করা হয়েছে!");
         });
     }
 

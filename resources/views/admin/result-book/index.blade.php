@@ -365,6 +365,18 @@
                         </select>
                     </div>
 
+                    {{-- Branch / Gender Filter --}}
+                    <div style="min-width:180px">
+                        <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
+                            <i class="fa-solid fa-venus-mars" style="color:#059669"></i> শাখা / গ্রুপ (Branch)
+                        </label>
+                        <select name="gender" class="form-control" style="height:42px; border-radius:10px; font-family:'Kalpurush',sans-serif; font-weight:700" onchange="this.form.submit()">
+                            <option value="ALL" {{ ($selectedGender ?? 'ALL') === 'ALL' ? 'selected' : '' }}>👥 সকল শিক্ষার্থী (উভয় শাখা)</option>
+                            <option value="MALE" {{ ($selectedGender ?? '') === 'MALE' ? 'selected' : '' }}>👨 ভাই শাখা (Brothers)</option>
+                            <option value="FEMALE" {{ ($selectedGender ?? '') === 'FEMALE' ? 'selected' : '' }}>🧕 বোন শাখা (Sisters)</option>
+                        </select>
+                    </div>
+
                     {{-- Search Box --}}
                     <div style="flex:1; min-width:190px">
                         <label style="font-size:13px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
@@ -399,6 +411,15 @@
                         <strong style="color:#065f46; font-size:13.5px">{{ $selectedSemester->name }}</strong>
                     </div>
                     @endif
+                    @if(!empty($selectedGender) && $selectedGender !== 'ALL')
+                    <div style="display:flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-filter" style="color:#059669; font-size:15px"></i>
+                        <span style="color:#64748b; font-weight:700">ফিল্টার শাখা:</span>
+                        <strong style="color:{{ $selectedGender === 'FEMALE' ? '#be185d' : '#0369a1' }}; font-size:13.5px">
+                            {{ $selectedGender === 'FEMALE' ? '🧕 বোন শাখা' : '👨 ভাই শাখা' }}
+                        </strong>
+                    </div>
+                    @endif
                 </div>
                 @endif
             </div>
@@ -412,6 +433,11 @@
                     <div>
                         <div style="font-size:11.5px; font-weight:700; color:#64748b">মোট পরীক্ষার্থী</div>
                         <div style="font-size:19px; font-weight:900; color:#0f172a">{{ $summary['total'] }} জন</div>
+                        <div style="font-size:11px; font-weight:700; margin-top:3px; display:flex; gap:6px">
+                            <span style="color:#0369a1">👨 ভাই: {{ $summary['brother_count'] ?? 0 }}</span>
+                            <span style="color:#cbd5e1">|</span>
+                            <span style="color:#be185d">🧕 বোন: {{ $summary['sister_count'] ?? 0 }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -546,11 +572,22 @@
                                 <tr>
                                     <td>
                                         <span class="rank-badge {{ $rankClass }}">
-                                            {{ $medal }}{{ $rs['merit_rank_bengali'] }}
+                                            {{ $medal }}{{ $rs['gender_rank_bengali'] ?? $rs['merit_rank_bengali'] }}
                                         </span>
+                                        <div style="font-size:10.5px; font-weight:800; color:{{ ($rs['gender_group'] ?? 'MALE') === 'FEMALE' ? '#be185d' : '#0369a1' }}; margin-top:3px">
+                                            {{ $rs['gender_label'] ?? 'ভাই' }}দের মধ্যে
+                                        </div>
+                                        <div style="font-size:9.5px; color:#64748b; font-weight:600">
+                                            (সামগ্রিক: {{ $rs['overall_rank_bengali'] ?? $rs['merit_rank_bengali'] }})
+                                        </div>
                                     </td>
                                     <td style="text-align:left">
-                                        <strong style="color:#0f172a; font-size:13px; display:block">{{ $rs['student_name'] }}</strong>
+                                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+                                            <strong style="color:#0f172a; font-size:13px">{{ $rs['student_name'] }}</strong>
+                                            <span style="font-size:10px; font-weight:800; padding:1px 6px; border-radius:6px; background:{{ ($rs['gender_group'] ?? 'MALE') === 'FEMALE' ? '#fdf2f8; color:#be185d; border:1px solid #fbcfe8' : '#f0f9ff; color:#0369a1; border:1px solid #bae6fd' }}">
+                                                {{ ($rs['gender_group'] ?? 'MALE') === 'FEMALE' ? '🧕 বোন' : '👨 ভাই' }}
+                                            </span>
+                                        </div>
                                         <span style="font-size:11.5px; color:#64748b; font-family:monospace; font-weight:600">রোল: {{ $rs['student_roll'] }}</span>
                                     </td>
 
@@ -808,11 +845,34 @@
                                 @endif
                             </span>
                         </div>
-                        @if($selectedExam)
-                            <span class="badge" style="background:#047857; color:#fff; font-size:12px; padding:6px 12px; border-radius:8px">
-                                পরীক্ষা পূর্ণমান: {{ $selectedExam->full_marks }}
-                            </span>
-                        @endif
+                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                            @if($selectedExam)
+                                <span class="badge" style="background:#047857; color:#fff; font-size:12px; padding:6px 12px; border-radius:8px">
+                                    পরীক্ষা পূর্ণমান: {{ $selectedExam->full_marks }}
+                                </span>
+                            @endif
+
+                            {{-- Download Sample CSV Template --}}
+                            <a href="{{ route('admin.result-book.manual-marks-template', [
+                                    'batch_id' => $selectedBatch->id,
+                                    'subject_id' => $selectedSubject->id,
+                                    'semester_id' => $isSemesterBased && $selectedSemester ? $selectedSemester->id : null,
+                                    'exam_id' => $selectedExam ? $selectedExam->id : null,
+                                ]) }}" 
+                               class="btn btn-outline" 
+                               style="height:36px; padding:0 12px; font-size:12px; font-weight:800; border-radius:8px; color:#047857; border-color:#86efac; background:#f0fdf4; display:inline-flex; align-items:center; gap:6px"
+                               title="বর্তমান শিক্ষার্থীদের রোল ও নামসহ নমুনা CSV টেমপ্লেট ডাউনলোড করুন">
+                                <i class="fa-solid fa-download"></i> নমুনা টেমপ্লেট
+                            </a>
+
+                            {{-- Bulk Upload Trigger Button --}}
+                            <button type="button" onclick="openBulkMarksModal()"
+                                    class="btn" 
+                                    style="height:36px; padding:0 14px; font-size:12px; font-weight:800; border-radius:8px; background:#047857; color:#fff; border:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer"
+                                    title="CSV ফাইল বা এক্সেল স্প্রেডশীট থেকে তামরিন ও উপস্থিতি মার্ক বাল্ক আপলোড করুন">
+                                <i class="fa-solid fa-file-arrow-up"></i> বাল্ক আপলোড (CSV/এক্সেল)
+                            </button>
+                        </div>
                     </div>
 
                     @if($manualMarkingList->isEmpty())
@@ -858,7 +918,13 @@
                                     <tr>
                                         <td>{{ $idx + 1 }}</td>
                                         <td style="text-align:left">
-                                            <strong style="color:#0f172a; font-size:13px">{{ $fm->student->name ?? '—' }}</strong><br>
+                                            <strong style="color:#0f172a; font-size:13px">{{ $fm->student->name ?? '—' }}</strong>
+                                            @if($fm->student?->facebook_live_approved)
+                                                <span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:10px;padding:1px 5px;margin-left:4px" title="ফেসবুক লাইভ ক্লাসের শিক্ষার্থী (১০% হারে অটো এটেন্ডেন্স যুক্ত)">
+                                                    <i class="fa-brands fa-facebook"></i> FB Live
+                                                </span>
+                                            @endif
+                                            <br>
                                             <small style="color:#64748b; font-family:monospace">রোল: {{ $fm->student->student_code ?? $fm->student->student_id ?? '—' }}</small>
                                         </td>
                                         @if($selectedExam)
@@ -884,6 +950,9 @@
                                             <td>
                                                 <input type="number" step="0.1" min="0" max="10" name="marks[{{ $fm->id }}][attendance_converted]" 
                                                        value="{{ $fm->attendance_converted }}" class="form-control" placeholder="০-১০" style="width:75px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                                @if($fm->student?->facebook_live_approved)
+                                                    <small style="display:block;color:#1d4ed8;font-size:10.5px;font-weight:700;margin-top:2px" title="ফেসবুক লাইভ ক্লাসের জন্য প্রাপ্ত নম্বরের ১০%"><i class="fa-brands fa-facebook"></i> ১০% অটো</small>
+                                                @endif
                                             </td>
                                             <td>
                                                 <input type="text" name="marks[{{ $fm->id }}][remarks]" value="{{ $fm->remarks }}" 
@@ -905,6 +974,9 @@
                                             <td>
                                                 <input type="number" step="0.1" min="0" max="10" name="marks[{{ $fm->id }}][attendance_converted]" 
                                                        value="{{ $fm->attendance_converted }}" class="form-control" placeholder="০-১০" style="width:80px; margin:0 auto; text-align:center; font-weight:800; height:36px; border-radius:8px">
+                                                @if($fm->student?->facebook_live_approved)
+                                                    <small style="display:block;color:#1d4ed8;font-size:10.5px;font-weight:700;margin-top:2px" title="ফেসবুক লাইভ ক্লাসের জন্য প্রাপ্ত নম্বরের ১০%"><i class="fa-brands fa-facebook"></i> ১০% অটো</small>
+                                                @endif
                                             </td>
                                             <td>
                                                 <strong style="font-size:14px; color:#047857">{{ $fm->total_mark }}</strong>
@@ -1050,11 +1122,22 @@
                                 <tr>
                                     <td>
                                         <span class="rank-badge {{ $rankClass }}">
-                                            {{ $medal }}{{ $bm['merit_rank_bengali'] }}
+                                            {{ $medal }}{{ $bm['gender_rank_bengali'] ?? $bm['merit_rank_bengali'] }}
                                         </span>
+                                        <div style="font-size:10.5px; font-weight:800; color:{{ ($bm['gender_group'] ?? 'MALE') === 'FEMALE' ? '#be185d' : '#0369a1' }}; margin-top:3px">
+                                            {{ $bm['gender_label'] ?? 'ভাই' }}দের মধ্যে
+                                        </div>
+                                        <div style="font-size:9.5px; color:#64748b; font-weight:600">
+                                            (সামগ্রিক: {{ $bm['overall_rank_bengali'] ?? $bm['merit_rank_bengali'] }})
+                                        </div>
                                     </td>
                                     <td style="text-align:left">
-                                        <strong style="color:#0f172a; font-size:13px; display:block">{{ $bm['student_name'] }}</strong>
+                                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap">
+                                            <strong style="color:#0f172a; font-size:13px">{{ $bm['student_name'] }}</strong>
+                                            <span style="font-size:10px; font-weight:800; padding:1px 6px; border-radius:6px; background:{{ ($bm['gender_group'] ?? 'MALE') === 'FEMALE' ? '#fdf2f8; color:#be185d; border:1px solid #fbcfe8' : '#f0f9ff; color:#0369a1; border:1px solid #bae6fd' }}">
+                                                {{ ($bm['gender_group'] ?? 'MALE') === 'FEMALE' ? '🧕 বোন' : '👨 ভাই' }}
+                                            </span>
+                                        </div>
                                         <span style="font-size:11.5px; color:#64748b; font-family:monospace; font-weight:600">রোল: {{ $bm['student_roll'] }}</span>
                                     </td>
                                     @foreach($semesters as $sem)
@@ -1147,6 +1230,10 @@
                             <strong id="msStudentRoll" style="color:#0f172a; font-family:monospace; margin-left:6px"></strong>
                         </div>
                         <div>
+                            <span style="color:#64748b; font-weight:600">শাখা / গ্রুপ:</span>
+                            <strong id="msStudentBranch" style="margin-left:6px"></strong>
+                        </div>
+                        <div>
                             <span style="color:#64748b; font-weight:600">ব্যাচ:</span>
                             <strong id="msBatchName" style="color:#0f172a; margin-left:6px"></strong>
                         </div>
@@ -1182,7 +1269,8 @@
                 <div style="border:2px solid #047857; border-radius:12px; padding:12px 18px; margin-bottom:26px; background:#f0fdf4; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px">
                     <div>
                         <div style="font-size:11px; color:#065f46; font-weight:700">মেধা স্থান (Merit Position)</div>
-                        <div id="msMeritPosition" style="font-size:20px; font-weight:900; color:#064e3b"></div>
+                        <div id="msMeritPosition" style="font-size:18px; font-weight:900; color:#064e3b"></div>
+                        <div id="msOverallPosition" style="font-size:11px; color:#64748b; font-weight:600; margin-top:2px"></div>
                     </div>
                     <div>
                         <div style="font-size:11px; color:#065f46; font-weight:700">সেমিস্টার জিপিএ (SGPA)</div>
@@ -1308,6 +1396,153 @@
         </div>
     </div>
 
+    {{-- ═════════════════════════════════════════════════════════════════ --}}
+    {{-- MODAL 3: BULK TAMRIN & ATTENDANCE MARKS UPLOAD MODAL              --}}
+    {{-- ═════════════════════════════════════════════════════════════════ --}}
+    @if($selectedBatch && $selectedSubject)
+    <div class="modal-backdrop" id="bulkManualMarksModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); z-index:9999; justify-content:center; align-items:center; padding:16px; font-family:'Kalpurush', sans-serif" onclick="if(event.target===this) closeBulkMarksModal()">
+        <div style="background:#fff; border-radius:16px; width:100%; max-width:680px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; border:1px solid #e2e8f0; animation:modalFadeIn .2s ease-out">
+            <form method="POST" action="{{ route('admin.result-book.manual-marks-import') }}" enctype="multipart/form-data" id="bulkManualMarksForm">
+                @csrf
+                <input type="hidden" name="batch_id" value="{{ $selectedBatch->id }}">
+                <input type="hidden" name="subject_id" value="{{ $selectedSubject->id }}">
+                @if($isSemesterBased && $selectedSemester)
+                    <input type="hidden" name="semester_id" value="{{ $selectedSemester->id }}">
+                @endif
+                @if($selectedExam)
+                    <input type="hidden" name="exam_id" value="{{ $selectedExam->id }}">
+                @endif
+
+                {{-- Modal Header --}}
+                <div style="padding:16px 22px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center">
+                    <div>
+                        <div style="font-size:16px; font-weight:900; color:#0f172a; display:flex; align-items:center; gap:8px">
+                            <i class="fa-solid fa-file-excel" style="color:#047857; font-size:18px"></i>
+                            পরীক্ষাভিত্তিক তামরিন ও এটেন্ডেন্স মার্ক বাল্ক আপলোড
+                        </div>
+                        <div style="font-size:12px; color:#64748b; margin-top:3px">
+                            @if($selectedExam)
+                                <strong style="color:#047857">{{ $selectedExam->title }}</strong> পরীক্ষা &middot; বিষয়: {{ $selectedSubject->name }}
+                            @else
+                                <strong style="color:#047857">সমন্বিত সেমিস্টার তামরিন ও উপস্থিতি</strong> &middot; বিষয়: {{ $selectedSubject->name }}
+                            @endif
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeBulkMarksModal()" style="background:none; border:none; font-size:20px; color:#64748b; cursor:pointer; padding:4px 8px; line-height:1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                {{-- Modal Body --}}
+                <div style="padding:22px; max-height:calc(85vh - 140px); overflow-y:auto">
+                    {{-- Notice & Template Download Prompt --}}
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px">
+                        <div>
+                            <div style="font-size:13px; font-weight:800; color:#166534">
+                                <i class="fa-solid fa-circle-info"></i> রেডিমেড রোল সহ নমুনা টেমপ্লেট
+                            </div>
+                            <div style="font-size:11.5px; color:#15803d; margin-top:2px">
+                                বর্তমান ব্যাচের শিক্ষার্থীদের রোল ও নামসহ তৈরি করা CSV ডাউনলোড করে এক্সেল দিয়ে পূরণ করতে পারেন।
+                            </div>
+                        </div>
+                        <a href="{{ route('admin.result-book.manual-marks-template', [
+                                'batch_id' => $selectedBatch->id,
+                                'subject_id' => $selectedSubject->id,
+                                'semester_id' => $isSemesterBased && $selectedSemester ? $selectedSemester->id : null,
+                                'exam_id' => $selectedExam ? $selectedExam->id : null,
+                            ]) }}" 
+                           class="btn btn-sm"
+                           style="background:#047857; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:12px; padding:6px 14px; display:inline-flex; align-items:center; gap:6px">
+                            <i class="fa-solid fa-download"></i> টেমপ্লেট ডাউনলোড
+                        </a>
+                    </div>
+
+                    {{-- Upload Tabs (File vs Paste) --}}
+                    <div style="display:flex; border-bottom:2px solid #e2e8f0; margin-bottom:18px; gap:8px">
+                        <button type="button" id="tabBtnFile" onclick="switchBulkUploadTab('file')"
+                                style="padding:8px 16px; font-size:13px; font-weight:800; border:none; background:none; cursor:pointer; border-bottom:2px solid #047857; color:#047857; margin-bottom:-2px">
+                            <i class="fa-solid fa-file-csv"></i> ১. CSV ফাইল আপলোড
+                        </button>
+                        <button type="button" id="tabBtnPaste" onclick="switchBulkUploadTab('paste')"
+                                style="padding:8px 16px; font-size:13px; font-weight:800; border:none; background:none; cursor:pointer; border-bottom:2px solid transparent; color:#64748b; margin-bottom:-2px">
+                            <i class="fa-solid fa-paste"></i> ২. এক্সেল থেকে সরাসরি কপি-পেস্ট
+                        </button>
+                    </div>
+
+                    {{-- Mode 1: File Upload --}}
+                    <div id="bulkTabFile">
+                        <div style="border:2px dashed #cbd5e1; border-radius:12px; padding:24px 20px; text-align:center; background:#f8fafc; transition:border-color .15s" id="dropzoneBox">
+                            <i class="fa-solid fa-cloud-arrow-up" style="font-size:36px; color:#047857; margin-bottom:10px"></i>
+                            <div style="font-size:14px; font-weight:800; color:#0f172a; margin-bottom:4px">
+                                আপনার তৈরি করা CSV ফাইল নির্বাচন করুন
+                            </div>
+                            <div style="font-size:11.5px; color:#64748b; margin-bottom:14px">
+                                সমর্থিত ফরম্যাট: .csv (Microsoft Excel বা Google Sheets থেকে Exported)
+                            </div>
+                            <input type="file" name="csv_file" id="bulkCsvFileInput" accept=".csv,text/csv,text/plain" 
+                                   style="display:none" onchange="handleBulkFileSelect(this)">
+                            <button type="button" onclick="document.getElementById('bulkCsvFileInput').click()"
+                                    class="btn" style="background:#047857; color:#fff; border:none; border-radius:8px; padding:8px 20px; font-size:12.5px; font-weight:800; cursor:pointer">
+                                <i class="fa-regular fa-folder-open"></i> ফাইল ব্রাউজ করুন
+                            </button>
+                            <div id="bulkSelectedFileName" style="margin-top:10px; font-size:12px; font-weight:700; color:#047857; display:none"></div>
+                        </div>
+                    </div>
+
+                    {{-- Mode 2: Paste from Spreadsheet --}}
+                    <div id="bulkTabPaste" style="display:none">
+                        <label style="font-size:12.5px; font-weight:800; color:#1e293b; margin-bottom:6px; display:block">
+                            এক্সেল বা গুগল শিট থেকে কপি করে এখানে পেস্ট (Ctrl+V) করুন:
+                        </label>
+                        <textarea name="paste_data" id="bulkPasteTextarea" rows="7" class="form-control" 
+                                  placeholder="রোল নম্বর	নাম	তামরিন	উপস্থিতি	মন্তব্য (ট্যাব বা কমা দিয়ে পৃথকীকৃত)"
+                                  style="font-family:monospace; font-size:12px; border-radius:10px; padding:10px; line-height:1.5"
+                                  oninput="previewPastedData(this.value)"></textarea>
+                        <div style="font-size:11px; color:#64748b; margin-top:4px">
+                            <i class="fa-solid fa-lightbulb" style="color:#eab308"></i> টিপস: এক্সেলে কলাম সিলেক্ট করে কপি করুন (Ctrl+C), তারপর উপরের বক্সে পেস্ট করুন।
+                        </div>
+                        <div id="pastePreviewContainer" style="margin-top:12px; display:none">
+                            <div style="font-size:12px; font-weight:800; color:#047857; margin-bottom:6px" id="pastePreviewCount"></div>
+                            <div style="max-height:140px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px">
+                                <table style="width:100%; font-size:11px; border-collapse:collapse; text-align:left" id="pastePreviewTable"></table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Instructions & Column Mapping Help --}}
+                    <div style="margin-top:18px; padding:12px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; font-size:11.5px; color:#475569">
+                        <strong style="color:#0f172a; display:block; margin-bottom:4px">
+                            <i class="fa-solid fa-list-check" style="color:#047857"></i> নির্ধারিত কলামের ক্রম (Expected Columns):
+                        </strong>
+                        @if($selectedExam)
+                            <code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">
+                                student_code, student_name, tamrin_marks, attendance_mark, remarks
+                            </code>
+                            <div style="margin-top:4px; color:#64748b">
+                                (ঐচ্ছিক: MCQ ও লিখিত পরীক্ষার ক্ষেত্রে <code style="font-size:10.5px">mcq_marks, written_marks, viva_marks</code> কলামও যোগ করতে পারেন)
+                            </div>
+                        @else
+                            <code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">
+                                student_code, student_name, ct_tamrin, midterm_tamrin, final_tamrin, attendance_converted, remarks
+                            </code>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Modal Footer --}}
+                <div style="padding:14px 22px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center">
+                    <button type="button" onclick="closeBulkMarksModal()" class="btn btn-outline" style="font-weight:700; border-radius:8px; font-size:12.5px">
+                        বাতিল
+                    </button>
+                    <button type="submit" class="btn" style="background:#047857; color:#fff; border:none; font-weight:800; border-radius:8px; padding:8px 20px; font-size:13px; display:inline-flex; align-items:center; gap:6px">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> বাল্ক মার্ক আপলোড করুন
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endif
+
     <script>
         let currentEditingStudent = null;
 
@@ -1324,6 +1559,15 @@
             document.getElementById('msStudentRoll').textContent = studentData.student_roll;
             document.getElementById('msBatchName').textContent = batch ? batch.name : '—';
 
+            // Branch info
+            const isSister = (studentData.gender_group === 'FEMALE') || (studentData.gender_label === 'বোন');
+            const branchEl = document.getElementById('msStudentBranch');
+            if (branchEl) {
+                branchEl.innerHTML = isSister
+                    ? '<span style="color:#be185d; font-weight:800"><i class="fa-solid fa-female"></i> বোন শাখা (Sister Section)</span>'
+                    : '<span style="color:#0369a1; font-weight:800"><i class="fa-solid fa-male"></i> ভাই শাখা (Brother Section)</span>';
+            }
+
             if (semester) {
                 document.getElementById('msSemesterContainer').style.display = 'block';
                 document.getElementById('msSemesterName').textContent = semester.name;
@@ -1332,7 +1576,21 @@
             }
 
             // Summary Badges
-            document.getElementById('msMeritPosition').textContent = studentData.merit_rank_bengali + ' স্থান';
+            const meritPosEl = document.getElementById('msMeritPosition');
+            const overallPosEl = document.getElementById('msOverallPosition');
+            const genderRankText = studentData.gender_merit_text 
+                || ((isSister ? 'বোনদের মধ্যে ' : 'ভাইদের মধ্যে ') + (studentData.gender_rank_bengali || studentData.merit_rank_bengali) + ' স্থান');
+
+            if (meritPosEl) {
+                meritPosEl.innerHTML = `<span style="color:${isSister ? '#be185d' : '#047857'}">${genderRankText}</span>`;
+            }
+            if (overallPosEl) {
+                if (studentData.overall_rank_bengali) {
+                    overallPosEl.textContent = 'ব্যাচ সামগ্রিক মেধা: ' + studentData.overall_rank_bengali + ' স্থান';
+                } else {
+                    overallPosEl.textContent = '';
+                }
+            }
             document.getElementById('msGpa').textContent = studentData.sgpa + ' (' + studentData.grade + ')';
             document.getElementById('msQawmi').textContent = studentData.qawmi;
             document.getElementById('msStatus').innerHTML = studentData.status === 'PASS'
@@ -1446,6 +1704,92 @@
                 m.style.display = 'none';
                 document.body.style.overflow = '';
             }
+        window.openBulkMarksModal = function() {
+            const m = document.getElementById('bulkManualMarksModal');
+            if (m) {
+                m.style.setProperty('display', 'flex', 'important');
+                document.body.style.overflow = 'hidden';
+            }
+        };
+
+        window.closeBulkMarksModal = function() {
+            const m = document.getElementById('bulkManualMarksModal');
+            if (m) {
+                m.style.setProperty('display', 'none', 'important');
+                document.body.style.overflow = '';
+            }
+        };
+
+        window.switchBulkUploadTab = function(mode) {
+            const fileTab = document.getElementById('bulkTabFile');
+            const pasteTab = document.getElementById('bulkTabPaste');
+            const btnFile = document.getElementById('tabBtnFile');
+            const btnPaste = document.getElementById('tabBtnPaste');
+
+            if (mode === 'file') {
+                if (fileTab) fileTab.style.display = 'block';
+                if (pasteTab) pasteTab.style.display = 'none';
+                if (btnFile) {
+                    btnFile.style.color = '#047857';
+                    btnFile.style.borderBottomColor = '#047857';
+                }
+                if (btnPaste) {
+                    btnPaste.style.color = '#64748b';
+                    btnPaste.style.borderBottomColor = 'transparent';
+                }
+            } else {
+                if (fileTab) fileTab.style.display = 'none';
+                if (pasteTab) pasteTab.style.display = 'block';
+                if (btnPaste) {
+                    btnPaste.style.color = '#047857';
+                    btnPaste.style.borderBottomColor = '#047857';
+                }
+                if (btnFile) {
+                    btnFile.style.color = '#64748b';
+                    btnFile.style.borderBottomColor = 'transparent';
+                }
+            }
+        };
+
+        window.handleBulkFileSelect = function(input) {
+            const label = document.getElementById('bulkSelectedFileName');
+            if (input.files && input.files[0]) {
+                if (label) {
+                    label.textContent = 'নির্বাচিত ফাইল: ' + input.files[0].name + ' (' + Math.round(input.files[0].size/1024) + ' KB)';
+                    label.style.display = 'block';
+                }
+            }
+        };
+
+        window.previewPastedData = function(text) {
+            const container = document.getElementById('pastePreviewContainer');
+            const countEl = document.getElementById('pastePreviewCount');
+            const table = document.getElementById('pastePreviewTable');
+            if (!container || !countEl || !table) return;
+
+            const lines = text.trim().split('\n').filter(l => l.trim() !== '');
+            if (lines.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+
+            container.style.display = 'block';
+            countEl.textContent = 'শনাক্তকৃত সারি: ' + lines.length + ' টি';
+
+            let html = '';
+            lines.slice(0, 5).forEach((line, idx) => {
+                const delimiter = line.indexOf('\t') !== -1 ? '\t' : ',';
+                const cols = line.split(delimiter);
+                html += '<tr style="border-bottom:1px solid #f1f5f9; background:' + (idx % 2 === 0 ? '#fff' : '#f8fafc') + '">';
+                cols.forEach(c => {
+                    html += '<td style="padding:4px 8px; white-space:nowrap">' + (c.trim() || '—') + '</td>';
+                });
+                html += '</tr>';
+            });
+            if (lines.length > 5) {
+                html += '<tr><td colspan="10" style="padding:4px 8px; color:#64748b; text-align:center; font-style:italic">... আরো ' + (lines.length - 5) + ' টি সারি রয়েছে</td></tr>';
+            }
+            table.innerHTML = html;
         };
 
         window.filterResultBookBatches = function(courseSelect) {

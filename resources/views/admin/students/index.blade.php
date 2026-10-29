@@ -445,7 +445,10 @@
                 </h1>
                 <p>সকল কোর্সের নিবন্ধিত শিক্ষার্থী ও আবেদনকারীদের তালিকা, অ্যাডভান্সড সার্চ এবং ডাটা এক্সপোর্ট</p>
             </div>
-            <div class="student-header-right">
+            <div class="student-header-right" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <button type="button" onclick="copyStudentListToClipboard()" id="btnCopyStudents" class="btn btn-outline" style="border-color:#0284c7;color:#0369a1;font-weight:700;display:inline-flex;align-items:center;gap:6px" title="ফিল্টার অনুযায়ী সকল তথ্য সরাসরি গুগল শীটে পেস্ট করার জন্য ক্লিপবোর্ডে কপি করুন">
+                    <i class="fa-solid fa-copy"></i> কপি করুন (Copy)
+                </button>
                 <a href="{{ route('admin.students.export-csv', request()->query()) }}" class="btn btn-outline" style="border-color:#059669;color:#047857;font-weight:700" title="বর্তমান ফিল্টার অনুযায়ী CSV ফাইল ডাউনলোড করুন">
                     <i class="fa-solid fa-file-csv"></i> এক্সপোর্ট CSV
                 </a>
@@ -614,11 +617,12 @@
                         </select>
                     </div>
 
-                    <!-- Expatriate Filter -->
+                    <!-- Expatriate / Residence Filter -->
                     <div class="filter-field">
                         <label><i class="fa-solid fa-plane-departure" style="color:#047857"></i> প্রবাস/আবাসিক (Residence)</label>
                         <select name="is_expatriate">
                             <option value="">-- সকল শিক্ষার্থী (All) --</option>
+                            <option value="international" {{ (request('is_expatriate') === 'international' || request('is_international') === '1') ? 'selected' : '' }}>🌏 ইন্টারন্যাশনাল শিক্ষার্থী (International / Indian)</option>
                             <option value="1" {{ request('is_expatriate') === '1' ? 'selected' : '' }}>✈️ প্রবাসী শিক্ষার্থী (Expatriate)</option>
                             <option value="0" {{ request('is_expatriate') === '0' ? 'selected' : '' }}>🇧🇩 দেশীয় শিক্ষার্থী (Domestic)</option>
                         </select>
@@ -635,7 +639,10 @@
                             <i class="fa-solid fa-rotate-left"></i> রিসেট (Reset)
                         </a>
                     </div>
-                    <div class="filter-actions-right">
+                    <div class="filter-actions-right" style="display:flex;gap:8px;align-items:center">
+                        <button type="button" onclick="copyStudentListToClipboard()" id="btnCopyStudentsFilter" class="btn btn-outline" style="border-color:#0284c7;color:#0369a1;font-weight:700;display:inline-flex;align-items:center;gap:6px" title="ফিল্টারকৃত সকল তথ্য সরাসরি গুগল শীটে পেস্ট করার জন্য কপি করুন">
+                            <i class="fa-solid fa-copy"></i> কপি করুন (Copy)
+                        </button>
                         <a href="{{ route('admin.students.export-csv', request()->query()) }}" class="btn btn-outline" style="border-color:#059669;color:#047857;font-weight:700">
                             <i class="fa-solid fa-file-excel"></i> ফিল্টারকৃত ডাটা এক্সপোর্ট CSV (Export)
                         </a>
@@ -670,7 +677,9 @@
                     <span class="active-filter-badge">জেলা: {{ $matchedDist->name }}</span>
                 @endif
                 @if(request('is_expatriate') !== null && request('is_expatriate') !== '')
-                    <span class="active-filter-badge">আবাসন: {{ request('is_expatriate') == '1' ? 'প্রবাসী শিক্ষার্থী' : 'দেশীয় শিক্ষার্থী' }}</span>
+                    <span class="active-filter-badge">আবাসন: {{ request('is_expatriate') === 'international' ? 'ইন্টারন্যাশনাল শিক্ষার্থী' : (request('is_expatriate') == '1' ? 'প্রবাসী শিক্ষার্থী' : 'দেশীয় শিক্ষার্থী') }}</span>
+                @elseif(request('is_international') == '1')
+                    <span class="active-filter-badge">আবাসন: ইন্টারন্যাশনাল শিক্ষার্থী</span>
                 @endif
                 <a href="{{ route('admin.students.index', $status ? ['status' => $status] : []) }}" style="margin-left:auto;color:#b91c1c;font-weight:700;font-size:12px;text-decoration:none">
                     <i class="fa-solid fa-xmark"></i> ফিল্টার মুছুন
@@ -724,6 +733,11 @@
                                         <i class="fa-solid fa-users"></i> কমন
                                     </span>
                                 @endif
+                                @if($st->facebook_live_approved)
+                                    <span style="display:inline-block;font-size:11px;font-weight:700;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:middle" title="ফেসবুক লাইভ ক্লাসের জন্য অনুমোদিত (১০% হারে অটো এটেন্ডেন্স যুক্ত)">
+                                        <i class="fa-brands fa-facebook"></i> FB Live
+                                    </span>
+                                @endif
                                 <div>
                                     @if(strtoupper($st->gender ?? '') === 'MALE')
                                         <span class="gender-badge gender-male"><i class="fa-solid fa-mars"></i> পুরুষ (Male)</span>
@@ -733,15 +747,19 @@
                                         <span class="gender-badge gender-other">{{ $st->gender }}</span>
                                     @endif
 
-                                    @if($st->is_expatriate)
-                                        <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;padding:2px 8px;border-radius:12px;margin-left:4px" title="বসবাসরত দেশ: {{ $st->country_of_residence }}">
+                                    @if($st->is_international)
+                                        <span class="badge" style="background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;font-size:11px;padding:2px 8px;border-radius:12px;margin-left:4px;font-family:'Kalpurush',sans-serif" title="আন্তর্জাতিক শিক্ষার্থী (দেশ: {{ $st->country_of_residence }})">
+                                            <i class="fa-solid fa-earth-asia"></i> ইন্টারন্যাশনাল ({{ $st->country_of_residence ?: 'ভারত' }})
+                                        </span>
+                                    @elseif($st->is_expatriate)
+                                        <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;padding:2px 8px;border-radius:12px;margin-left:4px;font-family:'Kalpurush',sans-serif" title="বসবাসরত দেশ: {{ $st->country_of_residence }}">
                                             <i class="fa-solid fa-plane"></i> প্রবাসী ({{ $st->country_of_residence ?: 'বিদেশ' }})
                                         </span>
                                     @endif
                                 </div>
                             </td>
 
-                            <!-- Phone / Email & District -->
+                            <!-- Phone / Email & District / Country -->
                             <td style="padding:14px 16px">
                                 <div style="font-weight:600;color:#1e293b;font-size:13px;display:flex;align-items:center;gap:6px">
                                     <i class="fa-solid fa-phone" style="font-size:11px;color:#047857"></i>
@@ -754,7 +772,12 @@
                                 @php
                                     $distName = $st->presentDistrict?->name ?? $st->permanentDistrict?->name;
                                 @endphp
-                                @if($distName)
+                                @if($st->is_international)
+                                    <div style="font-size:11.5px;color:#4338ca;margin-top:4px;display:flex;align-items:center;gap:4px">
+                                        <i class="fa-solid fa-earth-asia" style="font-size:10px"></i>
+                                        <span>দেশ: {{ $st->country_of_residence ?: 'ভারত' }}</span>
+                                    </div>
+                                @elseif($distName)
                                     <div style="font-size:11.5px;color:#047857;margin-top:4px;display:flex;align-items:center;gap:4px">
                                         <i class="fa-solid fa-location-dot" style="font-size:10px"></i>
                                         <span>জেলা: {{ $distName }}</span>
@@ -974,5 +997,102 @@
                 updateCascadingDropdowns();
             }
         });
+
+        // ── Copy Student List for Google Sheets / Excel ──
+        function copyStudentListToClipboard() {
+            const btnHeader = document.getElementById('btnCopyStudents');
+            const btnFilter = document.getElementById('btnCopyStudentsFilter');
+            
+            const setBtnState = (html, disabled) => {
+                if (btnHeader) { btnHeader.innerHTML = html; btnHeader.disabled = disabled; }
+                if (btnFilter) { btnFilter.innerHTML = html; btnFilter.disabled = disabled; }
+            };
+
+            setBtnState('<i class="fa-solid fa-spinner fa-spin"></i> ডাটা প্রস্তুত হচ্ছে...', true);
+
+            const queryParams = new URLSearchParams(window.location.search).toString();
+            const url = '{{ route("admin.students.copy-data") }}' + (queryParams ? '?' + queryParams : '');
+
+            fetch(url)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert('ডাটা কপি করতে সমস্যা হয়েছে: ' + (data.message || 'Error'));
+                        setBtnState('<i class="fa-solid fa-copy"></i> কপি করুন (Copy)', false);
+                        return;
+                    }
+
+                    const tsv = data.tsv;
+                    
+                    // Clipboard copy with fallback
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(tsv).then(() => {
+                            handleCopySuccess(data.count);
+                        }).catch(err => {
+                            fallbackCopyText(tsv, data.count);
+                        });
+                    } else {
+                        fallbackCopyText(tsv, data.count);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('ডাটা লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+                    setBtnState('<i class="fa-solid fa-copy"></i> কপি করুন (Copy)', false);
+                });
+        }
+
+        function fallbackCopyText(text, count) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                handleCopySuccess(count);
+            } catch (e) {
+                alert('ক্লিপবোর্ডে কপি করা যায়নি। অনুগ্রহ করে ম্যানুয়ালি চেষ্টা করুন।');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function handleCopySuccess(count) {
+            const btnHeader = document.getElementById('btnCopyStudents');
+            const btnFilter = document.getElementById('btnCopyStudentsFilter');
+            const successHtml = '<i class="fa-solid fa-check"></i> ' + count + ' জন কপি হয়েছে!';
+            
+            if (btnHeader) { btnHeader.innerHTML = successHtml; btnHeader.style.borderColor = '#10b981'; btnHeader.style.color = '#047857'; btnHeader.disabled = false; }
+            if (btnFilter) { btnFilter.innerHTML = successHtml; btnFilter.style.borderColor = '#10b981'; btnFilter.style.color = '#047857'; btnFilter.disabled = false; }
+
+            showCopyToast('✓ মোট ' + count + ' জন শিক্ষার্থীর তথ্য সফলভাবে কপি হয়েছে! এখন গুগল শীটে (Google Sheets) Ctrl+V দিয়ে পেস্ট করুন।');
+
+            setTimeout(() => {
+                const normalHtml = '<i class="fa-solid fa-copy"></i> কপি করুন (Copy)';
+                if (btnHeader) { btnHeader.innerHTML = normalHtml; btnHeader.style.borderColor = '#0284c7'; btnHeader.style.color = '#0369a1'; }
+                if (btnFilter) { btnFilter.innerHTML = normalHtml; btnFilter.style.borderColor = '#0284c7'; btnFilter.style.color = '#0369a1'; }
+            }, 4000);
+        }
+
+        function showCopyToast(msg) {
+            let toast = document.getElementById('copyDataToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'copyDataToast';
+                toast.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#064e3b;color:#fff;padding:14px 22px;border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,0.25);font-size:14px;font-weight:700;font-family:\'Kalpurush\',sans-serif;z-index:99999;display:flex;align-items:center;gap:10px;transition:all 0.3s ease;border:1.5px solid #34d399';
+                document.body.appendChild(toast);
+            }
+            toast.innerHTML = '<i class="fa-solid fa-clipboard-check" style="font-size:18px;color:#34d399"></i> ' + msg;
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+            
+            clearTimeout(window._copyToastTimer);
+            window._copyToastTimer = setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+            }, 5000);
+        }
     </script>
 </x-admin-layout>

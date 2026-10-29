@@ -11,6 +11,7 @@ class EmailTemplate extends Model
 
     protected $fillable = [
         'name',
+        'type',
         'category',
         'course_id',
         'batch_id',
@@ -28,6 +29,7 @@ class EmailTemplate extends Model
     ];
 
     protected $appends = [
+        'type_label',
         'category_label',
         'gender_label',
     ];
@@ -45,6 +47,14 @@ class EmailTemplate extends Model
     public function batch()
     {
         return $this->belongsTo(Batch::class, 'batch_id');
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'SMS'   => 'এসএমএস (SMS)',
+            default => 'ইমেইল (Email)',
+        };
     }
 
     public function getCategoryLabelAttribute(): string
@@ -88,6 +98,9 @@ class EmailTemplate extends Model
         }
 
         $base = self::where('is_active', true)
+            ->where(function ($q) {
+                $q->where('type', 'EMAIL')->orWhereNull('type');
+            })
             ->where(function ($q) {
                 $q->where('category', 'ADMISSION')->orWhereNull('category');
             });
@@ -161,6 +174,112 @@ class EmailTemplate extends Model
     }
 
     /**
+     * Resolve the best admission SMS template for a given course, batch, and gender.
+     */
+    public static function resolveAdmissionSmsTemplate(?int $courseId, ?int $batchId, ?string $gender = null): ?self
+    {
+        if ($batchId && !$courseId) {
+            $courseId = Batch::where('id', $batchId)->value('course_id');
+        }
+
+        $normalizedGender = 'All';
+        if ($gender) {
+            $g = strtolower(trim((string)$gender));
+            if ($g === 'male' || str_starts_with($g, 'm') || str_starts_with($g, 'প') || str_contains($g, 'ভাই') || str_contains($g, 'bro')) {
+                $normalizedGender = 'Male';
+            } elseif ($g === 'female' || str_starts_with($g, 'f') || str_starts_with($g, 'মহ') || str_contains($g, 'বোন') || str_contains($g, 'sis')) {
+                $normalizedGender = 'Female';
+            }
+        }
+
+        $base = self::where('is_active', true)
+            ->where('type', 'SMS')
+            ->where(function ($q) {
+                $q->where('category', 'ADMISSION')->orWhereNull('category');
+            });
+
+        // 1. Try exact course + batch + gender
+        if ($courseId && $batchId && $normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->where('batch_id', $batchId)
+                ->where('gender', $normalizedGender)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 2. Try batch + gender
+        if ($batchId && $normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('batch_id', $batchId)
+                ->where('gender', $normalizedGender)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 3. Try course + batch + 'All'
+        if ($courseId && $batchId) {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->where('batch_id', $batchId)
+                ->where('gender', 'All')
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 4. Try batch + 'All'
+        if ($batchId) {
+            $tpl = (clone $base)->where('batch_id', $batchId)
+                ->where('gender', 'All')
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 5. Try course + gender
+        if ($courseId && $normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->whereNull('batch_id')
+                ->where('gender', $normalizedGender)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 6. Try course + 'All'
+        if ($courseId) {
+            $tpl = (clone $base)->where('course_id', $courseId)
+                ->whereNull('batch_id')
+                ->where('gender', 'All')
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 7. Try gender-specific active custom template
+        if ($normalizedGender !== 'All') {
+            $tpl = (clone $base)->where('gender', $normalizedGender)
+                ->where('is_system', false)
+                ->first();
+            if ($tpl) return $tpl;
+        }
+
+        // 8. Try any active custom non-system admission template
+        $customTpl = (clone $base)->where('is_system', false)->first();
+        if ($customTpl) return $customTpl;
+
+        // 9. Fallback: Any generic active SMS admission template
+        $fallback = (clone $base)->orderByDesc('is_system')->first();
+        if ($fallback) return $fallback;
+
+        // 10. Auto-create system default if none exists
+        return self::firstOrCreate(
+            ['name' => 'ভর্তি নিশ্চিতকরণ এসএমএস (Admission SMS)', 'type' => 'SMS', 'category' => 'ADMISSION'],
+            [
+                'gender'    => 'All',
+                'subject'   => null,
+                'content'   => "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM",
+                'is_system' => true,
+                'is_active' => true,
+            ]
+        );
+    }
+
+    /**
      * Compile template with placeholders.
      */
     public function compile(array $vars): array
@@ -180,11 +299,25 @@ class EmailTemplate extends Model
     }
 
     /**
-     * Seed initial standard templates if table is empty.
+     * Seed initial standard templates if table is empty or missing SMS.
      */
     public static function seedDefaultTemplates(): void
     {
-        if (self::count() > 0) {
+        // Ensure default SMS admission template exists
+        if (!self::where('type', 'SMS')->where('category', 'ADMISSION')->exists()) {
+            self::create([
+                'name'      => 'ভর্তি নিশ্চিতকরণ এসএমএস (Admission SMS)',
+                'type'      => 'SMS',
+                'category'  => 'ADMISSION',
+                'gender'    => 'All',
+                'subject'   => null,
+                'content'   => "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM",
+                'is_system' => true,
+                'is_active' => true,
+            ]);
+        }
+
+        if (self::count() > 1) {
             return;
         }
 

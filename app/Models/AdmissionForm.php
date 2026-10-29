@@ -13,6 +13,8 @@ class AdmissionForm extends Model
 
     protected $casts = [
         'same_as_present'  => 'boolean',
+        'is_expatriate'    => 'boolean',
+        'is_international' => 'boolean',
         'reviewed_at'      => 'datetime',
         'discount_percent' => 'float',
         'discount_amount'  => 'float',

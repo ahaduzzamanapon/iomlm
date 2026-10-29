@@ -395,4 +395,31 @@ class ClassSessionController extends Controller
 
         return back()->with('success', 'ক্লাস রেকর্ড ভিডিও সফলভাবে সংরক্ষণ ও আপডেট করা হয়েছে।');
     }
+
+    /**
+     * Send morning daily class reminders via email and notifications manually on-demand.
+     */
+    public function sendDailyReminders(Request $request)
+    {
+        $date = $request->input('date', today()->toDateString());
+        $batchId = $request->input('batch_id');
+
+        $params = [
+            '--date'  => $date,
+            '--force' => true,
+        ];
+        if ($batchId) {
+            $params['--batch'] = (int) $batchId;
+        }
+
+        try {
+            \Illuminate\Support\Facades\Artisan::call('classes:send-daily-reminders', $params);
+            $output = \Illuminate\Support\Facades\Artisan::output();
+
+            return back()->with('success', '✅ ক্লাস রিমাইন্ডার ইমেইল ও নোটিফিকেশন সফলভাবে পাঠানো হয়েছে!');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Class reminders dispatch exception: ' . $e->getMessage());
+            return back()->with('error', 'রিমাইন্ডার প্রেরণে সমস্যা হয়েছে: ' . $e->getMessage());
+        }
+    }
 }

@@ -623,6 +623,9 @@ class AccountingService
                 'received_by' => auth()->id(),
             ]);
 
+            // Auto-restore student portal access if unpaid activation fees are cleared
+            self::checkAndRestoreCourseAccessOnPayment($invoice);
+
             return $payment;
         });
     }
@@ -695,109 +698,240 @@ class AccountingService
                 }
             }
 
+            // Auto-restore student portal access if unpaid activation fees are cleared
+            self::checkAndRestoreCourseAccessOnPayment($invoice);
+
             return $payment;
         });
     }
 
     /**
-     * Apply ৳100 "কোর্স এক্টিভিশন ফি (Course Activation Fee)" for active students whose tuition is unpaid past the 10th.
+     * Auto-restore student course and portal access when fee is paid
+     */
+    public static function checkAndRestoreCourseAccessOnPayment(Invoice $invoice): void
+    {
+        $student = $invoice->student;
+        if (!$student) {
+            return;
+        }
+
+        // Only need action if course access is currently off
+        if (!($student->has_course_access ?? true)) {
+            // Check if student still has any other unpaid activation fee invoice
+            $hasUnpaidActivationFee = Invoice::where('student_id', $student->id)
+                ->where('category', 'FINE')
+                ->where(function ($q) {
+                    $q->where('title', 'like', '%এক্টিভিশন%')
+                      ->orWhere('title', 'like', '%এক্টিভেশন%')
+                      ->orWhere('title', 'like', '%Activation%');
+                })
+                ->where('status', '!=', 'CANCELLED')
+                ->where('due_amount', '>', 0)
+                ->exists();
+
+            // If no unpaid activation fee invoice remains, automatically turn portal access back ON
+            if (!$hasUnpaidActivationFee) {
+                $student->update(['has_course_access' => true]);
+                \App\Models\AuditLog::log(
+                    'course_access_restored_on_payment',
+                    $student,
+                    ['has_course_access' => false],
+                    ['has_course_access' => true],
+                    'ফি পরিশোধ করায় শিক্ষার্থীর কোর্স ও পোর্টাল এক্সেস স্বয়ংক্রিয়ভাবে চালু করা হয়েছে'
+                );
+            }
+        }
+    }
+
+    /**
+     * Apply Course Activation Fee (and disable portal access) with specific Course, Batch, Month and Year filters.
+     */
+    public static function applyCourseActivationFeesWithFilters(
+        string $courseId = 'all',
+        string $batchId = 'all',
+        int $month = 0,
+        int $year = 0,
+        float $feeAmount = 100.00
+    ): array {
+        $now = Carbon::now();
+        $targetMonth = ($month >= 1 && $month <= 12) ? $month : (int) $now->month;
+        $targetYear  = ($year >= 2020) ? $year : (int) $now->year;
+        $targetDate  = Carbon::createFromDate($targetYear, $targetMonth, 10);
+
+        $monthNames = [
+            1 => ['Jan', 'January', 'জানুয়ারি', 'জানুয়ারি'],
+            2 => ['Feb', 'February', 'ফেব্রুয়ারি', 'ফেব্রুয়ারি'],
+            3 => ['Mar', 'March', 'মার্চ'],
+            4 => ['Apr', 'April', 'এপ্রিল'],
+            5 => ['May', 'মে'],
+            6 => ['Jun', 'June', 'জুন'],
+            7 => ['Jul', 'July', 'জুলাই'],
+            8 => ['Aug', 'August', 'আগস্ট'],
+            9 => ['Sep', 'September', 'সেপ্টেম্বর'],
+            10 => ['Oct', 'October', 'অক্টোবর'],
+            11 => ['Nov', 'November', 'নভেম্বর'],
+            12 => ['Dec', 'December', 'ডিসেম্বর'],
+        ];
+        $names = $monthNames[$targetMonth] ?? [];
+        $monthNameBn = [1=>'জানুয়ারি',2=>'ফেব্রুয়ারি',3=>'মার্চ',4=>'এপ্রিল',5=>'মে',6=>'জুন',7=>'জুলাই',8=>'আগস্ট',9=>'সেপ্টেম্বর',10=>'অক্টোবর',11=>'নভেম্বর',12=>'ডিসেম্বর'][$targetMonth] ?? (string)$targetMonth;
+
+        $monthYearTitle = "কোর্স এক্টিভেশন ফি - {$monthNameBn} {$targetYear}";
+
+        // 1. Fetch Students matching Course & Batch filters
+        $studentQuery = Student::where('status', 'ACTIVE')
+            ->whereHas('enrollments', function ($q) use ($courseId, $batchId) {
+                $q->whereIn('status', ['ACTIVE', 'ENROLLED']);
+                if ($courseId && $courseId !== 'all') {
+                    $q->where('course_id', $courseId);
+                }
+                if ($batchId && $batchId !== 'all') {
+                    $q->where('batch_id', $batchId);
+                }
+            })
+            ->with(['enrollments' => function ($q) use ($courseId, $batchId) {
+                $q->whereIn('status', ['ACTIVE', 'ENROLLED']);
+                if ($courseId && $courseId !== 'all') {
+                    $q->where('course_id', $courseId);
+                }
+                if ($batchId && $batchId !== 'all') {
+                    $q->where('batch_id', $batchId);
+                }
+                $q->with(['course', 'batch']);
+            }]);
+
+        $students = $studentQuery->get();
+
+        $appliedCount = 0;
+        $skippedCount = 0;
+        $disabledAccessCount = 0;
+
+        foreach ($students as $student) {
+            // Check if student has unpaid tuition fee for this specific month and year
+            $hasUnpaidTuition = Invoice::where('student_id', $student->id)
+                ->whereIn('status', ['UNPAID', 'PARTIAL'])
+                ->where('due_amount', '>', 0)
+                ->where(function ($q) use ($names, $targetYear, $targetMonth) {
+                    foreach ($names as $name) {
+                        $q->orWhere('title', 'like', "%{$name}%{$targetYear}%")
+                          ->orWhere('title', 'like', "%{$name}-{$targetYear}%")
+                          ->orWhere('title', 'like', "%{$name}%");
+                    }
+                    $q->orWhere(function ($sub) use ($targetYear, $targetMonth) {
+                        $sub->whereIn('category', ['SEMESTER', 'MANUAL'])
+                            ->whereYear('due_date', $targetYear)
+                            ->whereMonth('due_date', $targetMonth);
+                    });
+                    $q->orWhere(function ($sub) use ($targetYear, $targetMonth) {
+                        $sub->whereIn('category', ['SEMESTER', 'MANUAL'])
+                            ->whereYear('created_at', $targetYear)
+                            ->whereMonth('created_at', $targetMonth);
+                    });
+                    foreach ($names as $name) {
+                        $q->orWhere('custom_particulars', 'like', "%{$name}%{$targetYear}%")
+                          ->orWhere('custom_particulars', 'like', "%{$name}%");
+                    }
+                })
+                ->exists();
+
+            if (!$hasUnpaidTuition) {
+                // Also check if any semester tuition invoice has balance due on or before this month's 10th
+                $hasOverdueTuition = Invoice::where('student_id', $student->id)
+                    ->whereIn('category', ['SEMESTER', 'MANUAL'])
+                    ->whereIn('status', ['UNPAID', 'PARTIAL'])
+                    ->where('due_amount', '>', 0)
+                    ->whereDate('due_date', '<=', $targetDate)
+                    ->exists();
+
+                if ($hasOverdueTuition) {
+                    $hasUnpaidTuition = true;
+                }
+            }
+
+            // If tuition is NOT unpaid (i.e. paid or no dues for this month), skip!
+            if (!$hasUnpaidTuition) {
+                $skippedCount++;
+                continue;
+            }
+
+            // Student has unpaid tuition for this month!
+            // Check if activation fee already added for this month/year
+            $existingActivationFee = Invoice::where('student_id', $student->id)
+                ->where(function ($q) use ($monthNameBn, $targetYear, $targetMonth) {
+                    $q->where('title', 'like', "%এক্টিভিশন ফি - {$monthNameBn} {$targetYear}%")
+                      ->orWhere('title', 'like', "%এক্টিভেশন ফি - {$monthNameBn} {$targetYear}%")
+                      ->orWhere(function ($sub) use ($targetYear, $targetMonth) {
+                          $sub->where('category', 'FINE')
+                              ->whereYear('created_at', $targetYear)
+                              ->whereMonth('created_at', $targetMonth);
+                      });
+                })
+                ->where('status', '!=', 'CANCELLED')
+                ->first();
+
+            $activeEnrollment = $student->enrollments->first();
+
+            if (!$existingActivationFee) {
+                $invNo = 'INV-ACT-' . $now->format('Ymd') . '-' . rand(1000, 9999);
+                Invoice::create([
+                    'invoice_no'     => $invNo,
+                    'student_id'     => $student->id,
+                    'enrollment_id'  => $activeEnrollment?->id,
+                    'category'       => 'FINE',
+                    'title'          => "{$monthYearTitle} ({$monthNameBn} মাসের বেতন বকেয়া থাকায় বিলম্ব এক্টিভেশন চার্জ)",
+                    'amount'         => $feeAmount,
+                    'discount'       => 0.00,
+                    'payable_amount' => $feeAmount,
+                    'paid_amount'    => 0.00,
+                    'due_amount'     => $feeAmount,
+                    'status'         => 'UNPAID',
+                    'due_date'       => $targetDate->copy()->endOfMonth(),
+                    'created_by'     => auth()->id(),
+                ]);
+                $appliedCount++;
+            }
+
+            // Turn off portal access: "এবং তাদের পোর্টাল এক্সেস অফ হয়ে যাবে"
+            if ($student->has_course_access ?? true) {
+                $student->update(['has_course_access' => false]);
+                \App\Models\AuditLog::log(
+                    'course_access_disabled_due_to_activation_fee',
+                    $student,
+                    ['has_course_access' => true],
+                    ['has_course_access' => false],
+                    "{$monthNameBn} {$targetYear} মাসের বেতন বকেয়া এবং কোর্স এক্টিভেশন ফি প্রযোজ্য হওয়ায় পোর্টাল এক্সেস স্থগিত করা হয়েছে"
+                );
+                $disabledAccessCount++;
+            }
+        }
+
+        $courseLabel = ($courseId && $courseId !== 'all') ? (\App\Models\Course::find($courseId)?->name ?? 'নির্বাচিত কোর্স') : 'সকল কোর্স';
+        $batchLabel = ($batchId && $batchId !== 'all') ? (\App\Models\Batch::find($batchId)?->name ?? 'নির্বাচিত ব্যাচ') : 'সকল ব্যাচ';
+
+        return [
+            'status'              => 'success',
+            'applied'             => $appliedCount,
+            'skipped'             => $skippedCount,
+            'disabled_access'     => $disabledAccessCount,
+            'message'             => "✅ {$monthNameBn} {$targetYear} মাসের জন্য [{$courseLabel} - {$batchLabel}]: মোট {$appliedCount} জন বকেয়া শিক্ষার্থীর এক্টিভেশন ফি (৳{$feeAmount}) যুক্ত করা হয়েছে এবং {$disabledAccessCount} জনের পোর্টাল এক্সেস অফ (স্থগিত) করা হয়েছে। ({$skippedCount} জন নিয়মিত/পরিশোধিত থাকায় বাদ পড়েছেন)।",
+        ];
+    }
+
+    /**
+     * Backward compatible wrapper for applyCourseActivationFees
      */
     public static function applyCourseActivationFees(?Carbon $targetDate = null, bool $force = false): array
     {
         $now = $targetDate ?: Carbon::now();
         $day = (int) $now->format('d');
 
-        // Rule: past 10th of the month (i.e. day >= 11), unless forced
         if ($day <= 10 && !$force) {
             return [
                 'status'  => 'skipped',
                 'applied' => 0,
-                'message' => 'মাসের ১০ তারিখ পার না হওয়া পর্যন্ত কোর্স এক্টিভিশন ফি প্রযোজ্য নয়। বর্তমান তারিখ: ' . $now->format('d M Y'),
+                'message' => 'মাসের ১০ তারিখ পার না হওয়া পর্যন্ত কোর্স এক্টিভেশন ফি প্রযোজ্য নয়। বর্তমান তারিখ: ' . $now->format('d M Y'),
             ];
         }
 
-        $monthNameBn = [
-            1 => 'জানুয়ারি', 2 => 'ফেব্রুয়ারি', 3 => 'মার্চ', 4 => 'এপ্রিল',
-            5 => 'মে', 6 => 'জুন', 7 => 'জুলাই', 8 => 'আগস্ট',
-            9 => 'সেপ্টেম্বর', 10 => 'অক্টোবর', 11 => 'নভেম্বর', 12 => 'ডিসেম্বর'
-        ][$now->month] ?? $now->format('F');
-
-        $monthYearTitle = "কোর্স এক্টিভিশন ফি - {$monthNameBn} {$now->year}";
-
-        $activeStudents = Student::where('status', 'ACTIVE')
-            ->whereHas('enrollments', function($q) {
-                $q->where('status', 'ACTIVE');
-            })
-            ->with(['enrollments' => function($q) {
-                $q->where('status', 'ACTIVE')->with('course');
-            }])
-            ->get();
-
-        $appliedCount = 0;
-        $skippedCount = 0;
-
-        foreach ($activeStudents as $student) {
-            // Check if student already has activation fee for this month
-            $alreadyHasActivationFee = Invoice::where('student_id', $student->id)
-                ->where(function($q) use ($now, $monthYearTitle) {
-                    $q->where('title', 'like', "%{$monthYearTitle}%")
-                      ->orWhere(function($sub) use ($now) {
-                          $sub->where('category', 'FINE')
-                              ->whereYear('created_at', $now->year)
-                              ->whereMonth('created_at', $now->month)
-                              ->where('amount', 100.00);
-                      });
-                })
-                ->where('status', '!=', 'CANCELLED')
-                ->exists();
-
-            if ($alreadyHasActivationFee) {
-                $skippedCount++;
-                continue;
-            }
-
-            // Check if student has unpaid tuition / installment due for this month or earlier
-            $hasDue = Invoice::where('student_id', $student->id)
-                ->whereIn('status', ['UNPAID', 'PARTIAL'])
-                ->where('due_amount', '>', 0)
-                ->where(function($q) use ($now) {
-                    $q->whereDate('due_date', '<=', $now->copy()->day(10))
-                      ->orWhereDate('created_at', '<=', $now);
-                })
-                ->exists();
-
-            if (!$hasDue) {
-                $skippedCount++;
-                continue;
-            }
-
-            $activeEnrollment = $student->enrollments->where('status', 'ACTIVE')->first();
-            $invNo = 'INV-ACT-' . $now->format('Ymd') . '-' . rand(1000, 9999);
-
-            Invoice::create([
-                'invoice_no'     => $invNo,
-                'student_id'     => $student->id,
-                'enrollment_id'  => $activeEnrollment?->id,
-                'category'       => 'FINE',
-                'title'          => "{$monthYearTitle} (১০ তারিখের পর ফি বকেয়া থাকায় বিলম্ব এক্টিভিশন চার্জ)",
-                'amount'         => 100.00,
-                'discount'       => 0.00,
-                'payable_amount' => 100.00,
-                'paid_amount'    => 0.00,
-                'due_amount'     => 100.00,
-                'status'         => 'UNPAID',
-                'due_date'       => $now->copy()->endOfMonth(),
-                'created_by'     => auth()->id(),
-            ]);
-
-            $appliedCount++;
-        }
-
-        return [
-            'status'  => 'success',
-            'applied' => $appliedCount,
-            'skipped' => $skippedCount,
-            'message' => "{$appliedCount} জন শিক্ষার্থীর জন্য ১০০ টাকার কোর্স এক্টিভিশন ফি সফলভাবে যুক্ত করা হয়েছে। ({$skippedCount} জন বাদ পড়েছেন)",
-        ];
+        return self::applyCourseActivationFeesWithFilters('all', 'all', (int)$now->month, (int)$now->year, 100.00);
     }
 }

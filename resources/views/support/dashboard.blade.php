@@ -36,6 +36,7 @@
                 <a href="{{ route('support.dashboard', ['status' => 'ALL']) }}" class="btn btn-sm {{ $statusFilter === 'ALL' ? 'btn-primary' : 'btn-outline' }}">All</a>
                 <a href="{{ route('support.dashboard', ['status' => 'PENDING']) }}" class="btn btn-sm {{ $statusFilter === 'PENDING' ? 'btn-primary' : 'btn-outline' }}">Pending Queue ({{ $pendingCount }})</a>
                 <a href="{{ route('support.dashboard', ['status' => 'IN_PROGRESS']) }}" class="btn btn-sm {{ $statusFilter === 'IN_PROGRESS' ? 'btn-primary' : 'btn-outline' }}">Active Chats ({{ $myActiveCount }})</a>
+                <a href="{{ route('support.dashboard', ['status' => 'SOLVED']) }}" class="btn btn-sm {{ $statusFilter === 'SOLVED' ? 'btn-primary' : 'btn-outline' }}">Solved</a>
                 <a href="{{ route('support.dashboard', ['status' => 'CLOSED']) }}" class="btn btn-sm {{ $statusFilter === 'CLOSED' ? 'btn-primary' : 'btn-outline' }}">Closed</a>
             </div>
         </div>
@@ -87,6 +88,8 @@
                         <td>
                             @if($t->status === 'PENDING')
                                 <span class="badge badge-pending">⏳ Pending Queue</span>
+                            @elseif($t->status === 'SOLVED')
+                                <span class="badge badge-success" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0">✓ Solved</span>
                             @elseif($t->status === 'IN_PROGRESS')
                                 <span class="badge badge-running">সাপোর্ট সক্রিয়</span>
                             @else
@@ -165,6 +168,8 @@
                     let statusBadge = '';
                     if (t.status === 'PENDING') {
                         statusBadge = '<span class="badge badge-pending">⏳ Pending Queue</span>';
+                    } else if (t.status === 'SOLVED') {
+                        statusBadge = '<span class="badge badge-success" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0">✓ Solved</span>';
                     } else if (t.status === 'IN_PROGRESS') {
                         statusBadge = '<span class="badge badge-running">সাপোর্ট সক্রিয়</span>';
                     } else {

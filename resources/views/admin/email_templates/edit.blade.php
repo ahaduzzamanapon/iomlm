@@ -28,6 +28,24 @@
             {{-- Main Form Card --}}
             <div class="card"
                 style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                
+                {{-- Type Selection --}}
+                <div style="margin-bottom:20px;background:#f8fafc;padding:14px 18px;border-radius:10px;border:1.5px solid #e2e8f0;">
+                    <label style="display:block;font-size:13px;font-weight:700;color:#1e293b;margin-bottom:8px;">
+                        টেমপ্লেটের ধরন (Type) <span style="color:#dc2626;">*</span>
+                    </label>
+                    <div style="display:flex;gap:24px;align-items:center;">
+                        <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:13.5px;color:#1e293b;">
+                            <input type="radio" name="type" value="EMAIL" id="type_email" onchange="toggleTemplateType('EMAIL')" {{ old('type', $emailTemplate->type ?? 'EMAIL') === 'EMAIL' ? 'checked' : '' }} style="width:18px;height:18px;accent-color:#047857;">
+                            <span><i class="fa-solid fa-envelope" style="color:#2563eb;"></i> ইমেইল টেমপ্লেট (Email)</span>
+                        </label>
+                        <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;font-size:13.5px;color:#1e293b;">
+                            <input type="radio" name="type" value="SMS" id="type_sms" onchange="toggleTemplateType('SMS')" {{ old('type', $emailTemplate->type ?? 'EMAIL') === 'SMS' ? 'checked' : '' }} style="width:18px;height:18px;accent-color:#047857;">
+                            <span><i class="fa-solid fa-comment-sms" style="color:#059669;"></i> এসএমএস টেমপ্লেট (SMS)</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div style="margin-bottom:20px;">
                     <label style="display:block;font-size:13px;font-weight:700;color:#1e293b;margin-bottom:6px;">
                         টেমপ্লেটের নাম <span style="color:#dc2626;">*</span>
@@ -105,11 +123,11 @@
                     </div>
                 </div>
 
-                <div style="margin-bottom:20px;">
+                <div id="subjectContainer" style="margin-bottom:20px;{{ old('type', $emailTemplate->type ?? 'EMAIL') === 'SMS' ? 'display:none;' : '' }}">
                     <label style="display:block;font-size:13px;font-weight:700;color:#1e293b;margin-bottom:6px;">
                         ইমেইল বিষয় (Email Subject) <span style="color:#dc2626;">*</span>
                     </label>
-                    <input type="text" name="subject" value="{{ old('subject', $emailTemplate->subject) }}" required
+                    <input type="text" name="subject" id="subjectInput" value="{{ old('subject', $emailTemplate->subject) }}"
                         placeholder="ইমেইলের বিষয়..."
                         style="width:100%;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;">
                     @error('subject')
@@ -119,14 +137,16 @@
 
                 <div style="margin-bottom:20px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <label style="font-size:13px;font-weight:700;color:#1e293b;margin:0;">
-                            ইমেইল মেসেজ / বিষয়বস্তু (Content) <span style="color:#dc2626;">*</span>
+                        <label id="contentLabel" style="font-size:13px;font-weight:700;color:#1e293b;margin:0;">
+                            {{ old('type', $emailTemplate->type ?? 'EMAIL') === 'SMS' ? 'এসএমএস বার্তা (SMS Content)' : 'ইমেইল মেসেজ / বিষয়বস্তু (Email Content)' }} <span style="color:#dc2626;">*</span>
                         </label>
-                        <span style="font-size:12px;color:#64748b;">ডানপাশের ভ্যারিয়েবল ট্যাগগুলো ক্লিক করে যুক্ত করতে
-                            পারেন</span>
+                        <span style="font-size:12px;color:#64748b;">ডানপাশের ভ্যারিয়েবল ট্যাগগুলো ক্লিক করে যুক্ত করতে পারেন</span>
                     </div>
-                    <textarea name="content" id="templateContent" rows="12" required
+                    <textarea name="content" id="templateContent" rows="10" required oninput="updateSmsCharCounter()"
                         style="width:100%;padding:12px 14px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;line-height:1.7;font-family:inherit;">{{ old('content', $emailTemplate->content) }}</textarea>
+                    <div id="smsCharCounter" style="display:{{ old('type', $emailTemplate->type ?? 'EMAIL') === 'SMS' ? 'block' : 'none' }};margin-top:6px;font-size:12.5px;color:#047857;font-weight:600;">
+                        ০ অক্ষর | ১ SMS
+                    </div>
                     @error('content')
                         <span style="color:#dc2626;font-size:12px;margin-top:4px;display:block;">{{ $message }}</span>
                     @enderror
@@ -240,7 +260,46 @@
                 });
             }
 
-            document.addEventListener('DOMContentLoaded', filterBatches);
+            function updateSmsCharCounter() {
+                const textarea = document.getElementById('templateContent');
+                const counter = document.getElementById('smsCharCounter');
+                if (!textarea || !counter) return;
+
+                const val = textarea.value;
+                const len = val.length;
+                const isNonAscii = /[^\u0000-\u007F]/.test(val);
+                const limitPerSms = isNonAscii ? 70 : 160;
+                const parts = len > 0 ? Math.ceil(len / (isNonAscii && len > 70 ? 67 : limitPerSms)) : 1;
+
+                counter.innerHTML = `<i class="fa-solid fa-calculator"></i> ${len} অক্ষর | <strong>${parts} SMS</strong> (${isNonAscii ? 'বাংলা / ইউনিকোড - প্রতি SMS ৭০ অক্ষর' : 'ইংরেজি GSM - প্রতি SMS ১৬০ অক্ষর'})`;
+            }
+
+            function toggleTemplateType(type) {
+                const subjectContainer = document.getElementById('subjectContainer');
+                const subjectInput = document.getElementById('subjectInput');
+                const contentLabel = document.getElementById('contentLabel');
+                const smsCharCounter = document.getElementById('smsCharCounter');
+
+                if (type === 'SMS') {
+                    if (subjectContainer) subjectContainer.style.display = 'none';
+                    if (subjectInput) subjectInput.removeAttribute('required');
+                    if (contentLabel) contentLabel.innerHTML = 'এসএমএস বার্তা (SMS Content) <span style="color:#dc2626;">*</span>';
+                    if (smsCharCounter) smsCharCounter.style.display = 'block';
+                    updateSmsCharCounter();
+                } else {
+                    if (subjectContainer) subjectContainer.style.display = 'block';
+                    if (subjectInput) subjectInput.setAttribute('required', 'required');
+                    if (contentLabel) contentLabel.innerHTML = 'ইমেইল মেসেজ / বিষয়বস্তু (Email Content) <span style="color:#dc2626;">*</span>';
+                    if (smsCharCounter) smsCharCounter.style.display = 'none';
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function() {
+                filterBatches();
+                const currentType = document.querySelector('input[name="type"]:checked')?.value || 'EMAIL';
+                toggleTemplateType(currentType);
+                updateSmsCharCounter();
+            });
         </script>
     @endpush
 </x-admin-layout>

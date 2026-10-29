@@ -790,16 +790,26 @@
                     </div>
                 </div>
 
-                {{-- Amount to Pay --}}
-                <div style="margin-bottom:16px">
+                {{-- Amount to Pay (Readonly - Student cannot edit, must pay full determined fee) --}}
+                <div style="margin-bottom:16px; font-family:'Kalpurush',sans-serif">
                     <label
-                        style="display:flex; justify-content:space-between; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px">
-                        <span>পরিশোধের পরিমাণ (টাকা) <span style="color:#dc2626">*</span></span>
-                        <span style="font-size:11px; color:#64748b; font-weight:500">(আংশিক বা সম্পূর্ণ প্রদেয়)</span>
+                        style="display:flex; justify-content:space-between; align-items:center; font-size:12.5px; font-weight:700; color:#334155; margin-bottom:6px">
+                        <span><i class="fa-solid fa-lock" style="color:#059669; font-size:12px; margin-right:4px"></i> পরিশোধের পরিমাণ (টাকা) <span style="color:#dc2626">*</span></span>
+                        <span style="font-size:11px; color:#059669; font-weight:700; background:#ecfdf5; border:1px solid #a7f3d0; padding:2px 8px; border-radius:12px">
+                            <i class="fa-solid fa-circle-check"></i> নির্ধারিত সম্পূর্ণ ফি প্রদেয় (এডিট অযোগ্য)
+                        </span>
                     </label>
-                    <input type="number" step="0.01" id="payAmountInput" name="amount" class="form-control" required
-                        style="width:100%; padding:10px 14px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:16px; font-weight:700; color:#1e293b; box-sizing:border-box"
-                        oninput="updateModalButtonAmount()">
+                    <div style="position:relative">
+                        <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-weight:800; color:#059669; font-size:16px">৳</span>
+                        <input type="number" step="0.01" id="payAmountInput" name="amount" class="form-control" required readonly
+                            onkeydown="return false;" onpaste="return false;"
+                            style="width:100%; padding:10px 14px 10px 32px; border-radius:10px; border:1.5px solid #cbd5e1; font-size:17px; font-weight:800; color:#0f172a; background:#f8fafc; cursor:not-allowed; box-sizing:border-box"
+                            title="নির্ধারিত সম্পূর্ণ ফি পরিশোধ করতে হবে। ফি পরিবর্তনের প্রয়োজন হলে মাদ্রাসার অ্যাডমিনের সাথে যোগাযোগ করুন।">
+                    </div>
+                    <div style="font-size:11.5px; color:#64748b; margin-top:5px; display:flex; align-items:center; gap:5px">
+                        <i class="fa-solid fa-circle-info" style="color:#0284c7"></i>
+                        <span>শিক্ষার্থী ফি এর পরিমাণ এডিট করতে পারবেন না। ফি ছাড় বা সমন্বয়ের প্রয়োজন হলে অ্যাডমিন তা পরিবর্তন করতে পারবেন।</span>
+                    </div>
                 </div>
 
                 {{-- Payment Gateway Selection --}}
@@ -1330,18 +1340,16 @@
                 document.getElementById('modalInvTitle').innerText = title;
                 document.getElementById('modalDueAmount').innerText = dueAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 });
 
-                let targetAmt;
-                if (suggestedAmt !== undefined && suggestedAmt !== null && suggestedAmt !== '') {
-                    targetAmt = parseFloat(suggestedAmt);
-                } else if (monthlyRate > 0 && monthlyRate <= dueAmt) {
-                    targetAmt = monthlyRate;
-                } else {
-                    targetAmt = dueAmt;
-                }
+                // Student cannot edit fee amount; must pay the exact full determined fee
+                let targetAmt = (suggestedAmt !== undefined && suggestedAmt !== null && suggestedAmt !== '')
+                    ? parseFloat(suggestedAmt)
+                    : dueAmt;
                 targetAmt = Math.min(targetAmt, dueAmt);
 
-                document.getElementById('payAmountInput').value = targetAmt;
-                document.getElementById('payAmountInput').max = dueAmt;
+                const amtInput = document.getElementById('payAmountInput');
+                amtInput.value = targetAmt;
+                amtInput.max = dueAmt;
+                amtInput.readOnly = true;
 
                 const remarksEl = document.getElementById('modalRemarksInput');
                 if (remarksEl) {
@@ -1371,34 +1379,10 @@
 
                 const chips = [];
 
-                if (monthlyRate > 0 && monthlyRate < dueAmt) {
-                    chips.push({
-                        label: '১ মাসের বেতন',
-                        amount: Math.min(monthlyRate, dueAmt),
-                        note: '১ মাসের বেতন'
-                    });
-
-                    if (dueAmt >= monthlyRate * 1.5) {
-                        chips.push({
-                            label: '২ মাসের বেতন',
-                            amount: Math.min(Math.round(monthlyRate * 2 * 100) / 100, dueAmt),
-                            note: '২ মাসের বেতন'
-                        });
-                    }
-
-                    if (dueAmt >= monthlyRate * 2.5) {
-                        chips.push({
-                            label: '৩ মাসের বেতন',
-                            amount: Math.min(Math.round(monthlyRate * 3 * 100) / 100, dueAmt),
-                            note: '৩ মাসের বেতন'
-                        });
-                    }
-                }
-
                 chips.push({
                     label: 'পূর্ণ বকেয়া পরিশোধ',
                     amount: dueAmt,
-                    note: 'পূর্ণ বকেয়া'
+                    note: remarks || 'পূর্ণ বকেয়া পরিশোধ'
                 });
 
                 chips.forEach((c) => {
@@ -1406,22 +1390,26 @@
                     btn.type = 'button';
                     const isMatch = Math.abs(currentAmt - c.amount) < 0.5;
                     btn.className = 'preset-chip' + (isMatch ? ' active' : '');
-                    btn.style.padding = '5px 12px';
+                    btn.style.padding = '6px 14px';
                     btn.style.borderRadius = '20px';
                     btn.style.fontSize = '12px';
-                    btn.style.fontWeight = '600';
+                    btn.style.fontWeight = '700';
                     btn.style.cursor = 'pointer';
-                    btn.style.border = isMatch ? '1.5px solid #2563eb' : '1px solid #cbd5e1';
-                    btn.style.background = isMatch ? '#eff6ff' : '#fff';
-                    btn.style.color = isMatch ? '#1d4ed8' : '#334155';
+                    btn.style.border = isMatch ? '1.5px solid #059669' : '1px solid #cbd5e1';
+                    btn.style.background = isMatch ? '#ecfdf5' : '#fff';
+                    btn.style.color = isMatch ? '#065f46' : '#334155';
                     btn.style.display = 'inline-flex';
                     btn.style.alignItems = 'center';
-                    btn.style.gap = '4px';
+                    btn.style.gap = '5px';
+                    btn.style.fontFamily = "'Kalpurush', sans-serif";
 
-                    btn.innerHTML = c.label + ' (<strong>৳' + Math.round(c.amount).toLocaleString('en-BD') + '</strong>)';
+                    btn.innerHTML = '<i class="fa-solid fa-lock" style="font-size:11px"></i> ' + c.label + ' (<strong>৳' + Math.round(c.amount).toLocaleString('en-BD') + '</strong>)';
 
                     btn.onclick = function () {
-                        document.getElementById('payAmountInput').value = c.amount;
+                        const amtInput = document.getElementById('payAmountInput');
+                        amtInput.value = c.amount;
+                        amtInput.readOnly = true;
+
                         if (document.getElementById('modalRemarksInput')) {
                             document.getElementById('modalRemarksInput').value = c.note;
                         }
@@ -1434,9 +1422,9 @@
                             b.style.color = '#334155';
                             b.classList.remove('active');
                         });
-                        btn.style.border = '1.5px solid #2563eb';
-                        btn.style.background = '#eff6ff';
-                        btn.style.color = '#1d4ed8';
+                        btn.style.border = '1.5px solid #059669';
+                        btn.style.background = '#ecfdf5';
+                        btn.style.color = '#065f46';
                         btn.classList.add('active');
 
                         updateModalButtonAmount();

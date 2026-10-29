@@ -47,7 +47,8 @@
                                 Quick Reply
                             </button>
                             <input type="text" id="agentMsgInput" class="form-control" placeholder="উত্তর লিখুন..." autocomplete="off" style="flex:1;height:44px;font-size:14px">
-                            <label class="btn btn-outline" style="cursor:pointer;height:44px;display:inline-flex;align-items:center" title="Attach file/image">
+                            <label class="btn btn-outline" style="cursor:pointer;height:44px;display:inline-flex;align-items:center;gap:6px" title="Attach file/image">
+                                <i class="fa-solid fa-paperclip" style="font-size:16px;color:#64748b"></i>
                                 <input type="file" id="agentAttachmentInput" accept="image/*,.pdf" style="display:none" onchange="previewAgentFile(this)">
                             </label>
                             <button type="submit" class="btn btn-primary" style="height:44px;padding:0 24px;background:#0284c7">

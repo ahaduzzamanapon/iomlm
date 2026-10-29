@@ -28,12 +28,17 @@ class SubjectRetakeController extends Controller
             'notes'       => 'nullable|string',
         ]);
 
+        $student = Student::with('enrollments')->find($validated['student_id']);
+        $enrollment = $student?->enrollments->firstWhere('status', 'ACTIVE') ?? $student?->enrollments->first();
+
         SubjectRetake::create([
-            'student_id'  => $validated['student_id'],
-            'subject_id'  => $validated['subject_id'],
-            'retake_type' => $validated['retake_type'],
-            'status'      => 'PENDING',
-            'reason'      => $validated['notes'] ?? null,
+            'student_id'          => $validated['student_id'],
+            'enrollment_id'       => $enrollment?->id,
+            'subject_id'          => $validated['subject_id'],
+            'retake_type'         => $validated['retake_type'],
+            'status'              => 'PENDING',
+            'reason'              => $validated['notes'] ?? null,
+            'created_by_admin_id' => auth()->id(),
         ]);
 
         return back()->with('success', 'Subject retake registered. Admin approval & fee will be set upon review.');
@@ -49,14 +54,23 @@ class SubjectRetakeController extends Controller
             'notes'      => 'nullable|string',
         ]);
 
+        $student = $retake->student;
+        if (!$retake->enrollment_id && $student) {
+            $enr = $student->enrollments()->where('status', 'ACTIVE')->first() 
+                ?? $student->enrollments()->latest()->first();
+            if ($enr) {
+                $retake->enrollment_id = $enr->id;
+            }
+        }
+
         $retake->update([
-            'status'     => 'IN_PROGRESS',
-            'retake_fee' => $validated['retake_fee'],
-            'reason'     => $validated['notes'] ?? $retake->reason,
+            'status'        => 'IN_PROGRESS',
+            'retake_fee'    => $validated['retake_fee'],
+            'reason'        => $validated['notes'] ?? $retake->reason,
+            'enrollment_id' => $retake->enrollment_id,
         ]);
 
         // Generate Retake Fee Invoice with the admin-set fee
-        $student = $retake->student;
         AccountingService::createRetakeInvoice($student, $retake, (float) $validated['retake_fee']);
 
         return back()->with('success', "Retake approved! Fee: ৳" . number_format($validated['retake_fee'], 0) . " Invoice generated.");

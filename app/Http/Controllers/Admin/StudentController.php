@@ -83,15 +83,34 @@ class StudentController extends Controller
             });
         }
 
-        // Expatriate Filter
+        // Expatriate / International / Residence Filter
+        if ($request->filled('is_international')) {
+            $isInter = (string) $request->input('is_international');
+            if ($isInter === '1' || $isInter === 'yes' || $isInter === 'true') {
+                $query->where('is_international', true);
+            } elseif ($isInter === '0' || $isInter === 'no' || $isInter === 'false') {
+                $query->where(function ($q) {
+                    $q->where('is_international', false)
+                      ->orWhereNull('is_international');
+                });
+            }
+        }
+
         if ($request->filled('is_expatriate')) {
             $isExp = (string) $request->input('is_expatriate');
-            if ($isExp === '1' || $isExp === 'yes' || $isExp === 'true') {
+            if ($isExp === 'international' || $isExp === 'inter') {
+                $query->where('is_international', true);
+            } elseif ($isExp === '1' || $isExp === 'yes' || $isExp === 'true') {
                 $query->where('is_expatriate', true);
             } elseif ($isExp === '0' || $isExp === 'no' || $isExp === 'false') {
                 $query->where(function ($q) {
-                    $q->where('is_expatriate', false)
-                      ->orWhereNull('is_expatriate');
+                    $q->where(function ($sub) {
+                        $sub->where('is_expatriate', false)
+                            ->orWhereNull('is_expatriate');
+                    })->where(function ($sub) {
+                        $sub->where('is_international', false)
+                            ->orWhereNull('is_international');
+                    });
                 });
             }
         }
@@ -167,7 +186,7 @@ class StudentController extends Controller
         $hasFilters = $request->anyFilled([
             'search', 'name', 'student_code', 'phone', 'email',
             'gender', 'blood_group', 'course_id', 'batch_id', 'semester_id',
-            'district_id', 'is_expatriate'
+            'district_id', 'is_expatriate', 'is_international'
         ]) || ($request->filled('status') && !in_array($request->status, ['ACTIVE', 'PENDING', 'GRADUATED']));
 
         $status = $request->query('status');
@@ -262,7 +281,7 @@ class StudentController extends Controller
                     $st->email ?? '',
                     $st->blood_group ?? '—',
                     $st->national_id ?? '—',
-                    $st->is_expatriate ? ('প্রবাসী (' . ($st->country_of_residence ?: 'বিদেশ') . ')') : 'দেশীয়',
+                    $st->is_international ? ('ইন্টারন্যাশনাল (' . ($st->country_of_residence ?: 'ভারত') . ')') : ($st->is_expatriate ? ('প্রবাসী (' . ($st->country_of_residence ?: 'বিদেশ') . ')') : 'দেশীয়'),
                     $st->presentDistrict?->name ?? $st->permanentDistrict?->name ?? '—',
                     $courseName,
                     $batchName,
@@ -278,6 +297,95 @@ class StudentController extends Controller
         return response()->streamDownload($callback, $filename, [
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Return filtered student list data formatted as TSV for direct copying into Google Sheets / Excel
+     */
+    public function copyData(Request $request)
+    {
+        $query = $this->buildFilteredQuery($request);
+        $students = $query->orderByRaw('CASE WHEN student_code IS NULL OR student_code = "" THEN 1 ELSE 0 END, LENGTH(student_code) ASC, student_code ASC, id ASC')
+            ->get();
+
+        $headers = [
+            'ক্রমিক (SL)',
+            'স্টুডেন্ট আইডি (Student Code)',
+            'পূর্ণ নাম (Full Name)',
+            'লিঙ্গ (Gender)',
+            'মোবাইল নম্বর (Phone)',
+            'ইমেইল (Email)',
+            'রক্তের গ্রুপ (Blood Group)',
+            'এনআইডি / জন্ম নিবন্ধন (NID)',
+            'আবাসিক স্ট্যাটাস (Residence)',
+            'জেলা (District)',
+            'এনরোল্ড কোর্স (Course)',
+            'ব্যাচ (Batch)',
+            'বর্তমান সেমিস্টার (Semester)',
+            'একাডেমিক স্ট্যাটাস (Status)',
+            'ভর্তির তারিখ (Registration Date)',
+        ];
+
+        $rows = [];
+        $rows[] = implode("\t", $headers);
+
+        foreach ($students as $index => $st) {
+            $enr = null;
+            if ($request->filled('batch_id')) {
+                $enr = $st->enrollments->where('status', 'ACTIVE')->firstWhere('batch_id', $request->batch_id);
+            }
+            if (!$enr && $request->filled('course_id')) {
+                $enr = $st->enrollments->where('status', 'ACTIVE')->first(function ($e) use ($request) {
+                    return $e->course_id == $request->course_id || $e->batch?->course_id == $request->course_id;
+                });
+            }
+            if (!$enr) {
+                $enr = $st->enrollments->firstWhere('status', 'ACTIVE') ?? $st->enrollments->first();
+            }
+            $courseName = $enr?->batch?->course?->title ?? $enr?->batch?->course?->name ?? $enr?->course?->name ?? '—';
+            $batchName  = $enr?->batch?->name ?? '—';
+            $semName    = $enr?->semester?->name ?? '—';
+
+            $genderLabel = match(strtoupper($st->gender ?? '')) {
+                'MALE'   => 'পুরুষ (Male)',
+                'FEMALE' => 'মহিলা (Female)',
+                'OTHER'  => 'অন্যান্য (Other)',
+                default  => $st->gender ?? '—',
+            };
+
+            $cleanCode = $st->student_code ? str_replace('-', '', $st->student_code) : 'N/A';
+            $residence = $st->is_international ? ('ইন্টারন্যাশনাল (' . ($st->country_of_residence ?: 'ভারত') . ')') : ($st->is_expatriate ? ('প্রবাসী (' . ($st->country_of_residence ?: 'বিদেশ') . ')') : 'দেশীয়');
+            $district = $st->presentDistrict?->name ?? $st->permanentDistrict?->name ?? '—';
+
+            $cleanRow = [
+                $index + 1,
+                $cleanCode,
+                str_replace(["\t", "\r", "\n"], ' ', $st->name ?? ''),
+                $genderLabel,
+                str_replace(["\t", "\r", "\n"], ' ', $st->phone ?? ''),
+                str_replace(["\t", "\r", "\n"], ' ', $st->email ?? ''),
+                $st->blood_group ?? '—',
+                str_replace(["\t", "\r", "\n"], ' ', $st->national_id ?? '—'),
+                $residence,
+                $district,
+                str_replace(["\t", "\r", "\n"], ' ', $courseName),
+                str_replace(["\t", "\r", "\n"], ' ', $batchName),
+                str_replace(["\t", "\r", "\n"], ' ', $semName),
+                $st->status ?? 'ACTIVE',
+                $st->created_at ? $st->created_at->format('d/m/Y') : '—',
+            ];
+
+            $rows[] = implode("\t", $cleanRow);
+        }
+
+        $tsvContent = implode("\r\n", $rows);
+
+        return response()->json([
+            'success' => true,
+            'count'   => $students->count(),
+            'tsv'     => $tsvContent,
+            'message' => "মোট {$students->count()} জন শিক্ষার্থীর তথ্য সফলভাবে প্রস্তুত করা হয়েছে।"
         ]);
     }
 
@@ -356,6 +464,7 @@ class StudentController extends Controller
             'blood_group'             => 'nullable|string',
             'national_id'             => 'nullable|string|max:50',
             'is_expatriate'           => 'nullable',
+            'is_international'        => 'nullable',
             'country_of_residence'    => 'nullable|string|max:100',
             'present_division_id'     => 'nullable|integer',
             'present_district_id'     => 'nullable|integer',
@@ -376,7 +485,17 @@ class StudentController extends Controller
         ]);
 
         $validated['is_expatriate'] = $request->boolean('is_expatriate');
-        if (!$validated['is_expatriate']) {
+        $validated['is_international'] = $request->boolean('is_international');
+
+        if ($validated['is_international']) {
+            $validated['present_division_id'] = null;
+            $validated['present_district_id'] = null;
+            $validated['permanent_division_id'] = null;
+            $validated['permanent_district_id'] = null;
+            if (empty($validated['permanent_address']) && !empty($validated['address'])) {
+                $validated['permanent_address'] = $validated['address'];
+            }
+        } elseif (!$validated['is_expatriate']) {
             $validated['country_of_residence'] = null;
         }
 
@@ -392,7 +511,7 @@ class StudentController extends Controller
 
         $trackedFields = [
             'name', 'phone', 'email', 'gender', 'date_of_birth', 'blood_group', 
-            'national_id', 'is_expatriate', 'country_of_residence',
+            'national_id', 'is_expatriate', 'is_international', 'country_of_residence',
             'present_division_id', 'present_district_id', 'address',
             'permanent_division_id', 'permanent_district_id', 'permanent_address',
             'father_name', 'mother_name', 'guardian_name', 'guardian_phone',
@@ -451,6 +570,31 @@ class StudentController extends Controller
 
         $statusText = $newStatus ? 'চালু (Active)' : 'বন্ধ (Disabled)';
         return redirect()->back()->with('success', "কোর্স অ্যাক্সেস সফলভাবে {$statusText} করা হয়েছে।");
+    }
+
+    /**
+     * Toggle Facebook Live Class Approval (ফেসবুক লাইভ এপ্রুভাল)
+     * When activated: Auto-calculates 10% attendance mark across all subjects.
+     */
+    public function toggleFacebookLive(Request $request, Student $student)
+    {
+        $newStatus = !$student->facebook_live_approved;
+        $student->facebook_live_approved = $newStatus;
+        $student->facebook_live_approved_at = $newStatus ? now() : null;
+        $student->facebook_live_approved_by = $newStatus ? Auth::id() : null;
+        if ($request->filled('facebook_live_notes')) {
+            $student->facebook_live_notes = trim((string) $request->facebook_live_notes);
+        }
+        $student->save();
+
+        if ($newStatus) {
+            $updatedMarks = $student->syncFacebookLiveAttendance();
+            $msg = "✅ শিক্ষার্থী {$student->name}-এর ফেসবুক লাইভ এপ্রুভাল সফলভাবে সক্রিয় করা হয়েছে। বিষয়ভিত্তিক মোট নম্বরের ১০% হারে এটেন্ডেন্স মার্ক ({$updatedMarks}টি বিষয়ে) অটো যুক্ত হয়েছে।";
+        } else {
+            $msg = "⚠️ শিক্ষার্থী {$student->name}-এর ফেসবুক লাইভ এপ্রুভাল প্রত্যাহার (Deactivated) করা হয়েছে।";
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 
     /**

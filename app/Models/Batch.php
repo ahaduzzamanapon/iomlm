@@ -78,7 +78,7 @@ class Batch extends Model
             return $this->sms_template;
         }
 
-        return "আইওএম ভর্তি কনফার্ম! নাম: {name}, কোর্স: {course}, রোল: {roll}, পাসওয়ার্ড: {password}, লগইন: {login_url}";
+        return "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM";
     }
 
     public function getDurationCycleTextAttribute(): string

@@ -24,6 +24,7 @@ class Exam extends Model
         'written_marks'        => 'float',
         'tamrin_marks'         => 'float',
         'viva_marks'           => 'float',
+        'reset_deadline'       => 'datetime',
     ];
 
     public function getEffectiveStartDatetime(): Carbon
@@ -80,6 +81,22 @@ class Exam extends Model
     public function isExpired(): bool
     {
         return $this->timing_status === 'EXPIRED';
+    }
+
+    public function canApplyForReset(): bool
+    {
+        if (!$this->reset_deadline) {
+            return false;
+        }
+        return Carbon::now()->lte(Carbon::parse($this->reset_deadline));
+    }
+
+    public function isResetDeadlineExpired(): bool
+    {
+        if (!$this->reset_deadline) {
+            return true;
+        }
+        return Carbon::now()->gt(Carbon::parse($this->reset_deadline));
     }
 
     public function subject()

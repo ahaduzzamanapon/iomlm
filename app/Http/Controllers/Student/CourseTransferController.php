@@ -118,7 +118,7 @@ class CourseTransferController extends Controller
     }
 
     /**
-     * Cancel a pending transfer request
+     * Cancel a transfer request
      */
     public function cancel(CourseTransfer $courseTransfer)
     {
@@ -128,12 +128,70 @@ class CourseTransferController extends Controller
             abort(403);
         }
 
-        if ($courseTransfer->status !== 'PENDING') {
-            return back()->with('error', 'অনুমোদিত বা প্রক্রিয়াকৃত আবেদন সরাসরি বাতিল করা সম্ভব নয়। প্রয়োজনে কর্তৃপক্ষের সাথে যোগাযোগ করুন।');
+        if (!in_array($courseTransfer->status, ['PENDING', 'APPROVED_PENDING_PAYMENT'])) {
+            return back()->with('error', 'ইতিমধ্যে সম্পন্ন হওয়া বা বাতিল আবেদন পুনরায় বাতিল করা সম্ভব নয়।');
+        }
+
+        if ($courseTransfer->status === 'APPROVED_PENDING_PAYMENT') {
+            if ($courseTransfer->invoice && $courseTransfer->invoice->paid_amount > 0) {
+                return back()->with('error', 'ফি আংশিক বা সম্পূর্ণ পরিশোধ করা হয়েছে, এটি বাতিল করতে কর্তৃপক্ষের সাথে যোগাযোগ করুন।');
+            }
+            if ($courseTransfer->invoice && $courseTransfer->invoice->status === 'UNPAID') {
+                $courseTransfer->invoice->update(['status' => 'CANCELLED']);
+            }
         }
 
         $courseTransfer->update(['status' => 'CANCELLED']);
 
-        return back()->with('success', 'আপনার কোর্স পরিবর্তনের আবেদনটি বাতিল করা হয়েছে।');
+        return back()->with('success', 'আপনার কোর্স পরিবর্তনের আবেদনটি বাতিল করা হয়েছে। আপনি চাইলে যেকোনো সময় এটি পুনরায় চালু (রিস্টোর) করতে পারবেন।');
+    }
+
+    /**
+     * Restore a cancelled course transfer request
+     */
+    public function restore(CourseTransfer $courseTransfer)
+    {
+        $student = Student::where('user_id', auth()->id())->firstOrFail();
+
+        if ($courseTransfer->student_id !== $student->id) {
+            abort(403);
+        }
+
+        if ($courseTransfer->status !== 'CANCELLED') {
+            return back()->with('error', 'শুধুমাত্র বাতিলকৃত আবেদন রিস্টোর করা সম্ভব।');
+        }
+
+        // Prevent multiple simultaneous active requests
+        $hasActive = CourseTransfer::where('student_id', $student->id)
+            ->where('id', '!=', $courseTransfer->id)
+            ->whereIn('status', ['PENDING', 'APPROVED_PENDING_PAYMENT'])
+            ->exists();
+
+        if ($hasActive) {
+            return back()->with('error', 'আপনার একটি কোর্স পরিবর্তনের আবেদন ইতোমধ্যে প্রক্রিয়াধীন রয়েছে। একসাথে একাধিক আবেদন সক্রিয় রাখা সম্ভব নয়।');
+        }
+
+        $activeEnrollment = Enrollment::where('student_id', $student->id)
+            ->where('status', 'ACTIVE')
+            ->latest()
+            ->first();
+
+        if (!$activeEnrollment) {
+            return back()->with('error', 'আপনার কোনো সক্রিয় কোর্স পাওয়া যায়নি। কোর্স পরিবর্তনের জন্য একটি সক্রিয় কোর্স প্রয়োজন।');
+        }
+
+        if ($activeEnrollment->course_id === $courseTransfer->to_course_id) {
+            return back()->with('error', 'আপনি ইতোমধ্যে প্রার্থিত কোর্সে যুক্ত আছেন।');
+        }
+
+        $courseTransfer->update([
+            'status'             => 'PENDING',
+            'from_course_id'     => $activeEnrollment->course_id,
+            'from_batch_id'      => $activeEnrollment->batch_id,
+            'from_enrollment_id' => $activeEnrollment->id,
+            'rejection_reason'   => null,
+        ]);
+
+        return back()->with('success', '✅ আপনার বাতিলকৃত কোর্স পরিবর্তনের আবেদনটি সফলভাবে রিস্টোর (পুনর্বহাল) করা হয়েছে!');
     }
 }

@@ -12,6 +12,9 @@ use App\Models\FinalMark;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\Subject;
+use App\Models\Exam;
+use App\Models\Result;
+use App\Models\ExamSubmission;
 use Illuminate\Http\Request;
 
 class ResultBookController extends Controller
@@ -35,6 +38,7 @@ class ResultBookController extends Controller
         $selectedSemester = null;
         $selectedSubject = null;
         $examType = $request->input('exam_type', 'FINAL'); // FINAL, MIDTERM, QUIZ, ALL
+        $selectedGender = $request->input('gender', 'ALL'); // ALL, MALE, FEMALE
         $search = trim((string) $request->input('search', ''));
         $subjects = collect();
         $semesters = collect();
@@ -285,10 +289,18 @@ class ResultBookController extends Controller
                         $rawTotal = round(($rawCt ?? 0) + ($rawMid ?? 0) + ($rawFinal ?? 0) + ($rawAtt ?? 0), 2);
                         $criteriaTotal = $selectedSubMark ? (float) ($selectedSubMark['converted'] ?? 0) : $totalObtained;
 
+                        $isSister = $student->isSister();
+                        $genderGroup = $isSister ? 'FEMALE' : 'MALE';
+                        $genderLabel = $isSister ? 'বোন' : 'ভাই';
+                        $genderBranch = $isSister ? 'বোন শাখা' : 'ভাই শাখা';
+
                         $studentsData[] = [
                             'student_id'     => $student->id,
                             'student_name'   => $student->name ?? '—',
                             'student_roll'   => $student->student_code ?? $student->student_id ?? '—',
+                            'gender_group'   => $genderGroup,
+                            'gender_label'   => $genderLabel,
+                            'gender_branch'  => $genderBranch,
                             'first_mark_id'  => $selectedSubMark ? ($selectedSubMark['final_mark_id'] ?? $firstFinalMarkId) : $firstFinalMarkId,
                             'subject_marks'  => $subjectMarks,
                             'raw_ct'         => $rawCt,
@@ -322,19 +334,45 @@ class ResultBookController extends Controller
                     });
 
                     $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+                    $brotherRank = 1;
+                    $sisterRank = 1;
+
                     foreach ($studentsData as $idx => &$item) {
-                        $pos = $idx + 1;
-                        $bnNum = str_replace(range(0, 9), $bnDigits, (string) $pos);
-                        $suffix = match($pos) {
+                        $overallPos = $idx + 1;
+                        $bnNum = str_replace(range(0, 9), $bnDigits, (string) $overallPos);
+                        $suffix = match($overallPos) {
                             1 => 'ম',
                             2, 3 => 'য়',
                             4 => 'র্থ',
                             default => 'ম'
                         };
-                        $item['merit_rank_bengali'] = $bnNum . $suffix;
-                        $item['merit_position'] = $pos;
+                        $item['overall_position'] = $overallPos;
+                        $item['overall_rank_bengali'] = $bnNum . $suffix;
+
+                        // Separate position for Brother vs Sister
+                        $isSister = ($item['gender_group'] ?? 'MALE') === 'FEMALE';
+                        $genderPos = $isSister ? $sisterRank++ : $brotherRank++;
+                        $gBnNum = str_replace(range(0, 9), $bnDigits, (string) $genderPos);
+                        $gSuffix = match($genderPos) {
+                            1 => 'ম',
+                            2, 3 => 'য়',
+                            4 => 'র্থ',
+                            default => 'ম'
+                        };
+                        $item['gender_position'] = $genderPos;
+                        $item['gender_rank_bengali'] = $gBnNum . $gSuffix;
+                        $item['gender_merit_text'] = ($isSister ? 'বোনদের মধ্যে ' : 'ভাইদের মধ্যে ') . $gBnNum . $gSuffix . ' স্থান';
+
+                        // Main merit position defaults to the gender rank as requested
+                        $item['merit_position'] = $genderPos;
+                        $item['merit_rank_bengali'] = $gBnNum . $gSuffix;
                     }
                     unset($item);
+
+                    // If branch/gender filter is applied, filter ranked students
+                    if (in_array($selectedGender, ['MALE', 'FEMALE'])) {
+                        $studentsData = array_values(array_filter($studentsData, fn($s) => ($s['gender_group'] ?? 'MALE') === $selectedGender));
+                    }
 
                     $rankedStudents = collect($studentsData);
                 }
@@ -428,10 +466,18 @@ class ResultBookController extends Controller
                             default       => 'F',
                         };
 
+                        $isSister = $student->isSister();
+                        $genderGroup = $isSister ? 'FEMALE' : 'MALE';
+                        $genderLabel = $isSister ? 'বোন' : 'ভাই';
+                        $genderBranch = $isSister ? 'বোন শাখা' : 'ভাই শাখা';
+
                         $batchStudents[] = [
                             'student_id'        => $student->id,
                             'student_name'      => $student->name ?? '—',
                             'student_roll'      => $student->student_code ?? $student->student_id ?? '—',
+                            'gender_group'      => $genderGroup,
+                            'gender_label'      => $genderLabel,
+                            'gender_branch'     => $genderBranch,
                             'semesters_summary' => $semestersSummary,
                             'total_credits'     => $totalCredits,
                             'total_obtained'    => $totalObtainedAll,
@@ -450,19 +496,41 @@ class ResultBookController extends Controller
                     });
 
                     $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+                    $brotherRank = 1;
+                    $sisterRank = 1;
                     foreach ($batchStudents as $idx => &$item) {
-                        $pos = $idx + 1;
-                        $bnNum = str_replace(range(0, 9), $bnDigits, (string) $pos);
-                        $suffix = match($pos) {
+                        $overallPos = $idx + 1;
+                        $bnNum = str_replace(range(0, 9), $bnDigits, (string) $overallPos);
+                        $suffix = match($overallPos) {
                             1 => 'ম',
                             2, 3 => 'য়',
                             4 => 'র্থ',
                             default => 'ম'
                         };
-                        $item['merit_rank_bengali'] = $bnNum . $suffix;
-                        $item['merit_position'] = $pos;
+                        $item['overall_position'] = $overallPos;
+                        $item['overall_rank_bengali'] = $bnNum . $suffix;
+
+                        $isSister = ($item['gender_group'] ?? 'MALE') === 'FEMALE';
+                        $genderPos = $isSister ? $sisterRank++ : $brotherRank++;
+                        $gBnNum = str_replace(range(0, 9), $bnDigits, (string) $genderPos);
+                        $gSuffix = match($genderPos) {
+                            1 => 'ম',
+                            2, 3 => 'য়',
+                            4 => 'র্থ',
+                            default => 'ম'
+                        };
+                        $item['gender_position'] = $genderPos;
+                        $item['gender_rank_bengali'] = $gBnNum . $gSuffix;
+                        $item['gender_merit_text'] = ($isSister ? 'বোনদের মধ্যে ' : 'ভাইদের মধ্যে ') . $gBnNum . $gSuffix . ' স্থান';
+
+                        $item['merit_position'] = $genderPos;
+                        $item['merit_rank_bengali'] = $gBnNum . $gSuffix;
                     }
                     unset($item);
+
+                    if (in_array($selectedGender, ['MALE', 'FEMALE'])) {
+                        $batchStudents = array_values(array_filter($batchStudents, fn($s) => ($s['gender_group'] ?? 'MALE') === $selectedGender));
+                    }
 
                     $batchMeritList = collect($batchStudents);
                 }
@@ -471,6 +539,8 @@ class ResultBookController extends Controller
 
         // Summary KPI statistics
         $totalStudents = $rankedStudents->count();
+        $brotherCount  = $rankedStudents->where('gender_group', 'MALE')->count();
+        $sisterCount   = $rankedStudents->where('gender_group', 'FEMALE')->count();
         $passedCount   = $rankedStudents->where('status', 'PASS')->count();
         $failedCount   = $rankedStudents->where('status', 'FAIL')->count();
         $passRate      = $totalStudents > 0 ? round(($passedCount / $totalStudents) * 100, 1) : 0;
@@ -479,6 +549,8 @@ class ResultBookController extends Controller
 
         $summary = [
             'total'         => $totalStudents,
+            'brother_count' => $brotherCount,
+            'sister_count'  => $sisterCount,
             'passed'        => $passedCount,
             'failed'        => $failedCount,
             'pass_rate'     => $passRate,
@@ -493,7 +565,7 @@ class ResultBookController extends Controller
         return view('admin.result-book.index', compact(
             'courses', 'selectedCourseId',
             'tab', 'batches', 'selectedBatch', 'semesters', 'selectedSemester',
-            'selectedSubject', 'examType', 'search', 'subjects', 'rankedStudents',
+            'selectedSubject', 'examType', 'search', 'selectedGender', 'subjects', 'rankedStudents',
             'manualMarkingList', 'batchMeritList', 'isSemesterBased',
             'isBatchPublished', 'summary', 'exams', 'examLookup',
             'subjectExams', 'selectedExam', 'allExamResults'
@@ -776,6 +848,421 @@ class ResultBookController extends Controller
     }
 
     /**
+     * Download CSV template for bulk manual marking (Tamrin & Attendance)
+     */
+    public function downloadManualMarksTemplate(Request $request)
+    {
+        $request->validate([
+            'batch_id'   => 'required|exists:batches,id',
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $batchId    = $request->batch_id;
+        $subjectId  = $request->subject_id;
+        $semesterId = $request->input('semester_id');
+        $examId     = $request->input('exam_id');
+
+        $batch   = Batch::findOrFail($batchId);
+        $subject = Subject::findOrFail($subjectId);
+        $exam    = $examId ? Exam::find($examId) : null;
+
+        // Retrieve existing final marks for this batch/subject/semester
+        $finalMarks = FinalMark::with(['student'])
+            ->where('batch_id', $batchId)
+            ->where('subject_id', $subjectId)
+            ->when($semesterId, fn($q) => $q->where('semester_id', $semesterId))
+            ->get();
+
+        if ($finalMarks->isEmpty()) {
+            $students = Student::where('status', 'ACTIVE')->get();
+        } else {
+            $students = $finalMarks->pluck('student')->filter()->unique('id');
+        }
+
+        $csvHeader = [];
+        $cleanBatch = preg_replace('/[^A-Za-z0-9_\-]/', '_', $batch->name);
+
+        if ($exam) {
+            $cleanExam = preg_replace('/[^A-Za-z0-9_\-]/', '_', $exam->title);
+            $filename = "tamrin_marks_{$cleanExam}_{$cleanBatch}.csv";
+            $csvHeader = [
+                'student_code',
+                'student_name',
+                'tamrin_marks',
+                'mcq_marks',
+                'written_marks',
+                'viva_marks',
+                'attendance_mark',
+                'remarks'
+            ];
+        } else {
+            $cleanSub = preg_replace('/[^A-Za-z0-9_\-]/', '_', $subject->code ?: $subject->name);
+            $filename = "semester_tamrin_attendance_{$cleanSub}_{$cleanBatch}.csv";
+            $csvHeader = [
+                'student_code',
+                'student_name',
+                'ct_tamrin',
+                'midterm_tamrin',
+                'final_tamrin',
+                'attendance_converted',
+                'remarks'
+            ];
+        }
+
+        // Generate CSV with UTF-8 BOM so Excel opens Bengali names without garbling
+        $output = fopen('php://temp', 'r+');
+        fputs($output, "\xEF\xBB\xBF");
+        fputcsv($output, $csvHeader);
+
+        $examResults = $exam ? Result::where('exam_id', $exam->id)->get()->keyBy('student_id') : [];
+        $fmLookup = $finalMarks->keyBy('student_id');
+
+        foreach ($students as $st) {
+            $sCode = $st->student_code ?? (string)$st->id;
+            $sName = $st->name ?? '';
+            $fm = $fmLookup[$st->id] ?? null;
+
+            if ($exam) {
+                $res = $examResults[$st->id] ?? null;
+                fputcsv($output, [
+                    $sCode,
+                    $sName,
+                    $res->tamrin_marks ?? '',
+                    $res->mcq_marks ?? '',
+                    $res->written_marks ?? '',
+                    $res->viva_marks ?? '',
+                    $fm->attendance_converted ?? '',
+                    $fm->remarks ?? ''
+                ]);
+            } else {
+                fputcsv($output, [
+                    $sCode,
+                    $sName,
+                    $fm->ct_tamrin ?? '',
+                    $fm->midterm_tamrin ?? '',
+                    $fm->final_tamrin ?? '',
+                    $fm->attendance_converted ?? '',
+                    $fm->remarks ?? ''
+                ]);
+            }
+        }
+
+        rewind($output);
+        $csvContent = stream_get_contents($output);
+        fclose($output);
+
+        return response($csvContent, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Bulk Import Manual Marks (Tamrin & Attendance) via CSV file or Pasted Excel Data
+     */
+    public function importManualMarksBulk(Request $request)
+    {
+        $request->validate([
+            'batch_id'   => 'required|exists:batches,id',
+            'subject_id' => 'required|exists:subjects,id',
+            'csv_file'   => 'nullable|file|max:5120',
+            'paste_data' => 'nullable|string',
+        ]);
+
+        $batchId    = $request->batch_id;
+        $subjectId  = $request->subject_id;
+        $semesterId = $request->input('semester_id');
+        $examId     = $request->input('exam_id');
+        $exam       = $examId ? Exam::find($examId) : null;
+
+        $rawContent = '';
+        if ($request->hasFile('csv_file')) {
+            $rawContent = file_get_contents($request->file('csv_file')->getRealPath());
+        } elseif ($request->filled('paste_data')) {
+            $rawContent = $request->paste_data;
+        } else {
+            return back()->with('error', '⚠️ অনুগ্রহ করে একটি CSV ফাইল আপলোড করুন অথবা এক্সেল থেকে ডাটা পেস্ট করুন।');
+        }
+
+        // Normalize newlines and strip BOM
+        $rawContent = str_replace(["\r\n", "\r"], "\n", $rawContent);
+        $rawContent = preg_replace('/^\xEF\xBB\xBF/', '', $rawContent);
+
+        $lines = array_filter(explode("\n", trim($rawContent)), fn($l) => trim($l) !== '');
+        if (empty($lines)) {
+            return back()->with('error', '⚠️ ফাইলে কোনো ডাটা পাওয়া যায়নি।');
+        }
+
+        // Parse rows (detect delimiter: tab or comma)
+        $rows = [];
+        foreach ($lines as $line) {
+            $delimiter = str_contains($line, "\t") ? "\t" : ',';
+            $rows[] = str_getcsv($line, $delimiter);
+        }
+
+        if (empty($rows)) {
+            return back()->with('error', '⚠️ ডাটা পার্স করা সম্ভব হয়নি।');
+        }
+
+        // Detect header row
+        $header = array_map(fn($h) => strtolower(trim((string)$h)), $rows[0]);
+        $hasHeader = false;
+        $colMap = [
+            'student_code'         => -1,
+            'tamrin_marks'         => -1,
+            'ct_tamrin'            => -1,
+            'midterm_tamrin'       => -1,
+            'final_tamrin'         => -1,
+            'attendance_converted' => -1,
+            'mcq_marks'            => -1,
+            'written_marks'        => -1,
+            'viva_marks'           => -1,
+            'remarks'              => -1,
+        ];
+
+        foreach ($header as $idx => $colName) {
+            if (in_array($colName, ['student_code', 'roll', 'student_id', 'code', 'রোল', 'স্টুডেন্ট আইডি'])) {
+                $colMap['student_code'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['tamrin_marks', 'tamrin_mark', 'tamrin', 'তামরিন', 'তামরিন নম্বর'])) {
+                $colMap['tamrin_marks'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['ct_tamrin', 'ct', 'সিটি তামরিন', 'সিটি'])) {
+                $colMap['ct_tamrin'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['midterm_tamrin', 'midterm', 'মিডটার্ম তামরিন', 'মিডটার্ম'])) {
+                $colMap['midterm_tamrin'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['final_tamrin', 'final', 'ফাইনাল তামরিন', 'ফাইনাল'])) {
+                $colMap['final_tamrin'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['attendance_converted', 'attendance_mark', 'attendance', 'উপস্থিতি', 'এটেন্ডেন্স', 'সেমিস্টার উপস্থিতি'])) {
+                $colMap['attendance_converted'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['mcq_marks', 'mcq'])) {
+                $colMap['mcq_marks'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['written_marks', 'written', 'লিখিত'])) {
+                $colMap['written_marks'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['viva_marks', 'viva', 'ভাইভা'])) {
+                $colMap['viva_marks'] = $idx;
+                $hasHeader = true;
+            } elseif (in_array($colName, ['remarks', 'মন্তব্য'])) {
+                $colMap['remarks'] = $idx;
+                $hasHeader = true;
+            }
+        }
+
+        $dataRows = $hasHeader ? array_slice($rows, 1) : $rows;
+
+        // Fallback positional mapping if header not detected
+        if (!$hasHeader) {
+            $colMap['student_code'] = 0;
+            if ($exam) {
+                $colMap['tamrin_marks'] = 2;
+                $colMap['attendance_converted'] = 3;
+                $colMap['remarks'] = 4;
+            } else {
+                $colMap['ct_tamrin'] = 2;
+                $colMap['midterm_tamrin'] = 3;
+                $colMap['final_tamrin'] = 4;
+                $colMap['attendance_converted'] = 5;
+                $colMap['remarks'] = 6;
+            }
+        }
+
+        $cleanRows = [];
+        $sCodeIdx = $colMap['student_code'] !== -1 ? $colMap['student_code'] : 0;
+        foreach ($dataRows as $row) {
+            $sCode = isset($row[$sCodeIdx]) ? trim((string)$row[$sCodeIdx]) : '';
+            if ($sCode === '') continue;
+            $cleanRows[] = ['code' => $sCode, 'raw' => $row];
+        }
+
+        if (empty($cleanRows)) {
+            return back()->with('error', '⚠️ ফাইলে বৈধ কোনো শিক্ষার্থীর তথ্য পাওয়া যায়নি।');
+        }
+
+        $codes = array_column($cleanRows, 'code');
+        $numericCodes = array_values(array_filter($codes, 'is_numeric'));
+        $students = Student::whereIn('student_code', $codes)
+            ->when(!empty($numericCodes), fn($q) => $q->orWhereIn('id', $numericCodes))
+            ->get();
+
+        $studentByCode = [];
+        foreach ($students as $st) {
+            if ($st->student_code) $studentByCode[$st->student_code] = $st;
+            $studentByCode[(string)$st->id] = $st;
+        }
+
+        $updatedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($cleanRows as $item) {
+            $code = $item['code'];
+            $row  = $item['raw'];
+            $student = $studentByCode[$code] ?? null;
+
+            if (!$student) {
+                $skippedCount++;
+                continue;
+            }
+
+            // Find or create FinalMark
+            $finalMark = FinalMark::firstOrCreate(
+                [
+                    'batch_id'    => $batchId,
+                    'student_id'  => $student->id,
+                    'subject_id'  => $subjectId,
+                    'semester_id' => $semesterId,
+                ],
+                [
+                    'total_full'   => 100,
+                    'credit'       => 3,
+                    'generated_at' => now(),
+                ]
+            );
+
+            $getVal = function($key) use ($colMap, $row) {
+                $idx = $colMap[$key] ?? -1;
+                if ($idx === -1 || !isset($row[$idx])) return null;
+                $v = trim((string)$row[$idx]);
+                return is_numeric($v) ? (float)$v : null;
+            };
+
+            $remarksVal = ($colMap['remarks'] !== -1 && isset($row[$colMap['remarks']])) 
+                ? trim((string)$row[$colMap['remarks']]) 
+                : null;
+
+            $attVal = $getVal('attendance_converted');
+
+            if ($exam) {
+                // Exam-specific mode
+                $tamrinVal  = $getVal('tamrin_marks');
+                $mcqVal     = $getVal('mcq_marks');
+                $writtenVal = $getVal('written_marks');
+                $vivaVal    = $getVal('viva_marks');
+
+                $res = Result::firstOrNew([
+                    'exam_id'    => $exam->id,
+                    'student_id' => $student->id,
+                ]);
+                if (!$res->exists) {
+                    $res->attempt_no = 1;
+                }
+
+                if ($tamrinVal !== null) $res->tamrin_marks = $tamrinVal;
+                if ($mcqVal !== null) $res->mcq_marks = $mcqVal;
+                if ($writtenVal !== null) $res->written_marks = $writtenVal;
+                if ($vivaVal !== null) $res->viva_marks = $vivaVal;
+
+                $totalExamMark = ($res->mcq_marks ?? 0) + ($res->written_marks ?? 0) + ($res->tamrin_marks ?? 0) + ($res->viva_marks ?? 0);
+                $res->marks  = $totalExamMark;
+                $res->status = $totalExamMark >= $exam->pass_marks ? 'PASS' : 'FAIL';
+                $pct = $exam->full_marks > 0 ? (($totalExamMark / $exam->full_marks) * 100) : 0;
+                $gInfo = FinalMark::calculateGrade($pct);
+                $res->grade = $gInfo['grade'];
+                $res->save();
+
+                // Sync ExamSubmission if exists
+                $sub = ExamSubmission::where('exam_id', $exam->id)->where('student_id', $student->id)->first();
+                if ($sub && $tamrinVal !== null) {
+                    $sub->update([
+                        'tamrin_score' => $tamrinVal,
+                        'total_score'  => $totalExamMark,
+                    ]);
+                }
+
+                // Sync to FinalMark
+                $fmUpdates = [];
+                if ($exam->type === 'QUIZ') {
+                    if ($tamrinVal !== null) $fmUpdates['ct_tamrin'] = $tamrinVal;
+                    $fmUpdates['class_test_obtained'] = $totalExamMark;
+                    $fmUpdates['class_test_converted'] = round(($totalExamMark / FinalMark::CLASS_TEST_FULL) * FinalMark::CLASS_TEST_CONVERT, 2);
+                } elseif ($exam->type === 'MIDTERM') {
+                    if ($tamrinVal !== null) $fmUpdates['midterm_tamrin'] = $tamrinVal;
+                    $fmUpdates['midterm_obtained'] = $totalExamMark;
+                    $fmUpdates['midterm_converted'] = round(($totalExamMark / FinalMark::MIDTERM_FULL) * FinalMark::MIDTERM_CONVERT, 2);
+                } elseif ($exam->type === 'FINAL') {
+                    if ($tamrinVal !== null) $fmUpdates['final_tamrin'] = $tamrinVal;
+                    $fmUpdates['final_obtained'] = $totalExamMark;
+                    $fmUpdates['final_converted'] = round(($totalExamMark / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2);
+                }
+
+                if ($attVal !== null) {
+                    $fmUpdates['attendance_converted'] = $attVal;
+                }
+                if ($remarksVal !== null && $remarksVal !== '') {
+                    $finalMark->remarks = $remarksVal;
+                }
+
+                $finalMark->recalculate($fmUpdates);
+
+            } else {
+                // Combined Semester Mode
+                $fmUpdates = [];
+                if ($attVal !== null) {
+                    $fmUpdates['attendance_converted'] = $attVal;
+                }
+
+                $ctT = $getVal('ct_tamrin');
+                if ($ctT !== null) {
+                    $fmUpdates['ct_tamrin'] = $ctT;
+                    if ($finalMark->class_test_obtained !== null) {
+                        $diff = $ctT - ($finalMark->ct_tamrin ?? 0);
+                        $newCtOb = max(0, min(FinalMark::CLASS_TEST_FULL, $finalMark->class_test_obtained + $diff));
+                        $fmUpdates['class_test_obtained'] = $newCtOb;
+                        $fmUpdates['class_test_converted'] = round(($newCtOb / FinalMark::CLASS_TEST_FULL) * FinalMark::CLASS_TEST_CONVERT, 2);
+                    }
+                }
+
+                $midT = $getVal('midterm_tamrin');
+                if ($midT !== null) {
+                    $fmUpdates['midterm_tamrin'] = $midT;
+                    if ($finalMark->midterm_obtained !== null) {
+                        $diff = $midT - ($finalMark->midterm_tamrin ?? 0);
+                        $newMidOb = max(0, min(FinalMark::MIDTERM_FULL, $finalMark->midterm_obtained + $diff));
+                        $fmUpdates['midterm_obtained'] = $newMidOb;
+                        $fmUpdates['midterm_converted'] = round(($newMidOb / FinalMark::MIDTERM_FULL) * FinalMark::MIDTERM_CONVERT, 2);
+                    }
+                }
+
+                $finT = $getVal('final_tamrin');
+                if ($finT !== null) {
+                    $fmUpdates['final_tamrin'] = $finT;
+                    if ($finalMark->final_obtained !== null) {
+                        $diff = $finT - ($finalMark->final_tamrin ?? 0);
+                        $newFinOb = max(0, min(FinalMark::FINAL_FULL, $finalMark->final_obtained + $diff));
+                        $fmUpdates['final_obtained'] = $newFinOb;
+                        $fmUpdates['final_converted'] = round(($newFinOb / FinalMark::FINAL_FULL) * FinalMark::FINAL_CONVERT, 2);
+                    }
+                }
+
+                if ($remarksVal !== null && $remarksVal !== '') {
+                    $finalMark->remarks = $remarksVal;
+                }
+
+                $finalMark->recalculate($fmUpdates);
+            }
+
+            $updatedCount++;
+        }
+
+        FinalMark::recalculateMeritRanks($batchId, $subjectId, $semesterId);
+
+        $msg = $exam 
+            ? "✅ মোট {$updatedCount} জন শিক্ষার্থীর '{$exam->title}' পরীক্ষার তামরিন ও এটেন্ডেন্স মার্ক বাল্ক আপলোড সফলভাবে সম্পন্ন হয়েছে।"
+            : "✅ মোট {$updatedCount} জন শিক্ষার্থীর পরীক্ষাভিত্তিক তামরিন ও সেমিস্টার উপস্থিতি নম্বর সফলভাবে বাল্ক আপলোড হয়েছে।";
+
+        if ($skippedCount > 0) {
+            $msg .= " (রোল অমিল হওয়ার কারণে {$skippedCount} জন বাদ পড়েছে)";
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    /**
      * Toggle Publish / Unpublish final marks for batch + semester
      */
     public function publishToggle(Request $request)
@@ -843,6 +1330,19 @@ class ResultBookController extends Controller
         $updated = 0;
 
         foreach ($finalMarks as $fm) {
+            $st = $fm->student ?? Student::find($fm->student_id);
+            if ($st && $st->facebook_live_approved) {
+                // Facebook Live Approved student: Attendance mark is 10% of subject/exam marks
+                $attendanceConverted = $fm->calculateFacebookLiveAttendance();
+                $attMax = (float) ($criteria['attendance_convert'] ?? FinalMark::ATTENDANCE_CONVERT);
+                $attendancePercent = $attMax > 0 ? round(($attendanceConverted / $attMax) * 100, 2) : 0.0;
+
+                $fm->attendance_percent = $attendancePercent;
+                $fm->recalculate(['attendance_converted' => $attendanceConverted]);
+                $updated++;
+                continue;
+            }
+
             $presentCount = Attendance::whereIn('class_session_id', $classSessions)
                 ->where('student_id', $fm->student_id)
                 ->whereIn('status', ['PRESENT', 'LATE'])

@@ -49,13 +49,18 @@ class FeeController extends Controller
             return back()->with('error', 'এই ইনভয়েসটির সকল বকেয়া ইতিমধ্যে পরিশোধিত হয়েছে।');
         }
 
+        $dueAmount = (float) $invoice->due_amount;
+
         $validated = $request->validate([
-            'amount'         => 'required|numeric|min:1|max:' . $invoice->due_amount,
+            'amount'         => 'nullable|numeric|min:1',
             'payment_method' => 'required|string',
             'transaction_id' => 'nullable|string|max:100',
             'sender_number'  => 'nullable|string|max:30',
             'remarks'        => 'nullable|string|max:255',
         ]);
+
+        // Student cannot edit fee amount; must pay exact full determined due amount of the invoice
+        $validated['amount'] = $dueAmount;
 
         $rawMethod = strtoupper(trim($validated['payment_method']));
         $method = strtolower($rawMethod);

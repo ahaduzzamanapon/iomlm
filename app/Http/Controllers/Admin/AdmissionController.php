@@ -442,6 +442,9 @@ class AdmissionController extends Controller
 
         $admissionTemplates = \App\Models\EmailTemplate::where('is_active', true)
             ->where(function ($q) {
+                $q->where('type', 'EMAIL')->orWhereNull('type');
+            })
+            ->where(function ($q) {
                 $q->where('category', 'ADMISSION')->orWhereNull('category');
             })
             ->with(['course', 'batch'])
@@ -454,7 +457,35 @@ class AdmissionController extends Controller
             $admission->student?->gender ?? $admission->gender
         );
 
-        return view('admin.admissions.show', compact('admission', 'activeBatches', 'allCourses', 'batchTemplates', 'admissionTemplates', 'suggestedTemplate'));
+        $admissionSmsTemplates = \App\Models\EmailTemplate::where('is_active', true)
+            ->where('type', 'SMS')
+            ->where(function ($q) {
+                $q->where('category', 'ADMISSION')->orWhereNull('category');
+            })
+            ->with(['course', 'batch'])
+            ->orderBy('name')
+            ->get();
+
+        $suggestedSmsTemplate = \App\Models\EmailTemplate::resolveAdmissionSmsTemplate(
+            $admission->interested_course_id ?? $admission->batch?->course_id,
+            $admission->batch_id,
+            $admission->student?->gender ?? $admission->gender
+        );
+
+        $defaultSmsTemplateContent = $suggestedSmsTemplate?->content
+            ?: ($admission->batch?->getEffectiveSmsTemplate() ?: "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM");
+
+        return view('admin.admissions.show', compact(
+            'admission',
+            'activeBatches',
+            'allCourses',
+            'batchTemplates',
+            'admissionTemplates',
+            'suggestedTemplate',
+            'admissionSmsTemplates',
+            'suggestedSmsTemplate',
+            'defaultSmsTemplateContent'
+        ));
     }
 
     public function approve(Request $request, AdmissionForm $admission)
@@ -467,6 +498,8 @@ class AdmissionController extends Controller
             'payment_method'        => 'nullable|string|max:50',
             'transaction_id'        => 'nullable|string|max:100',
             'sender_number'         => 'nullable|string|max:50',
+            'email_template_id'     => 'nullable|exists:email_templates,id',
+            'sms_template_id'       => 'nullable|exists:email_templates,id',
             'email_subject'         => 'nullable|string|max:255',
             'email_body'            => 'nullable|string',
             'sms_body'              => 'nullable|string|max:1000',
@@ -718,9 +751,17 @@ class AdmissionController extends Controller
                 ? $request->input('email_body')
                 : ($selectedTemplate ? $selectedTemplate->content : $batch->getEffectiveEmailTemplate());
 
+            $selectedSmsTemplate = $request->filled('sms_template_id')
+                ? \App\Models\EmailTemplate::find($request->input('sms_template_id'))
+                : \App\Models\EmailTemplate::resolveAdmissionSmsTemplate(
+                    $admission->interested_course_id ?? $batch->course_id,
+                    $batch->id,
+                    $student->gender ?? $admission->gender
+                );
+
             $rawSmsBody = $request->filled('sms_body')
                 ? $request->input('sms_body')
-                : $batch->getEffectiveSmsTemplate();
+                : ($selectedSmsTemplate ? $selectedSmsTemplate->content : $batch->getEffectiveSmsTemplate());
 
             $defaultSubject = $selectedTemplate?->subject
                 ?: "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";

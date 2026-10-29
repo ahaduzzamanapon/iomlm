@@ -110,10 +110,15 @@
                     @endforeach
                 </div>
 
-                @if($currStatus || $currSubject || $currSearch)
+                @if($currStatus || $currSubject || $currSearch || request('course_id') || request('batch_id') || request('semester_id'))
                     <a href="{{ route('admin.exams.index') }}" 
                        style="font-size:12px;color:#ef4444;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:4px">
-                     {{-- Row 2: Dropdowns & Search Filter Controls --}}
+                        <i class="fa-solid fa-rotate-left"></i> ফিল্টার রিসেট করুন
+                    </a>
+                @endif
+            </div>
+
+            {{-- Row 2: Dropdowns & Search Filter Controls --}}
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 {{-- Course Select --}}
                 <div style="min-width:180px">
@@ -389,6 +394,16 @@
                         </div>
                     </div>
 
+                    <div class="form-group" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; margin-bottom:16px">
+                        <label style="font-weight:700; color:#166534; font-size:13px; display:flex; align-items:center; gap:6px; margin-bottom:4px">
+                            <i class="fa-solid fa-clock-rotate-left" style="color:#059669"></i> এক্সাম রিসেট আবেদনের শেষ সময় (Reset Application Deadline)
+                        </label>
+                        <input type="datetime-local" name="reset_deadline" class="form-control" style="background:#fff; border-color:#86efac">
+                        <small style="color:#15803d; font-size:11.5px; display:block; margin-top:4px">
+                            <i class="fa-solid fa-circle-info"></i> এই তারিখ ও সময়ের পর শিক্ষার্থীরা আর পুনরায় পরীক্ষা বা রিসেটের আবেদন করতে পারবে না (বাটন স্বয়ংক্রিয়ভাবে ডিজেবল হবে)।
+                        </small>
+                    </div>
+
                     {{-- 📋 পরীক্ষার মূল্যায়ন কাঠামো নির্বাচন (Assessment Structure) --}}
                     <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:18px; font-family:'Kalpurush',sans-serif">
                         <div style="font-weight:700; font-size:13.5px; color:#1e293b; margin-bottom:4px; display:flex; align-items:center; gap:8px">
@@ -593,6 +608,16 @@
                         </div>
                     </div>
 
+                    <div class="form-group" style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px; margin-bottom:16px">
+                        <label style="font-weight:700; color:#166534; font-size:13px; display:flex; align-items:center; gap:6px; margin-bottom:4px">
+                            <i class="fa-solid fa-clock-rotate-left" style="color:#059669"></i> এক্সাম রিসেট আবেদনের শেষ সময় (Reset Application Deadline)
+                        </label>
+                        <input type="datetime-local" name="reset_deadline" id="edit_reset_deadline" class="form-control" style="background:#fff; border-color:#86efac">
+                        <small style="color:#15803d; font-size:11.5px; display:block; margin-top:4px">
+                            <i class="fa-solid fa-circle-info"></i> এই তারিখ ও সময়ের পর শিক্ষার্থীরা আর পুনরায় পরীক্ষা বা রিসেটের আবেদন করতে পারবে না।
+                        </small>
+                    </div>
+
                     <div class="form-group">
                         <label>স্ট্যাটাস (Status)</label>
                         <select name="status" id="edit_status" class="form-control">
@@ -662,6 +687,25 @@
         document.getElementById('edit_full_marks').value = exam.full_marks || 100;
         document.getElementById('edit_pass_marks').value = exam.pass_marks || 40;
         document.getElementById('edit_status').value = exam.status || 'SCHEDULED';
+
+        const resetDeadlineInput = document.getElementById('edit_reset_deadline');
+        if (resetDeadlineInput) {
+            if (exam.reset_deadline) {
+                const dt = new Date(exam.reset_deadline);
+                if (!isNaN(dt.getTime())) {
+                    const year = dt.getFullYear();
+                    const month = String(dt.getMonth() + 1).padStart(2, '0');
+                    const day = String(dt.getDate()).padStart(2, '0');
+                    const hours = String(dt.getHours()).padStart(2, '0');
+                    const mins = String(dt.getMinutes()).padStart(2, '0');
+                    resetDeadlineInput.value = `${year}-${month}-${day}T${hours}:${mins}`;
+                } else {
+                    resetDeadlineInput.value = '';
+                }
+            } else {
+                resetDeadlineInput.value = '';
+            }
+        }
 
         calcAssessmentMarks('edit');
         openModal('editExamModal');

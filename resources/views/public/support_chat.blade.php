@@ -96,8 +96,10 @@
                 <div id="agentStatusBadge">
                     @if($ticket->status === 'CLOSED')
                         <span style="background:#fee2e2;color:#991b1b;padding:4px 10px;border-radius:12px;font-weight:700">সার্ভিস সম্পন্ন (Closed)</span>
+                    @elseif($ticket->status === 'SOLVED')
+                        <span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:12px;font-weight:700">✓ সমস্যার সমাধান প্রদান করা হয়েছে (Solved)</span>
                     @elseif($ticket->assignedAgent)
-                        <span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:12px;font-weight:700">প্রতিনিধি {{ $ticket->assignedAgent->name }} সংযুক্ত আছেন</span>
+                        <span style="background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:12px;font-weight:700">প্রতিনিধি {{ $ticket->assignedAgent->name }} সংযুক্ত আছেন</span>
                     @else
                         <span style="background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:12px;font-weight:700">⏳ প্রতিনিধি অপেক্ষায় আছে...</span>
                     @endif
@@ -120,7 +122,8 @@
                 <div class="chat-input-bar">
                     <form id="userMessageForm" onsubmit="sendUserMessage(event)" style="display:flex;gap:10px">
                         <input type="text" id="userMsgInput" class="form-control" placeholder="আপনার মেসেজ লিখুন..." autocomplete="off" style="flex:1;height:44px;font-size:14px;border:1px solid #cbd5e1;border-radius:6px;padding:0 14px">
-                        <label style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 14px;display:inline-flex;align-items:center;cursor:pointer" title="ফাইল/ছবি যোগ করুন">
+                        <label style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:6px;padding:0 14px;display:inline-flex;align-items:center;cursor:pointer;gap:6px" title="ফাইল/ছবি যোগ করুন">
+                            <i class="fa-solid fa-paperclip" style="font-size:16px;color:#64748b"></i>
                             <input type="file" id="userAttachmentInput" accept="image/*,.pdf" style="display:none" onchange="previewUserFile(this)">
                         </label>
                         <button type="submit" class="btn-send">
@@ -131,32 +134,49 @@
                 </div>
             @else
                 {{-- Rating Form on Close --}}
-                <div class="rating-box">
-                    <div style="font-weight:700;font-size:15px;margin-bottom:8px">আপনার অনলাইন সাপোর্ট অভিজ্ঞতাটি কেমন ছিল? (রেটিং দিন)</div>
+                <div class="rating-box" style="font-family:'Kalpurush',sans-serif">
+                    <div style="font-weight:700;font-size:16px;margin-bottom:8px">আপনার অনলাইন সাপোর্ট অভিজ্ঞতাটি কেমন ছিল? (রেটিং ও মতামত দিন)</div>
                     @if($ticket->rating)
                         <div style="color:#f59e0b;font-size:24px;margin-bottom:6px">
                             @for($i=1; $i<=5; $i++)
-                                {{ $i <= $ticket->rating ? '' : '' }}
+                                <i class="fa-{{ $i <= $ticket->rating ? 'solid' : 'regular' }} fa-star"></i>
                             @endfor
                         </div>
-                        <div style="font-size:13px">আপনার মূল্যায়নের জন্য ধন্যবাদ! ({{ $ticket->rating }}/5)</div>
+                        <div style="font-size:14px;color:#334155;font-weight:600">আপনার মূল্যায়নের জন্য ধন্যবাদ! ({{ $ticket->rating }}/5)</div>
+                        @if($ticket->feedback)
+                            <div style="font-size:13px;color:#475569;margin-top:6px;font-style:italic">"{{ $ticket->feedback }}"</div>
+                        @endif
                     @else
-                        <form method="POST" action="{{ route('online-support.rate', $ticket->uuid) }}">
+                        <form method="POST" action="{{ route('online-support.rate', $ticket->uuid) }}" style="display:flex;flex-direction:column;align-items:center;gap:12px">
                             @csrf
-                            <div class="star-rating">
-                                <input type="radio" id="star5" name="rating" value="5" required/><label for="star5" title="5 stars"></label>
-                                <input type="radio" id="star4" name="rating" value="4"/><label for="star4" title="4 stars"></label>
-                                <input type="radio" id="star3" name="rating" value="3"/><label for="star3" title="3 stars"></label>
-                                <input type="radio" id="star2" name="rating" value="2"/><label for="star2" title="2 stars"></label>
-                                <input type="radio" id="star1" name="rating" value="1"/><label for="star1" title="1 star"></label>
+                            <div class="star-rating" style="display:inline-flex;gap:8px;font-size:28px;cursor:pointer">
+                                <span class="star-item" data-value="1" onclick="setRating(1)" style="color:#f59e0b" title="1 Star"><i class="fa-solid fa-star"></i></span>
+                                <span class="star-item" data-value="2" onclick="setRating(2)" style="color:#f59e0b" title="2 Stars"><i class="fa-solid fa-star"></i></span>
+                                <span class="star-item" data-value="3" onclick="setRating(3)" style="color:#f59e0b" title="3 Stars"><i class="fa-solid fa-star"></i></span>
+                                <span class="star-item" data-value="4" onclick="setRating(4)" style="color:#f59e0b" title="4 Stars"><i class="fa-solid fa-star"></i></span>
+                                <span class="star-item" data-value="5" onclick="setRating(5)" style="color:#f59e0b" title="5 Stars"><i class="fa-solid fa-star"></i></span>
                             </div>
-                            <div style="margin-top:10px">
-                                <input type="text" name="feedback" placeholder="মতামত লিখুন (ঐচ্ছিক)..." style="width:100%;max-width:400px;height:36px;padding:0 12px;border:1px solid #fde68a;border-radius:6px;font-size:13px">
+                            <input type="hidden" name="rating" id="ratingScoreInput" value="5">
+                            <div style="width:100%;max-width:440px">
+                                <input type="text" name="feedback" placeholder="আপনার মূল্যবান মতামত লিখুন (ঐচ্ছিক)..." style="width:100%;height:40px;padding:0 14px;border:1px solid #fde68a;border-radius:8px;font-size:14px;font-family:'Kalpurush',sans-serif">
                             </div>
-                            <button type="submit" class="btn-send" style="margin-top:10px;height:36px;font-size:13px">
-                                রেটিং জমা দিন
+                            <button type="submit" class="btn-send" style="height:40px;font-size:14px;padding:0 24px;background:#047857;color:#fff;border-radius:8px;font-family:'Kalpurush',sans-serif">
+                                <i class="fa-solid fa-paper-plane" style="margin-right:4px"></i> রেটিং ও ফিডব্যাক জমা দিন
                             </button>
                         </form>
+                        <script>
+                        function setRating(val) {
+                            document.getElementById('ratingScoreInput').value = val;
+                            const items = document.querySelectorAll('.star-item');
+                            items.forEach((item, index) => {
+                                if (index < val) {
+                                    item.style.color = '#f59e0b';
+                                } else {
+                                    item.style.color = '#cbd5e1';
+                                }
+                            });
+                        }
+                        </script>
                     @endif
                 </div>
             @endif
@@ -188,8 +208,10 @@
                 currentTicketStatus = 'CLOSED';
                 setTimeout(() => location.reload(), 800);
             }
+        } else if (data.status === 'SOLVED') {
+            badge.innerHTML = `<span style="background:#dcfce7;color:#15803d;padding:4px 10px;border-radius:12px;font-weight:700">✓ সমস্যার সমাধান প্রদান করা হয়েছে (Solved)</span>`;
         } else if (data.agent_name && data.agent_name !== 'অপেক্ষা করা হচ্ছে...') {
-            badge.innerHTML = `<span style="background:#dcfce7;color:#166534;padding:4px 10px;border-radius:12px;font-weight:700">প্রতিনিধি ${data.agent_name} সংযুক্ত আছেন</span>`;
+            badge.innerHTML = `<span style="background:#dbeafe;color:#1d4ed8;padding:4px 10px;border-radius:12px;font-weight:700">প্রতিনিধি ${data.agent_name} সংযুক্ত আছেন</span>`;
         } else {
             badge.innerHTML = `<span style="background:#fef3c7;color:#b45309;padding:4px 10px;border-radius:12px;font-weight:700">⏳ প্রতিনিধি অপেক্ষায় আছে...</span>`;
         }
@@ -320,7 +342,7 @@
             } else {
                 p.innerHTML = `
                     <div style="display:inline-flex;align-items:center;gap:10px;background:#f1f5f9;padding:6px 10px;border-radius:8px;border:1px solid #cbd5e1;margin-top:6px">
-                        <span style="font-size:22px"></span>
+                        <span style="font-size:22px"><i class="fa-solid fa-file-pdf" style="color:#ef4444"></i></span>
                         <div>
                             <div style="font-size:12px;color:#0284c7;font-weight:700">${file.name}</div>
                             <div style="font-size:10px;color:#64748b">${(file.size/1024).toFixed(1)} KB</div>

@@ -749,8 +749,8 @@
                                 </a>
                                 <a href="{{ route('admin.email-templates.index') }}"
                                     class="nav-item {{ request()->routeIs('admin.email-templates*') ? 'active' : '' }}">
-                                    <i class="fa-solid fa-envelope-open-text"></i>
-                                    Email Templates (ইমেইল টেমপ্লেট)
+                                    <i class="fa-solid fa-envelopes-bulk"></i>
+                                    Templates (ইমেইল ও এসএমএস)
                                 </a>
                                 <a href="{{ route('admin.course-transfers.index') }}"
                                     class="nav-item {{ request()->routeIs('admin.course-transfers*') ? 'active' : '' }}">

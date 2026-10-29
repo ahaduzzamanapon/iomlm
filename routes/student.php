@@ -44,6 +44,7 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::get('course-transfers',                    [\App\Http\Controllers\Student\CourseTransferController::class, 'index'])->name('course-transfers.index');
         Route::post('course-transfers',                   [\App\Http\Controllers\Student\CourseTransferController::class, 'store'])->name('course-transfers.store');
         Route::delete('course-transfers/{courseTransfer}', [\App\Http\Controllers\Student\CourseTransferController::class, 'cancel'])->name('course-transfers.cancel');
+        Route::post('course-transfers/{courseTransfer}/restore', [\App\Http\Controllers\Student\CourseTransferController::class, 'restore'])->name('course-transfers.restore');
 
         // Readmission (রি-এডমিশন আবেদন)
         Route::get('readmissions',                   [\App\Http\Controllers\Student\ReadmissionController::class, 'index'])->name('readmissions.index');
@@ -94,5 +95,10 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
 
         // Online Support
         Route::get('support', [\App\Http\Controllers\Student\StudentSupportController::class, 'index'])->name('support.index');
+
+        // Notifications (নোটিফিকেশন ও ক্লাস রিমাইন্ডার)
+        Route::get('notifications',                      [\App\Http\Controllers\Student\NotificationController::class, 'index'])->name('notifications.index');
+        Route::post('notifications/{notification}/read', [\App\Http\Controllers\Student\NotificationController::class, 'markRead'])->name('notifications.read');
+        Route::post('notifications/read-all',            [\App\Http\Controllers\Student\NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     });
 });

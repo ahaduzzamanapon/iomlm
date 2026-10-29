@@ -137,7 +137,17 @@
             @if(!empty($isTestMode))
                 <span style="font-size:12px;background:#f59e0b;color:#fff;padding:4px 10px;border-radius:6px;font-weight:700">🧪 TEST EXAM</span>
             @endif
-            <div class="timer-pill" id="timer">{{ $exam->duration_minutes }}:00</div>
+            <div class="timer-pill" id="timer">
+                @if(isset($remainingSeconds))
+                    @php
+                        $initMins = floor($remainingSeconds / 60);
+                        $initSecs = $remainingSeconds % 60;
+                    @endphp
+                    {{ sprintf('%02d:%02d', $initMins, $initSecs) }}
+                @else
+                    {{ $exam->duration_minutes }}:00
+                @endif
+            </div>
         </div>
     </div>
 
@@ -295,25 +305,50 @@
     </div>
 
     <script>
-    // ── Timer (display only — does NOT force submit) ──────────────────────────
-    let durationSeconds = {{ ($exam->duration_minutes ?? 30) * 60 }};
+    // ── Real-time Countdown & Auto-Submit ────────────────────────────────────
+    let durationSeconds = {{ isset($remainingSeconds) ? (int) $remainingSeconds : (($exam->duration_minutes ?? 30) * 60) }};
     const timerEl = document.getElementById('timer');
+    let autoSubmitted = false;
+
+    function renderTimer() {
+        const mins = Math.floor(Math.max(0, durationSeconds) / 60);
+        const secs = Math.max(0, durationSeconds) % 60;
+        const display = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+        if (timerEl) {
+            timerEl.innerText = display;
+            if (durationSeconds <= 300) {  // Last 5 minutes: urgent color
+                timerEl.classList.add('urgent');
+            }
+        }
+    }
+
+    renderTimer();
 
     const countdown = setInterval(() => {
-        const mins = Math.floor(durationSeconds / 60);
-        const secs = durationSeconds % 60;
-        const display = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
-        timerEl.innerText = display;
+        durationSeconds--;
+        renderTimer();
 
-        if (durationSeconds <= 300) {  // Last 5 minutes: urgent color
-            timerEl.classList.add('urgent');
-        }
         if (durationSeconds <= 0) {
             clearInterval(countdown);
-            timerEl.innerText = '00:00';
-            timerEl.innerText = 'সময় শেষ';
+            if (timerEl) {
+                timerEl.innerText = '00:00';
+            }
+
+            if (!autoSubmitted) {
+                autoSubmitted = true;
+                const form = document.getElementById('examForm');
+                if (form) {
+                    const notice = document.createElement('div');
+                    notice.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#b91c1c;color:#fff;padding:14px 28px;border-radius:10px;font-weight:700;z-index:99999;box-shadow:0 10px 25px rgba(0,0,0,0.3);font-family:"Kalpurush",sans-serif;font-size:16px;text-align:center;display:flex;align-items:center;gap:10px';
+                    notice.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> পরীক্ষার সময় শেষ হয়েছে! উত্তরপত্র স্বয়ংক্রিয়ভাবে জমা (Auto Submit) হচ্ছে...';
+                    document.body.appendChild(notice);
+
+                    setTimeout(() => {
+                        form.submit();
+                    }, 800);
+                }
+            }
         }
-        durationSeconds--;
     }, 1000);
 
     // ── Progress Tracker ──────────────────────────────────────────────────────

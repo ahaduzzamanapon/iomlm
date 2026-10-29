@@ -195,6 +195,10 @@
                     <span class="nav-badge" style="background:#10b981;color:#fff;font-size:11px">১০০%</span>
                 @endif
             </a>
+            <a href="{{ route('student.notifications.index') }}" class="nav-item {{ request()->routeIs('student.notifications*') ? 'active' : '' }}">
+                <i class="fa-solid fa-bell"></i>
+                নোটিফিকেশন ও রিমাইন্ডার
+            </a>
 
             <!-- My Learning -->
             <div class="nav-group-label">My Learning</div>
@@ -304,7 +308,81 @@
                 </div>
                 @endif
             </div>
-            <div class="topbar-right">
+            <div class="topbar-right" style="display:flex;align-items:center;gap:14px">
+                {{-- Notification Bell Dropdown --}}
+                @php
+                    $curUser = auth()->user();
+                    $unreadNotifCount = 0;
+                    $quickNotifs = collect();
+                    if ($curUser) {
+                        try {
+                            $quickNotifs = \App\Models\SentNotification::forUser($curUser)
+                                ->latest()
+                                ->take(6)
+                                ->get();
+                            $unreadNotifCount = $quickNotifs->filter(fn($n) => !$curUser->isNotificationRead($n->id, $n->created_at))->count();
+                        } catch (\Throwable) {
+                            $quickNotifs = collect();
+                            $unreadNotifCount = 0;
+                        }
+                    }
+                @endphp
+                <div class="dropdown">
+                    <button type="button" class="btn btn-ghost" onclick="toggleDropdown('studentNotifDropdown')" style="position:relative;padding:8px 10px;border-radius:50%;color:#064e3b;font-size:17px;border:none;background:transparent;cursor:pointer" title="নোটিফিকেশন ও ক্লাস রিমাইন্ডার">
+                        <i class="fa-regular fa-bell"></i>
+                        @if($unreadNotifCount > 0)
+                            <span id="stNotifBadge" style="position:absolute;top:2px;right:4px;background:#ef4444;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff">
+                                {{ $unreadNotifCount > 9 ? '9+' : $unreadNotifCount }}
+                            </span>
+                        @endif
+                    </button>
+                    <div class="dropdown-menu" id="studentNotifDropdown" style="width:340px;max-width:90vw;padding:0;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.15);overflow:hidden;border:1px solid #d1fae5;font-family:'Kalpurush',sans-serif">
+                        <div style="background:linear-gradient(135deg,#022c22,#064e3b);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;color:#fff">
+                            <span style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px">
+                                <i class="fa-solid fa-bell" style="color:#fbbf24"></i> নোটিফিকেশন ও রিমাইন্ডার
+                            </span>
+                            @if($unreadNotifCount > 0)
+                                <span class="badge" style="background:#10b981;color:#fff;font-size:10px">{{ $unreadNotifCount }}টি নতুন</span>
+                            @endif
+                        </div>
+                        <div style="max-height:360px;overflow-y:auto">
+                            @forelse($quickNotifs as $qn)
+                                @php $isUnread = !$curUser->isNotificationRead($qn->id, $qn->created_at); @endphp
+                                <a href="{{ $qn->action_url ?: route('student.classes.today') }}" style="display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid #f1f5f9;text-decoration:none;{{ $isUnread ? 'background:#ecfdf5;border-left:3px solid #047857;' : 'background:#fff;' }};transition:background 0.2s">
+                                    <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;{{ $isUnread ? 'background:#d1fae5;color:#047857;' : 'background:#f1f5f9;color:#94a3b8;' }}">
+                                        <i class="fa-solid {{ $qn->recipient_type === 'CLASS_REMINDER' ? 'fa-calendar-check' : 'fa-bullhorn' }}"></i>
+                                    </div>
+                                    <div style="flex:1;min-width:0">
+                                        <div style="font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                            {{ $qn->title }}
+                                        </div>
+                                        <div style="font-size:11.5px;color:#475569;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4">
+                                            {{ $qn->message }}
+                                        </div>
+                                        <div style="font-size:10px;color:#94a3b8;margin-top:4px">
+                                            {{ $qn->created_at ? $qn->created_at->diffForHumans() : '' }}
+                                        </div>
+                                    </div>
+                                </a>
+                            @empty
+                                <div style="padding:30px 16px;text-align:center;color:#94a3b8;font-size:12.5px">
+                                    <i class="fa-regular fa-bell-slash" style="font-size:22px;display:block;margin-bottom:6px;color:#cbd5e1"></i>
+                                    কোনো নতুন নোটিফিকেশন নেই
+                                </div>
+                            @endforelse
+                        </div>
+                        <div style="background:#f8fafc;padding:10px 16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center">
+                            <a href="{{ route('student.notifications.index') }}" style="font-size:12px;color:#047857;font-weight:700;text-decoration:none">
+                                সব নোটিফিকেশন দেখুন →
+                            </a>
+                            <button type="button" onclick="markAllNotificationsReadDropdown()" style="background:none;border:none;font-size:11px;color:#64748b;cursor:pointer;text-decoration:underline">
+                                সব পঠিত করুন
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- User Menu --}}
                 <div class="dropdown">
                     <div class="user-menu" onclick="toggleDropdown('studentUserMenu')" style="cursor:pointer">
                         @php
@@ -373,6 +451,22 @@ function toggleSidebar(){
     }
 }
 function toggleDropdown(id){ const m=document.getElementById(id),o=m.classList.contains('open'); document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open')); if(!o){ m.classList.add('open'); const r=m.getBoundingClientRect(),wh=window.innerHeight||document.documentElement.clientHeight; if(r.bottom>wh-10&&r.top>r.height){ m.style.top='auto'; m.style.bottom='calc(100% + 6px)'; }else{ m.style.top='calc(100% + 6px)'; m.style.bottom='auto'; } } }
+function markAllNotificationsReadDropdown() {
+    fetch('{{ route("student.notifications.read-all") }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        }
+    }).then(r => r.json()).then(data => {
+        const badge = document.getElementById('stNotifBadge');
+        if (badge) badge.remove();
+        document.querySelectorAll('#studentNotifDropdown a[style*="border-left"]').forEach(el => {
+            el.style.borderLeft = '3px solid transparent';
+            el.style.background = '#fff';
+        });
+    });
+}
 document.addEventListener('click',function(e){ if(!e.target.closest('.dropdown')) document.querySelectorAll('.dropdown-menu.open').forEach(x=>x.classList.remove('open')); });
 window.openModal = function(id) {
     const m = typeof id === 'string' ? document.getElementById(id) : id;

@@ -56,7 +56,10 @@ class AccountsController extends Controller
                 ->get();
         }
 
-        return view('admin.accounts.dashboard', compact('stats', 'recentPayments', 'pendingPayments', 'counterInvoices', 'search'));
+        $courses = \App\Models\Course::where('is_active', true)->orderBy('name')->get();
+        $batches = \App\Models\Batch::where('status', 'ACTIVE')->with('course')->orderBy('name')->get();
+
+        return view('admin.accounts.dashboard', compact('stats', 'recentPayments', 'pendingPayments', 'counterInvoices', 'search', 'courses', 'batches'));
     }
 
     /**
@@ -677,12 +680,25 @@ class AccountsController extends Controller
     }
 
     /**
-     * Manually Trigger ৳100 Monthly Course Activation Fee
+     * Manually Trigger Course Activation Fee and Turn Off Portal Access for Unpaid Students
      */
     public function applyActivationFees(Request $request)
     {
-        $force = $request->boolean('force', true);
-        $result = AccountingService::applyCourseActivationFees(now(), $force);
+        $validated = $request->validate([
+            'course_id' => 'required|string',
+            'batch_id'  => 'nullable|string',
+            'month'     => 'required|integer|between:1,12',
+            'year'      => 'required|integer|between:2020,2040',
+            'amount'    => 'nullable|numeric|min:0',
+        ]);
+
+        $result = AccountingService::applyCourseActivationFeesWithFilters(
+            $validated['course_id'],
+            $validated['batch_id'] ?? 'all',
+            (int) $validated['month'],
+            (int) $validated['year'],
+            (float) ($validated['amount'] ?? 100.00)
+        );
 
         return back()->with($result['status'] === 'success' ? 'success' : 'info', $result['message']);
     }

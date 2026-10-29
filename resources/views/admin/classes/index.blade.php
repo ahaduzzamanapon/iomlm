@@ -6,7 +6,18 @@
             <h1 style="font-family:'Kalpurush',sans-serif">ক্লাস সেশন ও লাইভ ক্লাস (Class Sessions)</h1>
             <p style="font-family:'Kalpurush',sans-serif">রুটিনভিত্তিক নিয়মিত ক্লাস ও রুটিনের বাইরের এক্সট্রা ক্লাস শিডিউলিং — মিটিং লিংক ও হাজিরা ব্যবস্থাপনা</p>
         </div>
-        <div class="page-header-actions">
+        <div class="page-header-actions" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <form method="POST" action="{{ route('admin.classes.send-reminders') }}" onsubmit="return confirm('আজকের সকল নির্ধারিত ক্লাসের রিমাইন্ডার ইমেইল ও নোটিফিকেশন শিক্ষার্থীদের নিকট পাঠাতে চান?')">
+                @csrf
+                <input type="hidden" name="date" value="{{ $dateFilter ?: today()->toDateString() }}">
+                @if($batchId)
+                    <input type="hidden" name="batch_id" value="{{ $batchId }}">
+                @endif
+                <button type="submit" class="btn btn-outline" style="background:#ecfdf5;border:1.5px solid #10b981;color:#047857;font-family:'Kalpurush',sans-serif;font-weight:700" title="আজকের ক্লাসের রিমাইন্ডার ইমেইল ও পুশ নোটিফিকেশন পাঠান">
+                    <i class="fa-solid fa-bell"></i> আজকের ক্লাস রিমাইন্ডার পাঠান
+                </button>
+            </form>
+
             <button type="button" class="btn btn-primary" onclick="openExtraClassModal()" style="background:#be123c;border-color:#be123c;font-family:'Kalpurush',sans-serif;font-weight:700">
                 <i class="fa-solid fa-calendar-plus"></i> + এক্সট্রা ক্লাস যোগ করুন
             </button>

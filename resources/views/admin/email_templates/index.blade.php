@@ -1,30 +1,42 @@
 <x-admin-layout>
-    <x-slot name="title">ইমেইল টেমপ্লেট ব্যবস্থাপনা</x-slot>
+    <x-slot name="title">টেমপ্লেট ব্যবস্থাপনা (ইমেইল ও এসএমএস)</x-slot>
 
 <div class="content-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
     <div>
         <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:4px;">
-            <i class="fa-solid fa-envelope-open-text" style="color:#047857;margin-right:8px;"></i>
-            ইমেইল টেমপ্লেট ব্যবস্থাপনা
+            <i class="fa-solid fa-envelopes-bulk" style="color:#047857;margin-right:8px;"></i>
+            টেমপ্লেট ব্যবস্থাপনা (ইমেইল ও এসএমএস)
         </h1>
         <p style="font-size:13.5px;color:#64748b;margin:0;">
-            কোর্স, ব্যাচ ও জেন্ডার ভিত্তিক ভর্তি নিশ্চিতকরণ এবং অন্যান্য প্রাতিষ্ঠানিক ইমেইল টেমপ্লেট পরিচালনা করুন।
+            কোর্স, ব্যাচ ও জেন্ডার ভিত্তিক ভর্তি নিশ্চিতকরণ এবং অন্যান্য প্রাতিষ্ঠানিক ইমেইল ও এসএমএস টেমপ্লেট পরিচালনা করুন।
         </p>
     </div>
-    <div style="display:flex;gap:10px;">
-        <a href="{{ route('admin.email-templates.create') }}" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;padding:9px 18px;font-size:13.5px;font-weight:600;border-radius:8px;">
-            <i class="fa-solid fa-plus"></i> নতুন টেমপ্লেট যুক্ত করুন
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="{{ route('admin.email-templates.create') }}?type=EMAIL" class="btn btn-outline" style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;font-weight:600;border-radius:8px;border:1px solid #cbd5e1;background:#fff;color:#1e293b;text-decoration:none;">
+            <i class="fa-solid fa-envelope text-blue"></i> + নতুন ইমেইল টেমপ্লেট
+        </a>
+        <a href="{{ route('admin.email-templates.create') }}?type=SMS" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;padding:9px 16px;font-size:13px;font-weight:600;border-radius:8px;">
+            <i class="fa-solid fa-comment-sms"></i> + নতুন এসএমএস টেমপ্লেট
         </a>
     </div>
 </div>
 
 {{-- Filters Card --}}
 <div class="card" style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-    <form method="GET" action="{{ route('admin.email-templates.index') }}" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)) 120px;gap:14px;align-items:end;">
+    <form method="GET" action="{{ route('admin.email-templates.index') }}" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)) 120px;gap:14px;align-items:end;">
         <div>
             <label style="display:block;font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px;">খুঁজুন (নাম বা বিষয়)</label>
             <input type="text" name="search" value="{{ request('search') }}" placeholder="টেমপ্লেট নাম..." 
                    style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
+        </div>
+
+        <div>
+            <label style="display:block;font-size:12.5px;font-weight:600;color:#334155;margin-bottom:6px;">ধরন (Type)</label>
+            <select name="type" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13.5px;">
+                <option value="ALL_TYPES">— সকল ধরন —</option>
+                <option value="EMAIL" {{ request('type') === 'EMAIL' ? 'selected' : '' }}>✉️ ইমেইল (Email)</option>
+                <option value="SMS" {{ request('type') === 'SMS' ? 'selected' : '' }}>💬 এসএমএস (SMS)</option>
+            </select>
         </div>
 
         <div>
@@ -103,10 +115,11 @@
             <thead>
                 <tr style="background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#475569;font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:0.5px;">
                     <th style="padding:12px 18px;">টেমপ্লেটের নাম</th>
+                    <th style="padding:12px 12px;text-align:center;">ধরন (Type)</th>
                     <th style="padding:12px 14px;">ক্যাটেগরি</th>
                     <th style="padding:12px 14px;">কোর্স ও ব্যাচ</th>
                     <th style="padding:12px 14px;">শাখা / জেন্ডার</th>
-                    <th style="padding:12px 14px;">ইমেইল বিষয় (Subject)</th>
+                    <th style="padding:12px 14px;">বিষয় / বার্তা বিবরণী</th>
                     <th style="padding:12px 14px;text-align:center;">অবস্থা</th>
                     <th style="padding:12px 18px;text-align:right;">অ্যাকশন</th>
                 </tr>
@@ -116,13 +129,24 @@
                     <tr style="border-bottom:1px solid #f1f5f9;transition:background .15s;" onmouseover="this.style.background='#fcfdfd'" onmouseout="this.style.background='transparent'">
                         <td style="padding:14px 18px;font-weight:600;color:#0f172a;">
                             <div style="display:flex;align-items:center;gap:8px;">
-                                <span style="color:#047857;font-family:monospace;font-size:14px;background:#ecfdf5;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0;">
+                                <span style="color:#047857;font-family:monospace;font-size:13.5px;background:#ecfdf5;padding:3px 8px;border-radius:6px;border:1px solid #a7f3d0;">
                                     {{ $tpl->name }}
                                 </span>
                                 @if($tpl->is_system)
                                     <span style="font-size:10.5px;background:#f1f5f9;color:#64748b;padding:2px 6px;border-radius:4px;font-weight:600;">সিস্টেম</span>
                                 @endif
                             </div>
+                        </td>
+                        <td style="padding:14px 12px;text-align:center;">
+                            @if($tpl->type === 'SMS')
+                                <span style="display:inline-flex;align-items:center;gap:4px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;border:1px solid #fde68a;">
+                                    <i class="fa-solid fa-comment-sms"></i> এসএমএস
+                                </span>
+                            @else
+                                <span style="display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#1d4ed8;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;border:1px solid #bfdbfe;">
+                                    <i class="fa-solid fa-envelope"></i> ইমেইল
+                                </span>
+                            @endif
                         </td>
                         <td style="padding:14px 14px;">
                             @php
@@ -166,8 +190,16 @@
                                 </span>
                             @endif
                         </td>
-                        <td style="padding:14px 14px;color:#334155;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ $tpl->subject }}">
-                            {{ $tpl->subject ?: '—' }}
+                        <td style="padding:14px 14px;color:#334155;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            @if($tpl->type === 'SMS')
+                                <span title="{{ $tpl->content }}" style="color:#0f766e;font-size:12.5px;font-family:monospace;">
+                                    <i class="fa-solid fa-comment-sms" style="color:#d97706;margin-right:4px;"></i>{{ Str::limit($tpl->content, 45) }}
+                                </span>
+                            @else
+                                <span title="{{ $tpl->subject }}">
+                                    <i class="fa-solid fa-envelope" style="color:#2563eb;margin-right:4px;"></i>{{ $tpl->subject ?: '—' }}
+                                </span>
+                            @endif
                         </td>
                         <td style="padding:14px 14px;text-align:center;">
                             @if($tpl->is_active)
@@ -204,9 +236,9 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" style="padding:36px;text-align:center;color:#64748b;">
+                        <td colspan="8" style="padding:36px;text-align:center;color:#64748b;">
                             <i class="fa-solid fa-folder-open" style="font-size:36px;color:#cbd5e1;margin-bottom:12px;display:block;"></i>
-                            কোনো ইমেইল টেমপ্লেট পাওয়া যায়নি।
+                            কোনো টেমপ্লেট পাওয়া যায়নি।
                         </td>
                     </tr>
                 @endforelse

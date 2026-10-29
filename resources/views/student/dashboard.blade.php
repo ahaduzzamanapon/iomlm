@@ -8,6 +8,95 @@
         </div>
     </div>
 
+    @if(isset($student->has_course_access) && !$student->has_course_access)
+        <div style="background:#fef2f2;border:1.5px solid #f87171;border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:'Kalpurush',sans-serif;box-shadow:0 2px 4px rgba(220,38,38,0.06)">
+            <div style="display:flex;align-items:center;gap:14px">
+                <div style="width:44px;height:44px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <div>
+                    <div style="font-size:16px;font-weight:700;color:#991b1b">⚠️ কোর্স ও ক্লাসরুম অ্যাক্সেস সাময়িকভাবে স্থগিত (Portal Access Suspended)</div>
+                    <div style="font-size:13px;color:#7f1d1d;margin-top:2px;line-height:1.5">
+                        বকেয়া বেতন এবং কোর্স এক্টিভেশন ফি প্রযোজ্য হওয়ায় আপনার অ্যাকাডেমিক ক্লাসরুম ও কোর্সের এক্সেস অফ করা হয়েছে। <strong>বকেয়া ফি পরিশোধ করার সাথে সাথে তাৎক্ষণিকভাবে স্বয়ংক্রিয়ভাবে আপনার এক্সেস অটো অন হয়ে যাবে।</strong>
+                    </div>
+                </div>
+            </div>
+            <a href="{{ route('student.fees.index', ['tab' => 'dues']) }}" class="btn btn-sm" style="background:#dc2626;border-color:#b91c1c;color:#fff;font-weight:700;padding:10px 20px;border-radius:8px;font-size:13px;display:inline-flex;align-items:center;gap:8px;text-decoration:none">
+                <i class="fa-solid fa-credit-card"></i> বকেয়া ফি পরিশোধ করুন
+            </a>
+        </div>
+    @endif
+
+    {{-- ── TODAY'S CLASS REMINDER & JOINING GUIDE BANNER ── --}}
+    @if(isset($todayClassesForReminder) && $todayClassesForReminder->isNotEmpty())
+        <div style="background:linear-gradient(135deg, #022c22 0%, #064e3b 60%, #047857 100%);color:#ffffff;border-radius:14px;padding:22px 24px;margin-bottom:24px;box-shadow:0 8px 24px rgba(4,120,87,0.22);border:1px solid #34d399;font-family:'Kalpurush',sans-serif">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+                <div style="display:flex;align-items:center;gap:12px">
+                    <div style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.18);color:#fbbf24;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:18px;font-weight:800;color:#ffffff;display:flex;align-items:center;gap:8px">
+                            <span>আজকের ক্লাস রিমাইন্ডার (Today's Scheduled Classes)</span>
+                            <span class="badge" style="background:#fbbf24;color:#022c22;font-size:11px;font-weight:800;padding:2px 8px;border-radius:12px">
+                                মোট {{ $todayClassesForReminder->count() }}টি ক্লাস
+                            </span>
+                        </div>
+                        <div style="font-size:13px;color:#a7f3d0;margin-top:2px">
+                            {{ now()->format('l, d F Y') }} — নির্ধারিত সময়ে ক্লাসে উপস্থিত থাকুন এবং হাজিরা নিশ্চিত করুন।
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <a href="{{ route('student.classes.today') }}" class="btn" style="background:#fbbf24;color:#022c22;font-weight:800;padding:10px 22px;border-radius:8px;font-size:13.5px;text-decoration:none;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 12px rgba(0,0,0,0.2)">
+                        <i class="fa-solid fa-video"></i> আজকের ক্লাসরুমে প্রবেশ করুন →
+                    </a>
+                </div>
+            </div>
+
+            <div style="margin-top:18px;display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px">
+                @foreach($todayClassesForReminder as $tc)
+                    <div style="background:rgba(255,255,255,0.1);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.16);border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+                        <div>
+                            <div style="font-size:15px;font-weight:700;color:#ffffff;display:flex;align-items:center;gap:6px">
+                                <span>📖 {{ $tc->subject?->name ?? 'নির্ধারিত বিষয়' }}</span>
+                                @if($tc->is_extra)
+                                    <span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px">এক্সট্রা</span>
+                                @endif
+                            </div>
+                            <div style="font-size:12.5px;color:#fcd34d;font-weight:700;margin-top:3px">
+                                🕒 সময়: {{ $tc->start_time ? \Carbon\Carbon::parse($tc->start_time)->format('h:i A') : 'TBA' }}
+                                @if($tc->routineEntry?->slot) ({{ $tc->routineEntry->slot->name }}) @endif
+                            </div>
+                            <div style="font-size:11.5px;color:#d1fae5;margin-top:2px">
+                                👨‍🏫 {{ $tc->teacher?->name ?? 'অনলাইন শিক্ষক' }} · {{ $tc->batch?->name ?? '' }}
+                            </div>
+                        </div>
+                        <div>
+                            @if($tc->meeting_link && in_array($tc->status, ['SCHEDULED', 'RUNNING']))
+                                <a href="{{ route('student.classes.join', $tc) }}" target="_blank" class="btn btn-sm" style="background:#10b981;color:#ffffff;font-weight:700;padding:8px 16px;border-radius:6px;font-size:12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap">
+                                    <i class="fa-solid fa-play"></i> Join Now
+                                </a>
+                            @else
+                                <a href="{{ route('student.classes.show', $tc) }}" class="btn btn-sm" style="background:rgba(255,255,255,0.2);color:#ffffff;font-weight:700;padding:8px 14px;border-radius:6px;font-size:12px;text-decoration:none;white-space:nowrap">
+                                    বিবরণ →
+                                </a>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Step-by-step join guide --}}
+            <div style="margin-top:16px;background:rgba(0,0,0,0.18);border-radius:8px;padding:12px 16px;font-size:12px;color:#ecfdf5;line-height:1.6;display:flex;align-items:center;gap:10px">
+                <i class="fa-solid fa-circle-info" style="font-size:18px;color:#fbbf24;flex-shrink:0"></i>
+                <div>
+                    <strong>📌 ক্লাসে যোগদানের পদ্ধতি:</strong> "Join Now" বা আজকের ক্লাসে প্রবেশ করে নির্ধারিত ক্লাসের পাশের বাটনে ক্লিক করলেই স্বয়ংক্রিয়ভাবে আপনার হাজিরা (Attendance) রেকর্ড হয়ে জুম/মিট ক্লাসরুম ওপেন হবে।
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Student Stats -->
     <div class="stats-grid">
         <div class="stat-card">

@@ -1,11 +1,34 @@
 <x-student-layout>
     <x-slot name="title">Online Exams</x-slot>
 
-    <div class="page-header">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
         <div class="page-header-left">
-            <h1>Online Examinations</h1>
-            <p>Class Quizzes, Class Tests, Half-Term, and Final Examinations</p>
+            <h1 style="margin:0 0 4px 0">Online Examinations</h1>
+            <p style="margin:0;color:#64748b">Class Quizzes, Class Tests, Half-Term, and Final Examinations</p>
         </div>
+        @php
+            $hasRunningSemesters = false;
+            $semNamesText = '';
+            if (isset($runningSemesterNames)) {
+                if ($runningSemesterNames instanceof \Illuminate\Support\Collection) {
+                    $hasRunningSemesters = $runningSemesterNames->isNotEmpty();
+                    $semNamesText = $runningSemesterNames->join(', ');
+                } elseif (is_array($runningSemesterNames)) {
+                    $hasRunningSemesters = !empty($runningSemesterNames);
+                    $semNamesText = implode(', ', $runningSemesterNames);
+                } elseif (is_string($runningSemesterNames) && trim($runningSemesterNames) !== '') {
+                    $hasRunningSemesters = true;
+                    $semNamesText = $runningSemesterNames;
+                }
+            }
+        @endphp
+        @if($hasRunningSemesters)
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 14px;border-radius:20px;display:flex;align-items:center;gap:6px">
+                <i class="fa-solid fa-graduation-cap" style="color:#059669"></i>
+                <span style="font-size:12px;color:#166534;font-weight:700">রানিং সেমিস্টার:</span>
+                <strong style="font-size:12.5px;color:#047857">{{ $semNamesText }}</strong>
+            </div>
+        @endif
     </div>
 
     @if(session('error'))
@@ -26,6 +49,32 @@
         </div>
     @endif
 
+    {{-- Filter Bar: Running Semester and Subject Selector --}}
+    @if(!empty($subjects) && $subjects->isNotEmpty())
+        <div class="card" style="margin-bottom:18px;padding:12px 18px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;font-family:'Kalpurush',sans-serif">
+            <form method="GET" action="{{ route('student.exams.index') }}" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <label style="font-size:13px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:6px">
+                        <i class="fa-solid fa-book-open" style="color:#059669"></i> বিষয় নির্বাচন করুন:
+                    </label>
+                    <select id="filterSubject" name="subject_id" onchange="this.form.submit()" class="form-control" style="height:38px;border-radius:8px;font-family:'Kalpurush',sans-serif;font-weight:700;min-width:240px">
+                        <option value="">-- সকল বিষয় (All Running Subjects) --</option>
+                        @foreach($subjects as $sub)
+                            <option value="{{ $sub->id }}" {{ ($selectedSubjectId == $sub->id) ? 'selected' : '' }}>
+                                {{ $sub->name }} ({{ $sub->code }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                @if($selectedSubjectId)
+                    <a href="{{ route('student.exams.index') }}" class="btn btn-sm btn-outline" style="font-size:12px;font-weight:700;color:#64748b;border-color:#cbd5e1">
+                        <i class="fa-solid fa-filter-circle-xmark"></i> ফিল্টার মুছুন
+                    </a>
+                @endif
+            </form>
+        </div>
+    @endif
+
     <div class="card">
         <div class="table-wrapper">
             <table>
@@ -43,13 +92,15 @@
                     @forelse($exams as $ex)
                     @php
                         $submission = $ex->submissions->first();
-                        $isSubmitted = $submission && in_array($submission->status, ['SUBMITTED', 'AUTO_SUBMITTED_VIOLATION']);
+                        $isSubmitted = $submission && in_array($submission->status, ['SUBMITTED', 'AUTO_SUBMITTED_VIOLATION', 'AUTO_SUBMITTED_TIMEOUT', 'AUTO_SUBMITTED']);
                         $isInProgress = $submission && $submission->status === 'IN_PROGRESS';
                         $latestAppeal = $ex->appeals->sortByDesc('id')->first();
                         $hasApprovedAppeal = $latestAppeal && $latestAppeal->isApproved();
                         $timingStatus = $ex->timing_status; // 'UPCOMING', 'ACTIVE', 'EXPIRED'
                         $startDt = $ex->getEffectiveStartDatetime();
                         $endDt = $ex->getEffectiveEndDatetime();
+                        $canReset = $ex->canApplyForReset();
+                        $resetDeadline = $ex->reset_deadline ? \Carbon\Carbon::parse($ex->reset_deadline) : null;
 
                         $typeBadge = match($ex->type) {
                             'QUIZ' => 'badge-secondary',
@@ -151,14 +202,14 @@
                                     </button>
                                 </div>
                             @elseif($timingStatus === 'EXPIRED')
-                                {{-- Expired Exam: Cannot start after end date/time unless appeal approved --}}
+                                {{-- Expired Exam: Cannot start after end date/time unless appeal/reset approved --}}
                                 <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-                                    <span class="badge badge-danger no-dot" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;padding:5px 10px;font-size:11.5px;display:inline-flex;align-items:center;gap:5px;font-weight:700">
+                                    <span class="badge badge-danger no-dot" style="background:#fef2f2;color:#991b1b;border:1px solid #fecaca;padding:4px 9px;font-size:11px;display:inline-flex;align-items:center;gap:4px;font-weight:700">
                                         <i class="fa-solid fa-clock-rotate-left"></i> সময় সমাপ্ত (Expired)
                                     </span>
                                     @if($latestAppeal && $latestAppeal->isPending())
                                         <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;padding:3px 8px;font-weight:700">
-                                            <i class="fa-regular fa-clock"></i> আপিল পর্যালোচনায়
+                                            <i class="fa-regular fa-clock"></i> রিসেট পর্যালোচনায়
                                         </span>
                                     @elseif($latestAppeal && $latestAppeal->requiresPayment())
                                         <span style="font-size:11.5px;font-weight:800;color:#e11d48">
@@ -168,14 +219,35 @@
                                             <i class="fa-solid fa-credit-card"></i> ফি দিন
                                         </a>
                                     @elseif(!$hasApprovedAppeal)
-                                        <button type="button"
-                                                class="btn btn-outline btn-sm"
-                                                onclick="openIndexAppealModal({{ $ex->id }}, '{{ addslashes($ex->title) }}', '{{ addslashes($ex->subject?->name ?? '—') }}')"
-                                                style="border-color:#6366f1;color:#6366f1;font-weight:700;font-size:11px;padding:4px 10px;display:inline-flex;align-items:center;gap:4px">
-                                            <i class="fa-solid fa-file-signature"></i> আপিল করুন
-                                        </button>
+                                        @if($canReset)
+                                            <button type="button"
+                                                    class="btn btn-outline btn-sm"
+                                                    onclick="openIndexAppealModal({{ $ex->id }}, '{{ addslashes($ex->title) }}', '{{ addslashes($ex->subject?->name ?? '—') }}')"
+                                                    style="border-color:#4f46e5;color:#4f46e5;font-weight:700;font-size:11.5px;padding:4px 12px;display:inline-flex;align-items:center;gap:5px;border-radius:6px;box-shadow:0 1px 3px rgba(79,70,229,0.15)">
+                                                <i class="fa-solid fa-rotate-left"></i> এক্সাম রিসেট
+                                            </button>
+                                            @if($resetDeadline)
+                                                <small style="color:#059669;font-size:10px;font-weight:700" title="রিসেট আবেদনের শেষ সময়">
+                                                    <i class="fa-regular fa-clock"></i> রিসেট শেষ: {{ $resetDeadline->format('d M, h:i A') }}
+                                                </small>
+                                            @endif
+                                        @else
+                                            <button type="button"
+                                                    class="btn btn-sm btn-disabled"
+                                                    disabled
+                                                    style="background:#f1f5f9;color:#94a3b8;border:1px solid #cbd5e1;cursor:not-allowed;font-size:11px;padding:4px 10px;opacity:0.75;display:inline-flex;align-items:center;gap:4px;border-radius:6px"
+                                                    title="রিসেটের আবেদনের নির্ধারিত সময়সীমা শেষ হয়ে গেছে">
+                                                <i class="fa-solid fa-ban"></i> এক্সাম রিসেট
+                                            </button>
+                                            <small style="color:#e11d48;font-size:10px;font-weight:700">
+                                                <i class="fa-solid fa-clock"></i> রিসেটের সময় শেষ
+                                                @if($resetDeadline)
+                                                    <br>({{ $resetDeadline->format('d M, h:i A') }})
+                                                @endif
+                                            </small>
+                                        @endif
                                     @endif
-                                    <small style="color:#94a3b8;font-size:10.5px">নির্ধারিত সময় অতিবাহিত</small>
+                                    <small style="color:#94a3b8;font-size:10px">নির্ধারিত সময় অতিবাহিত</small>
                                 </div>
                             @else
                                 {{-- Active Exam: Within Start and End Window --}}
@@ -269,12 +341,12 @@
     }
     </script>
 
-    {{-- Appeal Modal for Expired Exams --}}
+    {{-- Reset Modal for Expired Exams --}}
     <div id="indexAppealModal" class="modal-overlay" onclick="if(event.target===this) closeIndexAppealModal()" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.65);z-index:9999;backdrop-filter:blur(3px);font-family:'Kalpurush',sans-serif">
         <div class="modal" style="background:#fff;border-radius:14px;max-width:480px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);overflow:hidden">
             <div style="background:linear-gradient(135deg, #4338ca 0%, #6366f1 100%);color:#fff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
                 <div style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px">
-                    <i class="fa-solid fa-file-signature"></i> পুনরায় পরীক্ষার আবেদন (Appeal to Re-Exam)
+                    <i class="fa-solid fa-rotate-left"></i> এক্সাম রিসেটের আবেদন (Exam Reset Request)
                 </div>
                 <button type="button" onclick="closeIndexAppealModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1">&times;</button>
             </div>
@@ -287,12 +359,12 @@
 
                 <div style="background:#fffbeb;border:1px solid #fde68a;padding:10px 14px;border-radius:8px;font-size:12px;color:#92400e;margin-bottom:14px;line-height:1.5">
                     <i class="fa-solid fa-circle-info"></i>
-                    এই পরীক্ষার নির্ধারিত সময় ইতিমধ্যে শেষ হয়েছে। অনিবার্য কারণে পরীক্ষায় অংশ নিতে না পারলে আবেদন করুন। আবেদন গৃহীত হলে নির্ধারিত ফি (যদি প্রযোজ্য হয়) পরিশোধের মাধ্যমে পরীক্ষা দেওয়া যাবে।
+                    এই পরীক্ষার নির্ধারিত সময় ইতিমধ্যে শেষ হয়েছে। অনিবার্য কারণে পরীক্ষায় অংশ নিতে না পারলে বা রিসেটের প্রয়োজন হলে আবেদন করুন। কর্তৃপক্ষ অনুমোদন করলে পরীক্ষা পুনরায় দেওয়ার সুযোগ দেওয়া হবে।
                 </div>
 
                 <div style="margin-bottom:18px">
                     <label style="display:block;font-size:13px;font-weight:700;color:#1e293b;margin-bottom:6px">
-                        আবেদনের সুনির্দিষ্ট কারণ লিখুন <span style="color:#ef4444">*</span>
+                        রিসেটের সুনির্দিষ্ট কারণ লিখুন <span style="color:#ef4444">*</span>
                     </label>
                     <textarea name="reason"
                               rows="3"
@@ -305,7 +377,7 @@
                 <div style="display:flex;justify-content:flex-end;gap:10px">
                     <button type="button" class="btn btn-outline" onclick="closeIndexAppealModal()" style="font-size:13px">বাতিল</button>
                     <button type="submit" class="btn btn-primary" style="background:#4f46e5;border-color:#4338ca;color:#fff;font-weight:700;font-size:13px">
-                        <i class="fa-solid fa-paper-plane"></i> আবেদন জমা দিন
+                        <i class="fa-solid fa-paper-plane"></i> রিসেটের আবেদন জমা দিন
                     </button>
                 </div>
             </form>

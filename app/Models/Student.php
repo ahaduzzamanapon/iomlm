@@ -13,12 +13,15 @@ class Student extends Model
         'has_course_access'       => 'boolean',
         'is_common_account'       => 'boolean',
         'is_expatriate'           => 'boolean',
+        'is_international'        => 'boolean',
         'present_division_id'     => 'integer',
         'present_district_id'     => 'integer',
         'permanent_division_id'   => 'integer',
         'permanent_district_id'   => 'integer',
         'monthly_discount'        => 'float',
         'fee_package_id'          => 'integer',
+        'facebook_live_approved'  => 'boolean',
+        'facebook_live_approved_at' => 'datetime',
     ];
 
     protected static function booted()
@@ -263,8 +266,8 @@ class Student extends Model
         }
 
         $fields = self::profileFieldsDefinition();
-        if ($this->is_expatriate) {
-            $fields['country_of_residence'] = 'বসবাসরত দেশ';
+        if ($this->is_expatriate || $this->is_international) {
+            $fields['country_of_residence'] = 'বসবাসরত দেশ / দেশের নাম';
         }
 
         $totalFields = count($fields);
@@ -330,6 +333,42 @@ class Student extends Model
         }
 
         return self::defaultAvatarForGender($this->gender);
+    }
+
+    /**
+     * Determine student's gender group ('MALE' or 'FEMALE')
+     */
+    public function getGenderGroup(): string
+    {
+        if (!empty($this->gender)) {
+            return self::resolveGenderCode($this->gender) === '2' ? 'FEMALE' : 'MALE';
+        }
+        if (!empty($this->student_code) && strlen((string)$this->student_code) >= 7) {
+            $gDigit = substr((string)$this->student_code, 6, 1);
+            if ($gDigit === '2') return 'FEMALE';
+            if ($gDigit === '1') return 'MALE';
+        }
+        return 'MALE';
+    }
+
+    public function isSister(): bool
+    {
+        return $this->getGenderGroup() === 'FEMALE';
+    }
+
+    public function isBrother(): bool
+    {
+        return $this->getGenderGroup() === 'MALE';
+    }
+
+    public function getGenderLabel(): string
+    {
+        return $this->isSister() ? 'বোন' : 'ভাই';
+    }
+
+    public function getGenderBranchTitle(): string
+    {
+        return $this->isSister() ? 'বোন শাখা' : 'ভাই শাখা';
     }
 
     /**
@@ -611,8 +650,8 @@ class Student extends Model
     public function getMissingProfileFields(): array
     {
         $fields = self::profileFieldsDefinition();
-        if ($this->is_expatriate) {
-            $fields['country_of_residence'] = 'বসবাসরত দেশ';
+        if ($this->is_expatriate || $this->is_international) {
+            $fields['country_of_residence'] = 'বসবাসরত দেশ / দেশের নাম';
         }
         $missing = [];
 
@@ -624,5 +663,30 @@ class Student extends Model
         }
 
         return $missing;
+    }
+
+    /**
+     * Sync Facebook Live attendance for this student across all their FinalMark records.
+     * When facebook_live_approved is active:
+     * Attendance mark is 10% of the obtained exam/subject score out of 100 (e.g. 100 -> 10, 90 -> 9, 85 -> 8.5).
+     */
+    public function syncFacebookLiveAttendance(): int
+    {
+        $finalMarks = FinalMark::where('student_id', $this->id)->get();
+        $count = 0;
+
+        foreach ($finalMarks as $fm) {
+            if ($this->facebook_live_approved) {
+                $attConverted = $fm->calculateFacebookLiveAttendance();
+                $criteria = FinalMark::getCriteria();
+                $attMax = (float) ($criteria['attendance_convert'] ?? FinalMark::ATTENDANCE_CONVERT);
+                $attPercent = $attMax > 0 ? round(($attConverted / $attMax) * 100, 2) : 0.0;
+                $fm->attendance_percent = $attPercent;
+                $fm->recalculate(['attendance_converted' => $attConverted]);
+                $count++;
+            }
+        }
+
+        return $count;
     }
 }

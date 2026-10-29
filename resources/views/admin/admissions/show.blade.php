@@ -711,6 +711,31 @@
                                 <span style="font-size:11px;color:#64748b;">প্রাপক: <strong>{{ $admission->phone ?: ($admission->student?->phone ?: 'নেই') }}</strong></span>
                             </div>
 
+                            {{-- Specific SMS Template Selector --}}
+                            <div class="form-group" style="margin-bottom:12px;background:#f0fdf4;padding:10px 14px;border:1.5px solid #a7f3d0;border-radius:8px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                    <label style="font-size:12.5px;font-weight:700;color:#065f46;margin-bottom:0;display:flex;align-items:center;gap:6px;">
+                                        <i class="fa-solid fa-comment-sms"></i>
+                                        <span>এসএমএস টেমপ্লেট নির্বাচন করুন (Select SMS Template):</span>
+                                    </label>
+                                    <a href="{{ route('admin.email-templates.create', ['type' => 'SMS']) }}" target="_blank" style="font-size:11.5px;color:#047857;text-decoration:none;font-weight:700;">
+                                        <i class="fa-solid fa-plus-circle"></i> নতুন টেমপ্লেট তৈরি ↗
+                                    </a>
+                                </div>
+                                <select name="sms_template_id" id="approve_sms_template_id" class="form-control" onchange="onSmsTemplateSelect(this.value)" style="height:38px;font-size:13.5px;font-weight:700;color:#0f172a;background:#fff;border-color:#059669;font-family:'Kalpurush',sans-serif;">
+                                    <option value="">— কাস্টম / সাধারণ এসএমএস টেমপ্লেট —</option>
+                                    @foreach($admissionSmsTemplates ?? [] as $smsTpl)
+                                        <option value="{{ $smsTpl->id }}" {{ ($suggestedSmsTemplate && $suggestedSmsTemplate->id == $smsTpl->id) ? 'selected' : '' }}>
+                                            {{ $smsTpl->name }} @if($smsTpl->gender) ({{ $smsTpl->gender_label }}) @endif @if($smsTpl->batch) [{{ $smsTpl->batch->name }}] @endif
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;font-size:11px;color:#047857;">
+                                    <span><i class="fa-solid fa-circle-check"></i> টেমপ্লেট সিলেক্ট করলে স্বয়ংক্রিয়ভাবে এসএমএস বার্তা লোড হবে।</span>
+                                    <a href="{{ route('admin.email-templates.index', ['type' => 'SMS']) }}" target="_blank" style="color:#0284c7;text-decoration:underline;">সকল এসএমএস টেমপ্লেট দেখুন</a>
+                                </div>
+                            </div>
+
                             <div class="form-group" style="margin-bottom:8px;">
                                 <label style="font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;display:block;">এসএমএস বার্তা (SMS Body)</label>
                                 <textarea name="sms_body" id="approve_sms_body" class="form-control" rows="4" oninput="this.dataset.edited='1';updateSmsCharCounter()" style="font-size:12px;line-height:1.5;font-family:'Kalpurush',monospace;"></textarea>
@@ -760,6 +785,9 @@
     const BATCH_TEMPLATES = @json($batchTemplates ?? []);
     const ADMISSION_TEMPLATES = @json($admissionTemplates ?? []);
     const SUGGESTED_TEMPLATE_ID = @json($suggestedTemplate?->id ?? null);
+    const ADMISSION_SMS_TEMPLATES = @json($admissionSmsTemplates ?? []);
+    const SUGGESTED_SMS_TEMPLATE_ID = @json($suggestedSmsTemplate?->id ?? null);
+    const DEFAULT_SMS_TEMPLATE_CONTENT = @json($defaultSmsTemplateContent);
     const STUDENT_NAME = @json($admission->student?->name ?? $admission->applicant_name ?? 'সম্মানিত শিক্ষার্থী');
     const STUDENT_PHONE = @json($admission->phone ?? $admission->student?->phone ?? '');
     const STUDENT_EMAIL = @json($admission->email ?? $admission->student?->email ?? '');
@@ -769,7 +797,7 @@
 
     function onEmailTemplateSelect(tplId) {
         if (!tplId) {
-            populateTemplateForSelectedBatch(true);
+            populateTemplateForSelectedBatch(true, 'email');
             return;
         }
 
@@ -820,6 +848,54 @@
         if (emailBodyInput) {
             emailBodyInput.value = content;
             delete emailBodyInput.dataset.edited;
+        }
+    }
+
+    function onSmsTemplateSelect(tplId) {
+        if (!tplId) {
+            populateTemplateForSelectedBatch(true, 'sms');
+            return;
+        }
+
+        const tpl = ADMISSION_SMS_TEMPLATES.find(t => t.id == tplId);
+        if (!tpl) return;
+
+        const customPassword = document.getElementById('approve_custom_password')?.value.trim();
+        const batchSelect = document.getElementById('approve_batch_id');
+        const batchId = batchSelect ? batchSelect.value : null;
+        const b = batchId && BATCH_TEMPLATES[batchId] ? BATCH_TEMPLATES[batchId] : null;
+
+        const courseName = b ? b.course_name : @json($admission->interestedCourse?->name ?? 'কোর্স');
+        const batchName = b ? b.name : @json($admission->batch?->name ?? 'ব্যাচ');
+        const rollVal = @json($admission->student?->student_code ?? null);
+
+        const replaceMap = {
+            '{name}': STUDENT_NAME,
+            '{course}': courseName,
+            '{batch}': batchName,
+            '{login_url}': LOGIN_URL,
+        };
+
+        if (rollVal) {
+            replaceMap['{student_id}'] = rollVal;
+            replaceMap['{roll}'] = rollVal;
+        }
+
+        let content = tpl.content || '';
+
+        for (const [key, val] of Object.entries(replaceMap)) {
+            content = content.split(key).join(val);
+        }
+
+        if (customPassword) {
+            content = content.split('{password}').join(customPassword);
+        }
+
+        const smsBodyInput = document.getElementById('approve_sms_body');
+        if (smsBodyInput) {
+            smsBodyInput.value = content;
+            delete smsBodyInput.dataset.edited;
+            updateSmsCharCounter();
         }
     }
 
@@ -892,24 +968,31 @@
         counter.innerHTML = `${len} অক্ষর | <strong>${parts} SMS</strong> (${isNonAscii ? 'বাংলা / ইউনিকোড' : 'ইংরেজি'})`;
     }
 
-    function populateTemplateForSelectedBatch(forceReset = false) {
+    function populateTemplateForSelectedBatch(forceReset = false, scope = 'both') {
         const batchSelect = document.getElementById('approve_batch_id');
         const batchId = batchSelect ? batchSelect.value : null;
-        if (!batchId || !BATCH_TEMPLATES[batchId]) return;
-
-        const b = BATCH_TEMPLATES[batchId];
+        const b = (batchId && BATCH_TEMPLATES[batchId]) ? BATCH_TEMPLATES[batchId] : null;
         const customPassword = document.getElementById('approve_custom_password')?.value.trim();
 
-        let emailTpl = b.email_template || '';
-        let smsTpl = b.sms_template || '';
+        let emailTpl = b ? (b.email_template || '') : '';
+        let smsTpl = (b && b.sms_template) ? b.sms_template : (DEFAULT_SMS_TEMPLATE_CONTENT || '');
+
+        const courseName = b ? b.course_name : @json($admission->interestedCourse?->name ?? 'কোর্স');
+        const batchName = b ? b.name : @json($admission->batch?->name ?? 'ব্যাচ');
+        const rollVal = @json($admission->student?->student_code ?? null);
 
         // Replace placeholders with real student & course data
         const replaceMap = {
             '{name}': STUDENT_NAME,
-            '{course}': b.course_name,
-            '{batch}': b.name,
+            '{course}': courseName,
+            '{batch}': batchName,
             '{login_url}': LOGIN_URL,
         };
+
+        if (rollVal) {
+            replaceMap['{student_id}'] = rollVal;
+            replaceMap['{roll}'] = rollVal;
+        }
 
         for (const [key, val] of Object.entries(replaceMap)) {
             emailTpl = emailTpl.split(key).join(val);
@@ -925,18 +1008,23 @@
         const emailBodyInput = document.getElementById('approve_email_body');
         const smsBodyInput = document.getElementById('approve_sms_body');
 
-        if (emailSubjectInput && (forceReset || !emailSubjectInput.dataset.edited)) {
-            emailSubjectInput.value = `🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — ${STUDENT_NAME} (${b.course_name})`;
-            if (forceReset) delete emailSubjectInput.dataset.edited;
+        if (scope === 'both' || scope === 'email') {
+            if (emailSubjectInput && (forceReset || !emailSubjectInput.dataset.edited)) {
+                emailSubjectInput.value = `🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — ${STUDENT_NAME} (${courseName})`;
+                if (forceReset) delete emailSubjectInput.dataset.edited;
+            }
+            if (emailBodyInput && (forceReset || !emailBodyInput.dataset.edited)) {
+                emailBodyInput.value = emailTpl;
+                if (forceReset) delete emailBodyInput.dataset.edited;
+            }
         }
-        if (emailBodyInput && (forceReset || !emailBodyInput.dataset.edited)) {
-            emailBodyInput.value = emailTpl;
-            if (forceReset) delete emailBodyInput.dataset.edited;
-        }
-        if (smsBodyInput && (forceReset || !smsBodyInput.dataset.edited)) {
-            smsBodyInput.value = smsTpl;
-            if (forceReset) delete smsBodyInput.dataset.edited;
-            updateSmsCharCounter();
+
+        if (scope === 'both' || scope === 'sms') {
+            if (smsBodyInput && (forceReset || !smsBodyInput.dataset.edited)) {
+                smsBodyInput.value = smsTpl;
+                if (forceReset) delete smsBodyInput.dataset.edited;
+                updateSmsCharCounter();
+            }
         }
     }
 
@@ -945,6 +1033,9 @@
         const batchId = batchSelect ? batchSelect.value : null;
         const b = batchId && BATCH_TEMPLATES[batchId] ? BATCH_TEMPLATES[batchId] : null;
 
+        let emailMatched = false;
+        let smsMatched = false;
+
         if (batchId) {
             const matchedTpl = ADMISSION_TEMPLATES.find(t => t.batch_id == batchId)
                 || ADMISSION_TEMPLATES.find(t => t.course_id == (b ? b.course_id : null));
@@ -952,10 +1043,29 @@
                 const tplSelect = document.getElementById('approve_email_template_id');
                 if (tplSelect) tplSelect.value = matchedTpl.id;
                 onEmailTemplateSelect(matchedTpl.id);
-                return;
+                emailMatched = true;
+            }
+
+            const matchedSmsTpl = ADMISSION_SMS_TEMPLATES.find(t => t.batch_id == batchId)
+                || ADMISSION_SMS_TEMPLATES.find(t => t.course_id == (b ? b.course_id : null));
+            if (matchedSmsTpl) {
+                const smsTplSelect = document.getElementById('approve_sms_template_id');
+                if (smsTplSelect) smsTplSelect.value = matchedSmsTpl.id;
+                onSmsTemplateSelect(matchedSmsTpl.id);
+                smsMatched = true;
             }
         }
-        populateTemplateForSelectedBatch(false);
+
+        if (!emailMatched) {
+            const tplSelect = document.getElementById('approve_email_template_id');
+            if (tplSelect && !SUGGESTED_TEMPLATE_ID) tplSelect.value = '';
+            populateTemplateForSelectedBatch(false, 'email');
+        }
+        if (!smsMatched) {
+            const smsTplSelect = document.getElementById('approve_sms_template_id');
+            if (smsTplSelect && !SUGGESTED_SMS_TEMPLATE_ID) smsTplSelect.value = '';
+            populateTemplateForSelectedBatch(false, 'sms');
+        }
     }
 
     let NET_PAYABLE_FEE = {{ (float)$netPayable }};
@@ -1090,7 +1200,15 @@
             if (tplSelect) tplSelect.value = SUGGESTED_TEMPLATE_ID;
             onEmailTemplateSelect(SUGGESTED_TEMPLATE_ID);
         } else {
-            populateTemplateForSelectedBatch(false);
+            populateTemplateForSelectedBatch(false, 'email');
+        }
+
+        if (SUGGESTED_SMS_TEMPLATE_ID) {
+            const smsTplSelect = document.getElementById('approve_sms_template_id');
+            if (smsTplSelect) smsTplSelect.value = SUGGESTED_SMS_TEMPLATE_ID;
+            onSmsTemplateSelect(SUGGESTED_SMS_TEMPLATE_ID);
+        } else {
+            populateTemplateForSelectedBatch(false, 'sms');
         }
         updateSmsCharCounter();
         toggleFeePaymentControls(document.getElementById('approve_is_fee_paid')?.checked ?? false);

@@ -88,6 +88,7 @@ class ExamController extends Controller
             'pass_marks'       => 'required|integer|min:1',
             'negative_marking' => 'nullable|numeric|min:0|max:5',
             'is_anti_cheating' => 'nullable|boolean',
+            'reset_deadline'   => 'nullable|date',
         ]);
 
         $mappedType = match($validated['type']) {
@@ -114,6 +115,7 @@ class ExamController extends Controller
             'end_time'         => $endTime,
             'start_datetime'   => $startDatetime,
             'end_datetime'     => $endDatetime,
+            'reset_deadline'   => $request->filled('reset_deadline') ? $request->input('reset_deadline') : null,
             'duration_minutes' => $validated['duration_minutes'],
             'full_marks'       => $finalFullMarks,
             'pass_marks'       => $validated['pass_marks'],
@@ -155,6 +157,7 @@ class ExamController extends Controller
             'pass_marks'       => 'required|integer|min:1',
             'negative_marking' => 'nullable|numeric|min:0|max:5',
             'is_anti_cheating' => 'nullable|boolean',
+            'reset_deadline'   => 'nullable|date',
             'status'           => 'nullable|in:SCHEDULED,RUNNING,COMPLETED,CANCELLED',
         ]);
 
@@ -172,7 +175,7 @@ class ExamController extends Controller
         $startDatetime = $startTime ? "{$examDate} {$startTime}:00" : "{$examDate} 00:00:00";
         $endDatetime   = $endTime ? "{$endDate} {$endTime}:00" : "{$endDate} 23:59:59";
 
-        $exam->update([
+        $updateData = [
             'subject_id'       => $validated['subject_id'],
             'title'            => $validated['title'],
             'type'             => $mappedType,
@@ -188,7 +191,13 @@ class ExamController extends Controller
             'negative_marking' => $validated['negative_marking'] ?? 0.00,
             'is_anti_cheating' => $request->boolean('is_anti_cheating', true),
             'status'           => $validated['status'] ?? $exam->status,
-        ]);
+        ];
+
+        if ($request->has('reset_deadline')) {
+            $updateData['reset_deadline'] = $request->filled('reset_deadline') ? $request->input('reset_deadline') : null;
+        }
+
+        $exam->update($updateData);
 
         return back()->with('success', 'Exam updated successfully.');
     }

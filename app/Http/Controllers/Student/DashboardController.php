@@ -114,6 +114,25 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // Today's classes for reminder banner
+        $todayClassesQuery = ClassSession::with(['subject', 'batch', 'teacher', 'routineEntry.slot', 'moduleCovered'])
+            ->whereIn('batch_id', $batchIds)
+            ->whereDate('session_date', $today)
+            ->where('status', '!=', 'CANCELLED');
+
+        $studentGender = strtoupper($student?->gender ?? '');
+        $enrollmentGroups = $activeEnrollments->pluck('group_tag')->filter()->unique()->toArray();
+
+        $todayClassesForReminder = $todayClassesQuery->where(function ($q) use ($studentGender, $enrollmentGroups) {
+            $q->whereNull('group_tag')->orWhere('group_tag', 'ALL');
+            if ($studentGender) {
+                $q->orWhere('group_tag', $studentGender);
+            }
+            if (!empty($enrollmentGroups)) {
+                $q->orWhereIn('group_tag', $enrollmentGroups);
+            }
+        })->orderBy('start_time')->get();
+
         // Recent exam results
         $recentResults = Result::with(['exam.subject'])
             ->where('student_id', $studentId)
@@ -315,7 +334,7 @@ class DashboardController extends Controller
             'recentResults', 'upcomingExamsList', 'notices',
             'dashboardMonthly', 'runningSemesterName', 'runningSemDue', 'runningSemPaid',
             'dueInvoices', 'paidInvoices', 'totalOverallDue', 'totalOverallPaid', 'recentVoucherPayments',
-            'studentCourses', 'selectedCourse', 'hasRunningSemesterInvoices', 'latestResources'
+            'studentCourses', 'selectedCourse', 'hasRunningSemesterInvoices', 'latestResources', 'todayClassesForReminder'
         ));
     }
 

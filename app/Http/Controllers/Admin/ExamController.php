@@ -139,6 +139,7 @@ class ExamController extends Controller
             'full_marks'       => 'nullable|integer|min:1',
             'pass_marks'       => 'required|integer|min:1',
             'negative_marking' => 'nullable|numeric|min:0|max:5',
+            'reset_deadline'   => 'nullable|date',
         ]);
 
         $examDate  = $validated['exam_date'];
@@ -159,6 +160,7 @@ class ExamController extends Controller
             'end_time'         => $endTime,
             'start_datetime'   => $startDatetime,
             'end_datetime'     => $endDatetime,
+            'reset_deadline'   => $request->filled('reset_deadline') ? $request->input('reset_deadline') : null,
             'duration_minutes' => $validated['duration_minutes'] ?? 90,
             'full_marks'       => $finalFullMarks,
             'pass_marks'       => $validated['pass_marks'],
@@ -238,17 +240,39 @@ class ExamController extends Controller
         usort($allStudentScores, fn($a, $b) => $b['marks'] <=> $a['marks']);
 
         $bnDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+        $brotherRank = 1;
+        $sisterRank = 1;
         foreach ($allStudentScores as $idx => &$item) {
-            $pos = $idx + 1;
-            $bnNum = str_replace(range(0, 9), $bnDigits, (string) $pos);
-            $suffix = match($pos) {
+            $overallPos = $idx + 1;
+            $bnNum = str_replace(range(0, 9), $bnDigits, (string) $overallPos);
+            $suffix = match($overallPos) {
                 1 => 'ম',
                 2, 3 => 'য়',
                 4 => 'র্থ',
                 default => 'ম'
             };
-            $item['merit_rank_bengali'] = $bnNum . $suffix;
-            $item['merit_position'] = $pos;
+            $item['overall_position'] = $overallPos;
+            $item['overall_rank_bengali'] = $bnNum . $suffix;
+
+            $isSister = $item['student']?->isSister() ?? false;
+            $genderPos = $isSister ? $sisterRank++ : $brotherRank++;
+            $gBnNum = str_replace(range(0, 9), $bnDigits, (string) $genderPos);
+            $gSuffix = match($genderPos) {
+                1 => 'ম',
+                2, 3 => 'য়',
+                4 => 'র্থ',
+                default => 'ম'
+            };
+
+            $item['gender_group'] = $isSister ? 'FEMALE' : 'MALE';
+            $item['gender_label'] = $isSister ? 'বোন' : 'ভাই';
+            $item['gender_branch'] = $isSister ? 'বোন শাখা' : 'ভাই শাখা';
+            $item['gender_position'] = $genderPos;
+            $item['gender_rank_bengali'] = $gBnNum . $gSuffix;
+            $item['gender_merit_text'] = ($isSister ? 'বোনদের মধ্যে ' : 'ভাইদের মধ্যে ') . $gBnNum . $gSuffix . ' স্থান';
+
+            $item['merit_rank_bengali'] = $gBnNum . $gSuffix;
+            $item['merit_position'] = $genderPos;
 
             $fullMarks = $exam->full_marks > 0 ? $exam->full_marks : 100;
             $pct = round(($item['marks'] / $fullMarks) * 100, 1);
@@ -297,6 +321,12 @@ class ExamController extends Controller
 
             if ($request->filled('pass_marks')) {
                 $updateData['pass_marks'] = (int) $request->input('pass_marks');
+            }
+            if ($request->filled('title')) {
+                $updateData['title'] = $request->input('title');
+            }
+            if ($request->has('reset_deadline')) {
+                $updateData['reset_deadline'] = $request->filled('reset_deadline') ? $request->input('reset_deadline') : null;
             }
             if ($request->filled('status')) {
                 $updateData['status'] = $request->input('status');

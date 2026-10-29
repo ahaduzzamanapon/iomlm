@@ -113,7 +113,9 @@
                             </td>
                             <td>
                                 @if($t->status === 'PENDING')
-                                    <span class="badge badge-pending">⏳ Pending Queue</span>
+                                    <span class="badge badge-pending">⏳ পেন্ডিং</span>
+                                @elseif($t->status === 'SOLVED')
+                                    <span class="badge badge-success" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0">✓ সলভড (Solved)</span>
                                 @elseif($t->status === 'IN_PROGRESS')
                                     <span class="badge badge-running">সাপোর্ট সক্রিয়</span>
                                 @else
