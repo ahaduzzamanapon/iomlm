@@ -303,18 +303,37 @@ class EmailTemplate extends Model
      */
     public static function seedDefaultTemplates(): void
     {
+        // ── SELF-HEALING SCHEMA: Automatically add missing 'type' column if not yet migrated ──
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('email_templates') && !\Illuminate\Support\Facades\Schema::hasColumn('email_templates', 'type')) {
+                \Illuminate\Support\Facades\Schema::table('email_templates', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('type', 20)->default('EMAIL')->after('category');
+                });
+            }
+        } catch (\Throwable $e) {
+            // Gracefully ignore if already exists or concurrent
+        }
+
         // Ensure default SMS admission template exists
-        if (!self::where('type', 'SMS')->where('category', 'ADMISSION')->exists()) {
-            self::create([
+        $hasTypeCol = \Illuminate\Support\Facades\Schema::hasColumn('email_templates', 'type');
+        $smsQuery = self::query();
+        if ($hasTypeCol) {
+            $smsQuery->where('type', 'SMS');
+        }
+        if (!$smsQuery->where('category', 'ADMISSION')->exists()) {
+            $data = [
                 'name'      => 'ভর্তি নিশ্চিতকরণ এসএমএস (Admission SMS)',
-                'type'      => 'SMS',
                 'category'  => 'ADMISSION',
                 'gender'    => 'All',
                 'subject'   => null,
                 'content'   => "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM",
                 'is_system' => true,
                 'is_active' => true,
-            ]);
+            ];
+            if ($hasTypeCol) {
+                $data['type'] = 'SMS';
+            }
+            self::create($data);
         }
 
         if (self::count() > 1) {

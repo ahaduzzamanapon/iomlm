@@ -41,12 +41,17 @@ class EmailTemplateController extends Controller
             $query->where('category', $request->category);
         }
 
-        if ($request->filled('type') && $request->type !== 'ALL_TYPES') {
+        $hasType = \Illuminate\Support\Facades\Schema::hasColumn('email_templates', 'type');
+
+        if ($request->filled('type') && $request->type !== 'ALL_TYPES' && $hasType) {
             $query->where('type', $request->type);
         }
 
-        $templates = $query->orderBy('type')
-            ->orderBy('category')
+        if ($hasType) {
+            $query->orderBy('type');
+        }
+
+        $templates = $query->orderBy('category')
             ->orderBy('is_system')
             ->orderBy('name')
             ->paginate(20)
@@ -65,7 +70,7 @@ class EmailTemplateController extends Controller
         }])->orderBy('name')->get();
 
         $batches = Batch::where('status', 'ACTIVE')->orderBy('name')->get();
-        $defaultType = request()->input('type', 'EMAIL');
+        $defaultType = ($request ?? request())->input('type', 'EMAIL');
 
         return view('admin.email_templates.create', compact('courses', 'batches', 'defaultType'));
     }

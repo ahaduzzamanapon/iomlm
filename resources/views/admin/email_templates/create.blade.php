@@ -1,12 +1,12 @@
 <x-admin-layout>
-    <x-slot name="title">নতুন ইমেইল টেমপ্লেট যুক্ত করুন</x-slot>
+    <x-slot name="title">নতুন {{ ($defaultType ?? 'EMAIL') === 'SMS' ? 'এসএমএস' : 'ইমেইল' }} টেমপ্লেট</x-slot>
 
     <div class="content-header"
         style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
         <div>
             <h1 style="font-size:22px;font-weight:700;color:#0f172a;margin-bottom:4px;">
                 <i class="fa-solid fa-plus-circle" style="color:#047857;margin-right:8px;"></i>
-                নতুন ইমেইল টেমপ্লেট যুক্ত করুন
+                নতুন {{ ($defaultType ?? 'EMAIL') === 'SMS' ? 'এসএমএস' : 'ইমেইল' }} টেমপ্লেট তৈরি
             </h1>
             <p style="font-size:13.5px;color:#64748b;margin:0;">
                 কোর্স, ব্যাচ ও জেন্ডার অনুযায়ী নির্দিষ্ট ভর্তি নিশ্চিতকরণ বা নোটিশ টেমপ্লেট তৈরি করুন।

@@ -1987,6 +1987,40 @@
                     btn.disabled = false;
                 });
         }
+
+        // ── UNIVERSAL GLOBAL MODAL CONTROLLERS ──
+        window.openModal = function(id) {
+            const m = typeof id === 'string' ? document.getElementById(id) : id;
+            if (!m) return;
+            m.classList.add('open', 'active', 'show');
+            m.style.setProperty('display', 'flex', 'important');
+            m.style.pointerEvents = 'auto';
+            m.style.opacity = '1';
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeModal = function(id) {
+            const m = typeof id === 'string' ? document.getElementById(id) : id;
+            if (!m) return;
+            m.classList.remove('open', 'active', 'show');
+            m.style.setProperty('display', 'none', 'important');
+            m.style.pointerEvents = '';
+            m.style.opacity = '';
+            document.body.style.overflow = '';
+        };
+
+        window.openModalByName = window.openModal;
+        window.closeModalByName = window.closeModal;
+
+        var openModal = function(id) { window.openModal(id); };
+        var closeModal = function(id) { window.closeModal(id); };
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const openModals = document.querySelectorAll('.modal-overlay.open, .modal-overlay.active, .modal-overlay.show, .modal-backdrop.open, .modal-backdrop.active, .modal-backdrop.show, .admin-modal-overlay.open, .admin-modal-overlay.active, [id*="Modal"][style*="display: flex"], [id*="Modal"][style*="display:flex"]');
+                openModals.forEach(m => window.closeModal(m));
+            }
+        });
     </script>
     <style>
         /* Custom smooth scrollbar for all modals */

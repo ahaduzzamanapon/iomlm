@@ -13,7 +13,7 @@ class AdminModuleAccessMiddleware
      * Handle an incoming request.
      * Usage in routes: ->middleware('admin.module:academic')
      */
-    public function handle(Request $request, Closure $next, string $module): Response
+    public function handle(Request $request, Closure $next, ...$modules): Response
     {
         if (!auth()->check()) {
             return redirect()->route('login');
@@ -21,11 +21,19 @@ class AdminModuleAccessMiddleware
 
         $user = auth()->user();
 
-        $modules = preg_split('/[,|]/', $module);
-        $hasAccess = false;
+        $allModules = [];
         foreach ($modules as $m) {
-            $trimmed = trim($m);
-            if ($trimmed !== '' && $user->canAccess($trimmed)) {
+            foreach (preg_split('/[,|]/', (string)$m) as $part) {
+                $trimmed = trim($part);
+                if ($trimmed !== '') {
+                    $allModules[] = $trimmed;
+                }
+            }
+        }
+
+        $hasAccess = false;
+        foreach ($allModules as $m) {
+            if ($user->canAccess($m)) {
                 $hasAccess = true;
                 break;
             }
@@ -39,7 +47,7 @@ class AdminModuleAccessMiddleware
                 ], 403);
             }
 
-            $firstModule = trim($modules[0]);
+            $firstModule = $allModules[0] ?? 'general';
             $moduleName = User::adminModules()[$firstModule]['name'] ?? $firstModule;
             return redirect()->route('admin.dashboard')
                 ->with('error', "⛔ অ্যাক্সেস অস্বীকৃত! আপনার '{$moduleName}' মডিউলে প্রবেশের অনুমতি নেই।");

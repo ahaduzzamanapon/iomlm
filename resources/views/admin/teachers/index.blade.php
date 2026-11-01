@@ -542,6 +542,34 @@
 
     @push('scripts')
     <script>
+    function openModal(id) {
+        if (window.openModal && typeof window.openModal === 'function' && window.openModal !== openModal) {
+            window.openModal(id);
+            return;
+        }
+        const m = typeof id === 'string' ? document.getElementById(id) : id;
+        if (!m) return;
+        m.classList.add('open', 'active', 'show');
+        m.style.setProperty('display', 'flex', 'important');
+        m.style.pointerEvents = 'auto';
+        m.style.opacity = '1';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(id) {
+        if (window.closeModal && typeof window.closeModal === 'function' && window.closeModal !== closeModal) {
+            window.closeModal(id);
+            return;
+        }
+        const m = typeof id === 'string' ? document.getElementById(id) : id;
+        if (!m) return;
+        m.classList.remove('open', 'active', 'show');
+        m.style.setProperty('display', 'none', 'important');
+        m.style.pointerEvents = '';
+        m.style.opacity = '';
+        document.body.style.overflow = '';
+    }
+
     // Teacher data map for edit modal
     const teacherData = {
         @foreach($teachers as $t)
