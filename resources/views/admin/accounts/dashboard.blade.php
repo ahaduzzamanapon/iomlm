@@ -65,13 +65,13 @@
 
             <form action="{{ route('admin.accounts.apply-activation-fees') }}" method="POST" id="activationFeeForm">
                 @csrf
-                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;align-items:flex-end;background:#fef3c7;padding:14px;border-radius:10px;border:1px solid #fde68a">
+                <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;background:#fef3c7;padding:16px;border-radius:10px;border:1px solid #fde68a">
                     {{-- 1. Course Selection --}}
-                    <div>
+                    <div style="flex:1 1 200px">
                         <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
                             কোর্স নির্বাচন <span style="color:#dc2626">*</span>
                         </label>
-                        <select name="course_id" id="activationCourseSelect" class="form-control" required style="font-size:13px;height:38px;background:#fff">
+                        <select name="course_id" id="activationCourseSelect" class="form-control" required style="font-size:13px;height:38px;background:#fff;width:100%">
                             <option value="">-- কোর্স নির্বাচন করুন --</option>
                             <option value="all">সকল কোর্স (All Courses)</option>
                             @foreach($courses ?? [] as $c)
@@ -81,11 +81,11 @@
                     </div>
 
                     {{-- 2. Batch Selection (All or Individual) --}}
-                    <div>
+                    <div style="flex:1 1 220px">
                         <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
                             ব্যাচ নির্বাচন (সব ব্যাচ বা নির্দিষ্ট)
                         </label>
-                        <select name="batch_id" id="activationBatchSelect" class="form-control" style="font-size:13px;height:38px;background:#fff">
+                        <select name="batch_id" id="activationBatchSelect" class="form-control" style="font-size:13px;height:38px;background:#fff;width:100%">
                             <option value="all">সব ব্যাচ (একসাথে সব ব্যাচে প্রয়োগ)</option>
                             @foreach($batches ?? [] as $b)
                                 <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">
@@ -96,12 +96,12 @@
                     </div>
 
                     {{-- 3. Month Selection --}}
-                    <div>
+                    <div style="flex:1 1 150px">
                         <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
                             বেতনের মাস <span style="color:#dc2626">*</span>
                         </label>
                         @php $currM = now()->month; @endphp
-                        <select name="month" class="form-control" style="font-size:13px;height:38px;background:#fff">
+                        <select name="month" class="form-control" style="font-size:13px;height:38px;background:#fff;width:100%">
                             @foreach([
                                 1 => 'জানুয়ারি (Jan)',
                                 2 => 'ফেব্রুয়ারি (Feb)',
@@ -122,28 +122,31 @@
                     </div>
 
                     {{-- 4. Year Selection --}}
-                    <div>
+                    <div style="flex:1 1 110px">
                         <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
                             বছর <span style="color:#dc2626">*</span>
                         </label>
                         @php $currY = now()->year; @endphp
-                        <select name="year" class="form-control" style="font-size:13px;height:38px;background:#fff">
+                        <select name="year" class="form-control" style="font-size:13px;height:38px;background:#fff;width:100%">
                             @foreach([$currY - 1, $currY, $currY + 1, $currY + 2] as $yVal)
                                 <option value="{{ $yVal }}" {{ $currY == $yVal ? 'selected' : '' }}>{{ $yVal }}</option>
                             @endforeach
                         </select>
                     </div>
 
-                    {{-- 5. Amount & Submit --}}
-                    <div style="display:flex;gap:8px;align-items:flex-end">
-                        <div style="width:90px">
-                            <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
-                                ফি (টাকা)
-                            </label>
-                            <input type="number" name="amount" class="form-control" value="100" min="1" step="1" required
-                                style="font-size:13px;height:38px;background:#fff;font-weight:700" title="এক্টিভেশন ফি এর পরিমাণ">
-                        </div>
-                        <button type="submit" class="btn btn-warning" style="font-weight:700;background:#d97706;border-color:#b45309;color:#fff;height:38px;white-space:nowrap;padding:0 16px;display:inline-flex;align-items:center;gap:6px">
+                    {{-- 5. Amount Input (Spacious & Clearly Visible) --}}
+                    <div style="flex:1 1 130px;min-width:120px">
+                        <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
+                            ফি (টাকা) <span style="color:#dc2626">*</span>
+                        </label>
+                        <input type="number" name="amount" class="form-control" value="100" min="1" step="1" required
+                            style="font-size:14px;height:38px;background:#fff;font-weight:700;color:#92400e;width:100%;text-align:center"
+                            placeholder="ফি পরিমাণ (টাকা)" title="এক্টিভেশন ফি এর পরিমাণ (টাকা)">
+                    </div>
+
+                    {{-- 6. Submit Button --}}
+                    <div style="flex:1 1 220px">
+                        <button type="submit" class="btn btn-warning" style="font-weight:700;background:#d97706;border-color:#b45309;color:#fff;height:38px;width:100%;white-space:nowrap;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px">
                             <i class="fa-solid fa-bolt"></i> এক্টিভেশন ফি প্রয়োগ ও পোর্টাল অফ
                         </button>
                     </div>

@@ -138,7 +138,7 @@ class AccountingService
                 'due_date'       => ($status === 'PAID') ? null : Carbon::now()->addDays(7),
             ]);
         } else {
-            $invNo = 'INV-ADM-' . date('Ymd') . '-' . rand(1000, 9999);
+            $invNo = 'INV-ADM-' . date('Ymd') . '-' . substr(uniqid(), -5) . '-' . rand(100, 999);
             $invoice = Invoice::create([
                 'invoice_no'     => $invNo,
                 'student_id'     => $student->id,
@@ -174,7 +174,7 @@ class AccountingService
                 $notes     = $paymentDetails['notes'] ?? 'Admission fee payment approved by Admin during admission review';
 
                 Payment::create([
-                    'payment_no'     => 'PAY-ADM-' . date('Ymd') . '-' . rand(1000, 9999),
+                    'payment_no'     => 'PAY-ADM-' . date('Ymd') . '-' . substr(uniqid(), -5) . '-' . rand(100, 999),
                     'invoice_id'     => $invoice->id,
                     'student_id'     => $student->id,
                     'amount'         => $amountToCredit,
@@ -726,12 +726,16 @@ class AccountingService
                       ->orWhere('title', 'like', '%Activation%');
                 })
                 ->where('status', '!=', 'CANCELLED')
+                ->where('id', '!=', ($invoice->due_amount <= 0 ? $invoice->id : 0))
                 ->where('due_amount', '>', 0)
                 ->exists();
 
             // If no unpaid activation fee invoice remains, automatically turn portal access back ON
             if (!$hasUnpaidActivationFee) {
                 $student->update(['has_course_access' => true]);
+                if ($student->user) {
+                    $student->user->update(['is_active' => true]);
+                }
                 \App\Models\AuditLog::log(
                     'course_access_restored_on_payment',
                     $student,

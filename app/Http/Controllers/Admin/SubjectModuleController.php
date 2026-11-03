@@ -196,6 +196,72 @@ class SubjectModuleController extends Controller
         return back()->with('success', "মডিউল '{$module->title}' সফলভাবে ক্লোন করা হয়েছে।");
     }
 
+    public function renameFolder(Request $request, Subject $subject)
+    {
+        $validated = $request->validate([
+            'old_folder_name' => 'required|string|max:100',
+            'new_folder_name' => 'required|string|max:100',
+        ]);
+
+        $oldName = trim($validated['old_folder_name']);
+        $newName = trim($validated['new_folder_name']);
+
+        $affected = SubjectModule::where('subject_id', $subject->id)
+            ->where(function ($q) use ($oldName) {
+                if ($oldName === 'General') {
+                    $q->whereNull('folder_name')->orWhere('folder_name', '')->orWhere('folder_name', 'General');
+                } else {
+                    $q->where('folder_name', $oldName);
+                }
+            })
+            ->update(['folder_name' => $newName]);
+
+        return back()->with('success', "ফোল্ডার '{$oldName}' এর নাম পরিবর্তন করে '{$newName}' করা হয়েছে ({$affected}টি মডিউল আপডেট হয়েছে)।");
+    }
+
+    public function cloneFolder(Request $request, Subject $subject)
+    {
+        $validated = $request->validate([
+            'source_folder_name' => 'required|string|max:100',
+            'new_folder_name'    => 'required|string|max:100',
+        ]);
+
+        $sourceName = trim($validated['source_folder_name']);
+        $newFolderName = trim($validated['new_folder_name']);
+
+        $modules = SubjectModule::where('subject_id', $subject->id)
+            ->where(function ($q) use ($sourceName) {
+                if ($sourceName === 'General') {
+                    $q->whereNull('folder_name')->orWhere('folder_name', '')->orWhere('folder_name', 'General');
+                } else {
+                    $q->where('folder_name', $sourceName);
+                }
+            })
+            ->orderBy('sequence_no')
+            ->get();
+
+        if ($modules->isEmpty()) {
+            return back()->with('error', "ফোল্ডার '{$sourceName}' এ কোনো মডিউল পাওয়া যায়নি।");
+        }
+
+        $maxSeq = SubjectModule::where('subject_id', $subject->id)->max('sequence_no') ?? 0;
+
+        foreach ($modules as $mod) {
+            $newMod = $mod->replicate();
+            $newMod->folder_name = $newFolderName;
+            $newMod->sequence_no = ++$maxSeq;
+            $newMod->save();
+
+            foreach ($mod->learningResources as $lr) {
+                $newLr = $lr->replicate();
+                $newLr->module_id = $newMod->id;
+                $newLr->save();
+            }
+        }
+
+        return back()->with('success', "ফোল্ডার '{$sourceName}' সফলভাবে কপি করে নতুন ফোল্ডার '{$newFolderName}' তৈরি করা হয়েছে ({$modules->count()}টি মডিউল অন্তর্ভুক্ত)।");
+    }
+
     public function destroy(SubjectModule $module)
     {
         if ($module->file_path && Storage::disk('public')->exists($module->file_path)) {

@@ -74,11 +74,17 @@ class Batch extends Model
 
     public function getEffectiveSmsTemplate(): string
     {
+        $defaultEnglishSms = "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM";
+
         if (!empty($this->sms_template)) {
+            // Turn off legacy Bengali SMS and enforce English format
+            if (preg_match('/[\x{0980}-\x{09FF}]/u', $this->sms_template)) {
+                return $defaultEnglishSms;
+            }
             return $this->sms_template;
         }
 
-        return "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM";
+        return $defaultEnglishSms;
     }
 
     public function getDurationCycleTextAttribute(): string

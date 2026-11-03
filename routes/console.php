@@ -12,6 +12,7 @@ Artisan::command('inspire', function () {
 // Generates sessions 8 weeks into the future (skips existing + holidays)
 Schedule::command('sessions:generate --weeks=8')
     ->dailyAt('00:05')
+    ->timezone('Asia/Dhaka')
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -21,9 +22,10 @@ Schedule::command('payment:reconcile-pending --minutes=3')
     ->withoutOverlapping()
     ->runInBackground();
 
-// ✅ Daily Morning Class Reminder to students via Email & Notification at 07:00 AM
+// ✅ Daily Morning Class Reminder to students via Email & Notification at 07:00 AM (Asia/Dhaka)
 Schedule::command('classes:send-daily-reminders')
     ->dailyAt('07:00')
+    ->timezone('Asia/Dhaka')
     ->withoutOverlapping()
     ->runInBackground();
 

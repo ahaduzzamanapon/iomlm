@@ -234,9 +234,9 @@
                                 <td style="padding:10px 14px;font-weight:600;color:#1e293b">
                                     <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                                         <span>{{ $p['name'] }}</span>
-                                        @if(!empty($p['category']) && $p['category'] === 'FINE')
-                                            <span style="font-size:10.5px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'বিলম্ব / জরিমানা' }}">
-                                                {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'জরিমানা' }}
+                                        @if(!empty($p['is_activation']) || (!empty($p['category']) && $p['category'] === 'FINE') || str_contains($p['name'], 'এক্টিভেশন') || str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation'))
+                                            <span style="font-size:10.5px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'কোর্স এক্টিভেশন ফি' }}">
+                                                এক্টিভেশন ফি
                                             </span>
                                         @elseif(!empty($p['category']) && $p['category'] === 'DOCUMENT')
                                             <span style="font-size:10.5px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'ডকুমেন্ট ফি' }}">
@@ -247,8 +247,8 @@
                                                 অতিরিক্ত ফি
                                             </span>
                                         @elseif(!empty($p['is_added']))
-                                            <span style="font-size:10.5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">
-                                                {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'নতুন যুক্ত' }}
+                                            <span style="font-size:10.5px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'যুক্ত ফি' }}">
+                                                নতুন যুক্ত
                                             </span>
                                         @endif
                                     </div>
@@ -324,12 +324,30 @@
                                 </td>
                                 <td style="padding:10px 14px;text-align:center">
                                     @if(!$p['is_paid'])
+                                        @php
+                                            $isAct = !empty($p['is_activation']) || 
+                                                     (!empty($p['category']) && $p['category'] === 'FINE') ||
+                                                     str_contains($p['name'], 'এক্টিভেশন') ||
+                                                     str_contains($p['name'], 'এক্টিভিশন') ||
+                                                     str_contains(mb_strtolower($p['name']), 'activation');
+                                            $isMonthly = (!empty($p['is_monthly']) || (
+                                                !empty($p['name']) && (
+                                                    str_contains($p['name'], 'Tuition Fee') || 
+                                                    str_contains($p['name'], 'মাস') || 
+                                                    str_contains($p['name'], 'Month')
+                                                ) && empty($p['is_added']) && (empty($p['category']) || $p['category'] === 'SEMESTER')
+                                            )) && !$isAct;
+                                            $monthTag = $p['month_tag'] ?? '';
+                                        @endphp
                                         <input type="checkbox" class="admin-step1-chk"
-                                             data-name="{{ $p['name'] }}"
+                                            data-name="{{ $p['name'] }}"
                                             data-amount="{{ $p['due'] }}"
                                             data-total-amount="{{ $p['amount'] }}"
                                             data-invoice-id="{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}"
                                             data-invoice-no="{{ $p['invoice_no'] ?? ($selectedSemesterInvoice?->invoice_no ?? '') }}"
+                                            data-is-monthly="{{ $isMonthly ? '1' : '0' }}"
+                                            data-is-activation="{{ $isAct ? '1' : '0' }}"
+                                            data-month-tag="{{ $monthTag }}"
                                             onchange="onAdminStep1CheckboxChange(this)"
                                             style="width:17px;height:17px;cursor:pointer;accent-color:#16a34a"
                                             title="ফি আইটেমটি নির্বাচন করুন">
@@ -1478,7 +1496,16 @@
     }
 
     function onAdminStep1CheckboxChange(clickedChk) {
-        // Admin has full freedom to select or deselect any fee independently without auto-selecting upper rows
+        if (clickedChk && clickedChk.checked) {
+            const isMonthly = clickedChk.dataset.isMonthly === '1';
+            const monthTag = clickedChk.dataset.monthTag || '';
+            if (isMonthly && monthTag) {
+                const matchedAct = document.querySelector('.admin-step1-chk:not(:disabled)[data-is-activation="1"][data-month-tag="' + monthTag + '"]');
+                if (matchedAct && !matchedAct.checked) {
+                    matchedAct.checked = true;
+                }
+            }
+        }
         updateAdminStep1Selection();
     }
 

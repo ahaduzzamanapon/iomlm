@@ -31,6 +31,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::resource('subjects', \App\Http\Controllers\Admin\SubjectController::class);
         Route::post('modules/{module}/clone', [\App\Http\Controllers\Admin\SubjectModuleController::class, 'clone'])->name('modules.clone');
         Route::post('modules/{module}/toggle-hidden', [\App\Http\Controllers\Admin\SubjectModuleController::class, 'toggleHidden'])->name('modules.toggle-hidden');
+        Route::post('subjects/{subject}/folders/rename', [\App\Http\Controllers\Admin\SubjectModuleController::class, 'renameFolder'])->name('subjects.folders.rename');
+        Route::post('subjects/{subject}/folders/clone', [\App\Http\Controllers\Admin\SubjectModuleController::class, 'cloneFolder'])->name('subjects.folders.clone');
         Route::resource('subjects.modules', \App\Http\Controllers\Admin\SubjectModuleController::class)->shallow();
         Route::resource('assignments', \App\Http\Controllers\Admin\AssignmentController::class);
         Route::post('assignment-submissions/{submission}/grade', [\App\Http\Controllers\Admin\AssignmentController::class, 'gradeSubmission'])->name('assignments.submissions.grade');

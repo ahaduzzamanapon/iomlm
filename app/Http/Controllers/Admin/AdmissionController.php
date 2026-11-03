@@ -457,8 +457,14 @@ class AdmissionController extends Controller
             $admission->student?->gender ?? $admission->gender
         );
 
-        $admissionSmsTemplates = \App\Models\EmailTemplate::where('is_active', true)
-            ->where('type', 'SMS')
+        \App\Models\EmailTemplate::seedDefaultTemplates();
+
+        $hasType = \Illuminate\Support\Facades\Schema::hasColumn('email_templates', 'type');
+        $admissionSmsQuery = \App\Models\EmailTemplate::where('is_active', true);
+        if ($hasType) {
+            $admissionSmsQuery->where('type', 'SMS');
+        }
+        $admissionSmsTemplates = $admissionSmsQuery
             ->where(function ($q) {
                 $q->where('category', 'ADMISSION')->orWhereNull('category');
             })
@@ -470,7 +476,7 @@ class AdmissionController extends Controller
             $admission->interested_course_id ?? $admission->batch?->course_id,
             $admission->batch_id,
             $admission->student?->gender ?? $admission->gender
-        );
+        ) ?: $admissionSmsTemplates->first();
 
         $defaultSmsTemplateContent = $suggestedSmsTemplate?->content
             ?: ($admission->batch?->getEffectiveSmsTemplate() ?: "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM");
@@ -490,6 +496,13 @@ class AdmissionController extends Controller
 
     public function approve(Request $request, AdmissionForm $admission)
     {
+        if ($request->input('sms_template_id') <= 0) {
+            $request->merge(['sms_template_id' => null]);
+        }
+        if ($request->input('email_template_id') <= 0) {
+            $request->merge(['email_template_id' => null]);
+        }
+
         $request->validate([
             'batch_id'              => 'required|exists:batches,id',
             'course_id'             => 'nullable|exists:courses,id',
@@ -508,9 +521,24 @@ class AdmissionController extends Controller
             'save_template'         => 'nullable|boolean',
         ]);
 
-        return DB::transaction(function () use ($admission, $request) {
-            $student = $admission->student;
-            $batch   = Batch::findOrFail($request->input('batch_id'));
+        try {
+            return DB::transaction(function () use ($admission, $request) {
+                $student = $admission->student;
+                if (!$student && !empty($admission->student_id)) {
+                    $student = Student::find($admission->student_id);
+                }
+                if (!$student) {
+                    $student = Student::create([
+                        'name'   => $admission->applicant_name ?: 'Student',
+                        'email'  => $admission->email,
+                        'phone'  => $admission->phone,
+                        'gender' => $admission->gender ?: 'Male',
+                        'status' => 'ACTIVE',
+                    ]);
+                    $admission->update(['student_id' => $student->id]);
+                    $admission->setRelation('student', $student);
+                }
+                $batch   = Batch::findOrFail($request->input('batch_id'));
 
             // 1. Allow Admin to change course prior to confirmation
             if ($request->filled('course_id') && $request->course_id != $admission->interested_course_id) {
@@ -677,7 +705,32 @@ class AdmissionController extends Controller
                     }
                     $user->password = Hash::make($rawPassword);
                     $user->save();
+                } else {
+                    $loginEmail = $realEmail ?: ($student->student_code ? ($student->student_code . '@iom.student') : (uniqid() . '@iom.student'));
+                    $user = User::firstOrCreate(
+                        ['email' => $loginEmail],
+                        [
+                            'name'     => $student->name,
+                            'password' => Hash::make($rawPassword),
+                            'role'     => 'student',
+                        ]
+                    );
+                    $student->user_id = $user->id;
                 }
+                $student->save();
+            }
+
+            if (!$user) {
+                $loginEmail = $realEmail ?: ($student->student_code ? ($student->student_code . '@iom.student') : (uniqid() . '@iom.student'));
+                $user = User::firstOrCreate(
+                    ['email' => $loginEmail],
+                    [
+                        'name'     => $student->name,
+                        'password' => Hash::make($rawPassword),
+                        'role'     => 'student',
+                    ]
+                );
+                $student->user_id = $user->id;
                 $student->save();
             }
 
@@ -763,6 +816,12 @@ class AdmissionController extends Controller
                 ? $request->input('sms_body')
                 : ($selectedSmsTemplate ? $selectedSmsTemplate->content : $batch->getEffectiveSmsTemplate());
 
+            // Enforce user requested English SMS template (turn off any legacy Bengali SMS)
+            $defaultEnglishSms = "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM";
+            if (empty($rawSmsBody) || preg_match('/[\x{0980}-\x{09FF}]/u', $rawSmsBody)) {
+                $rawSmsBody = $defaultEnglishSms;
+            }
+
             $defaultSubject = $selectedTemplate?->subject
                 ?: "🎉 ভর্তি নিশ্চিতকরণ ও অফিসিয়াল রোল নম্বর — {$student->name} ({$courseName})";
             $rawSubject = $request->filled('email_subject')
@@ -801,7 +860,7 @@ class AdmissionController extends Controller
             if ($request->boolean('send_sms', true) && !empty($student->phone)) {
                 try {
                     app(\App\Services\SmsService::class)->send($student->phone, $compiledSmsBody);
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::error("Admission Approval SMS Error: " . $e->getMessage());
                 }
             }
@@ -819,7 +878,7 @@ class AdmissionController extends Controller
                             null,
                             $loginUrl
                         );
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         \Illuminate\Support\Facades\Log::error('Admission Approval Email Exception: ' . $e->getMessage());
                     }
                 }
@@ -830,6 +889,12 @@ class AdmissionController extends Controller
 
             return back()->with('success', "ভর্তি সফলভাবে অনুমোদিত হয়েছে! স্টুডেন্ট আইডি: {$student->student_code}, ব্যাচ: {$batch->name}। 🔑 {$loginInfo} 📧 কনফার্মেশন নোটিফিকেশন প্রক্রিয়াকৃত হয়েছে।{$templateSavedNotice}");
         });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Admission Approval Error for Form #{$admission->id}: " . $e->getMessage(), [
+                'exception' => $e,
+            ]);
+            return back()->withInput()->with('error', 'ভর্তি অনুমোদনের সময় ত্রুটি হয়েছে: ' . $e->getMessage());
+        }
     }
 
     public function sendRepaymentEmail(AdmissionForm $admission)

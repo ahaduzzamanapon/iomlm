@@ -178,6 +178,8 @@ class EmailTemplate extends Model
      */
     public static function resolveAdmissionSmsTemplate(?int $courseId, ?int $batchId, ?string $gender = null): ?self
     {
+        self::seedDefaultTemplates();
+
         if ($batchId && !$courseId) {
             $courseId = Batch::where('id', $batchId)->value('course_id');
         }
@@ -192,11 +194,14 @@ class EmailTemplate extends Model
             }
         }
 
-        $base = self::where('is_active', true)
-            ->where('type', 'SMS')
-            ->where(function ($q) {
-                $q->where('category', 'ADMISSION')->orWhereNull('category');
-            });
+        $hasType = \Illuminate\Support\Facades\Schema::hasColumn('email_templates', 'type');
+        $base = self::where('is_active', true);
+        if ($hasType) {
+            $base->where('type', 'SMS');
+        }
+        $base->where(function ($q) {
+            $q->where('category', 'ADMISSION')->orWhereNull('category');
+        });
 
         // 1. Try exact course + batch + gender
         if ($courseId && $batchId && $normalizedGender !== 'All') {
@@ -314,19 +319,23 @@ class EmailTemplate extends Model
             // Gracefully ignore if already exists or concurrent
         }
 
-        // Ensure default SMS admission template exists
+        // Ensure default SMS admission template exists and uses the English format
         $hasTypeCol = \Illuminate\Support\Facades\Schema::hasColumn('email_templates', 'type');
         $smsQuery = self::query();
         if ($hasTypeCol) {
             $smsQuery->where('type', 'SMS');
         }
-        if (!$smsQuery->where('category', 'ADMISSION')->exists()) {
+        $existingAdmissionSms = $smsQuery->where('category', 'ADMISSION')->first();
+
+        $defaultEnglishSms = "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM";
+
+        if (!$existingAdmissionSms) {
             $data = [
                 'name'      => 'ভর্তি নিশ্চিতকরণ এসএমএস (Admission SMS)',
                 'category'  => 'ADMISSION',
                 'gender'    => 'All',
                 'subject'   => null,
-                'content'   => "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM",
+                'content'   => $defaultEnglishSms,
                 'is_system' => true,
                 'is_active' => true,
             ];
@@ -334,6 +343,14 @@ class EmailTemplate extends Model
                 $data['type'] = 'SMS';
             }
             self::create($data);
+        } else {
+            // If the content is in Bengali or outdated, replace with user requested English SMS
+            if (empty($existingAdmissionSms->content) || preg_match('/[\x{0980}-\x{09FF}]/u', $existingAdmissionSms->content)) {
+                $existingAdmissionSms->update([
+                    'content'   => $defaultEnglishSms,
+                    'is_active' => true,
+                ]);
+            }
         }
 
         if (self::count() > 1) {

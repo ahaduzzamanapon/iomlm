@@ -1227,7 +1227,12 @@ class StudentFeeService
                     $invTitle = $otherInv->title ?: ($otherInv->category . ' Fee');
                     
                     // Clean long auto-generated activation fee titles if needed
-                    $isActivation = ($otherInv->category === 'FINE' && (str_contains(mb_strtolower($invTitle), 'activation') || str_contains($invTitle, 'এক্টিভিশন') || str_contains($otherInv->invoice_no, 'INV-ACT-')));
+                    $isActivation = ($otherInv->category === 'FINE' && (
+                        str_contains(mb_strtolower($invTitle), 'activation') ||
+                        str_contains($invTitle, 'এক্টিভেশন') ||
+                        str_contains($invTitle, 'এক্টিভিশন') ||
+                        str_contains($otherInv->invoice_no, 'INV-ACT-')
+                    ));
                     if ($isActivation && str_contains($invTitle, '(')) {
                         $parts = explode('(', $invTitle, 2);
                         $invTitle = trim($parts[0]);
@@ -1247,6 +1252,8 @@ class StudentFeeService
                     $oPmtAt = $oPmt?->paid_at ? $oPmt->paid_at->format('d M Y, h:i A') : ($oPmt?->created_at ? $oPmt->created_at->format('d M Y, h:i A') : ($isPaid ? 'পরিশোধিত' : null));
                     $oMethod = $oPmt?->payment_method ?? null;
 
+                    $actParsed = $this->parseMonthAndYearFromParticularName($invTitle);
+
                     $step1Particulars[] = [
                         'sl'               => $sl++,
                         'name'             => $invTitle,
@@ -1256,9 +1263,11 @@ class StudentFeeService
                         'is_paid'          => $isPaid,
                         'is_custom'        => true,
                         'is_added'         => true,
+                        'is_activation'    => $isActivation,
+                        'month_tag'        => $actParsed['tag'] ?? null,
                         'position'         => $otherInv->custom_particulars[$invTitle]['position'] ?? 'at_bottom',
                         'relative_to'      => $otherInv->custom_particulars[$invTitle]['relative_to'] ?? null,
-                        'custom_remarks'   => $otherInv->notes ?? ($isActivation ? 'কোর্স এক্টিভিশন ফি' : $otherInv->category),
+                        'custom_remarks'   => $otherInv->notes ?? ($isActivation ? 'কোর্স এক্টিভেশন ফি' : $otherInv->category),
                         'invoice_id'       => $otherInv->id,
                         'invoice_no'       => $otherInv->invoice_no,
                         'category'         => $otherInv->category,
@@ -1433,10 +1442,99 @@ class StudentFeeService
     }
 
     /**
+     * Parse month and year from particular item name (e.g. "Tuition Fee (Jan-2027)", "কোর্স এক্টিভেশন ফি - জানুয়ারি 2027").
+     */
+    public function parseMonthAndYearFromParticularName(string $name): ?array
+    {
+        $nameLower = mb_strtolower($name);
+
+        if (!preg_match('/20\d{2}/', $name, $matches)) {
+            return null;
+        }
+        $year = (int)$matches[0];
+
+        $months = [
+            1  => ['january', 'jan', 'জানুয়ারি', 'জানুয়ারি', '01-'],
+            2  => ['february', 'feb', 'ফেব্রুয়ারি', 'ফেব্রুয়ারি', '02-'],
+            3  => ['march', 'mar', 'মার্চ', '03-'],
+            4  => ['april', 'apr', 'এপ্রিল', '04-'],
+            5  => ['may', 'মে', '05-'],
+            6  => ['june', 'jun', 'জুন', '06-'],
+            7  => ['july', 'jul', 'জুলাই', '07-'],
+            8  => ['august', 'aug', 'আগস্ট', '08-'],
+            9  => ['september', 'sep', 'সেপ্টেম্বর', '09-'],
+            10 => ['october', 'oct', 'অক্টোবর', '10-'],
+            11 => ['november', 'nov', 'নভেম্বর', '11-'],
+            12 => ['december', 'dec', 'ডিসেম্বর', '12-'],
+        ];
+
+        foreach ($months as $mNum => $aliases) {
+            foreach ($aliases as $alias) {
+                if (str_contains($nameLower, $alias)) {
+                    return [
+                        'month' => $mNum,
+                        'year'  => $year,
+                        'tag'   => sprintf('%04d-%02d', $year, $mNum),
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Unified reordering of step 1 particulars based on position and relative_to.
+     * Automatically positions course activation fees immediately ABOVE their matching month's tuition fee.
      */
     private function reorderStep1Particulars(array $items): array
     {
+        // 1. Tag month_tag and detect activation and tuition items
+        foreach ($items as &$it) {
+            $parsed = $this->parseMonthAndYearFromParticularName($it['name'] ?? '');
+            if ($parsed) {
+                $it['month_tag'] = $it['month_tag'] ?? $parsed['tag'];
+            }
+
+            $isAct = !empty($it['is_activation'])
+                || ((isset($it['category']) && $it['category'] === 'FINE') && (
+                    str_contains($it['name'] ?? '', 'এক্টিভেশন') ||
+                    str_contains($it['name'] ?? '', 'এক্টিভিশন') ||
+                    str_contains(mb_strtolower($it['name'] ?? ''), 'activation') ||
+                    str_contains($it['invoice_no'] ?? '', 'INV-ACT-')
+                ))
+                || str_contains($it['name'] ?? '', 'এক্টিভেশন')
+                || str_contains($it['name'] ?? '', 'এক্টিভিশন');
+
+            if ($isAct) {
+                $it['is_activation'] = true;
+            }
+
+            $isTuition = !empty($it['is_monthly'])
+                || (
+                    (str_contains($it['name'] ?? '', 'Tuition') || str_contains($it['name'] ?? '', 'বেতন'))
+                    && empty($it['is_activation'])
+                );
+            if ($isTuition) {
+                $it['is_monthly'] = true;
+            }
+        }
+        unset($it);
+
+        // 2. Pair activation fee items directly ABOVE matching tuition fee item
+        foreach ($items as &$it) {
+            if (!empty($it['is_activation']) && !empty($it['month_tag'])) {
+                foreach ($items as $candidate) {
+                    if (!empty($candidate['is_monthly']) && empty($candidate['is_activation']) && ($candidate['month_tag'] ?? '') === $it['month_tag']) {
+                        $it['position'] = 'before';
+                        $it['relative_to'] = $candidate['name'];
+                        break;
+                    }
+                }
+            }
+        }
+        unset($it);
+
         $baseItems = [];
         $customItems = [];
 

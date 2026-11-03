@@ -777,17 +777,17 @@ class PaymentGatewayService
             }
         }
 
-        // 6. Send admission confirmation SMS to student phone
+        // 6. Send admission confirmation SMS to student phone (English template, legacy Bengali off)
         if (!empty($student->phone)) {
             try {
                 $smsTpl = \App\Models\EmailTemplate::resolveAdmissionSmsTemplate($courseId, $batchId, $gender);
                 $smsMessage = $smsTpl ? $smsTpl->content : ($batch ? $batch->getEffectiveSmsTemplate() : '');
-                if (empty($smsMessage)) {
+                if (empty($smsMessage) || preg_match('/[\x{0980}-\x{09FF}]/u', $smsMessage)) {
                     $smsMessage = "Salam {name}, IOM admission confirmed. ID: {student_id} Pass: {password} Login: {login_url}. Check email for details.\n-IOM";
                 }
                 $compiledSms = str_replace(array_keys($replaceVars), array_values($replaceVars), $smsMessage);
                 app(\App\Services\SmsService::class)->send($student->phone, $compiledSms);
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Log::error('Admission Payment Auto-Approval SMS Error: ' . $e->getMessage());
             }
         }

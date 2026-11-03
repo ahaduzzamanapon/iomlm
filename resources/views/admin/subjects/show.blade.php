@@ -21,7 +21,7 @@
                     <i class="fa-solid fa-copy"></i> বিষয় ক্লোন করুন
                 </button>
             </form>
-            <button class="btn btn-primary" onclick="openModal('addModuleModal')">
+            <button class="btn btn-primary" onclick="openAddModuleForFolder('')" style="font-family:'Kalpurush', sans-serif">
                 <i class="fa-solid fa-plus"></i> মডিউল যোগ করুন
             </button>
         </div>
@@ -63,21 +63,58 @@
     @endphp
 
     <div class="card">
-        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-            <span class="card-title">Subject Modules (Sequential Learning Engine)</span>
-            <span class="badge badge-secondary no-dot">{{ $subject->modules->count() }} Modules ({{ $groupedModules->count() }}টি ফোল্ডার)</span>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+                <span class="card-title" style="font-family:'Kalpurush', sans-serif">Subject Modules (Sequential Learning Engine)</span>
+                <span class="badge badge-secondary no-dot" style="font-family:'Kalpurush', sans-serif">{{ $subject->modules->count() }} Modules ({{ $groupedModules->count() }}টি ফোল্ডার)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+                <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllFolders(true)" style="font-size:11px;padding:4px 10px;font-family:'Kalpurush', sans-serif" title="সব ফোল্ডার বিস্তার করুন">
+                    <i class="fa-solid fa-angles-down"></i> সবগুলো খুলুন
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="toggleAllFolders(false)" style="font-size:11px;padding:4px 10px;font-family:'Kalpurush', sans-serif" title="সব ফোল্ডার কোলাপ্স করুন">
+                    <i class="fa-solid fa-angles-up"></i> সবগুলো বন্ধ করুন
+                </button>
+            </div>
         </div>
         <div style="padding:16px">
             @forelse($groupedModules as $folder => $mods)
-                <div style="margin-bottom:24px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.03)">
-                    <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between">
-                        <div style="font-weight:700;font-size:13px;color:#334155;display:flex;align-items:center;gap:8px">
-                            <i class="fa-solid fa-folder-open" style="color:#6366f1"></i>
-                            <span>{{ $folder }}</span>
-                            <span class="badge badge-secondary no-dot" style="font-size:11px">{{ $mods->count() }}টি মডিউল</span>
+                @php $folderIdx = $loop->index; @endphp
+                <div class="folder-card" id="folder-card-{{ $folderIdx }}" style="margin-bottom:20px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.03);background:#fff">
+                    {{-- Folder Header --}}
+                    <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                        {{-- Left: Clickable Title + Chevron --}}
+                        <div onclick="toggleFolderCollapse({{ $folderIdx }})" style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;flex:1;min-width:200px">
+                            <i class="fa-solid fa-chevron-down folder-chevron" id="folder-chevron-{{ $folderIdx }}" style="font-size:12px;color:#64748b;transition:transform 0.2s ease"></i>
+                            <i class="fa-solid fa-folder-open" style="color:#059669;font-size:16px"></i>
+                            <span style="font-weight:700;font-size:14px;color:#1e293b;font-family:'Kalpurush', sans-serif">{{ $folder }}</span>
+                            <span class="badge badge-secondary no-dot" style="font-size:11px;font-family:'Kalpurush', sans-serif">{{ $mods->count() }}টি মডিউল</span>
+                        </div>
+
+                        {{-- Right: Actions for this Folder --}}
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                            {{-- Quick Add File/Module to this folder --}}
+                            <button type="button" class="btn btn-outline btn-sm" onclick="openAddModuleForFolder('{{ addslashes($folder) }}')" style="color:#1d4ed8;border-color:#bfdbfe;background:#eff6ff;font-family:'Kalpurush', sans-serif" title="এই ফোল্ডারে সরাসরি ফাইল/মডিউল যোগ করুন">
+                                <i class="fa-solid fa-plus"></i> <span style="font-family:'Kalpurush', sans-serif">ফাইল যোগ</span>
+                            </button>
+
+                            {{-- Rename Folder --}}
+                            <button type="button" class="btn btn-outline btn-sm" onclick="openRenameFolderModal('{{ addslashes($folder) }}')" style="color:#0284c7;border-color:#bae6fd;background:#f0f9ff;font-family:'Kalpurush', sans-serif" title="ফোল্ডারের নাম পরিবর্তন করুন">
+                                <i class="fa-solid fa-pen-to-square"></i> <span style="font-family:'Kalpurush', sans-serif">নাম এডিট</span>
+                            </button>
+
+                            {{-- Clone Folder --}}
+                            <button type="button" class="btn btn-outline btn-sm" onclick="openCloneFolderModal('{{ addslashes($folder) }}', {{ $mods->count() }})" style="color:#059669;border-color:#a7f3d0;background:#ecfdf5;font-family:'Kalpurush', sans-serif" title="সম্পূর্ণ ফোল্ডার ও এর মডিউল কপি করুন">
+                                <i class="fa-solid fa-copy"></i> <span style="font-family:'Kalpurush', sans-serif">কপি</span>
+                            </button>
+
+                            {{-- Toggle Button --}}
+                            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleFolderCollapse({{ $folderIdx }})" title="ফোল্ডার কোলাপ্স/বিস্তার করুন" style="color:#64748b;padding:4px 8px">
+                                <i class="fa-solid fa-chevron-up folder-btn-icon" id="folder-btn-icon-{{ $folderIdx }}"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="module-list" style="padding:8px 12px">
+                    <div class="module-list folder-body" id="folder-body-{{ $folderIdx }}" style="padding:8px 12px">
                         @foreach($mods as $mod)
                         <div class="module-item" style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-bottom:1px solid #f1f5f9;gap:12px">
                             <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
@@ -181,8 +218,8 @@
                 <div class="modal-body">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>ফোল্ডার / গ্রুপ (Folder Name)</label>
-                            <input type="text" name="folder_name" class="form-control" placeholder="যেমন: অধ্যায় ১, লেকচার নোটস, রেফারেন্স">
+                            <label style="font-family:'Kalpurush', sans-serif">ফোল্ডার / গ্রুপ (Folder Name)</label>
+                            <input type="text" name="folder_name" id="am_folder_name" class="form-control" placeholder="যেমন: অধ্যায় ১, লেকচার নোটস, রেফারেন্স">
                         </div>
                         <div class="form-group">
                             <label>টপিক / ক্যাটাগরি</label>
@@ -290,7 +327,71 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline" onclick="closeModal('editModuleModal')">বাতিল</button>
-                    <button type="submit" class="btn btn-primary">আপডেট সংরক্ষণ করুন</button>
+                    <button type="submit" class="btn btn-primary" style="font-family:'Kalpurush', sans-serif">আপডেট সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Rename Folder Modal ── -->
+    <div class="modal-overlay" id="renameFolderModal">
+        <div class="modal" style="max-width:480px;width:95%">
+            <div class="modal-header">
+                <span class="modal-title" style="font-family:'Kalpurush', sans-serif">ফোল্ডারের নাম পরিবর্তন করুন</span>
+                <button class="modal-close" onclick="closeModal('renameFolderModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.subjects.folders.rename', $subject) }}">
+                @csrf
+                <input type="hidden" name="old_folder_name" id="rfm_old_folder_name">
+                <div class="modal-body" style="font-family:'Kalpurush', sans-serif">
+                    <div class="form-group">
+                        <label>বর্তমান নাম</label>
+                        <input type="text" id="rfm_display_old_name" class="form-control" readonly style="background:#f1f5f9;color:#64748b">
+                    </div>
+                    <div class="form-group" style="margin-top:12px">
+                        <label>নতুন ফোল্ডারের নাম <span class="required">*</span></label>
+                        <input type="text" name="new_folder_name" id="rfm_new_folder_name" class="form-control" required placeholder="যেমন: কোর্স সিলেবাস, ক্লাস নোটস">
+                    </div>
+                    <div style="font-size:12px;color:#64748b;margin-top:8px">
+                        <i class="fa-solid fa-circle-info"></i> এই ফোল্ডারের সকল মডিউল নতুন ফোল্ডারের নামের অধীনে স্থানান্তরিত হবে।
+                    </div>
+                </div>
+                <div class="modal-footer" style="font-family:'Kalpurush', sans-serif">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('renameFolderModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-primary">নাম পরিবর্তন করুন</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── Clone Folder Modal ── -->
+    <div class="modal-overlay" id="cloneFolderModal">
+        <div class="modal" style="max-width:500px;width:95%">
+            <div class="modal-header">
+                <span class="modal-title" style="font-family:'Kalpurush', sans-serif">ফোল্ডার কপি করুন (Duplicate Folder)</span>
+                <button class="modal-close" onclick="closeModal('cloneFolderModal')">&times;</button>
+            </div>
+            <form method="POST" action="{{ route('admin.subjects.folders.clone', $subject) }}">
+                @csrf
+                <input type="hidden" name="source_folder_name" id="cfm_source_folder_name">
+                <div class="modal-body" style="font-family:'Kalpurush', sans-serif">
+                    <div class="form-group">
+                        <label>মূল ফোল্ডার</label>
+                        <input type="text" id="cfm_display_source_name" class="form-control" readonly style="background:#f1f5f9;color:#64748b">
+                    </div>
+                    <div class="form-group" style="margin-top:12px">
+                        <label>নতুন ফোল্ডারের নাম <span class="required">*</span></label>
+                        <input type="text" name="new_folder_name" id="cfm_new_folder_name" class="form-control" required placeholder="যেমন: কোর্স সিলেবাস (কপি)">
+                    </div>
+                    <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:10px 14px;border-radius:8px;font-size:12px;margin-top:12px">
+                        <i class="fa-solid fa-copy"></i> এই ফোল্ডারের অন্তর্ভুক্ত <span id="cfm_module_count" style="font-weight:700"></span>টি মডিউল ও স্টাডি মেটেরিয়াল নতুন ফোল্ডারে কপি হবে।
+                    </div>
+                </div>
+                <div class="modal-footer" style="font-family:'Kalpurush', sans-serif">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('cloneFolderModal')">বাতিল</button>
+                    <button type="submit" class="btn btn-success" style="background:#059669;border-color:#059669;color:#fff">
+                        <i class="fa-solid fa-copy"></i> কপি ও তৈরি করুন
+                    </button>
                 </div>
             </form>
         </div>
@@ -298,6 +399,70 @@
 
     @push('scripts')
     <script>
+    function openAddModuleForFolder(folderName) {
+        const folderInput = document.getElementById('am_folder_name');
+        if (folderInput) {
+            folderInput.value = folderName || '';
+        }
+        openModal('addModuleModal');
+    }
+
+    function openRenameFolderModal(folderName) {
+        document.getElementById('rfm_old_folder_name').value = folderName;
+        document.getElementById('rfm_display_old_name').value = folderName;
+        document.getElementById('rfm_new_folder_name').value = folderName;
+        openModal('renameFolderModal');
+        setTimeout(() => {
+            const inp = document.getElementById('rfm_new_folder_name');
+            if (inp) { inp.focus(); inp.select(); }
+        }, 150);
+    }
+
+    function openCloneFolderModal(folderName, count) {
+        document.getElementById('cfm_source_folder_name').value = folderName;
+        document.getElementById('cfm_display_source_name').value = folderName;
+        document.getElementById('cfm_new_folder_name').value = folderName + ' (কপি)';
+        document.getElementById('cfm_module_count').textContent = count;
+        openModal('cloneFolderModal');
+        setTimeout(() => {
+            const inp = document.getElementById('cfm_new_folder_name');
+            if (inp) { inp.focus(); inp.select(); }
+        }, 150);
+    }
+
+    function toggleFolderCollapse(idx) {
+        const body = document.getElementById('folder-body-' + idx);
+        const chevron = document.getElementById('folder-chevron-' + idx);
+        const btnIcon = document.getElementById('folder-btn-icon-' + idx);
+        if (!body) return;
+
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            if (chevron) { chevron.style.transform = 'rotate(0deg)'; }
+            if (btnIcon) { btnIcon.className = 'fa-solid fa-chevron-up folder-btn-icon'; }
+        } else {
+            body.style.display = 'none';
+            if (chevron) { chevron.style.transform = 'rotate(-90deg)'; }
+            if (btnIcon) { btnIcon.className = 'fa-solid fa-chevron-down folder-btn-icon'; }
+        }
+    }
+
+    function toggleAllFolders(expand) {
+        const bodies = document.querySelectorAll('.folder-body');
+        const chevrons = document.querySelectorAll('.folder-chevron');
+        const btnIcons = document.querySelectorAll('.folder-btn-icon');
+
+        bodies.forEach(b => {
+            b.style.display = expand ? 'block' : 'none';
+        });
+        chevrons.forEach(c => {
+            c.style.transform = expand ? 'rotate(0deg)' : 'rotate(-90deg)';
+        });
+        btnIcons.forEach(i => {
+            i.className = expand ? 'fa-solid fa-chevron-up folder-btn-icon' : 'fa-solid fa-chevron-down folder-btn-icon';
+        });
+    }
+
     function openEditModal(mod) {
         document.getElementById('editModuleForm').action = '/admin/modules/' + mod.id;
         document.getElementById('em_title').value        = mod.title;

@@ -1047,7 +1047,9 @@
             }
 
             const matchedSmsTpl = ADMISSION_SMS_TEMPLATES.find(t => t.batch_id == batchId)
-                || ADMISSION_SMS_TEMPLATES.find(t => t.course_id == (b ? b.course_id : null));
+                || ADMISSION_SMS_TEMPLATES.find(t => t.course_id == (b ? b.course_id : null))
+                || ADMISSION_SMS_TEMPLATES.find(t => t.id == SUGGESTED_SMS_TEMPLATE_ID)
+                || (ADMISSION_SMS_TEMPLATES.length > 0 ? ADMISSION_SMS_TEMPLATES[0] : null);
             if (matchedSmsTpl) {
                 const smsTplSelect = document.getElementById('approve_sms_template_id');
                 if (smsTplSelect) smsTplSelect.value = matchedSmsTpl.id;
@@ -1062,9 +1064,15 @@
             populateTemplateForSelectedBatch(false, 'email');
         }
         if (!smsMatched) {
+            const fallbackSms = ADMISSION_SMS_TEMPLATES.find(t => t.id == SUGGESTED_SMS_TEMPLATE_ID) || (ADMISSION_SMS_TEMPLATES.length > 0 ? ADMISSION_SMS_TEMPLATES[0] : null);
             const smsTplSelect = document.getElementById('approve_sms_template_id');
-            if (smsTplSelect && !SUGGESTED_SMS_TEMPLATE_ID) smsTplSelect.value = '';
-            populateTemplateForSelectedBatch(false, 'sms');
+            if (smsTplSelect && fallbackSms) {
+                smsTplSelect.value = fallbackSms.id;
+                onSmsTemplateSelect(fallbackSms.id);
+            } else {
+                if (smsTplSelect) smsTplSelect.value = '';
+                populateTemplateForSelectedBatch(false, 'sms');
+            }
         }
     }
 
@@ -1203,10 +1211,11 @@
             populateTemplateForSelectedBatch(false, 'email');
         }
 
-        if (SUGGESTED_SMS_TEMPLATE_ID) {
+        const effectiveSmsId = SUGGESTED_SMS_TEMPLATE_ID || (ADMISSION_SMS_TEMPLATES.length > 0 ? ADMISSION_SMS_TEMPLATES[0].id : null);
+        if (effectiveSmsId) {
             const smsTplSelect = document.getElementById('approve_sms_template_id');
-            if (smsTplSelect) smsTplSelect.value = SUGGESTED_SMS_TEMPLATE_ID;
-            onSmsTemplateSelect(SUGGESTED_SMS_TEMPLATE_ID);
+            if (smsTplSelect) smsTplSelect.value = effectiveSmsId;
+            onSmsTemplateSelect(effectiveSmsId);
         } else {
             populateTemplateForSelectedBatch(false, 'sms');
         }

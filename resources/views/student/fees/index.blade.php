@@ -278,9 +278,9 @@
                                     <td style="padding:9px 14px;font-weight:600;color:#1e293b">
                                         <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                                             <span>{{ $p['name'] }}</span>
-                                            @if(!empty($p['category']) && $p['category'] === 'FINE')
-                                                <span style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'বিলম্ব / জরিমানা' }}">
-                                                    {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'জরিমানা' }}
+                                            @if(!empty($p['is_activation']) || (!empty($p['category']) && $p['category'] === 'FINE') || str_contains($p['name'], 'এক্টিভেশন') || str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation'))
+                                                <span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'কোর্স এক্টিভেশন ফি' }}">
+                                                    এক্টিভেশন ফি
                                                 </span>
                                             @elseif(!empty($p['category']) && $p['category'] === 'DOCUMENT')
                                                 <span style="font-size:10px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'ডকুমেন্ট ফি' }}">
@@ -291,8 +291,8 @@
                                                     অতিরিক্ত ফি
                                                 </span>
                                             @elseif(!empty($p['is_added']))
-                                                <span style="font-size:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'অ্যাডমিন কর্তৃক যুক্ত ফি' }}">
-                                                    {{ (str_contains($p['name'], 'এক্টিভিশন') || str_contains(mb_strtolower($p['name']), 'activation')) ? 'এক্টিভিশন ফি' : 'নতুন যুক্ত' }}
+                                                <span style="font-size:10px;background:#dcfce7;color:#166534;border:1px solid #bbf7d0;padding:1px 6px;border-radius:8px;font-weight:700" title="{{ $p['custom_remarks'] ?? 'যুক্ত ফি' }}">
+                                                    নতুন যুক্ত
                                                 </span>
                                             @endif
                                         </div>
@@ -385,11 +385,19 @@
                                                 </span>
                                             @else
                                                 @php
-                                                    $isMonthly = !empty($p['name']) && (
-                                                        str_contains($p['name'], 'Tuition Fee') || 
-                                                        str_contains($p['name'], 'মাস') || 
-                                                        str_contains($p['name'], 'Month')
-                                                    ) && empty($p['is_added']) && (empty($p['category']) || $p['category'] === 'SEMESTER');
+                                                    $isAct = !empty($p['is_activation']) || 
+                                                             (!empty($p['category']) && $p['category'] === 'FINE') ||
+                                                             str_contains($p['name'], 'এক্টিভেশন') ||
+                                                             str_contains($p['name'], 'এক্টিভিশন') ||
+                                                             str_contains(mb_strtolower($p['name']), 'activation');
+                                                    $isMonthly = (!empty($p['is_monthly']) || (
+                                                        !empty($p['name']) && (
+                                                            str_contains($p['name'], 'Tuition Fee') || 
+                                                            str_contains($p['name'], 'মাস') || 
+                                                            str_contains($p['name'], 'Month')
+                                                        ) && empty($p['is_added']) && (empty($p['category']) || $p['category'] === 'SEMESTER')
+                                                    )) && !$isAct;
+                                                    $monthTag = $p['month_tag'] ?? '';
                                                 @endphp
                                                 <input type="checkbox" class="step1-chk" data-name="{{ $p['name'] }}"
                                                     data-amount="{{ $p['due'] }}"
@@ -397,9 +405,11 @@
                                                     data-invoice-id="{{ $p['invoice_id'] ?? ($selectedSemesterInvoice?->id ?? '') }}"
                                                     data-invoice-no="{{ $p['invoice_no'] ?? ($selectedSemesterInvoice?->invoice_no ?? '') }}"
                                                     data-is-monthly="{{ $isMonthly ? '1' : '0' }}"
+                                                    data-is-activation="{{ $isAct ? '1' : '0' }}"
+                                                    data-month-tag="{{ $monthTag }}"
                                                     onchange="onStep1CheckboxChange(this)"
                                                     style="width:16px;height:16px;cursor:pointer;accent-color:#16a34a"
-                                                    title="{{ $isMonthly ? 'পরবর্তী মাস নির্বাচন করলে পূর্বের সকল বকেয়া মাস ক্রমানুসারে নির্বাচিত হবে' : 'স্বতন্ত্রভাবে নির্বাচন করুন' }}">
+                                                    title="{{ $isMonthly ? 'পরবর্তী মাস নির্বাচন করলে পূর্বের সকল বকেয়া মাস ক্রমানুসারে নির্বাচিত হবে' : ($isAct ? 'কোর্স এক্টিভেশন ফি' : 'স্বতন্ত্রভাবে নির্বাচন করুন') }}">
                                             @endif
                                         @endif
                                     </td>
@@ -1090,13 +1100,13 @@
                         ফি এর নাম / বিবরণ (Particular Name) <span style="color:#dc2626">*</span>:
                     </label>
                     <input type="text" id="aaf_particular_name" name="particular_name" required
-                        placeholder="যেমন: লেট ফি, পুনঃপরীক্ষা ফি, জরিমানা..."
+                        placeholder="যেমন: লেট ফি, পুনঃপরীক্ষা ফি, এক্টিভেশন ফি..."
                         style="width:100%;padding:9px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;color:#0f172a;outline:none;box-sizing:border-box">
 
                     {{-- Quick preset pills --}}
                     <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">
                         <span style="font-size:11px;color:#64748b;align-self:center;font-weight:600">কুইক সিলেক্ট:</span>
-                        @foreach(['কোর্স এক্টিভিশন ফি (Activation Fee)', 'লেট ফি (Late Fee)', 'পুনঃপরীক্ষা ফি (Retake Fee)', 'সার্টিফিকেট ফি (Certificate Fee)', 'আইডি কার্ড ফি (ID Card Fee)', 'জরিমানা (Fine)', 'অন্যান্য ফি (Other Fee)'] as $preset)
+                        @foreach(['কোর্স এক্টিভেশন ফি (Activation Fee)', 'লেট ফি (Late Fee)', 'পুনঃপরীক্ষা ফি (Retake Fee)', 'সার্টিফিকেট ফি (Certificate Fee)', 'আইডি কার্ড ফি (ID Card Fee)', 'বিলম্ব ফি (Late Fine)', 'অন্যান্য ফি (Other Fee)'] as $preset)
                             <button type="button" onclick="setFeeNamePreset('{{ $preset }}')"
                                 style="font-size:11px;padding:2px 8px;border-radius:12px;border:1px solid #cbd5e1;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s"
                                 onmouseover="this.style.background='#e2e8f0'"
@@ -1482,6 +1492,8 @@
 
             function onStep1CheckboxChange(clickedChk) {
                 const isMonthly = clickedChk.dataset.isMonthly === '1';
+                const isActivation = clickedChk.dataset.isActivation === '1';
+                const monthTag = clickedChk.dataset.monthTag || '';
 
                 if (isMonthly) {
                     const monthlyChks = Array.from(document.querySelectorAll('.step1-chk:not(:disabled)[data-is-monthly="1"]'));
@@ -1492,6 +1504,14 @@
                             // ক্রমানুসারে আগের সকল বকেয়া মাস অটো-সিলেক্ট হবে
                             for (let i = 0; i <= clickedIndex; i++) {
                                 monthlyChks[i].checked = true;
+                                // যে যে মাস সিলেক্ট হলো, সে মাসের কোর্স এক্টিভেশন ফি থাকলে সেটাও অটো সিলেক্ট হবে
+                                const mTag = monthlyChks[i].dataset.monthTag;
+                                if (mTag) {
+                                    const matchedAct = document.querySelector('.step1-chk:not(:disabled)[data-is-activation="1"][data-month-tag="' + mTag + '"]');
+                                    if (matchedAct && !matchedAct.checked) {
+                                        matchedAct.checked = true;
+                                    }
+                                }
                             }
                         } else {
                             // কোনো মাস আনসিলেক্ট করলে পরবর্তী মাসগুলো আনসিলেক্ট হবে
@@ -1500,8 +1520,16 @@
                             }
                         }
                     }
+                } else if (isActivation && monthTag) {
+                    // যদি কোনো মাসের বেতন সিলেক্টেড থাকে, তবে সেই মাসের এক্টিভেশন ফি আনসিলেক্ট করা যাবে না
+                    if (!clickedChk.checked) {
+                        const matchedTuition = document.querySelector('.step1-chk:not(:disabled)[data-is-monthly="1"][data-month-tag="' + monthTag + '"]:checked');
+                        if (matchedTuition) {
+                            clickedChk.checked = true;
+                            alert('⚠️ নির্বাচিত মাসের বেতনের সাথে বকেয়া কোর্স এক্টিভেশন ফি পরিশোধ আবশ্যক।');
+                        }
+                    }
                 }
-                // এক্টিভিশন ফি, জরিমানা, ডকুমেন্ট ফি বা অন্যান্য ফি স্বতন্ত্রভাবে সিলেক্ট/আনসিলেক্ট করা যাবে
 
                 updateStep1Total();
             }
