@@ -83,6 +83,34 @@ class ClassSession extends Model
         return $this->subject?->name ?? '—';
     }
 
+    /**
+     * Normalize meeting link to ensure it starts with http:// or https://
+     */
+    public function getMeetingLinkAttribute($value): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+        $val = trim($value);
+        if (!preg_match('/^https?:\/\//i', $val)) {
+            return 'https://' . $val;
+        }
+        return $val;
+    }
+
+    public function setMeetingLinkAttribute($value): void
+    {
+        if (!empty($value)) {
+            $val = trim($value);
+            if (!preg_match('/^https?:\/\//i', $val)) {
+                $val = 'https://' . $val;
+            }
+            $this->attributes['meeting_link'] = $val;
+        } else {
+            $this->attributes['meeting_link'] = null;
+        }
+    }
+
     /** Resolved batch name */
     public function getBatchNameAttribute(): string
     {

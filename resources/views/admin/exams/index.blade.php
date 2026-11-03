@@ -337,7 +337,7 @@
                 <span class="modal-title">Schedule New Exam</span>
                 <button class="modal-close" onclick="closeModal('addExamModal')">&times;</button>
             </div>
-            <form method="POST" action="{{ route('admin.exams.store') }}">
+            <form method="POST" action="{{ route('admin.exams.store') }}" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="form-group">
@@ -510,7 +510,7 @@
                 <span class="modal-title" id="editModalTitle">মূল্যায়ন কাঠামো ও তথ্য পরিবর্তন</span>
                 <button class="modal-close" onclick="closeModal('editExamModal')">&times;</button>
             </div>
-            <form method="POST" id="editExamForm" action="">
+            <form method="POST" id="editExamForm" action="" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
@@ -707,6 +707,15 @@
             }
         }
 
+        const pdfPreview = document.getElementById('edit_written_pdf_preview');
+        const pdfLink = document.getElementById('edit_written_pdf_link');
+        if (exam.written_question_pdf) {
+            pdfPreview.style.display = 'flex';
+            pdfLink.href = '{{ asset('storage') }}/' + exam.written_question_pdf;
+        } else {
+            pdfPreview.style.display = 'none';
+            pdfLink.href = '#';
+        }
         calcAssessmentMarks('edit');
         openModal('editExamModal');
     }

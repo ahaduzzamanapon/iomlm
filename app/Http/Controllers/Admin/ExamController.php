@@ -150,6 +150,11 @@ class ExamController extends Controller
         $startDatetime = $startTime ? "{$examDate} {$startTime}:00" : "{$examDate} 00:00:00";
         $endDatetime   = $endTime ? "{$endDate} {$endTime}:00" : "{$endDate} 23:59:59";
 
+        $pdfPath = null;
+        if ($request->hasFile('written_question_pdf')) {
+            $pdfPath = $request->file('written_question_pdf')->store('exams/written_pdfs', 'public');
+        }
+
         Exam::create([
             'subject_id'       => $validated['subject_id'],
             'title'            => $validated['title'],
@@ -169,6 +174,7 @@ class ExamController extends Controller
             'mcq_marks'        => $mcqMarks,
             'has_written'      => $hasWritten,
             'written_marks'    => $writtenMarks,
+            'written_question_pdf' => $pdfPath,
             'has_tamrin'       => $hasTamrin,
             'tamrin_marks'     => $tamrinMarks,
             'has_viva'         => $hasViva,
@@ -330,6 +336,18 @@ class ExamController extends Controller
             }
             if ($request->filled('status')) {
                 $updateData['status'] = $request->input('status');
+            }
+
+            if ($request->hasFile('written_question_pdf')) {
+                if ($exam->written_question_pdf && \Illuminate\Support\Facades\Storage::disk('public')->exists($exam->written_question_pdf)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($exam->written_question_pdf);
+                }
+                $updateData['written_question_pdf'] = $request->file('written_question_pdf')->store('exams/written_pdfs', 'public');
+            } elseif ($request->boolean('remove_written_pdf')) {
+                if ($exam->written_question_pdf && \Illuminate\Support\Facades\Storage::disk('public')->exists($exam->written_question_pdf)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($exam->written_question_pdf);
+                }
+                $updateData['written_question_pdf'] = null;
             }
 
             $exam->update($updateData);

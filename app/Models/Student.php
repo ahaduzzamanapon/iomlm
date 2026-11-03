@@ -27,7 +27,7 @@ class Student extends Model
     protected static function booted()
     {
         static::creating(function ($student) {
-            if (empty($student->temporary_password)) {
+            if (empty($student->temporary_password) && \Illuminate\Support\Facades\Schema::hasColumn('students', 'temporary_password')) {
                 $student->temporary_password = self::generateDefaultPassword();
             }
         });
@@ -104,6 +104,30 @@ class Student extends Model
     public function enrollments()
     {
         return $this->hasMany(Enrollment::class, 'student_id');
+    }
+
+    public function batch()
+    {
+        return $this->hasOneThrough(
+            Batch::class,
+            Enrollment::class,
+            'student_id',
+            'id',
+            'id',
+            'batch_id'
+        );
+    }
+
+    public function course()
+    {
+        return $this->hasOneThrough(
+            Course::class,
+            Enrollment::class,
+            'student_id',
+            'id',
+            'id',
+            'course_id'
+        );
     }
 
     public function admissionForms()

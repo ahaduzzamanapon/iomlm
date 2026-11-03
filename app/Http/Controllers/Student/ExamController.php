@@ -439,6 +439,8 @@ class ExamController extends Controller
                 ->with('error', 'আপনার পরীক্ষার নির্ধারিত সময়সীমা অতিবাহিত হয়ে গেছে। প্রশ্নপত্র স্বয়ংক্রিয়ভাবে জমা (Auto-submitted) হয়েছে।');
         }
 
+        $savedAnswers = \App\Models\ExamAnswer::where('submission_id', $submission->id)->get()->keyBy('question_id');
+
         return view('student.exams.take', compact('exam', 'submission', 'savedAnswers', 'remainingSeconds'));
     }
 

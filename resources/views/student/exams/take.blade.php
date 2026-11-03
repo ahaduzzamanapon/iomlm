@@ -5,8 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>পরীক্ষা — {{ $exam->title }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js">
+    window.switchExamTab = function(tab) {
+        const mcqWrapper = document.getElementById("mcqSectionWrapper");
+        const writtenWrapper = document.getElementById("writtenSectionWrapper");
+        const btnMcq = document.getElementById("tabBtnMcq");
+        const btnWritten = document.getElementById("tabBtnWritten");
+
+        if (tab === "mcq") {
+            if (mcqWrapper) mcqWrapper.style.display = "block";
+            if (writtenWrapper) writtenWrapper.style.display = "none";
+            if (btnMcq) {
+                btnMcq.style.background = "#2563eb";
+                btnMcq.style.color = "#fff";
+                btnMcq.style.border = "none";
+            }
+            if (btnWritten) {
+                btnWritten.style.background = "#fff";
+                btnWritten.style.color = "#64748b";
+                btnWritten.style.border = "1px solid #cbd5e1";
+            }
+        } else {
+            if (mcqWrapper) mcqWrapper.style.display = "none";
+            if (writtenWrapper) writtenWrapper.style.display = "block";
+            if (btnMcq) {
+                btnMcq.style.background = "#fff";
+                btnMcq.style.color = "#64748b";
+                btnMcq.style.border = "1px solid #cbd5e1";
+            }
+            if (btnWritten) {
+                btnWritten.style.background = "#db2777";
+                btnWritten.style.color = "#fff";
+                btnWritten.style.border = "none";
+            }
+        }
+    };
+</script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);">
+    window.switchExamTab = function(tab) {
+        const mcqWrapper = document.getElementById("mcqSectionWrapper");
+        const writtenWrapper = document.getElementById("writtenSectionWrapper");
+        const btnMcq = document.getElementById("tabBtnMcq");
+        const btnWritten = document.getElementById("tabBtnWritten");
+
+        if (tab === "mcq") {
+            if (mcqWrapper) mcqWrapper.style.display = "block";
+            if (writtenWrapper) writtenWrapper.style.display = "none";
+            if (btnMcq) {
+                btnMcq.style.background = "#2563eb";
+                btnMcq.style.color = "#fff";
+                btnMcq.style.border = "none";
+            }
+            if (btnWritten) {
+                btnWritten.style.background = "#fff";
+                btnWritten.style.color = "#64748b";
+                btnWritten.style.border = "1px solid #cbd5e1";
+            }
+        } else {
+            if (mcqWrapper) mcqWrapper.style.display = "none";
+            if (writtenWrapper) writtenWrapper.style.display = "block";
+            if (btnMcq) {
+                btnMcq.style.background = "#fff";
+                btnMcq.style.color = "#64748b";
+                btnMcq.style.border = "1px solid #cbd5e1";
+            }
+            if (btnWritten) {
+                btnWritten.style.background = "#db2777";
+                btnWritten.style.color = "#fff";
+                btnWritten.style.border = "none";
+            }
+        }
+    };
+</script>
 
     <style>
         * { box-sizing: border-box; }
@@ -207,11 +277,27 @@
             @php
                 $mcqQuestions     = $exam->examQuestions->filter(fn($eq) => $eq->question?->question_type === 'MCQ');
                 $writtenQuestions = $exam->examQuestions->filter(fn($eq) => $eq->question?->question_type === 'WRITTEN');
+                $hasBoth = $mcqQuestions->count() > 0 && ($writtenQuestions->count() > 0 || !empty($exam->written_question_pdf));
                 $qSerial = 0;
             @endphp
 
+            {{-- Section Navigation Tabs (When exam has both MCQ & Written) --}}
+            @if($hasBoth)
+            <div style="display:flex;gap:12px;margin-bottom:20px;background:#f8fafc;padding:8px 12px;border-radius:12px;border:1px solid #e2e8f0;font-family:'Kalpurush',sans-serif">
+                <button type="button" id="tabBtnMcq" onclick="switchExamTab('mcq')"
+                        style="flex:1;padding:10px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;background:#2563eb;color:#fff;transition:all 0.2s">
+                    <i class="fa-solid fa-list-check"></i> ১. বহুনির্বাচনী প্রশ্ন (MCQ) — {{ $mcqQuestions->count() }}টি
+                </button>
+                <button type="button" id="tabBtnWritten" onclick="switchExamTab('written')"
+                        style="flex:1;padding:10px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;background:#fff;color:#64748b;border:1px solid #cbd5e1;transition:all 0.2s">
+                    <i class="fa-solid fa-pen-nib" style="color:#db2777"></i> ২. লিখিত পরীক্ষা (Written) {{ $writtenQuestions->count() > 0 ? "— {$writtenQuestions->count()}টি" : '' }}
+                </button>
+            </div>
+            @endif
+
             {{-- MCQ Section --}}
             @if($mcqQuestions->count() > 0)
+            <div id="mcqSectionWrapper">
                 <div class="section-label">বহুনির্বাচনী প্রশ্ন (MCQ) — {{ $mcqQuestions->count() }}টি</div>
 
                 @foreach($mcqQuestions as $eq)
@@ -242,10 +328,40 @@
                     </div>
                 </div>
                 @endforeach
+                            @if($hasBoth)
+                <div style="text-align:right;margin-top:16px;margin-bottom:20px">
+                    <button type="button" class="btn btn-outline" onclick="switchExamTab('written')" style="font-family:'Kalpurush',sans-serif;color:#db2777;border-color:#f472b6;background:#fff">
+                        লিখিত অংশে যান (Go to Written) <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+                @endif
+            </div>
             @endif
 
             {{-- Written Section --}}
-            @if($writtenQuestions->count() > 0)
+            @if($writtenQuestions->count() > 0 || !empty($exam->written_question_pdf))
+            <div id="writtenSectionWrapper" style="{{ ($hasBoth && $mcqQuestions->count() > 0) ? 'display:none' : '' }}">
+                {{-- Prominent Written Question PDF Banner --}}
+                @if(!empty($exam->written_question_pdf))
+                <div style="background:#fdf2f8;border:2px dashed #f472b6;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-family:'Kalpurush',sans-serif">
+                    <div>
+                        <div style="font-size:15px;font-weight:700;color:#9d174d;display:flex;align-items:center;gap:8px">
+                            <i class="fa-solid fa-file-pdf" style="font-size:24px;color:#ef4444"></i> লিখিত পরীক্ষার মূল প্রশ্নপত্র (Question Paper PDF)
+                        </div>
+                        <div style="font-size:12px;color:#64748b;margin-top:4px">
+                            প্রশ্নপত্রটি দেখে বা ডাউনলোড করে খাতায় উত্তর লিখুন এবং পাতার ছবিগুলো নিচে আপলোড করুন।
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:10px">
+                        <a href="{{ asset('storage/' . $exam->written_question_pdf) }}" target="_blank" class="btn btn-outline btn-sm" style="background:#fff;color:#be185d;border-color:#f472b6;font-size:12px">
+                            <i class="fa-solid fa-eye"></i> প্রশ্নপত্র দেখুন
+                        </a>
+                        <a href="{{ asset('storage/' . $exam->written_question_pdf) }}" download class="btn btn-primary btn-sm" style="background:#db2777;border-color:#db2777;font-size:12px">
+                            <i class="fa-solid fa-download"></i> PDF ডাউনলোড করুন
+                        </a>
+                    </div>
+                </div>
+                @endif
                 <div class="section-label written-section">রচনামূলক প্রশ্ন (Written) — {{ $writtenQuestions->count() }}টি</div>
                 <div style="background:#fdf2f8;border:1px solid #fbcfe8;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:13px;color:#9d174d">
                     <strong>নির্দেশনা:</strong> নিচের প্রশ্নগুলোর উত্তর কাগজে লিখুন এবং ছবি তুলে প্রতিটি প্রশ্নের নিচে Upload করুন।
@@ -289,6 +405,14 @@
                     @endif
                 </div>
                 @endforeach
+                @if($hasBoth)
+                <div style="text-align:left;margin-top:16px;margin-bottom:20px">
+                    <button type="button" class="btn btn-outline" onclick="switchExamTab('mcq')" style="font-family:'Kalpurush',sans-serif;color:#2563eb;border-color:#93c5fd;background:#fff">
+                        <i class="fa-solid fa-arrow-left"></i> বহুনির্বাচনী (MCQ) অংশে ফিরে যান
+                    </button>
+                </div>
+                @endif
+            </div>
             @endif
 
             {{-- Submit Zone --}}
@@ -421,6 +545,41 @@
             document.getElementById('examForm').submit();
         }
     }
-    </script>
+    
+    window.switchExamTab = function(tab) {
+        const mcqWrapper = document.getElementById("mcqSectionWrapper");
+        const writtenWrapper = document.getElementById("writtenSectionWrapper");
+        const btnMcq = document.getElementById("tabBtnMcq");
+        const btnWritten = document.getElementById("tabBtnWritten");
+
+        if (tab === "mcq") {
+            if (mcqWrapper) mcqWrapper.style.display = "block";
+            if (writtenWrapper) writtenWrapper.style.display = "none";
+            if (btnMcq) {
+                btnMcq.style.background = "#2563eb";
+                btnMcq.style.color = "#fff";
+                btnMcq.style.border = "none";
+            }
+            if (btnWritten) {
+                btnWritten.style.background = "#fff";
+                btnWritten.style.color = "#64748b";
+                btnWritten.style.border = "1px solid #cbd5e1";
+            }
+        } else {
+            if (mcqWrapper) mcqWrapper.style.display = "none";
+            if (writtenWrapper) writtenWrapper.style.display = "block";
+            if (btnMcq) {
+                btnMcq.style.background = "#fff";
+                btnMcq.style.color = "#64748b";
+                btnMcq.style.border = "1px solid #cbd5e1";
+            }
+            if (btnWritten) {
+                btnWritten.style.background = "#db2777";
+                btnWritten.style.color = "#fff";
+                btnWritten.style.border = "none";
+            }
+        }
+    };
+</script>
 </body>
 </html>

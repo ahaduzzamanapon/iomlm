@@ -245,6 +245,12 @@
                 </p>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+                @if($selectedBatch)
+                <button type="button" onclick="openBulkMarksModal()"
+                        style="background:#047857; border:1px solid #059669; color:#fff; padding:9px 16px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(4,120,87,0.3)">
+                    <i class="fa-solid fa-file-arrow-up"></i> বাল্ক মার্ক আপলোড (CSV/এক্সেল)
+                </button>
+                @endif
                 {{-- Publish / Unpublish Toggle Form --}}
                 @if($selectedBatch)
                 <form method="POST" action="{{ route('admin.result-book.publish-toggle') }}" style="display:inline-block">
@@ -810,6 +816,21 @@
                     <button type="submit" onclick="return confirm('আপনি কি এই বিষয়ের সকল শিক্ষার্থীর সমাপ্ত সেশনের উপস্থিতি হিসেব করে নম্বর আপডেট করতে চান?')"
                             style="background:#2563eb; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:800; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px">
                         <i class="fa-solid fa-bolt"></i> অটো এটেন্ডেন্স জেনারেট করুন
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.result-book.auto-assignment') }}" style="margin:0">
+                    @csrf
+                    <input type="hidden" name="batch_id" value="{{ $selectedBatch->id }}">
+                    <input type="hidden" name="subject_id" value="{{ $selectedSubject->id }}">
+                    @if($isSemesterBased && $selectedSemester)
+                        <input type="hidden" name="semester_id" value="{{ $selectedSemester->id }}">
+                    @endif
+                    @if($selectedExam)
+                        <input type="hidden" name="exam_id" value="{{ $selectedExam->id }}">
+                    @endif
+                    <button type="submit" onclick="return confirm('আপনি কি শিক্ষার্থীদের জমাকৃত অ্যাসাইনমেন্ট/তামরিন নম্বর স্বয়ংক্রিয়ভাবে রেজাল্ট শীটে সিঙ্ক করতে চান?')"
+                            style="background:#059669; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:800; font-size:12.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:'Kalpurush',sans-serif">
+                        <i class="fa-solid fa-file-signature"></i> অটো অ্যাসাইনমেন্ট মার্ক সিঙ্ক করুন
                     </button>
                 </form>
             </div>
@@ -1399,18 +1420,14 @@
     {{-- ═════════════════════════════════════════════════════════════════ --}}
     {{-- MODAL 3: BULK TAMRIN & ATTENDANCE MARKS UPLOAD MODAL              --}}
     {{-- ═════════════════════════════════════════════════════════════════ --}}
-    @if($selectedBatch && $selectedSubject)
+    @if($selectedBatch)
     <div class="modal-backdrop" id="bulkManualMarksModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); z-index:9999; justify-content:center; align-items:center; padding:16px; font-family:'Kalpurush', sans-serif" onclick="if(event.target===this) closeBulkMarksModal()">
-        <div style="background:#fff; border-radius:16px; width:100%; max-width:680px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; border:1px solid #e2e8f0; animation:modalFadeIn .2s ease-out">
+        <div style="background:#fff; border-radius:16px; width:100%; max-width:720px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; border:1px solid #e2e8f0; animation:modalFadeIn .2s ease-out">
             <form method="POST" action="{{ route('admin.result-book.manual-marks-import') }}" enctype="multipart/form-data" id="bulkManualMarksForm">
                 @csrf
                 <input type="hidden" name="batch_id" value="{{ $selectedBatch->id }}">
-                <input type="hidden" name="subject_id" value="{{ $selectedSubject->id }}">
                 @if($isSemesterBased && $selectedSemester)
                     <input type="hidden" name="semester_id" value="{{ $selectedSemester->id }}">
-                @endif
-                @if($selectedExam)
-                    <input type="hidden" name="exam_id" value="{{ $selectedExam->id }}">
                 @endif
 
                 {{-- Modal Header --}}
@@ -1421,10 +1438,9 @@
                             পরীক্ষাভিত্তিক তামরিন ও এটেন্ডেন্স মার্ক বাল্ক আপলোড
                         </div>
                         <div style="font-size:12px; color:#64748b; margin-top:3px">
-                            @if($selectedExam)
-                                <strong style="color:#047857">{{ $selectedExam->title }}</strong> পরীক্ষা &middot; বিষয়: {{ $selectedSubject->name }}
-                            @else
-                                <strong style="color:#047857">সমন্বিত সেমিস্টার তামরিন ও উপস্থিতি</strong> &middot; বিষয়: {{ $selectedSubject->name }}
+                            ব্যাচ: <strong style="color:#047857">{{ $selectedBatch->name }}</strong>
+                            @if($isSemesterBased && $selectedSemester)
+                                &middot; সেমিস্টার: <strong>{{ $selectedSemester->name }}</strong>
                             @endif
                         </div>
                     </div>
@@ -1435,22 +1451,52 @@
 
                 {{-- Modal Body --}}
                 <div style="padding:22px; max-height:calc(85vh - 140px); overflow-y:auto">
-                    {{-- Notice & Template Download Prompt --}}
+                    {{-- Subject & Exam Selection Grid --}}
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0">
+                        <div>
+                            <label style="font-weight:700; font-size:12.5px; color:#1e293b; margin-bottom:4px; display:block">
+                                বিষয় নির্বাচন করুন <span style="color:#ef4444">*</span>
+                            </label>
+                            <select name="subject_id" id="bulkModalSubjectSelect" class="form-control" style="font-weight:700; height:38px; border-radius:8px; font-family:'Kalpurush',sans-serif" required onchange="onBulkSubjectOrExamChange()">
+                                @foreach($subjects as $sub)
+                                    <option value="{{ $sub->id }}" {{ ($selectedSubject?->id == $sub->id) ? 'selected' : '' }}>
+                                        {{ $sub->name }} ({{ $sub->code }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-weight:700; font-size:12.5px; color:#1e293b; margin-bottom:4px; display:block">
+                                পরীক্ষা নির্বাচন করুন (ঐচ্ছিক)
+                            </label>
+                            <select name="exam_id" id="bulkModalExamSelect" class="form-control" style="font-weight:700; height:38px; border-radius:8px; font-family:'Kalpurush',sans-serif" onchange="onBulkSubjectOrExamChange()">
+                                <option value="" data-type="all">-- সকল পরীক্ষা (সমন্বিত তামরিন ও সেমিস্টার উপস্থিতি) --</option>
+                                @foreach($subjectExams as $ex)
+                                    <option value="{{ $ex->id }}" data-subject-id="{{ $ex->subject_id }}" {{ ($selectedExam?->id == $ex->id) ? 'selected' : '' }}>
+                                        {{ $ex->title }} ({{ $ex->type ?? 'Exam' }}) — পূর্ণমান: {{ $ex->full_marks }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Notice & Dynamic Template Download Prompt --}}
                     <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px">
                         <div>
                             <div style="font-size:13px; font-weight:800; color:#166534">
                                 <i class="fa-solid fa-circle-info"></i> রেডিমেড রোল সহ নমুনা টেমপ্লেট
                             </div>
-                            <div style="font-size:11.5px; color:#15803d; margin-top:2px">
-                                বর্তমান ব্যাচের শিক্ষার্থীদের রোল ও নামসহ তৈরি করা CSV ডাউনলোড করে এক্সেল দিয়ে পূরণ করতে পারেন।
+                            <div style="font-size:11.5px; color:#15803d; margin-top:2px" id="bulkTemplateHint">
+                                নির্বাচিত বিষয় ও পরীক্ষার শিক্ষার্থীদের রোল এবং নামসহ প্রস্তুতকৃত CSV ডাউনলোড করে এক্সেল দিয়ে পূরণ করতে পারেন।
                             </div>
                         </div>
                         <a href="{{ route('admin.result-book.manual-marks-template', [
                                 'batch_id' => $selectedBatch->id,
-                                'subject_id' => $selectedSubject->id,
+                                'subject_id' => $selectedSubject?->id ?? ($subjects->first()?->id ?? 1),
                                 'semester_id' => $isSemesterBased && $selectedSemester ? $selectedSemester->id : null,
                                 'exam_id' => $selectedExam ? $selectedExam->id : null,
                             ]) }}" 
+                           id="bulkModalTemplateDownloadBtn"
                            class="btn btn-sm"
                            style="background:#047857; color:#fff; border:none; border-radius:8px; font-weight:800; font-size:12px; padding:6px 14px; display:inline-flex; align-items:center; gap:6px">
                             <i class="fa-solid fa-download"></i> টেমপ্লেট ডাউনলোড
@@ -1513,19 +1559,24 @@
                     <div style="margin-top:18px; padding:12px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; font-size:11.5px; color:#475569">
                         <strong style="color:#0f172a; display:block; margin-bottom:4px">
                             <i class="fa-solid fa-list-check" style="color:#047857"></i> নির্ধারিত কলামের ক্রম (Expected Columns):
+                            <span id="bulkExpectedColBadge" style="font-size:11px; font-weight:700; color:#047857; margin-left:6px; background:#ecfdf5; padding:2px 8px; border-radius:6px; border:1px solid #a7f3d0">
+                                {{ $selectedExam ? 'পরীক্ষাভিত্তিক তামরিন মোড' : 'সমন্বিত সেমিস্টার তামরিন মোড' }}
+                            </span>
                         </strong>
-                        @if($selectedExam)
-                            <code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">
-                                student_code, student_name, tamrin_marks, attendance_mark, remarks
-                            </code>
-                            <div style="margin-top:4px; color:#64748b">
-                                (ঐচ্ছিক: MCQ ও লিখিত পরীক্ষার ক্ষেত্রে <code style="font-size:10.5px">mcq_marks, written_marks, viva_marks</code> কলামও যোগ করতে পারেন)
-                            </div>
-                        @else
-                            <code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">
-                                student_code, student_name, ct_tamrin, midterm_tamrin, final_tamrin, attendance_converted, remarks
-                            </code>
-                        @endif
+                        <div id="bulkExpectedColHint">
+                            @if($selectedExam)
+                                <code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">
+                                    student_code, student_name, tamrin_marks, mcq_marks, written_marks, viva_marks, attendance_mark, remarks
+                                </code>
+                                <div style="margin-top:4px; color:#64748b">
+                                    (ঐচ্ছিক: MCQ ও লিখিত পরীক্ষার ক্ষেত্রে <code style="font-size:10.5px">mcq_marks, written_marks, viva_marks</code> কলামও যোগ করতে পারেন)
+                                </div>
+                            @else
+                                <code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">
+                                    student_code, student_name, ct_tamrin, midterm_tamrin, final_tamrin, attendance_converted, remarks
+                                </code>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
@@ -1704,11 +1755,18 @@
                 m.style.display = 'none';
                 document.body.style.overflow = '';
             }
+        };
+
         window.openBulkMarksModal = function() {
             const m = document.getElementById('bulkManualMarksModal');
             if (m) {
                 m.style.setProperty('display', 'flex', 'important');
                 document.body.style.overflow = 'hidden';
+                if (typeof window.onBulkSubjectOrExamChange === 'function') {
+                    window.onBulkSubjectOrExamChange();
+                }
+            } else {
+                alert('অনুগ্রহ করে প্রথমে কোর্স ও ব্যাচ নির্বাচন করুন।');
             }
         };
 
@@ -1717,6 +1775,55 @@
             if (m) {
                 m.style.setProperty('display', 'none', 'important');
                 document.body.style.overflow = '';
+            }
+        };
+
+        window.onBulkSubjectOrExamChange = function() {
+            const subSelect = document.getElementById('bulkModalSubjectSelect');
+            const examSelect = document.getElementById('bulkModalExamSelect');
+            const dlBtn = document.getElementById('bulkModalTemplateDownloadBtn');
+            const colHint = document.getElementById('bulkExpectedColHint');
+            const examBadge = document.getElementById('bulkExpectedColBadge');
+
+            if (!subSelect || !dlBtn) return;
+            const subId = subSelect.value;
+            const examId = examSelect ? examSelect.value : '';
+
+            // Filter exam options based on selected subject if data-subject-id exists
+            if (examSelect) {
+                const opts = examSelect.querySelectorAll('option');
+                opts.forEach(opt => {
+                    if (!opt.value) return; // Keep "All" option visible
+                    const exSubId = opt.getAttribute('data-subject-id');
+                    if (!exSubId || exSubId == subId) {
+                        opt.style.display = '';
+                    } else {
+                        opt.style.display = 'none';
+                        if (opt.selected) opt.selected = false;
+                    }
+                });
+            }
+
+            // Update template download href
+            const baseUrl = "{{ route('admin.result-book.manual-marks-template') }}";
+            let url = baseUrl + "?batch_id={{ $selectedBatch?->id }}&subject_id=" + encodeURIComponent(subId);
+            @if($isSemesterBased && $selectedSemester)
+                url += "&semester_id={{ $selectedSemester->id }}";
+            @endif
+            if (examId) {
+                url += "&exam_id=" + encodeURIComponent(examId);
+            }
+            dlBtn.href = url;
+
+            // Update column guide
+            if (colHint) {
+                if (examId) {
+                    colHint.innerHTML = '<code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">student_code, student_name, tamrin_marks, mcq_marks, written_marks, viva_marks, attendance_mark, remarks</code><div style="margin-top:4px; color:#64748b">(ঐচ্ছিক: MCQ ও লিখিত পরীক্ষার ক্ষেত্রে <code style="font-size:10.5px">mcq_marks, written_marks, viva_marks</code> কলামও যোগ করতে পারেন)</div>';
+                    if (examBadge) examBadge.textContent = 'পরীক্ষাভিত্তিক তামরিন মোড';
+                } else {
+                    colHint.innerHTML = '<code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; display:inline-block">student_code, student_name, ct_tamrin, midterm_tamrin, final_tamrin, attendance_converted, remarks</code>';
+                    if (examBadge) examBadge.textContent = 'সমন্বিত সেমিস্টার তামরিন মোড';
+                }
             }
         };
 

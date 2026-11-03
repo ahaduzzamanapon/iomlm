@@ -50,7 +50,12 @@ class AssignmentController extends Controller
             ->where('student_id', $student?->id)
             ->first();
 
-        return view('student.assignments.show', compact('assignment', 'submission', 'student'));
+        $appeal = \App\Models\AssignmentAppeal::where('assignment_id', $assignment->id)
+            ->where('student_id', $student?->id)
+            ->latest()
+            ->first();
+
+        return view('student.assignments.show', compact('assignment', 'submission', 'student', 'appeal'));
     }
 
     public function submit(Request $request, Assignment $assignment)
@@ -85,5 +90,35 @@ class AssignmentController extends Controller
             : 'আপনার অ্যাসাইনমেন্ট সফলভাবে জমা দেওয়া হয়েছে।';
 
         return back()->with('success', $msg);
+    }
+
+    public function appeal(Request $request, Assignment $assignment)
+    {
+        $student = $this->student();
+        if (!$student) {
+            return back()->with('error', 'শিক্ষার্থী প্রোফাইল পাওয়া যায়নি।');
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|min:5|max:1000',
+        ]);
+
+        $existing = \App\Models\AssignmentAppeal::where('assignment_id', $assignment->id)
+            ->where('student_id', $student->id)
+            ->where('status', 'PENDING')
+            ->first();
+
+        if ($existing) {
+            return back()->with('info', 'আপনার একটি আবেদন ইতিমধ্যে প্রক্রিয়াধীন রয়েছে। অনুগ্রহ করে অপেক্ষা করুন।');
+        }
+
+        \App\Models\AssignmentAppeal::create([
+            'assignment_id' => $assignment->id,
+            'student_id'    => $student->id,
+            'reason'        => $validated['reason'],
+            'status'        => 'PENDING',
+        ]);
+
+        return back()->with('success', 'দেরিতে জমা দেওয়ার আবেদন সফলভাবে পাঠানো হয়েছে। কর্তৃপক্ষ অনুমোদন করলে আপনি কোনো ফি ছাড়াই জমা দিতে পারবেন।');
     }
 }

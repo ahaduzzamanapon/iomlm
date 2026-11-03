@@ -77,7 +77,7 @@ class AssignmentController extends Controller
 
     public function show(Assignment $assignment)
     {
-        $assignment->load(['subject', 'batch', 'teacher', 'submissions.student']);
+        $assignment->load(['subject', 'batch', 'teacher', 'submissions.student', 'appeals.student']);
         return view('admin.assignments.show', compact('assignment'));
     }
 
@@ -176,5 +176,27 @@ class AssignmentController extends Controller
         ]);
 
         return back()->with('success', "শিক্ষার্থী {$submission->student?->name}-এর সাবমিশন সফলভাবে ওভাররাইড করা হয়েছে।");
+    }
+
+    public function approveAppeal(\App\Models\AssignmentAppeal $appeal)
+    {
+        $appeal->update([
+            'status'      => 'APPROVED',
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        return back()->with('success', 'দেরিতে অ্যাসাইনমেন্ট জমা দেওয়ার আবেদন সফলভাবে অনুমোদন করা হয়েছে (কোনো ফি ছাড়া)।');
+    }
+
+    public function rejectAppeal(\App\Models\AssignmentAppeal $appeal)
+    {
+        $appeal->update([
+            'status'      => 'REJECTED',
+            'reviewed_by' => auth()->id(),
+            'reviewed_at' => now(),
+        ]);
+
+        return back()->with('info', 'দেরিতে অ্যাসাইনমেন্ট জমা দেওয়ার আবেদন বাতিল করা হয়েছে।');
     }
 }

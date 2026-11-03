@@ -12,7 +12,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('payments')) {
+        if (Schema::hasTable('payments') && DB::getDriverName() === 'mysql') {
             // Modify payment_method column from ENUM to VARCHAR(50) so methods like 'Bank', 'bKash', etc. are accepted
             DB::statement("ALTER TABLE `payments` MODIFY `payment_method` VARCHAR(50) NOT NULL DEFAULT 'CASH'");
         }
@@ -23,7 +23,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (Schema::hasTable('payments')) {
+        if (Schema::hasTable('payments') && DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE `payments` MODIFY `payment_method` ENUM('CASH', 'BKASH', 'NAGAD', 'ROCKET', 'BANK_TRANSFER', 'CARD', 'ONLINE') NOT NULL DEFAULT 'CASH'");
         }
     }

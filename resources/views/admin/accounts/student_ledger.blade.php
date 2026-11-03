@@ -308,7 +308,7 @@
                                     @else
                                         <div style="display:inline-flex;align-items:center;gap:6px">
                                             <span id="adminPartDueVal_{{ $p['sl'] }}" style="font-weight:700;color:#0f172a">{{ number_format($p['due'], 0) }}</span>
-                                            @if(($p['paid_amt'] ?? 0) > 0)
+                                            @if(($p['paid_amt'] ?? 0) > 0 && ($p['due'] ?? 0) < ($p['amount'] ?? ($p['due'] + $p['paid_amt'])) && empty($p['is_paid']))
                                                 <span style="font-size:11px;color:#059669;background:#ecfdf5;padding:1px 6px;border-radius:4px;border:1px solid #a7f3d0;font-weight:600" title="ইতোমধ্যে পরিশোধিত: ৳{{ number_format($p['paid_amt'], 0) }}">
                                                     (পেইড: {{ number_format($p['paid_amt'], 0) }})
                                                 </span>
@@ -1098,6 +1098,16 @@
                         </div>
                     </div>
 
+                    <div id="admin_pe_reset_paid_wrap" style="display:none;margin-bottom:14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px">
+                        <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#991b1b;font-weight:700;cursor:pointer">
+                            <input type="checkbox" id="admin_pe_reset_paid" name="reset_paid" value="1" style="width:16px;height:16px;accent-color:#dc2626;margin-top:2px">
+                            <span>পূর্বে পরিশোধিত টাকা (<span id="admin_pe_reset_paid_amount">৳0</span>) বাতিল করে সম্পূর্ণ বকেয়া (Unpaid) করুন</span>
+                        </label>
+                        <div style="font-size:11px;color:#b91c1c;margin-top:4px;margin-left:24px">
+                            * এটি চেক করলে পূর্বের ভুল পেমেন্ট বাতিল হয়ে সম্পূর্ণ টাকা বকেয়া ও আনপেইড তালিকায় যুক্ত হবে।
+                        </div>
+                    </div>
+
                     <div style="margin-bottom:14px">
                         <label style="display:block;font-size:12.5px;font-weight:700;color:#1e293b;margin-bottom:6px">
                             নতুন টাকার পরিমাণ (New Due Amount - ৳) <span style="color:#dc2626">*</span>:
@@ -1526,6 +1536,19 @@
             }
         }
 
+        const resetWrap = document.getElementById('admin_pe_reset_paid_wrap');
+        const resetAmtSpan = document.getElementById('admin_pe_reset_paid_amount');
+        const resetChk = document.getElementById('admin_pe_reset_paid');
+        if (resetWrap && resetChk) {
+            resetChk.checked = false;
+            if (paidAmt && Number(paidAmt) > 0) {
+                if (resetAmtSpan) resetAmtSpan.innerText = '৳' + Number(paidAmt).toLocaleString('en-BD');
+                resetWrap.style.display = 'block';
+            } else {
+                resetWrap.style.display = 'none';
+            }
+        }
+
         document.getElementById('admin_pe_new_amount').value = currentDue;
         document.getElementById('admin_pe_remarks').value = '';
 
@@ -1630,7 +1653,8 @@
                 new_amount: newAmount,
                 remarks: remarks,
                 position: position,
-                relative_to: relativeTo
+                relative_to: relativeTo,
+                reset_paid: document.getElementById('admin_pe_reset_paid')?.checked || false
             })
         })
         .then(r => r.json())

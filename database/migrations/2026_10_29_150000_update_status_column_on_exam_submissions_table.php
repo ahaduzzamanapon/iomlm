@@ -13,7 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         // Alter status column to VARCHAR(50) so all submission statuses including AUTO_SUBMITTED_TIMEOUT are supported
-        DB::statement("ALTER TABLE `exam_submissions` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT 'SUBMITTED'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE `exam_submissions` MODIFY COLUMN `status` VARCHAR(50) NOT NULL DEFAULT 'SUBMITTED'");
+        }
     }
 
     /**
@@ -21,6 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE `exam_submissions` MODIFY COLUMN `status` ENUM('IN_PROGRESS', 'SUBMITTED', 'AUTO_SUBMITTED_VIOLATION') NOT NULL DEFAULT 'SUBMITTED'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE `exam_submissions` MODIFY COLUMN `status` ENUM('IN_PROGRESS', 'SUBMITTED', 'AUTO_SUBMITTED_VIOLATION') NOT NULL DEFAULT 'SUBMITTED'");
+        }
     }
 };

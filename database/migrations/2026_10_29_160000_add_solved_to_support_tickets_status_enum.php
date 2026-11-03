@@ -12,7 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("ALTER TABLE support_tickets MODIFY COLUMN status ENUM('PENDING', 'IN_PROGRESS', 'SOLVED', 'CLOSED') NOT NULL DEFAULT 'PENDING'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE support_tickets MODIFY COLUMN status ENUM('PENDING', 'IN_PROGRESS', 'SOLVED', 'CLOSED') NOT NULL DEFAULT 'PENDING'");
+        }
     }
 
     /**
@@ -20,6 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("ALTER TABLE support_tickets MODIFY COLUMN status ENUM('PENDING', 'IN_PROGRESS', 'CLOSED') NOT NULL DEFAULT 'PENDING'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE support_tickets MODIFY COLUMN status ENUM('PENDING', 'IN_PROGRESS', 'CLOSED') NOT NULL DEFAULT 'PENDING'");
+        }
     }
 };

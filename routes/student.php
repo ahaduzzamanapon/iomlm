@@ -59,6 +59,7 @@ Route::middleware(['auth', 'role:student,admin,super_admin'])->prefix('student')
         Route::get('assignments',                       [\App\Http\Controllers\Student\AssignmentController::class, 'index'])->name('assignments.index');
         Route::get('assignments/{assignment}',           [\App\Http\Controllers\Student\AssignmentController::class, 'show'])->name('assignments.show');
         Route::post('assignments/{assignment}/submit',   [\App\Http\Controllers\Student\AssignmentController::class, 'submit'])->name('assignments.submit');
+        Route::post('assignments/{assignment}/appeal',   [\App\Http\Controllers\Student\AssignmentController::class, 'appeal'])->name('assignments.appeal');
 
         // Resources
         Route::get('resources', [\App\Http\Controllers\Student\LearningResourceController::class, 'index'])->name('resources.index');

@@ -14,7 +14,9 @@ return new class extends Migration
     {
         if (Schema::hasTable('sent_notifications')) {
             // 1. Change channel from ENUM to VARCHAR(50) to support SMS and multi-channel combinations
-            DB::statement("ALTER TABLE `sent_notifications` MODIFY `channel` VARCHAR(50) NOT NULL DEFAULT 'ALL'");
+            if (DB::getDriverName() === 'mysql') {
+                DB::statement("ALTER TABLE `sent_notifications` MODIFY `channel` VARCHAR(50) NOT NULL DEFAULT 'ALL'");
+            }
 
             // 2. Add sms_message and delivery count columns if not present
             Schema::table('sent_notifications', function (Blueprint $table) {

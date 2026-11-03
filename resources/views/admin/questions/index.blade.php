@@ -371,7 +371,7 @@
                             <select name="batch_id" id="mcq_batch_select" class="form-control">
                                 <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}{{ $b->course ? ' (' . $b->course->name . ')' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -495,7 +495,7 @@
                             <select name="batch_id" id="written_batch_select" class="form-control">
                                 <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}{{ $b->course ? ' (' . $b->course->name . ')' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -594,7 +594,7 @@
                             <select name="batch_id" id="bulk_batch_select" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
                                 <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}{{ $b->course ? ' (' . $b->course->name . ')' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -700,7 +700,7 @@ ANSWER: A</pre>
                             <select name="batch_id" id="aiken_batch_select" class="form-control" style="width:100%;height:40px;border-radius:8px;font-size:13px">
                                 <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}{{ $b->course ? ' (' . $b->course->name . ')' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -798,7 +798,7 @@ ANSWER: A</pre>
                             <select id="edit_batch_id" name="batch_id" class="form-control">
                                 <option value="" data-course-id="">-- সকল ব্যাচের জন্য প্রযোজ্য --</option>
                                 @foreach($batches as $b)
-                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}</option>
+                                    <option value="{{ $b->id }}" data-course-id="{{ $b->course_id }}">{{ $b->name }}{{ $b->course ? ' (' . $b->course->name . ')' : '' }}</option>
                                 @endforeach
                             </select>
                         </div>

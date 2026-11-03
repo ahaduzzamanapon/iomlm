@@ -375,6 +375,7 @@ class ResultBookController extends Controller
                     }
 
                     $rankedStudents = collect($studentsData);
+                    $subjectExams = $selectedSubject ? $exams->where('subject_id', $selectedSubject->id)->values() : $exams->values();
                 }
 
                 // ─── TAB 2: MANUAL MARKING (পরীক্ষাভিত্তিক তামরিন ও সেমিস্টার উপস্থিতি) ─
@@ -1116,11 +1117,6 @@ class ResultBookController extends Controller
                     'student_id'  => $student->id,
                     'subject_id'  => $subjectId,
                     'semester_id' => $semesterId,
-                ],
-                [
-                    'total_full'   => 100,
-                    'credit'       => 3,
-                    'generated_at' => now(),
                 ]
             );
 
@@ -1475,5 +1471,84 @@ class ResultBookController extends Controller
             ])->values(),
             'running_semester_id' => $runningSemesterId,
         ]);
+    }
+
+    /**
+     * Automatically compute and sync assignment marks to FinalMark result sheet
+     */
+    public function autoAssignment(Request $request)
+    {
+        $request->validate([
+            'batch_id'   => 'required|exists:batches,id',
+            'subject_id' => 'required|exists:subjects,id',
+        ]);
+
+        $batchId   = $request->batch_id;
+        $subjectId = $request->subject_id;
+        $examId    = $request->input('exam_id');
+
+        $assignments = \App\Models\Assignment::where('subject_id', $subjectId)
+            ->where(function ($q) use ($batchId) {
+                $q->whereNull('batch_id')->orWhere('batch_id', $batchId);
+            })
+            ->get();
+
+        if ($assignments->isEmpty()) {
+            return back()->with('error', 'এই বিষয় ও ব্যাচের জন্য কোনো অ্যাসাইনমেন্ট পাওয়া যায়নি।');
+        }
+
+        $assignmentIds = $assignments->pluck('id');
+        $finalMarks = FinalMark::where('batch_id', $batchId)->where('subject_id', $subjectId)->get();
+        $updated = 0;
+
+        foreach ($finalMarks as $fm) {
+            $submissions = \App\Models\AssignmentSubmission::whereIn('assignment_id', $assignmentIds)
+                ->where('student_id', $fm->student_id)
+                ->where('status', 'GRADED')
+                ->whereNotNull('obtained_marks')
+                ->get();
+
+            if ($submissions->isEmpty()) {
+                continue;
+            }
+
+            $totalPossible = 0.0;
+            $totalObtained = 0.0;
+            foreach ($submissions as $sub) {
+                $assign = $assignments->firstWhere('id', $sub->assignment_id);
+                $fullM = (float)($assign?->total_marks ?? 100);
+                if ($fullM > 0) {
+                    $totalPossible += $fullM;
+                    $totalObtained += (float)$sub->obtained_marks;
+                }
+            }
+
+            if ($totalPossible > 0) {
+                $selectedExam = $examId ? \App\Models\Exam::find($examId) : null;
+                $targetMarks = 10.0;
+                if ($selectedExam && $selectedExam->has_tamrin && $selectedExam->tamrin_marks > 0) {
+                    $targetMarks = (float)$selectedExam->tamrin_marks;
+                }
+
+                $calculatedMark = round(($totalObtained / $totalPossible) * $targetMarks, 2);
+
+                if ($selectedExam) {
+                    if ($selectedExam->type === 'MIDTERM') {
+                        $fm->recalculate(['midterm_tamrin' => $calculatedMark]);
+                    } elseif ($selectedExam->type === 'FINAL') {
+                        $fm->recalculate(['final_tamrin' => $calculatedMark]);
+                    } else {
+                        $fm->recalculate(['ct_tamrin' => $calculatedMark]);
+                    }
+                } else {
+                    $fm->recalculate(['tamrin_mark' => $calculatedMark]);
+                }
+                $updated++;
+            }
+        }
+
+        FinalMark::recalculateMeritRanks($batchId, $subjectId, $request->input('semester_id'));
+
+        return back()->with('success', "মোট {$updated} জন শিক্ষার্থীর অ্যাসাইনমেন্ট/তামরিন মার্ক সফলভাবে স্বয়ংক্রিয়ভাবে রেজাল্ট শীটে আপডেট করা হয়েছে।");
     }
 }

@@ -416,4 +416,87 @@ class BatchController extends Controller
 
         return back()->with('success', 'শিক্ষার্থীর গ্রুপ আপডেট করা হয়েছে।');
     }
+
+    /**
+     * Bulk allocate group tags (e.g. overflow sisters to brothers zoom room MALE, or roll range).
+     */
+    public function bulkAllocateGroup(Request $request, Batch $batch)
+    {
+        $validated = $request->validate([
+            'gender'       => 'nullable|string|in:MALE,FEMALE,ALL',
+            'target_group' => 'required|string|max:30',
+            'mode'         => 'required|string|in:roll_range,last_count,all',
+            'last_count'   => 'nullable|integer|min:1',
+            'roll_from'    => 'nullable|string|max:50',
+            'roll_to'      => 'nullable|string|max:50',
+        ]);
+
+        $query = $batch->enrollments()
+            ->where('status', 'ACTIVE')
+            ->whereHas('student', function ($sq) use ($validated) {
+                if (!empty($validated['gender']) && $validated['gender'] !== 'ALL') {
+                    $g = strtoupper($validated['gender']);
+                    $sq->where(function ($w) use ($g) {
+                        $w->whereRaw('UPPER(gender) = ?', [$g])
+                          ->orWhere('gender', $g)
+                          ->orWhere('gender', ucfirst(strtolower($g)));
+                    });
+                }
+            });
+
+        $targetValue = ($validated['target_group'] === 'RESET' || $validated['target_group'] === 'NONE')
+            ? null
+            : $validated['target_group'];
+
+        if ($validated['mode'] === 'all') {
+            $updated = $query->update(['group_tag' => $targetValue]);
+            return back()->with('success', "মোট {$updated} জন শিক্ষার্থীর গ্রুপ সফলভাবে আপডেট করা হয়েছে।");
+        }
+
+        if ($validated['mode'] === 'roll_range') {
+            $rollFrom = trim($validated['roll_from'] ?? '');
+            $rollTo   = trim($validated['roll_to'] ?? '');
+
+            $enrollments = $query->with('student')->get()->filter(function ($enr) use ($rollFrom, $rollTo) {
+                $code = (string)($enr->student?->student_code ?? '');
+                if (is_numeric($code) && is_numeric($rollFrom) && is_numeric($rollTo)) {
+                    $numCode = (int)$code;
+                    return $numCode >= (int)$rollFrom && $numCode <= (int)$rollTo;
+                }
+                if (strlen($code) >= 11 && is_numeric(substr($code, 7, 4)) && is_numeric($rollFrom) && is_numeric($rollTo)) {
+                    $serial = (int)substr($code, 7, 4);
+                    return $serial >= (int)$rollFrom && $serial <= (int)$rollTo;
+                }
+                return strcmp($code, $rollFrom) >= 0 && strcmp($code, $rollTo) <= 0;
+            });
+
+            $count = 0;
+            foreach ($enrollments as $enr) {
+                $enr->update(['group_tag' => $targetValue]);
+                $count++;
+            }
+
+            return back()->with('success', "রোল {$rollFrom} থেকে {$rollTo} পর্যন্ত মোট {$count} জন শিক্ষার্থীর গ্রুপ সফলভাবে আপডেট করা হয়েছে।");
+        }
+
+        if ($validated['mode'] === 'last_count') {
+            $count = (int)($validated['last_count'] ?? 10);
+            $enrollments = $query->with('student')->get()->sortByDesc(function ($enr) {
+                $code = (string)($enr->student?->student_code ?? '');
+                if (is_numeric($code)) return (int)$code;
+                if (strlen($code) >= 11 && is_numeric(substr($code, 7, 4))) {
+                    return (int)substr($code, 7, 4);
+                }
+                return $enr->id;
+            })->take($count);
+
+            foreach ($enrollments as $enr) {
+                $enr->update(['group_tag' => $targetValue]);
+            }
+
+            return back()->with('success', "সর্বশেষ {$enrollments->count()} জন শিক্ষার্থীর গ্রুপ সফলভাবে বরাদ্দ করা হয়েছে।");
+        }
+
+        return back()->with('error', 'অবৈধ অনুরোধ।');
+    }
 }

@@ -34,6 +34,11 @@ class Assignment extends Model
         return $this->hasMany(AssignmentSubmission::class);
     }
 
+    public function appeals()
+    {
+        return $this->hasMany(AssignmentAppeal::class);
+    }
+
     public function isOpen(): bool
     {
         $now = now();

@@ -372,6 +372,7 @@ class AccountsController extends Controller
             'remarks'         => 'nullable|string|max:255',
             'position'        => 'nullable|string|in:at_bottom,at_top,after,before',
             'relative_to'     => 'nullable|string|max:150',
+            'reset_paid'      => 'nullable|boolean',
         ]);
 
         $res = app(\App\Services\StudentFeeService::class)->updateParticular(
@@ -383,7 +384,8 @@ class AccountsController extends Controller
             isset($validated['current_due']) ? (float)$validated['current_due'] : null,
             $validated['position'] ?? null,
             $validated['relative_to'] ?? null,
-            isset($validated['current_paid']) ? (float)$validated['current_paid'] : null
+            isset($validated['current_paid']) ? (float)$validated['current_paid'] : null,
+            $request->boolean('reset_paid')
         );
 
         return response()->json($res);

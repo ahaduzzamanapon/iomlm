@@ -35,6 +35,8 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::resource('assignments', \App\Http\Controllers\Admin\AssignmentController::class);
         Route::post('assignment-submissions/{submission}/grade', [\App\Http\Controllers\Admin\AssignmentController::class, 'gradeSubmission'])->name('assignments.submissions.grade');
         Route::post('assignment-submissions/{submission}/override', [\App\Http\Controllers\Admin\AssignmentController::class, 'overrideSubmission'])->name('assignments.submissions.override');
+        Route::post('assignment-appeals/{appeal}/approve', [\App\Http\Controllers\Admin\AssignmentController::class, 'approveAppeal'])->name('assignments.appeals.approve');
+        Route::post('assignment-appeals/{appeal}/reject', [\App\Http\Controllers\Admin\AssignmentController::class, 'rejectAppeal'])->name('assignments.appeals.reject');
         Route::resource('courses', \App\Http\Controllers\Admin\CourseController::class);
         Route::post('courses/{course}/semesters', [\App\Http\Controllers\Admin\CourseController::class, 'storeSemester'])->name('courses.semesters.store');
         Route::delete('courses/{course}/semesters/{semester}', [\App\Http\Controllers\Admin\CourseController::class, 'destroySemester'])->name('courses.semesters.destroy');
@@ -98,6 +100,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::resource('batches', \App\Http\Controllers\Admin\BatchController::class);
         Route::post('batches/{batch}/generate-sessions', [\App\Http\Controllers\Admin\BatchController::class, 'generateTimeline'])->name('batches.generateTimeline');
         Route::post('batches/{batch}/split-students', [\App\Http\Controllers\Admin\BatchController::class, 'autoSplitStudents'])->name('batches.split-students');
+        Route::post('batches/{batch}/bulk-allocate-group', [\App\Http\Controllers\Admin\BatchController::class, 'bulkAllocateGroup'])->name('batches.bulk-allocate-group');
         Route::post('enrollments/{enrollment}/set-group', [\App\Http\Controllers\Admin\BatchController::class, 'setStudentGroup'])->name('enrollments.set-group');
         Route::post('classes/send-daily-reminders', [\App\Http\Controllers\Admin\ClassSessionController::class, 'sendDailyReminders'])->name('classes.send-reminders');
         Route::resource('classes', \App\Http\Controllers\Admin\ClassSessionController::class);
@@ -176,6 +179,7 @@ Route::middleware(['auth', 'role:admin,super_admin'])->prefix('admin')->name('ad
         Route::get('result-book/manual-marks/template', [\App\Http\Controllers\Admin\ResultBookController::class, 'downloadManualMarksTemplate'])->name('result-book.manual-marks-template');
         Route::post('result-book/manual-marks/import', [\App\Http\Controllers\Admin\ResultBookController::class, 'importManualMarksBulk'])->name('result-book.manual-marks-import');
         Route::post('result-book/auto-attendance', [\App\Http\Controllers\Admin\ResultBookController::class, 'autoAttendance'])->name('result-book.auto-attendance');
+        Route::post('result-book/auto-assignment', [\App\Http\Controllers\Admin\ResultBookController::class, 'autoAssignment'])->name('result-book.auto-assignment');
         Route::get('students/{student}/transcript', [\App\Http\Controllers\Admin\ResultBookController::class, 'transcript'])->name('students.transcript');
     });
 

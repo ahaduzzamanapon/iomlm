@@ -587,7 +587,14 @@ class StudentFeeService
         if ($selectedSemesterId === 'admission') {
             $admItem = $this->resolveAdmissionFeeItemData($student, $admissionInvoices, $studentFeePackage, $course);
             if ($admItem) {
-                $step1Particulars[] = array_merge(['sl' => 1, 'is_added' => false], $admItem);
+                $step1Particulars[] = array_merge([
+                    'sl'       => 1,
+                    'is_added' => false,
+                    'amount'   => $admItem['adm_amount'],
+                    'paid_amt' => $admItem['adm_paid'],
+                    'due'      => $admItem['adm_due'],
+                    'is_paid'  => $admItem['adm_is_paid'],
+                ], $admItem);
                 $selectedSemesterInvoice = $admissionInvoices->first();
             }
         } elseif ($courseType === 'SEMESTER_BASED') {
@@ -1574,7 +1581,8 @@ class StudentFeeService
         ?float $currentDueHint = null,
         ?string $position = null,
         ?string $relativeTo = null,
-        ?float $currentPaidHint = null
+        ?float $currentPaidHint = null,
+        bool $resetPaid = false
     ): array {
         $invoice = Invoice::findOrFail($invoiceId);
         $pName   = trim($particularName);
@@ -1604,9 +1612,21 @@ class StudentFeeService
         }
 
         // 3. User intention handling:
-        // If row is already paid (oldDue <= 0 and currentPaid > 0) and admin enters a new amount:
-        // they are adjusting the paid amount (e.g. from 1500 to 700)
-        if ($oldDue <= 0 && $currentPaid > 0 && $newDue > 0 && abs($newDue - $currentPaid) >= 0.01) {
+        $isAdmissionFee = ($invoice->category === 'ADMISSION') 
+            || str_contains(mb_strtolower($pName), 'admission') 
+            || str_contains(mb_strtolower($pName), 'ভর্তি');
+
+        if (!$resetPaid && $isAdmissionFee && $newDue >= 1500) {
+            $resetPaid = true;
+        }
+
+        if ($resetPaid) {
+            // Explicit admin reset: cancel any paid amount and set full newDue as dues
+            $currentPaid = 0.0;
+            $finalDue    = $newDue;
+            $diff        = $finalDue - $oldDue;
+        } elseif ($oldDue <= 0 && $currentPaid > 0 && $newDue > 0 && abs($newDue - $currentPaid) >= 0.01) {
+            // If row was marked paid and admin enters a new amount without resetPaid, adjust paid
             $currentPaid = $newDue;
             $finalDue = 0.0;
             $diff = 0.0;
@@ -1620,9 +1640,11 @@ class StudentFeeService
 
         // Total nominal amount for this particular
         $origAmt = isset($custom[$pName]['amount']) ? (float)$custom[$pName]['amount'] : ($oldDue + $currentPaid);
-        $newAmount = ($finalDue <= 0)
-            ? max($currentPaid, ($origAmt > 0 ? $origAmt : $currentPaid))
-            : ($finalDue + $currentPaid);
+        $newAmount = $resetPaid
+            ? $finalDue
+            : (($finalDue <= 0)
+                ? max($currentPaid, ($origAmt > 0 ? $origAmt : $currentPaid))
+                : ($finalDue + $currentPaid));
 
         $existingPos = $custom[$pName]['position'] ?? null;
         $existingRel = $custom[$pName]['relative_to'] ?? null;
@@ -1639,6 +1661,7 @@ class StudentFeeService
             'paid_amt'        => $currentPaid,
             'due'             => $finalDue,
             'is_paid'         => ($finalDue <= 0),
+            'reset_paid'      => $resetPaid,
             'adjusted_at'     => now()->toDateTimeString(),
             'adjusted_by'     => $userId ?? auth()->id(),
             'remarks'         => $remarks ?? ($custom[$pName]['remarks'] ?? 'ফি পরিবর্তন'),
@@ -1652,15 +1675,49 @@ class StudentFeeService
         ];
 
         // 4. Update Invoice totals safely
-        $newPayable     = max($invoice->paid_amount, $invoice->payable_amount + $diff);
-        $newDueAmt      = max(0, $invoice->due_amount + $diff);
-        $newTotalAmount = max($invoice->paid_amount, $invoice->amount + $diff);
+        if ($resetPaid) {
+            if ($invoice->category === 'ADMISSION') {
+                $newPayable     = $finalDue;
+                $newDueAmt      = $finalDue;
+                $newTotalAmount = $finalDue;
+                $status         = 'UNPAID';
+                $invoice->paid_amount = 0.0;
+                Payment::where('invoice_id', $invoice->id)->where('status', 'APPROVED')->update(['status' => 'CANCELLED']);
+            } else {
+                $paidDeduct = $currentPaidHint ?: (float)($custom[$pName]['paid_amt'] ?? 0);
+                $invoice->paid_amount = max(0, (float)$invoice->paid_amount - $paidDeduct);
+                $newPayable     = max($invoice->paid_amount, $invoice->payable_amount + $diff);
+                $newDueAmt      = max(0, $invoice->due_amount + $diff);
+                $newTotalAmount = max($invoice->paid_amount, $invoice->amount + $diff);
+                $status         = ($newDueAmt <= 0 && $invoice->paid_amount > 0) ? 'PAID' : (($invoice->paid_amount > 0) ? 'PARTIAL' : 'UNPAID');
 
-        $status = 'UNPAID';
-        if ($newDueAmt <= 0) {
-            $status = 'PAID';
-        } elseif ($invoice->paid_amount > 0) {
-            $status = 'PARTIAL';
+                if (str_contains(mb_strtolower($pName), 'admission') || str_contains(mb_strtolower($pName), 'ভর্তি')) {
+                    $admInv = Invoice::where('student_id', $invoice->student_id)
+                        ->where('category', 'ADMISSION')
+                        ->first();
+                    if ($admInv) {
+                        $admInv->update([
+                            'paid_amount'    => 0.0,
+                            'due_amount'     => $finalDue,
+                            'amount'         => $finalDue,
+                            'payable_amount' => $finalDue,
+                            'status'         => 'UNPAID',
+                        ]);
+                        Payment::where('invoice_id', $admInv->id)->where('status', 'APPROVED')->update(['status' => 'CANCELLED']);
+                    }
+                }
+            }
+        } else {
+            $newPayable     = max($invoice->paid_amount, $invoice->payable_amount + $diff);
+            $newDueAmt      = max(0, $invoice->due_amount + $diff);
+            $newTotalAmount = max($invoice->paid_amount, $invoice->amount + $diff);
+
+            $status = 'UNPAID';
+            if ($newDueAmt <= 0) {
+                $status = 'PAID';
+            } elseif ($invoice->paid_amount > 0) {
+                $status = 'PARTIAL';
+            }
         }
 
         $invoice->update([
@@ -1668,6 +1725,7 @@ class StudentFeeService
             'amount'             => $newTotalAmount,
             'payable_amount'     => $newPayable,
             'due_amount'         => $newDueAmt,
+            'paid_amount'        => $invoice->paid_amount,
             'status'             => $status,
         ]);
 
@@ -1990,7 +2048,9 @@ class StudentFeeService
             $paidAmtToRevert = (float) ($existing['due'] ?? 500);
         }
 
-        $fullAmount = isset($existing['amount']) ? (float)$existing['amount'] : $paidAmtToRevert;
+        $fullAmount = isset($existing['amount']) && (float)$existing['amount'] > 0
+            ? (float)$existing['amount']
+            : ($invoice->category === 'ADMISSION' && (float)$invoice->amount > 0 ? (float)$invoice->amount : $paidAmtToRevert);
 
         // Mark item as UNPAID in custom particulars
         $custom[$pName] = array_merge($existing, [
@@ -1999,6 +2059,7 @@ class StudentFeeService
             'paid_amt'         => 0.0,
             'due'              => $fullAmount,
             'is_paid'          => false,
+            'reset_paid'       => true,
             'is_custom'        => true,
             'reverted_at'      => $nowFormatted,
             'reverted_by'      => $userId ?? auth()->id(),
@@ -2007,10 +2068,50 @@ class StudentFeeService
         ]);
 
         // Revert payment amount from invoice
-        $actualDeduct = min((float)$invoice->paid_amount, $paidAmtToRevert);
-        $newPaid = max(0, (float)$invoice->paid_amount - $actualDeduct);
-        $newDue  = max(0, (float)$invoice->due_amount + $actualDeduct);
-        $status  = ($newPaid <= 0) ? 'UNPAID' : 'PARTIAL';
+        $isAdmissionFee = ($invoice->category === 'ADMISSION') 
+            || str_contains(mb_strtolower($pName), 'admission') 
+            || str_contains(mb_strtolower($pName), 'ভর্তি');
+
+        if ($invoice->category === 'ADMISSION') {
+            $newPaid = 0.0;
+            $newDue  = $fullAmount;
+            $newTotal = $fullAmount;
+            $status  = 'UNPAID';
+            Payment::where('invoice_id', $invoice->id)->where('status', 'APPROVED')->update(['status' => 'CANCELLED']);
+        } else {
+            $actualDeduct = min((float)$invoice->paid_amount, $paidAmtToRevert);
+            $newPaid = max(0, (float)$invoice->paid_amount - $actualDeduct);
+            $newDue  = max(0, (float)$invoice->due_amount + $actualDeduct);
+            $newTotal = $invoice->amount;
+            $status  = ($newPaid <= 0) ? 'UNPAID' : 'PARTIAL';
+
+            Payment::where('invoice_id', $invoice->id)
+                ->where('status', 'APPROVED')
+                ->where(function ($q) use ($paidAmtToRevert, $newPaid) {
+                    if ($newPaid <= 0) {
+                        // All paid reverted
+                    } else {
+                        $q->where('amount', '<=', $paidAmtToRevert);
+                    }
+                })
+                ->update(['status' => 'CANCELLED']);
+
+            if ($isAdmissionFee && $invoice->student_id) {
+                $admInv = Invoice::where('student_id', $invoice->student_id)
+                    ->where('category', 'ADMISSION')
+                    ->first();
+                if ($admInv) {
+                    $admInv->update([
+                        'paid_amount'    => 0.0,
+                        'due_amount'     => $fullAmount,
+                        'amount'         => $fullAmount,
+                        'payable_amount' => $fullAmount,
+                        'status'         => 'UNPAID',
+                    ]);
+                    Payment::where('invoice_id', $admInv->id)->where('status', 'APPROVED')->update(['status' => 'CANCELLED']);
+                }
+            }
+        }
 
         // Add to history
         $history = $custom['_history'] ?? [];
@@ -2028,6 +2129,8 @@ class StudentFeeService
 
         $invoice->update([
             'custom_particulars' => $custom,
+            'amount'             => $newTotal,
+            'payable_amount'     => $newPaid + $newDue,
             'paid_amount'        => $newPaid,
             'due_amount'         => $newDue,
             'status'             => $status,
@@ -2254,16 +2357,39 @@ class StudentFeeService
 
         // 2. Custom Particulars override
         $admCustom = $admInv?->custom_particulars['Admission Fee (ভর্তি ফি)'] ?? null;
+        if (!$admCustom && $student) {
+            $sem1Inv = $student->invoices()->where('category', 'SEMESTER')->orderBy('id')->first();
+            $admCustom = $sem1Inv?->custom_particulars['Admission Fee (ভর্তি ফি)'] ?? null;
+        }
+
         if ($admCustom) {
             $nominalAmt = isset($admCustom['amount']) ? (float)$admCustom['amount'] : $nominalAmt;
             $admDue     = (float) $admCustom['due'];
             $admPaid    = isset($admCustom['paid_amt']) ? (float)$admCustom['paid_amt'] : $admPaid;
+            if (!empty($admCustom['reset_paid']) || (isset($admCustom['is_paid']) && !$admCustom['is_paid'] && $admDue >= $nominalAmt)) {
+                $admPaid = 0.0;
+            }
+        }
+
+        // Automatic full due safeguard:
+        // If standard course admission fee is defined (e.g. 1500) and current due equals or exceeds it without approved waiver,
+        // it means the entire admission fee is due — any residual paid amount or inflated total (e.g. 2500) must be normalized
+        if ($courseAdmFee > 0 && $admDue >= $courseAdmFee && empty($waiverApprovedFee)) {
+            $nominalAmt = $courseAdmFee;
+            $admDue     = $courseAdmFee;
+            $admPaid    = 0.0;
+        }
+
+        if ($admInv && $admInv->status === 'UNPAID') {
+            $admPaid = 0.0;
         }
 
         // 3. Payments lookup
-        $actualPmtSum = $admInv ? (float) $admInv->payments()->where('status', 'APPROVED')->sum('amount') : 0.0;
-        if ($actualPmtSum > 0 && !$admCustom) {
-            $admPaid = $actualPmtSum;
+        if ($admInv && $admInv->status !== 'UNPAID' && empty($admCustom['reset_paid']) && (!isset($admCustom['is_paid']) || $admCustom['is_paid'] !== false)) {
+            $actualPmtSum = (float) $admInv->payments()->where('status', 'APPROVED')->sum('amount');
+            if ($actualPmtSum > 0 && !$admCustom) {
+                $admPaid = $actualPmtSum;
+            }
         }
 
         // 4. Poor fund safeguard: If invoice recorded full nominal 1500 as paid/payable by mistake,
@@ -2281,9 +2407,14 @@ class StudentFeeService
             }
         }
 
-        $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null);
+        $isPaid  = ($admInv && $admInv->status === 'PAID') || ($admDue <= 0 && $admInv !== null && $nominalAmt > 0 && empty($admCustom['reset_paid']));
+        if ($admInv && $admInv->status === 'UNPAID') {
+            $isPaid = false;
+        }
         $paidAmt = $admPaid;
-        if ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
+        if (!$isPaid && ($admDue >= $nominalAmt || ($courseAdmFee > 0 && $admDue >= $courseAdmFee && empty($waiverApprovedFee)))) {
+            $paidAmt = 0.0;
+        } elseif ($isPaid && $paidAmt <= 0 && $admPayable <= 0) {
             $paidAmt = 0.0;
         } elseif ($isPaid && $paidAmt <= 0) {
             $paidAmt = $admPayable > 0 ? $admPayable : ($waiverApprovedFee ?: $nominalAmt);
@@ -2302,6 +2433,10 @@ class StudentFeeService
             'name'             => 'Admission Fee (ভর্তি ফি)',
             'default_amount'   => $nominalAmt,
             'is_admission'     => true,
+            'amount'           => $nominalAmt,
+            'paid_amt'         => $paidAmt,
+            'due'              => $admDue,
+            'is_paid'          => $isPaid,
             'adm_amount'       => $nominalAmt,
             'adm_paid'         => $paidAmt,
             'adm_due'          => $admDue,

@@ -30,11 +30,10 @@ class RoutineController extends Controller
             ->where(function ($q) use ($studentGender, $enrollmentGroups) {
                 $q->whereNull('group_tag')
                   ->orWhere('group_tag', 'ALL');
-                if ($studentGender) {
-                    $q->orWhere('group_tag', $studentGender);
-                }
                 if (!empty($enrollmentGroups)) {
                     $q->orWhereIn('group_tag', $enrollmentGroups);
+                } elseif ($studentGender) {
+                    $q->orWhere('group_tag', $studentGender);
                 }
             })
             ->get()
@@ -45,11 +44,10 @@ class RoutineController extends Controller
             ->where(function ($q) use ($studentGender, $enrollmentGroups) {
                 $q->whereNull('group_tag')
                   ->orWhere('group_tag', 'ALL');
-                if ($studentGender) {
-                    $q->orWhere('group_tag', $studentGender);
-                }
                 if (!empty($enrollmentGroups)) {
                     $q->orWhereIn('group_tag', $enrollmentGroups);
+                } elseif ($studentGender) {
+                    $q->orWhere('group_tag', $studentGender);
                 }
             })
             ->whereDate('session_date', today())
@@ -63,11 +61,10 @@ class RoutineController extends Controller
             ->where(function ($q) use ($studentGender, $enrollmentGroups) {
                 $q->whereNull('group_tag')
                   ->orWhere('group_tag', 'ALL');
-                if ($studentGender) {
-                    $q->orWhere('group_tag', $studentGender);
-                }
                 if (!empty($enrollmentGroups)) {
                     $q->orWhereIn('group_tag', $enrollmentGroups);
+                } elseif ($studentGender) {
+                    $q->orWhere('group_tag', $studentGender);
                 }
             })
             ->extra()

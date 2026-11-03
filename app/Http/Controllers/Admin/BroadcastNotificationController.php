@@ -150,9 +150,10 @@ class BroadcastNotificationController extends Controller
                 }
 
                 $uName   = $user->name ?? 'সম্মানিত শিক্ষার্থী';
-                $uRoll   = $user->student->roll_no ?? '';
-                $uCourse = $user->student->batch->course->name ?? '';
-                $uBatch  = $user->student->batch->name ?? '';
+                $uRoll   = $user->student?->roll_no ?? $user->student?->student_code ?? '';
+                $uBatchObj = $user->student?->batch ?? $user->student?->enrollments?->first()?->batch;
+                $uCourse = $uBatchObj?->course?->name ?? '';
+                $uBatch  = $uBatchObj?->name ?? '';
 
                 $baseSms = !empty($validated['sms_message'])
                     ? $validated['sms_message']
@@ -181,9 +182,10 @@ class BroadcastNotificationController extends Controller
             foreach ($targetUsers as $user) {
                 if (!empty($user->email)) {
                     $uName   = $user->name ?? 'সম্মানিত শিক্ষার্থী';
-                    $uRoll   = $user->student->roll_no ?? '';
-                    $uCourse = $user->student->batch->course->name ?? '';
-                    $uBatch  = $user->student->batch->name ?? '';
+                    $uRoll   = $user->student?->roll_no ?? $user->student?->student_code ?? '';
+                    $uBatchObj = $user->student?->batch ?? $user->student?->enrollments?->first()?->batch;
+                    $uCourse = $uBatchObj?->course?->name ?? '';
+                    $uBatch  = $uBatchObj?->name ?? '';
 
                     $pTitle = str_replace(['{name}', '{roll}'], [$uName, $uRoll], $validated['title']);
                     $pMsg   = str_replace(

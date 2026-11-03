@@ -29,11 +29,10 @@ class ClassController extends Controller
         return $query->where(function ($q) use ($studentGender, $enrollmentGroups) {
             $q->whereNull('group_tag')
               ->orWhere('group_tag', 'ALL');
-            if ($studentGender) {
-                $q->orWhere('group_tag', $studentGender);
-            }
             if (!empty($enrollmentGroups)) {
                 $q->orWhereIn('group_tag', $enrollmentGroups);
+            } elseif ($studentGender) {
+                $q->orWhere('group_tag', $studentGender);
             }
         });
     }
@@ -135,10 +134,8 @@ class ClassController extends Controller
         // 3. Group eligibility check
         if ($class->group_tag && $class->group_tag !== 'ALL') {
             $studentGender = strtoupper($student->gender ?? '');
-            $allowed = false;
-            if ($class->group_tag === 'MALE' && $studentGender === 'MALE') $allowed = true;
-            elseif ($class->group_tag === 'FEMALE' && $studentGender === 'FEMALE') $allowed = true;
-            elseif ($enrollment->group_tag === $class->group_tag) $allowed = true;
+            $effectiveGroup = $enrollment->group_tag ?: $studentGender;
+            $allowed = ($effectiveGroup === $class->group_tag);
 
             if (!$allowed) {
                 return redirect()->route('student.classes.index')

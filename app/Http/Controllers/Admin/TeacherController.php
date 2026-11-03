@@ -61,7 +61,7 @@ class TeacherController extends Controller
 
         $teacher = Teacher::create(array_merge($validated, [
             'employee_id' => $nextEmpId,
-            'is_active'   => $request->boolean('is_active'),
+            'is_active'   => $request->has('is_active') ? $request->boolean('is_active') : true,
             'password'    => Hash::make($tempPassword),
         ]));
 
@@ -71,19 +71,25 @@ class TeacherController extends Controller
         $baseLoginEmail = $loginEmail;
         $counter = 1;
         while (User::where('email', $loginEmail)->exists()) {
+            $existing = User::where('email', $loginEmail)->first();
+            if ($existing && $existing->role === 'teacher' && empty($existing->employee_id)) {
+                break;
+            }
             $loginEmail = strtolower(str_replace([' ', '-'], '.', $nextEmpId)) . ($counter > 1 ? $counter : '') . '@iom.teacher';
             $counter++;
         }
 
-        $user = User::create([
-            'name'        => $teacher->name,
-            'email'       => $loginEmail,
-            'password'    => Hash::make($tempPassword),
-            'role'        => 'teacher',
-            'gender'      => $teacher->gender,
-            'employee_id' => $nextEmpId,
-            'avatar_url'  => $teacher->photo_url,
-        ]);
+        $user = User::updateOrCreate(
+            ['email' => $loginEmail],
+            [
+                'name'        => $teacher->name,
+                'password'    => Hash::make($tempPassword),
+                'role'        => 'teacher',
+                'gender'      => $teacher->gender,
+                'employee_id' => $nextEmpId,
+                'avatar_url'  => $teacher->photo_url,
+            ]
+        );
 
         $teacher->update(['user_id' => $user->id]);
         // ─────────────────────────────────────────────────────────────────
@@ -137,6 +143,19 @@ class TeacherController extends Controller
             } catch (\Exception $e) {
                 // Ignore silent duplicate email errors on user table if fallback
             }
+        } else {
+            $loginEmail = !empty($validated['email']) ? $validated['email'] : ($teacher->employee_id . '@iom.teacher');
+            $user = User::firstOrCreate(
+                ['email' => $loginEmail],
+                [
+                    'name'        => $teacher->name,
+                    'password'    => Hash::make($request->filled('password') ? $request->input('password') : (!empty($teacher->phone) ? $teacher->phone : 'iom@1234')),
+                    'role'        => 'teacher',
+                    'gender'      => $teacher->gender,
+                    'employee_id' => $teacher->employee_id,
+                ]
+            );
+            $teacher->update(['user_id' => $user->id]);
         }
 
         return redirect()->route('admin.teachers.index')->with('success', 'Teacher profile updated successfully.');
