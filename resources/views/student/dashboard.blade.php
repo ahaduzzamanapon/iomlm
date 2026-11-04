@@ -21,7 +21,7 @@
                     </div>
                 </div>
             </div>
-            <a href="{{ route('student.fees.index', ['tab' => 'dues']) }}" class="btn btn-sm" style="background:#dc2626;border-color:#b91c1c;color:#fff;font-weight:700;padding:10px 20px;border-radius:8px;font-size:13px;display:inline-flex;align-items:center;gap:8px;text-decoration:none">
+            <a href="{{ route('student.fees.index') }}" class="btn btn-sm" style="background:#dc2626;border-color:#b91c1c;color:#fff;font-weight:700;padding:10px 20px;border-radius:8px;font-size:13px;display:inline-flex;align-items:center;gap:8px;text-decoration:none">
                 <i class="fa-solid fa-credit-card"></i> বকেয়া ফি পরিশোধ করুন
             </a>
         </div>
@@ -144,7 +144,7 @@
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
-                <a href="{{ route('student.fees.index', ['tab' => 'dues']) }}" class="btn btn-outline btn-sm"
+                <a href="{{ route('student.fees.index') }}" class="btn btn-outline btn-sm"
                     style="font-size:12px;color:#047857;border-color:#10b981;font-weight:700">
                     <i class="fa-solid fa-receipt"></i> সম্পূর্ণ একাউন্টস লেজার ও রসিদ →
                 </a>
@@ -189,16 +189,24 @@
                 @if(isset($dueInvoices) && $dueInvoices->count() > 0)
                     <div style="display:flex;flex-direction:column;gap:8px">
                         @foreach($dueInvoices->take(4) as $dInv)
+                            @php
+                                $isActInv = ($dInv->category === 'FINE' || str_contains($dInv->invoice_no, 'INV-ACT') || str_contains($dInv->title, 'এক্টিভেশন') || str_contains($dInv->title, 'এক্টিভিশন') || str_contains(mb_strtolower($dInv->title), 'activation'));
+                            @endphp
                             <div
                                 style="background:#fff;border:1px solid #fee2e2;border-radius:8px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
                                 <div>
-                                    <div style="font-size:12.5px;font-weight:700;color:#0f172a">{{ $dInv->title }}</div>
+                                    <div style="font-size:12.5px;font-weight:700;color:#0f172a;display:flex;align-items:center;gap:6px">
+                                        <span>{{ $dInv->title }}</span>
+                                        @if($isActInv)
+                                            <span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 6px;border-radius:6px;font-weight:700">এক্টিভেশন ফি</span>
+                                        @endif
+                                    </div>
                                     <div style="font-size:11px;color:#64748b">ইনভয়েস: {{ $dInv->invoice_no }}</div>
                                 </div>
                                 <div style="text-align:right">
                                     <div style="font-size:14px;font-weight:800;color:#dc2626">
                                         ৳{{ number_format($dInv->due_amount, 2) }}</div>
-                                    <a href="{{ route('student.fees.index') }}"
+                                    <a href="{{ route('student.fees.index', ['tab' => 'monthly']) }}"
                                         style="font-size:11px;color:#2563eb;font-weight:700;text-decoration:none">
                                         পে করুন →
                                     </a>

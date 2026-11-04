@@ -47,7 +47,7 @@ class SmsService
         $apiUrl     = $apiUrl     ?: env('MIMSMS_API_URL', 'https://api.mimsms.com/api/V2/SMS');
         $apiKey     = $apiKey     ?: env('MIMSMS_API_KEY', 'RZW30XSQHWPQVIH');
         $userName   = $userName   ?: env('MIMSMS_USERNAME', 'kmarsus@gmail.com');
-        $senderName = $senderName ?: env('MIMSMS_SENDER_NAME');
+        $senderName = $senderName ?: (env('MIMSMS_SENDER_NAME') ?: 'IOM');
 
         if (empty($apiKey) || empty($userName)) {
             Log::error("MiMSMS API credentials missing. Please configure them in Settings.");

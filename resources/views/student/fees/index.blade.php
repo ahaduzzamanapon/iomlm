@@ -301,7 +301,20 @@
                                         @if($p['is_paid'] && (!empty($p['paid_by_name']) || !empty($p['paid_at'])))
                                             <div style="font-size:10.5px;color:#15803d;margin-top:2px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
                                                 <i class="fa-solid fa-circle-check" style="font-size:10px"></i>
-                                                <span>পরিশোধকারী: <strong>{{ $p['paid_by_name'] ?? 'অনলাইন / শিক্ষার্থী' }}</strong></span>
+                                                @php
+                                                    $displayPaidBy = $p['paid_by_name'] ?? 'অনলাইন / শিক্ষার্থী';
+                                                    if (!$isAdminSession) {
+                                                        $isStudentSelf = !empty($student?->name) && (
+                                                            strcasecmp(trim($displayPaidBy), trim($student->name)) === 0 ||
+                                                            str_contains(mb_strtolower($displayPaidBy), 'অনলাইন') ||
+                                                            str_contains(mb_strtolower($displayPaidBy), 'শিক্ষার্থী')
+                                                        );
+                                                        if (!$isStudentSelf) {
+                                                            $displayPaidBy = 'এডমিন';
+                                                        }
+                                                    }
+                                                @endphp
+                                                <span>পরিশোধকারী: <strong>{{ $displayPaidBy }}</strong></span>
                                                 @if(!empty($p['paid_at']))
                                                     <span style="color:#64748b">• {{ $p['paid_at'] }}</span>
                                                 @endif
@@ -312,7 +325,7 @@
                                         @elseif(!empty($p['reverted_by_name']))
                                             <div style="font-size:10.5px;color:#b91c1c;margin-top:2px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
                                                 <i class="fa-solid fa-rotate-left" style="font-size:10px"></i>
-                                                <span>আনপেইড করেছেন: <strong>{{ $p['reverted_by_name'] }}</strong></span>
+                                                <span>আনপেইড করেছেন: <strong>{{ $isAdminSession ? $p['reverted_by_name'] : 'এডমিন' }}</strong></span>
                                                 @if(!empty($p['reverted_at']))
                                                     <span style="color:#64748b">• {{ $p['reverted_at'] }}</span>
                                                 @endif
@@ -323,7 +336,7 @@
                                         @elseif(!empty($p['is_added']) && (!empty($p['created_by_name']) || !empty($p['added_at'])))
                                             <div style="font-size:10.5px;color:#0369a1;margin-top:2px;font-weight:500;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
                                                 <i class="fa-solid fa-plus-circle" style="font-size:10px"></i>
-                                                <span>যুক্ত করেছেন: <strong>{{ $p['created_by_name'] ?? 'অ্যাডমিন' }}</strong></span>
+                                                <span>যুক্ত করেছেন: <strong>{{ $isAdminSession ? ($p['created_by_name'] ?? 'এডমিন') : 'এডমিন' }}</strong></span>
                                                 @if(!empty($p['added_at']))
                                                     <span style="color:#64748b">• {{ $p['added_at'] }}</span>
                                                 @endif
@@ -393,11 +406,38 @@
                                                     $isMonthly = (!empty($p['is_monthly']) || (
                                                         !empty($p['name']) && (
                                                             str_contains($p['name'], 'Tuition Fee') || 
+                                                            str_contains($p['name'], 'বেতন') ||
                                                             str_contains($p['name'], 'মাস') || 
                                                             str_contains($p['name'], 'Month')
-                                                        ) && empty($p['is_added']) && (empty($p['category']) || $p['category'] === 'SEMESTER')
+                                                        )
                                                     )) && !$isAct;
                                                     $monthTag = $p['month_tag'] ?? '';
+                                                    if (empty($monthTag) && !empty($p['name']) && preg_match('/20\d{2}/', $p['name'], $yM)) {
+                                                        $y = $yM[0];
+                                                        $nl = mb_strtolower($p['name']);
+                                                        $mMap = [
+                                                            1  => ['january','jan','জানুয়ারি','জানুয়ারি','01-'],
+                                                            2  => ['february','feb','ফেব্রুয়ারি','ফেব্রুয়ারি','02-'],
+                                                            3  => ['march','mar','মার্চ','03-'],
+                                                            4  => ['april','apr','এপ্রিল','04-'],
+                                                            5  => ['may','মে','05-'],
+                                                            6  => ['june','jun','জুন','06-'],
+                                                            7  => ['july','jul','জুলাই','07-'],
+                                                            8  => ['august','aug','আগস্ট','08-'],
+                                                            9  => ['september','sep','সেপ্টেম্বর','09-'],
+                                                            10 => ['october','oct','অক্টোবর','10-'],
+                                                            11 => ['november','nov','নভেম্বর','11-'],
+                                                            12 => ['december','dec','ডিসেম্বর','12-']
+                                                        ];
+                                                        foreach($mMap as $mNum => $aliases) {
+                                                            foreach($aliases as $al) {
+                                                                if (str_contains($nl, $al)) {
+                                                                    $monthTag = sprintf('%04d-%02d', $y, $mNum);
+                                                                    break 2;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 @endphp
                                                 <input type="checkbox" class="step1-chk" data-name="{{ $p['name'] }}"
                                                     data-amount="{{ $p['due'] }}"
@@ -485,7 +525,20 @@
                                             {{ isset($hLog['amount']) ? '৳' . number_format($hLog['amount'], 2) : '—' }}
                                         </td>
                                         <td style="padding:6px 10px;color:#334155;font-weight:600">
-                                            {{ $hLog['user_name'] ?? 'অ্যাডমিন' }}
+                                            @if($isAdminSession)
+                                                {{ $hLog['user_name'] ?? 'এডমিন' }}
+                                            @else
+                                                @php
+                                                    $rawUser = $hLog['user_name'] ?? '';
+                                                    $isStudentSelf = !empty($student?->name) && (
+                                                        strcasecmp(trim($rawUser), trim($student->name)) === 0 ||
+                                                        str_contains(mb_strtolower($rawUser), 'অনলাইন') ||
+                                                        str_contains(mb_strtolower($rawUser), 'শিক্ষার্থী') ||
+                                                        str_contains(mb_strtolower($rawUser), 'student')
+                                                    );
+                                                @endphp
+                                                {{ $isStudentSelf ? ($student->name ?? 'শিক্ষার্থী') : 'এডমিন' }}
+                                            @endif
                                         </td>
                                         <td style="padding:6px 10px;color:#64748b">
                                             {{ $hLog['remarks'] ?? ($hLog['method'] ?? '—') }}
@@ -573,13 +626,13 @@
                                 <td>
                                     <strong>{{ $inv->title }}</strong><br>
                                     @php
-                                        $catLabel = ($inv->category === 'SEMESTER' && $courseType === 'SUBJECT_BASED')
-                                            ? 'COURSE FEE'
-                                            : $inv->category;
-                                        $isActInv = ($inv->category === 'FINE' && (str_contains($inv->invoice_no, 'INV-ACT') || str_contains($inv->title, 'এক্টিভিশন') || str_contains(mb_strtolower($inv->title), 'activation')));
+                                        $isActInv = ($inv->category === 'FINE' || str_contains($inv->invoice_no, 'INV-ACT') || str_contains($inv->title, 'এক্টিভেশন') || str_contains($inv->title, 'এক্টিভিশন') || str_contains(mb_strtolower($inv->title), 'activation'));
+                                        $catLabel = ($inv->category === 'FINE')
+                                            ? 'এক্টিভেশন ফি'
+                                            : (($inv->category === 'SEMESTER' && $courseType === 'SUBJECT_BASED') ? 'COURSE FEE' : $inv->category);
                                     @endphp
                                     @if($isActInv)
-                                        <span class="badge no-dot" style="font-size:10.5px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; font-weight:700">এক্টিভিশন ফি</span>
+                                        <span class="badge no-dot" style="font-size:10.5px; background:#fef3c7; color:#92400e; border:1px solid #fde68a; font-weight:700">এক্টিভেশন ফি</span>
                                     @else
                                         <span class="badge badge-secondary no-dot" style="font-size:10px">{{ $catLabel }}</span>
                                     @endif
@@ -784,6 +837,8 @@
                 </div>
 
                 <input type="hidden" name="remarks" id="modalRemarksInput" value="">
+                <input type="hidden" name="invoice_allocations" id="modalInvoiceAllocations" value="">
+                <input type="hidden" name="selected_particulars" id="modalSelectedParticulars" value="">
 
                 {{-- Month / Installment Quick Presets --}}
                 <div id="modalInstallmentOptions"
@@ -1352,7 +1407,7 @@
                 }
             }
 
-            function openPayModal(invId, title, invNo, dueAmt, suggestedAmt, remarks, monthlyRate) {
+            function openPayModal(invId, title, invNo, dueAmt, suggestedAmt, remarks, monthlyRate, allocations = null, itemsDetail = null) {
                 dueAmt = parseFloat(dueAmt) || 0;
                 monthlyRate = parseFloat(monthlyRate) || 0;
 
@@ -1374,6 +1429,16 @@
                 const remarksEl = document.getElementById('modalRemarksInput');
                 if (remarksEl) {
                     remarksEl.value = remarks || '';
+                }
+
+                const allocInput = document.getElementById('modalInvoiceAllocations');
+                if (allocInput) {
+                    allocInput.value = allocations ? JSON.stringify(allocations) : '';
+                }
+
+                const itemsInput = document.getElementById('modalSelectedParticulars');
+                if (itemsInput) {
+                    itemsInput.value = itemsDetail ? JSON.stringify(itemsDetail) : '';
                 }
 
                 const labelEl = document.getElementById('modalSelectedMonthLabel');
@@ -1517,6 +1582,13 @@
                             // কোনো মাস আনসিলেক্ট করলে পরবর্তী মাসগুলো আনসিলেক্ট হবে
                             for (let i = clickedIndex; i < monthlyChks.length; i++) {
                                 monthlyChks[i].checked = false;
+                                const mTag = monthlyChks[i].dataset.monthTag;
+                                if (mTag) {
+                                    const matchedAct = document.querySelector('.step1-chk:not(:disabled)[data-is-activation="1"][data-month-tag="' + mTag + '"]');
+                                    if (matchedAct && matchedAct.checked) {
+                                        matchedAct.checked = false;
+                                    }
+                                }
                             }
                         }
                     }
@@ -1572,32 +1644,57 @@
 
                 let total = 0;
                 let invoiceMap = {};
+                let allNames = [];
+                let allInvNos = [];
+                let invoiceAllocations = {};
+                let selectedItemsDetail = [];
 
                 chks.forEach(c => {
                     const amt = parseFloat(c.dataset.amount) || 0;
                     total += amt;
                     const invId = c.dataset.invoiceId || "{{ $selectedSemesterInvoice?->id ?? '' }}";
                     const invNo = c.dataset.invoiceNo || "{{ $selectedSemesterInvoice?->invoice_no ?? '' }}";
+                    const pName = c.dataset.name;
+
+                    allNames.push(pName);
+                    if (invNo && !allInvNos.includes(invNo)) {
+                        allInvNos.push(invNo);
+                    }
+
                     if (!invoiceMap[invId]) {
                         invoiceMap[invId] = { id: invId, no: invNo, due: 0, names: [] };
                     }
                     invoiceMap[invId].due += amt;
-                    invoiceMap[invId].names.push(c.dataset.name);
+                    invoiceMap[invId].names.push(pName);
+
+                    invoiceAllocations[invId] = (invoiceAllocations[invId] || 0) + amt;
+                    selectedItemsDetail.push({
+                        name: pName,
+                        amount: amt,
+                        invoice_id: invId,
+                        invoice_no: invNo,
+                        is_activation: c.dataset.isActivation === '1',
+                        month_tag: c.dataset.monthTag || ''
+                    });
                 });
 
                 const invoiceIds = Object.keys(invoiceMap);
-                if (invoiceIds.length > 1) {
-                    alert('অনলাইন গেটওয়ের মাধ্যমে একসাথে একাধিক ভিন্ন ইনভয়েস পরিশোধ করা যায় না। অনুগ্রহ করে কোর্স ফি এবং এক্টিভিশন ফি আলাদাভাবে নির্বাচন করে পরিশোধ করুন।');
-                    return;
-                }
+                const semesterInvId = "{{ $selectedSemesterInvoice?->id ?? '' }}";
+                let primaryInvoiceId = (semesterInvId && invoiceMap[semesterInvId]) ? semesterInvId : invoiceIds[0];
+                let primaryInvoiceNo = allInvNos.join(', ') || invoiceMap[primaryInvoiceId]?.no || 'INV-MULTI';
+                let combinedTitle = allNames.join(', ');
 
-                const target = invoiceMap[invoiceIds[0]];
-                const invoiceId = target.id || "{{ $selectedSemesterInvoice?->id ?? ($invoices->first()?->id ?? '') }}";
-                const invoiceNo = target.no || "{{ $selectedSemesterInvoice?->invoice_no ?? ($invoices->first()?->invoice_no ?? 'INV-001') }}";
-                const title = target.names.join(', ');
-                const invoiceDue = parseFloat(target.due) || total;
-
-                openPayModal(invoiceId, title, invoiceNo, invoiceDue, total, target.names.join(', '), {{ $monthlyTuition ?? 100 }});
+                openPayModal(
+                    primaryInvoiceId,
+                    combinedTitle,
+                    primaryInvoiceNo,
+                    total,
+                    total,
+                    combinedTitle,
+                    {{ $monthlyTuition ?? 100 }},
+                    invoiceAllocations,
+                    selectedItemsDetail
+                );
             }
             window.goToStep2 = goToStep2Payment;
 

@@ -524,17 +524,34 @@ class PaymentGatewayService
             if (!$form) {
                 // If this is a student portal invoice payment
                 if ($transaction->invoice_id) {
-                    $invoice = Invoice::find($transaction->invoice_id);
-                    if ($invoice && $invoice->status !== 'PAID') {
-                        $trxId = $transaction->gateway_trx_id ?: $transaction->tran_id;
-                        $method = strtoupper($transaction->gateway) === 'BKASH' ? 'BKASH' : 'ONLINE';
-                        AccountingService::receivePayment(
-                            $invoice,
-                            (float) $transaction->amount,
-                            $method,
-                            $trxId,
-                            "Online Fee Payment via " . strtoupper($transaction->gateway) . " (Tran ID: {$transaction->tran_id})"
-                        );
+                    $allocations = $transaction->raw_response['invoice_allocations'] ?? null;
+                    $trxId = $transaction->gateway_trx_id ?: $transaction->tran_id;
+                    $method = strtoupper($transaction->gateway) === 'BKASH' ? 'BKASH' : 'ONLINE';
+
+                    if (!empty($allocations) && is_array($allocations)) {
+                        foreach ($allocations as $targetInvId => $allocAmt) {
+                            $targetInv = Invoice::find($targetInvId);
+                            if ($targetInv && $targetInv->status !== 'PAID' && (float)$allocAmt > 0) {
+                                AccountingService::receivePayment(
+                                    $targetInv,
+                                    (float) $allocAmt,
+                                    $method,
+                                    $trxId,
+                                    "Online Fee Payment via " . strtoupper($transaction->gateway) . " (Tran ID: {$transaction->tran_id})"
+                                );
+                            }
+                        }
+                    } else {
+                        $invoice = Invoice::find($transaction->invoice_id);
+                        if ($invoice && $invoice->status !== 'PAID') {
+                            AccountingService::receivePayment(
+                                $invoice,
+                                (float) $transaction->amount,
+                                $method,
+                                $trxId,
+                                "Online Fee Payment via " . strtoupper($transaction->gateway) . " (Tran ID: {$transaction->tran_id})"
+                            );
+                        }
                     }
                 }
                 return true;

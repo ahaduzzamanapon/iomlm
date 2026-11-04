@@ -496,10 +496,10 @@ class AdmissionController extends Controller
 
     public function approve(Request $request, AdmissionForm $admission)
     {
-        if ($request->input('sms_template_id') <= 0) {
+        if (empty($request->input('sms_template_id')) || (int)$request->input('sms_template_id') <= 0) {
             $request->merge(['sms_template_id' => null]);
         }
-        if ($request->input('email_template_id') <= 0) {
+        if (empty($request->input('email_template_id')) || (int)$request->input('email_template_id') <= 0) {
             $request->merge(['email_template_id' => null]);
         }
 
@@ -511,8 +511,8 @@ class AdmissionController extends Controller
             'payment_method'        => 'nullable|string|max:50',
             'transaction_id'        => 'nullable|string|max:100',
             'sender_number'         => 'nullable|string|max:50',
-            'email_template_id'     => 'nullable|exists:email_templates,id',
-            'sms_template_id'       => 'nullable|exists:email_templates,id',
+            'email_template_id'     => 'nullable',
+            'sms_template_id'       => 'nullable',
             'email_subject'         => 'nullable|string|max:255',
             'email_body'            => 'nullable|string',
             'sms_body'              => 'nullable|string|max:1000',

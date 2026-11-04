@@ -52,15 +52,35 @@ class FeeController extends Controller
         $dueAmount = (float) $invoice->due_amount;
 
         $validated = $request->validate([
-            'amount'         => 'nullable|numeric|min:1',
-            'payment_method' => 'required|string',
-            'transaction_id' => 'nullable|string|max:100',
-            'sender_number'  => 'nullable|string|max:30',
-            'remarks'        => 'nullable|string|max:255',
+            'amount'               => 'nullable|numeric|min:1',
+            'payment_method'       => 'required|string',
+            'transaction_id'       => 'nullable|string|max:100',
+            'sender_number'        => 'nullable|string|max:30',
+            'remarks'              => 'nullable|string|max:255',
+            'invoice_allocations'  => 'nullable|string',
+            'selected_particulars' => 'nullable|string',
         ]);
 
-        // Student cannot edit fee amount; must pay exact full determined due amount of the invoice
-        $validated['amount'] = $dueAmount;
+        $rawAllocations = $request->input('invoice_allocations');
+        $allocations = [];
+        if ($rawAllocations) {
+            $decoded = is_array($rawAllocations) ? $rawAllocations : json_decode($rawAllocations, true);
+            if (is_array($decoded) && !empty($decoded)) {
+                foreach ($decoded as $tInvId => $tAmt) {
+                    $tInvId = (int) $tInvId;
+                    $tAmt = round((float) $tAmt, 2);
+                    if ($tAmt > 0) {
+                        $tInv = Invoice::where('student_id', $student->id)->find($tInvId);
+                        if ($tInv && $tInv->status !== 'PAID') {
+                            $allocations[$tInvId] = $tAmt;
+                        }
+                    }
+                }
+            }
+        }
+
+        $totalPayable = !empty($allocations) ? array_sum($allocations) : $dueAmount;
+        $validated['amount'] = $totalPayable;
 
         $rawMethod = strtoupper(trim($validated['payment_method']));
         $method = strtolower($rawMethod);
@@ -82,6 +102,14 @@ class FeeController extends Controller
                 ? \App\Services\PaymentGatewayService::getBkashConfig()['mode']
                 : \App\Services\PaymentGatewayService::getSslcommerzConfig()['mode'];
 
+            $rawMeta = [];
+            if (!empty($allocations)) {
+                $rawMeta['invoice_allocations'] = $allocations;
+            }
+            if ($request->filled('selected_particulars')) {
+                $rawMeta['selected_particulars'] = json_decode($request->input('selected_particulars'), true);
+            }
+
             $transaction = \App\Models\GatewayTransaction::create([
                 'tran_id'           => \App\Models\GatewayTransaction::generateTranId('FEE'),
                 'gateway'           => $method,
@@ -95,6 +123,7 @@ class FeeController extends Controller
                 'customer_email'    => $student->email ?: $user?->email,
                 'status'            => 'INITIATED',
                 'ip_address'        => $request->ip(),
+                'raw_response'      => !empty($rawMeta) ? $rawMeta : null,
             ]);
 
             if ($method === 'sslcommerz') {
@@ -178,12 +207,29 @@ class FeeController extends Controller
             default         => 'Student Portal Manual Payment (Pending Approval)'
         };
 
+        if (!empty($allocations) && count($allocations) > 1) {
+            foreach ($allocations as $targetInvId => $allocAmt) {
+                $targetInv = Invoice::find($targetInvId);
+                if ($targetInv && $targetInv->student_id === $student->id && (float)$allocAmt > 0) {
+                    \App\Services\AccountingService::submitStudentPayment(
+                        $targetInv,
+                        (float) $allocAmt,
+                        $dbPaymentMethod,
+                        $cleanTrxId,
+                        (!empty($validated['remarks']) ? $validated['remarks'] : ('একত্রিত ফি পরিশোধ — ' . ($targetInv->title ?: $targetInv->invoice_no))),
+                        $validated['sender_number'] ?? null
+                    );
+                }
+            }
+            return back()->with('success', '⏳ একত্রিত পেমেন্ট ট্রানজেকশন সফলভাবে জমা দেওয়া হয়েছে! অ্যাডমিন অনুমোদন করার সাথে সাথে ফি রসিদ ও বকেয়া আপডেট হয়ে যাবে।');
+        }
+
         $payment = \App\Services\AccountingService::submitStudentPayment(
             $invoice,
             (float) $validated['amount'],
             $dbPaymentMethod,
             $cleanTrxId,
-            $validated['remarks'] ?: $defaultRemarks,
+            (!empty($validated['remarks']) ? $validated['remarks'] : $defaultRemarks),
             $validated['sender_number'] ?? null
         );
 

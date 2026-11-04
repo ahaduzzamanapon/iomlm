@@ -736,9 +736,19 @@
                                 </div>
                             </div>
 
+                            @php
+                                $previewStudentName = $admission->applicant_name ?: ($admission->student?->name ?? 'Student');
+                                $previewStudentCode = $admission->student?->student_code ?? '{student_id}';
+                                $previewPassword = $admission->student?->temporary_password ?? '123456';
+                                $renderedSmsPreview = str_replace(
+                                    ['{name}', '{student_id}', '{roll}', '{password}', '{login_url}'],
+                                    [$previewStudentName, $previewStudentCode, $previewStudentCode, $previewPassword, url('/login')],
+                                    $defaultSmsTemplateContent
+                                );
+                            @endphp
                             <div class="form-group" style="margin-bottom:8px;">
                                 <label style="font-size:12px;font-weight:600;color:#334155;margin-bottom:3px;display:block;">এসএমএস বার্তা (SMS Body)</label>
-                                <textarea name="sms_body" id="approve_sms_body" class="form-control" rows="4" oninput="this.dataset.edited='1';updateSmsCharCounter()" style="font-size:12px;line-height:1.5;font-family:'Kalpurush',monospace;"></textarea>
+                                <textarea name="sms_body" id="approve_sms_body" class="form-control" rows="4" oninput="this.dataset.edited='1';updateSmsCharCounter()" style="font-size:12px;line-height:1.5;font-family:'Kalpurush',monospace;">{{ old('sms_body', $renderedSmsPreview) }}</textarea>
                             </div>
 
                             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">

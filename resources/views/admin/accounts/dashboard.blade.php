@@ -135,12 +135,12 @@
                     </div>
 
                     {{-- 5. Amount Input (Spacious & Clearly Visible) --}}
-                    <div style="flex:1 1 130px;min-width:120px">
+                    <div style="flex:0 0 140px;width:140px;min-width:140px">
                         <label style="font-size:12px;font-weight:700;color:#92400e;display:block;margin-bottom:4px">
                             ফি (টাকা) <span style="color:#dc2626">*</span>
                         </label>
                         <input type="number" name="amount" class="form-control" value="100" min="1" step="1" required
-                            style="font-size:14px;height:38px;background:#fff;font-weight:700;color:#92400e;width:100%;text-align:center"
+                            style="font-size:15px;height:38px;background:#fff;font-weight:700;color:#92400e;width:140px;min-width:140px;box-sizing:border-box;text-align:center"
                             placeholder="ফি পরিমাণ (টাকা)" title="এক্টিভেশন ফি এর পরিমাণ (টাকা)">
                     </div>
 
