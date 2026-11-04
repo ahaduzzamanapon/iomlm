@@ -1562,21 +1562,21 @@
             }
         }
 
-        window.openModal = function (id) {
+        function openModal(id) {
             const m = typeof id === 'string' ? document.getElementById(id) : id;
             if (!m) return;
             m.classList.add('open', 'active', 'show');
-            m.style.display = 'flex';
+            m.style.setProperty('display', 'flex', 'important');
             m.style.pointerEvents = 'auto';
             m.style.opacity = '1';
             document.body.style.overflow = 'hidden';
-        };
+        }
 
-        window.closeModal = function (id) {
+        function closeModal(id) {
             const m = typeof id === 'string' ? document.getElementById(id) : id;
             if (!m) return;
             m.classList.remove('open', 'active', 'show');
-            m.style.display = 'none';
+            m.style.setProperty('display', 'none', 'important');
             m.style.pointerEvents = '';
             m.style.opacity = '';
             const anyStillOpen = document.querySelectorAll(
@@ -1587,7 +1587,12 @@
             if (!anyStillOpen || anyStillOpen.length === 0) {
                 document.body.style.overflow = '';
             }
-        };
+        }
+
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.openModalByName = openModal;
+        window.closeModalByName = closeModal;
         const lf = document.getElementById('lp-flash');
         if (lf) setTimeout(() => { lf.style.opacity = '0'; lf.style.transition = 'opacity .4s'; setTimeout(() => lf.remove(), 400); }, 4000);
 
@@ -1989,31 +1994,10 @@
         }
 
         // ── UNIVERSAL GLOBAL MODAL CONTROLLERS ──
-        window.openModal = function(id) {
-            const m = typeof id === 'string' ? document.getElementById(id) : id;
-            if (!m) return;
-            m.classList.add('open', 'active', 'show');
-            m.style.setProperty('display', 'flex', 'important');
-            m.style.pointerEvents = 'auto';
-            m.style.opacity = '1';
-            document.body.style.overflow = 'hidden';
-        };
-
-        window.closeModal = function(id) {
-            const m = typeof id === 'string' ? document.getElementById(id) : id;
-            if (!m) return;
-            m.classList.remove('open', 'active', 'show');
-            m.style.setProperty('display', 'none', 'important');
-            m.style.pointerEvents = '';
-            m.style.opacity = '';
-            document.body.style.overflow = '';
-        };
-
-        window.openModalByName = window.openModal;
-        window.closeModalByName = window.closeModal;
-
-        var openModal = function(id) { window.openModal(id); };
-        var closeModal = function(id) { window.closeModal(id); };
+        window.openModal = openModal;
+        window.closeModal = closeModal;
+        window.openModalByName = openModal;
+        window.closeModalByName = closeModal;
 
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
